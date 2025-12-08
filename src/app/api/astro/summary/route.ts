@@ -1,3 +1,4 @@
+// TEMP STUB - DO NOT REMOVE
 // FILE: src/app/api/astro/summary/route.ts
 import { NextResponse } from "next/server";
 
