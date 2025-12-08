@@ -6,17 +6,19 @@ import { getNakshatra } from "@/server/astro/nakshatra";
 
 function enrichNak(pos: PlanetPos): PlanetPos {
   if (!pos.nakName) {
-  const nk = getNakshatra(pos.lon);
-  return {
-    ...pos,
-    nakName: nk.name,
-    pada: nk.pada as 1 | 2 | 3 | 4,
-  };
+    // getNakshatra's TS type doesn't expose `pada`, so we cast to any
+    const nk = getNakshatra(pos.lon) as any;
+
+    return {
+      ...pos,
+      nakName: nk.name,
+      pada: nk.pada as 1 | 2 | 3 | 4,
+    };
+  }
+
+  return pos;
 }
 
-return pos as any;
-
-}
 
 export async function POST(req: Request) {
   try {
