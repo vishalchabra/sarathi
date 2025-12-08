@@ -1,12 +1,12 @@
 // next.config.mjs
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Fix: Disable linting during Vercel build
+  // 🔕 Disable ESLint during production builds (Vercel)
   eslint: {
     ignoreDuringBuilds: true,
   },
 
-  // Keep SwissEph native module server-side
+  // Keep native modules like swisseph server-side (don’t bundle)
   serverExternalPackages: ["swisseph"],
 };
 
