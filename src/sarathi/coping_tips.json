@@ -1,0 +1,27 @@
+[
+  {
+    "tag": "burnout",
+    "soothe": "I can tell you're running on fumes and still trying to hold everything together. That doesn't make you weak, it makes you human. You're allowed to protect your body instead of performing 'I'm fine' for everyone.",
+    "microAction": "Tonight is not about fixing your whole life. Tonight is 'don't light yourself on fire to prove you're trying.'"
+  },
+  {
+    "tag": "panic_quit",
+    "soothe": "That 'I wanna just quit and disappear' feeling is real. It's the part of you begging for safety, not drama.",
+    "microAction": "Don't donate your leverage in a rage moment. Keep receipts, stabilize, and move when you're actually in a window where people have to take you seriously."
+  },
+  {
+    "tag": "imposter_fear",
+    "soothe": "You keep telling yourself you're behind or failing. You're not behind. You're in a build phase that's meant to pressure you into clarity, not punish you.",
+    "microAction": "Your job right now is proof and positioning, not begging to be chosen."
+  },
+  {
+    "tag": "lonely",
+    "soothe": "I can feel how alone this feels, like nobody actually gets how heavy the load is on you.",
+    "microAction": "You do not have to carry the whole emotional job for everyone else tonight. You are allowed to keep some warmth for yourself."
+  },
+  {
+    "tag": "no_control",
+    "soothe": "That helpless, 'nothing I do matters' spiral is brutal. It's not that you're powerless. It's that you're in a slow-cook phase, not a fireworks phase.",
+    "microAction": "Instead of 'fix it now', the ask is 'hold your energy and quietly build leverage so when the door opens, you're walking in with proof, not panic.'"
+  }
+]

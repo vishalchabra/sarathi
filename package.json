@@ -1,0 +1,63 @@
+{
+  "name": "sarathi",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build --turbopack",
+    "start": "next start",
+    "lint": "eslint",
+    "clean": "rimraf .next .turbo",
+    "dev:clean": "rimraf .next .turbo && next dev --turbopack",
+    "build:clean": "rimraf .next .turbo && next build --turbopack"
+  },
+  "dependencies": {
+    "@radix-ui/react-accordion": "^1.2.12",
+    "@radix-ui/react-dialog": "^1.1.15",
+    "@radix-ui/react-label": "^2.1.7",
+    "@radix-ui/react-slot": "^1.2.3",
+    "@radix-ui/react-tabs": "^1.1.13",
+    "@radix-ui/react-tooltip": "^1.2.8",
+    "cheerio": "^1.1.2",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "date-holidays": "^3.26.1",
+    "framer-motion": "^12.23.24",
+    "geist": "^1.5.1",
+    "html2canvas": "^1.4.1",
+    "html2pdf.js": "^0.12.1",
+    "jspdf": "^3.0.3",
+    "lucide-react": "^0.546.0",
+    "luxon": "^3.7.2",
+    "next": "15.5.2",
+    "next-pwa": "^5.6.0",
+    "openai": "^6.7.0",
+    "qrcode": "^1.5.4",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1",
+    "server-only": "^0.0.1",
+    "tailwind-merge": "^3.3.1",
+    "tz-lookup": "^6.1.25"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "@tailwindcss/postcss": "^4",
+    "@tailwindcss/typography": "^0.5.18",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "autoprefixer": "^10.4.21",
+    "eslint": "^9",
+    "eslint-config-next": "15.5.2",
+    "postcss": "^8.5.6",
+    "rimraf": "^6.1.0",
+    "tailwindcss": "^4.1.13",
+    "tw-animate-css": "^1.4.0",
+    "typescript": "^5"
+  },
+  "optionalDependencies": {
+    "swisseph": "^0.5.17"
+  }
+}
