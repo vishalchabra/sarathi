@@ -2,7 +2,11 @@ export const runtime = "nodejs";
 import "server-only";
 import { NextResponse } from "next/server";
 
-import type { BirthInput } from "@/server/astro/asc";
+// App-wide birth type used by getNatal (dobISO, tob, place, etc.)
+import type { BirthInput } from "@/types";
+
+// Ascendant module birth type (dateISO, time, tz, lat, lon)
+import type { BirthInput as AscBirthInput } from "@/server/astro/asc";
 import { getAscendant } from "@/server/astro/asc";
 
 import { getNatal } from "@/server/astro/core";
@@ -16,11 +20,10 @@ import {
 
 // deterministic fallback so charts always render
 function seedFrom(birth?: BirthInput) {
-  // BirthInput from "@/server/astro/asc":
-  // dateISO, time, tz, lat, lon
-  const base = `${birth?.dateISO ?? "2000-01-01"}T${
-    birth?.time ?? "12:00"
-  }@${birth?.lat ?? 0},${birth?.lon ?? 0}`;
+  // This matches the BirthInput from "@/types"
+  const base = `${birth?.dobISO ?? "2000-01-01"}T${
+    birth?.tob ?? "12:00"
+  }@${birth?.place?.lat ?? 0},${birth?.place?.lon ?? 0}`;
 
   let h = 2166136261 >>> 0;
   for (let i = 0; i < base.length; i++) {
@@ -62,17 +65,25 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing birth" }, { status: 400 });
     }
 
-    // real natal/asc if available
+    // real natal if available - this expects BirthInput from "@/types"
     const natal = await getNatal(birth).catch(() => ({
       planets: {} as Record<string, number>,
     }));
 
     let asc: any = null;
     try {
-      // getAscendant is the actual export from asc.ts
-      asc = await getAscendant(birth);
+      // Convert our app BirthInput -> asc module BirthInput
+      const ascInput: AscBirthInput = {
+        dateISO: birth.dobISO,
+        time: birth.tob,
+        tz: (birth as any).tz ?? birth.place?.tz ?? "UTC",
+        lat: birth.place?.lat ?? 0,
+        lon: birth.place?.lon ?? 0,
+      };
+
+      asc = await getAscendant(ascInput);
     } catch {
-      // swallow, will fallback to synthetic chart
+      // swallow, we will fall back to synthetic chart if needed
     }
 
     const haveReal =
