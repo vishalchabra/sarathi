@@ -3,7 +3,7 @@ import "server-only";
 import { NextResponse } from "next/server";
 
 import type { BirthInput } from "@/server/astro/asc";
-import { computeAscSunMoon } from "@/server/astro/asc";
+import { getAscendant } from "@/server/astro/asc";
 
 import { getNatal } from "@/server/astro/core";
 import {
@@ -16,7 +16,7 @@ import {
 
 // deterministic fallback so charts always render
 function seedFrom(birth?: BirthInput) {
-  // Use the BirthInput shape from "@/server/astro/asc":
+  // BirthInput from "@/server/astro/asc":
   // dateISO, time, tz, lat, lon
   const base = `${birth?.dateISO ?? "2000-01-01"}T${
     birth?.time ?? "12:00"
@@ -63,13 +63,16 @@ export async function POST(req: Request) {
     }
 
     // real natal/asc if available
-    const natal = await getNatal(birth).catch(() => ({ planets: {} as Record<string, number> }));
+    const natal = await getNatal(birth).catch(() => ({
+      planets: {} as Record<string, number>,
+    }));
 
     let asc: any = null;
     try {
-      asc = await computeAscSunMoon(birth);
+      // getAscendant is the actual export from asc.ts
+      asc = await getAscendant(birth);
     } catch {
-      // swallow, we will fall back to synthetic
+      // swallow, will fallback to synthetic chart
     }
 
     const haveReal =
