@@ -71,11 +71,12 @@ function buildEmotionalWeather(core: CoreSignals): EmotionalWeather {
     (core.moonToday?.nakshatra || "").toString().toLowerCase();
   const relHouse = core.moonToday?.houseFromMoon;
   const tithiRaw =
-    (core.panchang?.tithi ||
-      core.panchang?.tithiName ||
-      "")!
-      .toString()
-      .toLowerCase();
+  (core.panchang?.tithi ??
+    (core.panchang as any)?.tithiName ??
+    "")
+    .toString()
+    .toLowerCase();
+
   const weekdayRaw =
     (core.panchang?.weekday ||
       (core as any).weekday ||
