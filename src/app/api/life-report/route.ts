@@ -7,7 +7,8 @@ import { buildNotificationFactsFromDailyGuide } from "@/server/notifications/dai
 import { pickNotificationsForMoment } from "@/server/notifications/engine";
 import type { NotificationContext } from "@/server/notifications/types";
 import type { CoreSignals } from "@/server/guides/types";
-import { buildDailyGuideFromCore } from "@/app/api/sarathi/daily-guide/route";
+import { buildDailyGuideFromCore } from "@/server/guides/daily-core";
+
 import { todayISOForNotificationTz } from "@/server/notifications/today";
 /* -------------------------------------------------------
    Enrich with MD / AD / PD
