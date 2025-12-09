@@ -42,8 +42,10 @@ export async function POST(req: Request) {
 
     // real natal/asc if available
     let natal = await getNatal(birth).catch(() => ({ planets: {} }));
-    let asc: any = null;
-    try { asc = computeAscendant(birth); } catch {}
+let asc: any = null;
+try {
+  asc = await computeAscSunMoon(birth);
+} catch {}
 
     const haveReal = natal && Object.keys(natal.planets || {}).length > 0;
     const ascLonReal = typeof asc?.ascLon === "number"
