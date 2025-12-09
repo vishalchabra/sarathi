@@ -1,7 +1,9 @@
 export const runtime = "nodejs";
 import "server-only";
 import { NextResponse } from "next/server";
-import type { BirthInput } from "@/types";
+import type { BirthInput } from "@/server/astro/asc";
+import { computeAscSunMoon } from "@/server/astro/asc";
+
 import { getNatal } from "@/server/astro/core";
 import computeAscSunMoon from "@/server/astro/asc";
 import { renderChartSVG, svgDataUrl, navamsaLon, dasamsaLon, norm360 } from "@/server/astro/chart-svg";
@@ -44,8 +46,9 @@ export async function POST(req: Request) {
     let natal = await getNatal(birth).catch(() => ({ planets: {} }));
 let asc: any = null;
 try {
-  asc = await computeAscSunMoon(birth);
+  asc = await computeAscSunMoon(birth as any);
 } catch {}
+
 
     const haveReal = natal && Object.keys(natal.planets || {}).length > 0;
     const ascLonReal = typeof asc?.ascLon === "number"
