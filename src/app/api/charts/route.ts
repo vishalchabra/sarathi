@@ -41,9 +41,12 @@ function seededDeg(seed: number, k: number) {
   return (x % 360) + ((x >>> 8) % 100) / 100;
 }
 
-function synthNatal(birth?: BirthInput) {
+function synthNatal(birth?: BirthInput): {
+  planets: Record<string | number, number>;
+  ascLon: number;
+} {
   const s = seedFrom(birth);
-  const planets: Record<string, number> = {
+  const planets: Record<string | number, number> = {
     "0": seededDeg(s, 0),
     "1": seededDeg(s, 1),
     "2": seededDeg(s, 2),
@@ -67,7 +70,7 @@ export async function POST(req: Request) {
 
     // real natal if available - this expects BirthInput from "@/types"
     const natal = await getNatal(birth).catch(() => ({
-      planets: {} as Record<string, number>,
+      planets: {} as Record<string | number, number>,
     }));
 
     let asc: any = null;
@@ -96,8 +99,9 @@ export async function POST(req: Request) {
         ? asc.ascSign * 30
         : undefined;
 
-    // fallback if missing
-    let planets = natal?.planets || {};
+    // fallback if missing — force planets to a single concrete type
+    let planets: Record<string | number, number> =
+      (natal?.planets as Record<string | number, number>) ?? {};
     let ascLon = ascLonReal;
     if (!haveReal || typeof ascLon !== "number") {
       const f = synthNatal(birth);
@@ -113,7 +117,7 @@ export async function POST(req: Request) {
     });
 
     // D9
-    const pD9: Record<string, number> = {};
+    const pD9: Record<string | number, number> = {};
     for (const [k, v] of Object.entries(planets)) {
       if (typeof v === "number") pD9[k] = navamsaLon(v);
     }
@@ -132,7 +136,7 @@ export async function POST(req: Request) {
     });
 
     // D10
-    const pD10: Record<string, number> = {};
+    const pD10: Record<string | number, number> = {};
     for (const [k, v] of Object.entries(planets)) {
       if (typeof v === "number") pD10[k] = dasamsaLon(v);
     }
