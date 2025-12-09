@@ -3,7 +3,7 @@ import "server-only";
 import { NextResponse } from "next/server";
 import type { BirthInput } from "@/types";
 import { getNatal } from "@/server/astro/core";
-import { computeAscSunMoon } from "@/server/astro/asc";
+import computeAscSunMoon from "@/server/astro/asc";
 import { renderChartSVG, svgDataUrl, navamsaLon, dasamsaLon, norm360 } from "@/server/astro/chart-svg";
 
 // deterministic fallback so charts always render
