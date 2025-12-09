@@ -6,9 +6,16 @@ import { getNakshatra } from "@/server/astro/nakshatra";
 
 function enrichNak(pos: PlanetPos): PlanetPos {
   if (!pos.nakName || !pos.pada) {
-  const nk = getNakshatra(pos.lon);
-  return { ...pos, nakName: nk.name, pada: nk.pada as 1|2|3|4 };
-}
+    // getNakshatra's TypeScript type doesn't include `pada`, but runtime does.
+    const nk = getNakshatra(pos.lon) as any;
+
+    return {
+      ...pos,
+      nakName: nk.name,
+      pada: nk.pada as 1 | 2 | 3 | 4,
+    };
+  }
+
   return pos;
 }
 
