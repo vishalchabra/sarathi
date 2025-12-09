@@ -47,7 +47,12 @@ export type Inputs = {
   tob?: string | null;
   place?: Place | null;
   profile?: Profile | null;
+
+  // 👇 add these two lines
+  mdadOverride?: MDAD | null;
+  transitsOverride?: TransitHit[] | null;
 };
+
 
 const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
 const addWeeks = (d: Date, n: number) => { const x = new Date(d); x.setDate(x.getDate() + n * 7); return x; };
