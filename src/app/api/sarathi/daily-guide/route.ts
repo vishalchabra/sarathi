@@ -845,7 +845,7 @@ function buildMoneyTip(core: CoreSignals): MoneyMicroTip {
 }
 
 // 🔹 Shared helper: build daily guide object from a CoreSignals bundle
-export async function buildDailyGuideFromCore(coreInput: CoreSignals) {
+async function buildDailyGuideFromCore(coreInput: CoreSignals) {
   let core = coreInput;
 
   // Ensure birth & moonToday exist even if partially missing
