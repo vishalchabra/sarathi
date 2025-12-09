@@ -1,5 +1,4 @@
 // FILE: src/app/api/sarathi/daily-guide/route.ts
-"use server";
 
 import { NextRequest } from "next/server";
 import type {
