@@ -40,7 +40,7 @@ type Profile = {
   dasha?: any | null;
 };
 
-type Inputs = {
+export type Inputs = {
   question?: string;
   category: Category;
   dobISO?: string | null;
