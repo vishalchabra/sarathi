@@ -5,10 +5,15 @@ import { getNatal } from "@/server/ephemeris";
 import { getNakshatra } from "@/server/astro/nakshatra";
 
 function enrichNak(pos: PlanetPos): PlanetPos {
-  if (!pos.nakName || !pos.pada) {
-  const nk = getNakshatra(pos.lon);
-  return { ...pos, nakName: nk.name, pada: nk.pada as 1|2|3|4 };
-}
+  if (!pos.nakName) {
+    const nk = getNakshatra(pos.lon);
+    return {
+      ...pos,
+      nakName: nk.name,
+      // we no longer read nk.pada here – getNakshatra doesn’t expose it
+    };
+  }
+
   return pos;
 }
 
