@@ -178,15 +178,16 @@ function buildEmotionalWeather(core: CoreSignals): EmotionalWeather {
   }
 
   // 4) Map tone → user-facing copy
-  if (tone === "intense") {
+    if (tone === "intense") {
     return {
       quality: "intense",
       summary:
         "There is a strong emotional undercurrent. Old themes or unresolved feelings can resurface; respond slowly and consciously instead of reacting in the moment.",
       workWithIt:
         "Pause before big conversations, channel intensity into one clear task, prioritise grounding routines like sleep, food and movement.",
-      avoid:
+      avoid: [
         "All-or-nothing decisions, revenge thinking or score-keeping, doom-scrolling or letting yourself spiral in loops.",
+      ],
     };
   }
 
@@ -197,8 +198,9 @@ function buildEmotionalWeather(core: CoreSignals): EmotionalWeather {
         "Emotions are closer to the surface today. Mood can shift with environment, people and the information you consume.",
       workWithIt:
         "Slow the pace a little, choose gentle company and media, give yourself permission to feel without judging yourself.",
-      avoid:
+      avoid: [
         "Over-exposure to stressful news, harsh self-talk, forcing big life decisions when you’re not feeling clear.",
+      ],
     };
   }
 
@@ -209,8 +211,9 @@ function buildEmotionalWeather(core: CoreSignals): EmotionalWeather {
         "Energy may feel lower or more inward today. Motivation can dip, but this is actually good for rest, reflection and quiet progress.",
       workWithIt:
         "Lower the bar, focus on one or two small meaningful tasks, build in extra rest and simple grounding routines.",
-      avoid:
+      avoid: [
         "Comparing your pace to others, labelling yourself as ‘lazy’, overloading the schedule just to avoid uncomfortable feelings.",
+      ],
     };
   }
 
@@ -221,10 +224,10 @@ function buildEmotionalWeather(core: CoreSignals): EmotionalWeather {
       "Emotional climate is workable and grounded. You can handle tasks and conversations with a calm, measured approach.",
     workWithIt:
       "Schedule important tasks and key conversations, clear one or two pending items, stay present rather than rushing.",
-    avoid:
+    avoid: [
       "Over-scheduling yourself, ignoring subtle emotional signals, making promises you cannot realistically keep.",
+    ],
   };
-}
 
 
 /* ---------------- Food Guide builder ---------------- */
