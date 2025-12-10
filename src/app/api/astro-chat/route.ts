@@ -9,7 +9,7 @@ export const runtime = "nodejs";
 
 import "server-only";
 import { NextResponse } from "next/server";
-
+import { ASTROSARATHI_SYSTEM_PROMPT } from "@/lib/qa/systemPrompt";
 /* --------------------------------------------------
    Types
 -------------------------------------------------- */

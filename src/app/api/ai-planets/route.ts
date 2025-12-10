@@ -4,6 +4,7 @@ export const runtime = "nodejs";
 import "server-only";
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
+import { ASTROSARATHI_SYSTEM_PROMPT } from "@/lib/qa/systemPrompt";
 
 // --- OpenAI client: safe even if OPENAI_API_KEY is missing ---
 const apiKey = process.env.OPENAI_API_KEY;
@@ -363,11 +364,28 @@ export async function POST(req: Request) {
 
     let ai: any | null = null;
     try {
-      const system =
-        "You are Sārathi, an insightful Vedic astrology guide and coach. " +
-        "Write for each planet with a planet-appropriate voice (tone, verbs, cadence), blending sign, house, nakshatra, and listed aspects. " +
-        "Interpret; do not list. Keep 3–5 sentences. Speak personally to the seeker. " +
-        'Return STRICT JSON: { "insights": { "PlanetName": { "headline": "", "summary": "" } } }. No markdown.';
+            const system = `
+${ASTROSARATHI_SYSTEM_PROMPT}
+
+You are now generating *planet-wise* insights for a single chart.
+
+- For each planet, use a planet-appropriate voice (tone, verbs, cadence) based on the provided "voice" hints.
+- Blend **sign, house, nakshatra, and aspects** into ONE cohesive paragraph.
+- Interpret; do not just list facts. Speak personally to the seeker.
+- Keep **3–5 sentences** per planet.
+- No bullet points, no headings, no markdown.
+
+Return STRICT JSON only:
+
+{
+  "insights": {
+    "PlanetName": {
+      "headline": "short label for this placement",
+      "summary": "3–5 sentence paragraph in plain text"
+    }
+  }
+}
+`;
 
       const userPayload = {
         planets: perPlanet.map((f) => {

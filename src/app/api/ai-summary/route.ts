@@ -3,7 +3,7 @@ export const runtime = "nodejs";
 import "server-only";
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
-
+import { ASTROSARATHI_SYSTEM_PROMPT } from "@/lib/qa/systemPrompt";
 /* ---------------- OpenAI setup (lazy) ---------------- */
 
 const GPT_MODEL = process.env.OPENAI_MODEL || "gpt-4.1-mini";
@@ -538,11 +538,18 @@ export async function POST(req: Request) {
         `AD: ${report.activePeriods.antardasha.subLord} ${report.activePeriods.antardasha.start}→${report.activePeriods.antardasha.end}`,
       );
 
-    const systemPrompt =
-      "You are Sārathi, a precise Vedic-astrology analyst. Use only provided facts. " +
-      "Prefer Nakshatra-based personality, then add clear actions. Keep it compact. " +
-      "Write sections: Current Tone, Career, Relationships, Health, Spiritual, Do/Don’t. " +
-      "Return clean markdown with those headings (no intro header).";
+    const system = `
+${ASTROSARATHI_SYSTEM_PROMPT}
+
+You are now writing a concise **life summary** for this chart.
+
+- Focus on overall life story: personality, key themes, strengths, and typical challenges.
+- Avoid generic cookbook lines; speak directly to the person.
+- Mention timing only briefly; detailed timing is handled elsewhere.
+- Use short sections with headings or bullet points where helpful.
+- Keep it grounded and practical, not fatalistic or dramatic.
+`;
+
 
     try {
       const client = getOpenAIClient();
@@ -550,9 +557,9 @@ export async function POST(req: Request) {
       const completion = await client.chat.completions.create({
         model: GPT_MODEL,
         temperature: 0.2,
-        max_tokens: 800,
+        max_tokens: 600,
         messages: [
-          { role: "system", content: systemPrompt },
+          { role: "system", content: ASTROSARATHI_SYSTEM_PROMPT },
           { role: "user", content: `FACTS:\n${facts.join("\n")}` },
         ],
       });

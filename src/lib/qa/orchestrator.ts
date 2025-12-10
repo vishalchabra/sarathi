@@ -354,32 +354,36 @@ export async function orchestrateQA(input: Inputs) {
       ? checklistLines
       : checklistLines.slice(shift).concat(checklistLines.slice(0, shift));
 
-  const mdAnswer = [
+    const mdAnswer = [
     `# 🚗 Vehicle timing${headingSuffix}`,
+    "",
+    "_Interpreted by **AstroSārathi**, your Vedic timing guide._",
     "",
     "### Bottom line",
     bottomLine,
     "",
-    "### Natal snapshot (what helps / hinders)",
+    "### Natal snapshot – what quietly helps or hinders",
     venLine && `- ${venLine}`,
     `- ${hmLine}`,
     "",
-    "### 📅 Your best windows",
+    "### 📅 Your strongest timing windows",
     win1,
     win2,
     "",
-    "### Buy / Wait guidance",
+    "### How to use these windows",
     guidance,
     "",
-        "### Smart checklist for you",
+    "### Smart checklist before you sign anything",
     ...rotatedChecklist,
     "",
-
-    // No MD/AD planets in the source line; keep it generic.
-    `*Source:* internal timing model (mode: ${mdSource}).`,
+    "### Next step",
+    "- Choose one of the stronger windows above, fix a **non-negotiable budget cap**, and treat every add-on as optional. If the deal respects your numbers, the timing supports you.",
+    "",
+    `*Source:* internal AstroSārathi timing model (mode: ${mdSource}).`,
   ]
     .filter(Boolean)
     .join("\n");
+
 
    return {
     ok: true,

@@ -4,6 +4,7 @@ export const runtime = "nodejs";
 import "server-only";
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
+import { ASTROSARATHI_SYSTEM_PROMPT } from "@/lib/qa/systemPrompt";
 
 /* ---------------- OpenAI setup (lazy) ---------------- */
 
@@ -16,12 +17,61 @@ function getOpenAIClient(): OpenAI {
 
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
+    // Only throws if this route is actually called at runtime
     throw new Error("OPENAI_API_KEY is missing");
   }
 
   cachedClient = new OpenAI({ apiKey });
   return cachedClient;
 }
+
+/* ---------------- System prompt for timeline ---------------- */
+
+const TIMELINE_SYSTEM_PROMPT = `
+${ASTROSARATHI_SYSTEM_PROMPT}
+
+Now you are writing a **3-part life timeline** based mainly on Vimshottari Mahadasha milestones.
+
+Focus on three areas:
+1) Career & Work
+2) Relationships & Family
+3) Inner Growth, Mindset & Spiritual Path
+
+STYLE:
+- Do NOT start with phrases like "Certainly", "Of course", "Here is".
+- No emojis, no hashtags, no social-media style language.
+- Write in the **second person** ("you"), as if gently guiding the native.
+- Use **simple, everyday language**. Avoid heavy jargon.
+- Be warm, grounded and non-fatalistic. No scare tactics.
+- Do NOT talk about death, accidents, or serious illnesses.
+- Always emphasize **free will, learning, and conscious choices**.
+
+SPECIFICITY:
+- Use milestone themes to describe concrete-feeling life situations.
+- For study / Mercury / Ketu themes: you may mention things like change of school, shift in stream, exam stress, or breaks in education (probabilistic language only).
+- For career themes: job changes, promotions, role shifts, extra workload, or pressure.
+- For relationships / family themes: periods of support, distance, responsibility, or emotional friction.
+- Use language like "you may have", "you likely experienced", "this period often brings" instead of describing events as certain.
+
+STRUCTURE (VERY IMPORTANT):
+- Output **three clear sections** with headings:
+
+Section 1: Career & Work
+- Go in rough time order (childhood/early years → youth → mid-career → later years).
+- Show how different Mahadasha phases shifted focus in studies, work choices, promotions, or work stress.
+- Highlight which phases look more supportive, and which needed extra patience or adjustment.
+
+Section 2: Relationships & Family
+- Again move through time.
+- Focus on family support, marriage/partnerships, children, and close emotional bonds.
+- Note phases that look more harmonious and phases that bring lessons or friction.
+- Keep the tone compassionate and practical; suggest wise ways to handle those energies.
+
+Section 3: Inner Growth, Mindset & Spiritual Path
+- Describe how Mahadasha changes shaped confidence, fears, values, faith, and spiritual curiosity.
+- Point out key "inner turning points" when they might question direction or seek deeper meaning.
+- End with an **encouraging, empowering summary** about how their journey helps them mature and align with their true path.
+`.trim();
 
 /* ---------------- simple fallback if AI not available ---------------- */
 
@@ -75,49 +125,8 @@ export async function POST(req: Request) {
           })
         : [];
 
+    // USER PAYLOAD: mostly data, minimal instructions
     const userPrompt = `
-You are an insightful, practical Vedic astrologer.
-
-Using the Vimshottari Mahadasha-based milestones below, write a 3-part life story for this person, focused on:
-
-1) Career & Work
-2) Relationships & Family
-3) Inner Growth, Mindset & Spiritual Path
-
-VERY IMPORTANT STYLE RULES:
-- Do NOT start with phrases like "Certainly", "Of course", "Here is", or similar. Begin directly with the story.
-- Do NOT use hashtags, emojis or social-media style language.
-- Write in the second person ("you"), as if you are gently guiding them.
-- Use simple, everyday language. Avoid heavy jargon.
-- Be warm, grounded and non-fatalistic. No scare tactics.
-- Do NOT talk about death, accidents, or serious illnesses.
-- Always emphasize free will, learning, and conscious choices.
-
-SPECIFICITY & EVENTS:
-- Use the milestone themes to describe concrete-feeling life situations.
-- When themes relate to study, exams, or Mercury/Ketu-type energies, you may describe things like: change of school, shift in stream, exam stress, or a possible break/interruption in education.
-- When themes relate to career, you may mention job changes, promotions, role shifts, or periods of extra workload and pressure.
-- When themes relate to relationships or family, you may mention phases of support, distance, responsibility, or emotional friction.
-- Use probabilistic language like "you may have", "you likely experienced", "this period often brings", rather than saying events happened with certainty.
-
-STRUCTURE THE ANSWER CLEARLY WITH 3 SECTIONS:
-
-Section 1: Career & Work
-- Go in rough time order (childhood/early years → youth → mid-career → later years if applicable).
-- Show how different Mahadashas shifted focus in studies, career choices, risks, promotions, work stress, leadership, or work changes.
-- Highlight periods that look supportive for growth and visibility, and periods that needed extra patience or adjustment.
-
-Section 2: Relationships & Family
-- Again, move through the dasha sequence in time order.
-- Focus on themes around family support, marriage/partnerships, children, and close emotional bonds.
-- Mention phases that seem more harmonious or nurturing, and phases that might bring misunderstandings, distance, or emotional lessons.
-- Keep the tone compassionate and practical, suggesting how they could have handled or can handle such energies more wisely.
-
-Section 3: Inner Growth, Mindset & Spiritual Path
-- Describe how the changing Mahadashas shaped their inner world: confidence, fears, values, faith, and spiritual curiosity.
-- Point out any patterns of "inner turning points" — times when they may question their direction, seek deeper meaning, or feel called to a higher purpose.
-- End with an encouraging overall message about how their journey is helping them mature and align with their true path.
-
 Profile:
 - Name: ${profile?.name ?? "the native"}
 - Birth: ${profile?.birthDateISO ?? "N/A"} ${profile?.birthTime ?? ""} (${profile?.birthTz ?? "tz"})
@@ -125,7 +134,7 @@ Profile:
 Mahadasha-based milestones (summary lines):
 ${lines.join("\n")}
 
-Full milestone data (for your reference as the model):
+Full milestone data (for your reference):
 ${JSON.stringify(lifeMilestones, null, 2)}
 `.trim();
 
@@ -135,7 +144,10 @@ ${JSON.stringify(lifeMilestones, null, 2)}
 
       const chat = await client.chat.completions.create({
         model: GPT_MODEL,
-        messages: [{ role: "user", content: userPrompt }],
+        messages: [
+          { role: "system", content: TIMELINE_SYSTEM_PROMPT },
+          { role: "user", content: userPrompt },
+        ],
         max_tokens: 900,
         temperature: 0.6,
       });

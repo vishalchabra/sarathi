@@ -4,6 +4,7 @@ export const runtime = "nodejs";
 import "server-only";
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
+import { ASTROSARATHI_SYSTEM_PROMPT } from "@/lib/qa/systemPrompt";
 
 /* ---------------- OpenAI setup (lazy) ---------------- */
 
@@ -46,11 +47,16 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const body = (await req.json().catch(() => ({}))) as any;
-    const prompt: string | undefined = body?.prompt;
+    const userPrompt = String(
+  body?.prompt ?? body?.question ?? body?.text ?? ""
+).trim();
 
-    if (!prompt || typeof prompt !== "string") {
-      return badJson("Missing 'prompt' in request body", 400);
-    }
+if (!userPrompt) {
+  return NextResponse.json(
+    { error: "Missing 'prompt' in request body" },
+    { status: 400 }
+  );
+}
 
     const systemPrompt =
       "You are Sārathi, an AI astrologer-personality and guide. " +
@@ -64,11 +70,11 @@ export async function POST(req: NextRequest) {
 
       const completion = await client.chat.completions.create({
         model: GPT_MODEL,
-        temperature: 0.4,
+        temperature: 0.7,
         max_tokens: 400,
         messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: prompt },
+          { role: "system", content: ASTROSARATHI_SYSTEM_PROMPT },
+          { role: "user", content: userPrompt },
         ],
       });
 

@@ -90,38 +90,42 @@ function buildWeekText(label: string, mainCat: TransitCategory): string {
     case "career":
       return [
         `${label}`,
-        `Theme: Career growth and responsibility take the lead this week.`,
-        `Rhythm: You may feel more focused on work, goals, or practical tasks, with a desire to make visible progress.`,
-        `Action: Choose one important work or study goal and move it forward with steady, realistic steps. Avoid overloading yourself; consistency matters more than speed.`,
+        `Theme: Career, work and responsibilities gently take the spotlight this week.`,
+        `Rhythm: You may feel more drawn to targets, deadlines or practical tasks, with a quiet urge to move something important forward.`,
+        `Action: Pick one meaningful work or study goal and give it steady attention. Protect your time from distractions instead of trying to do everything at once.`,
       ].join("\n");
+
     case "relationships":
       return [
         `${label}`,
-        `Theme: Relationships and emotional connections are in focus.`,
-        `Rhythm: Conversations, family matters, or partnership themes may feel more active or important now.`,
-        `Action: Make time for one meaningful check-in with someone you care about. Listen with patience and be honest about what you need too.`,
+        `Theme: Relationships, family and emotional bonds become more noticeable.`,
+        `Rhythm: Conversations, shared plans or small misunderstandings may ask for a bit more presence and patience from you now.`,
+        `Action: Choose one person who matters and initiate a sincere check-in. Listen fully, speak honestly, and let the tone stay soft rather than defensive.`,
       ].join("\n");
+
     case "health":
       return [
         `${label}`,
-        `Theme: Health, routines, and daily habits ask for attention.`,
-        `Rhythm: You may notice your energy levels or stress more clearly, pushing you to adjust your lifestyle.`,
-        `Action: Simplify your schedule where possible. Prioritise rest, movement, and simple food choices that support your body.`,
+        `Theme: Body, energy and day-to-day routines ask for recalibration.`,
+        `Rhythm: You might become more aware of how sleep, food and stress are affecting your mood and focus.`,
+        `Action: Make one small but clear adjustment—sleep 30 minutes earlier, clean up one meal, or schedule a short walk. Treat it as an investment, not a punishment.`,
       ].join("\n");
+
     case "inner":
       return [
         `${label}`,
-        `Theme: Inner growth, reflection, and emotional processing are highlighted.`,
-        `Rhythm: This week may feel more introspective, with a desire to understand your deeper motives and feelings.`,
-        `Action: Create small pockets of silence for journaling, prayer, or meditation. Let yourself feel what you feel without forcing quick answers.`,
+        `Theme: Inner processing, reflection and emotional integration are highlighted.`,
+        `Rhythm: Life may feel a bit quieter on the surface but deeper questions or feelings can come up underneath.`,
+        `Action: Give yourself pockets of silence—journaling, prayer, or a slow walk without your phone. Let insights appear instead of forcing decisions immediately.`,
       ].join("\n");
+
     case "general":
     default:
       return [
         `${label}`,
-        `Theme: A balanced week with no single area dominating strongly.`,
-        `Rhythm: Life may feel relatively steady, giving you space to handle everyday matters and small improvements.`,
-        `Action: Use this gentle rhythm to organise your priorities, clear minor pending tasks, and check in with your overall direction.`,
+        `Theme: A balanced, mixed week with no single area dominating strongly.`,
+        `Rhythm: Everyday life may feel steady, giving you room to tidy up loose ends and organise priorities.`,
+        `Action: Use this breathing space to clear small pending tasks, review your bigger direction, and set one simple intention for the next week.`,
       ].join("\n");
   }
 }

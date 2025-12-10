@@ -1,253 +1,277 @@
 // FILE: app/page.tsx
-"use client";
 
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import {
+  Star,
+  MessageCircle,
+  Clock,
+  Sparkles,
+} from "lucide-react";
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-slate-950 text-slate-50">
-      {/* Top gradient + navbar */}
-      <div className="relative overflow-hidden">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(56,189,248,0.18),_transparent_60%),radial-gradient(circle_at_bottom,_rgba(129,140,248,0.18),_transparent_60%)]" />
-        <header className="relative z-10 mx-auto flex max-w-6xl items-center justify-between px-4 py-5">
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl border border-cyan-400/40 bg-slate-900/70 text-xs font-semibold tracking-tight">
-              ♃
+    <div className="min-h-screen bg-slate-950 text-slate-50">
+      {/* Top bar */}
+      <header className="border-b border-slate-800/60 bg-slate-950/80 backdrop-blur">
+        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
+          <Link href="/" className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-indigo-500/20 border border-indigo-400/40">
+              <Sparkles className="h-4 w-4 text-indigo-300" />
             </div>
-            <div>
-              <div className="text-sm font-semibold tracking-tight">
+            <div className="leading-tight">
+              <div className="text-sm font-semibold tracking-wide">
                 AstroSārathi
               </div>
-              <div className="text-[10px] uppercase tracking-[0.18em] text-slate-400">
+              <div className="text-[11px] text-slate-400">
                 The charioteer of your journey within
               </div>
             </div>
-          </div>
+          </Link>
 
-          <nav className="hidden items-center gap-6 text-xs text-slate-300 md:flex">
-            <a href="#how-it-works" className="hover:text-cyan-300">
-              How it works
-            </a>
-            <a href="#features" className="hover:text-cyan-300">
-              Features
-            </a>
-            <a href="#faq" className="hover:text-cyan-300">
-              FAQ
-            </a>
-            <Link href="/sarathi/life-report">
-              <Button size="sm" className="rounded-full text-xs">
-                Open Sarathi
-              </Button>
+          <nav className="hidden gap-4 text-sm text-slate-300 sm:flex">
+            <Link href="/sarathi/life-report" className="hover:text-slate-50">
+              Life Report
+            </Link>
+            <Link href="/sarathi/daily-guide" className="hover:text-slate-50">
+              Daily Guide
+            </Link>
+            <Link href="/sarathi/chat" className="hover:text-slate-50">
+              Ask AstroSārathi
             </Link>
           </nav>
-        </header>
 
+          <div className="flex items-center gap-2">
+            <Badge className="hidden bg-emerald-500/15 text-[11px] font-normal text-emerald-300 border border-emerald-400/30 sm:inline-flex">
+              Early access · Private beta
+            </Badge>
+            <Link href="/sarathi/life-report">
+              <Button
+                size="sm"
+                className="rounded-xl bg-indigo-500 px-4 text-xs font-medium shadow-sm hover:bg-indigo-400"
+              >
+                Get your Life Report
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </header>
+
+      {/* Main content */}
+      <main className="mx-auto flex max-w-5xl flex-col gap-10 px-4 pb-16 pt-8 md:pt-12">
         {/* Hero */}
-        <section className="relative z-10 mx-auto flex max-w-6xl flex-col gap-10 px-4 pb-16 pt-6 md:flex-row md:items-center md:pb-20 md:pt-10">
-          <div className="flex-1 space-y-6">
-            <Badge className="border border-cyan-400/40 bg-slate-900/70 text-[10px] font-medium uppercase tracking-[0.18em]">
-              Early Preview · For personal testing
+        <section className="grid gap-8 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] md:items-center">
+          <div className="space-y-5">
+            <Badge className="bg-indigo-500/15 text-[11px] font-normal text-indigo-200 border border-indigo-400/40">
+              Vedic astrology · Purpose · Practical guidance
             </Badge>
 
-            <h1 className="text-3xl font-semibold leading-tight tracking-tight md:text-5xl">
-              Your personal{" "}
-              <span className="bg-gradient-to-r from-cyan-300 via-sky-300 to-indigo-300 bg-clip-text text-transparent">
-                Vedic astrology guide
-              </span>
-              , powered by AI.
+            <h1 className="text-balance text-3xl font-semibold tracking-tight sm:text-4xl md:text-5xl">
+              A world-class Vedic astrologer,
+              <span className="text-indigo-300"> in your browser.</span>
             </h1>
 
-            <p className="max-w-xl text-sm leading-relaxed text-slate-300 md:text-base">
-              AstroSārathi combines precise Vedic calculations with an intelligent
-              assistant that explains your{" "}
-              <span className="font-medium text-sky-200">
-                dasha, transits, and daily energy
-              </span>{" "}
-              in simple, practical language—so you can make clearer decisions
-              about work, money, relationships and spiritual growth.
+            <p className="max-w-xl text-sm leading-relaxed text-slate-300 sm:text-[15px]">
+              AstroSārathi reads your chart, dashas and transits like an expert
+              astrologer—then translates it into clear, practical guidance for
+              career, money, relationships and inner growth. No fear, no drama,
+              just honest direction.
             </p>
 
-            <div className="flex flex-wrap items-center gap-3 pt-1">
+            <div className="flex flex-wrap items-center gap-3">
               <Link href="/sarathi/life-report">
-                <Button
-                  size="lg"
-                  className="rounded-full px-6 text-sm font-medium shadow-lg shadow-cyan-500/25"
-                >
-                  Open My Life Report
+                <Button className="rounded-xl bg-indigo-500 px-5 text-sm font-medium shadow-sm hover:bg-indigo-400">
+                  Generate my Life Report
                 </Button>
               </Link>
-              <Link href="/sarathi/daily-guide">
+              <Link href="/sarathi/chat">
                 <Button
-                  size="lg"
                   variant="outline"
-                  className="rounded-full border-slate-600 bg-slate-900/80 px-6 text-sm text-slate-100 hover:border-cyan-400/60 hover:text-cyan-200"
+                  className="rounded-xl border-slate-700 bg-slate-900/60 text-xs text-slate-100 hover:bg-slate-800"
                 >
-                  Today&apos;s Guidance
+                  Ask a question in chat
                 </Button>
               </Link>
-              <p className="w-full text-xs text-slate-400 md:w-auto">
-                No sign-up yet · For internal testing & refinement
-              </p>
-            </div>
-
-            <div className="grid gap-4 pt-4 text-xs text-slate-300 md:grid-cols-3">
-              <div className="space-y-1">
-                <p className="font-semibold text-slate-100">Birth Chart + Dasha</p>
-                <p>
-                  Exact Vedic chart with Mahadasha / Antardasha / Pratyantardasha
-                  automatically interpreted for you.
-                </p>
-              </div>
-              <div className="space-y-1">
-                <p className="font-semibold text-slate-100">Daily & Monthly Focus</p>
-                <p>
-                  Emotional weather, money signals, food & fasting suggestions
-                  aligned to your chart.
-                </p>
-              </div>
-              <div className="space-y-1">
-                <p className="font-semibold text-slate-100">Chat with your Sārathi</p>
-                <p>
-                  Ask about career, relationships, property, or spiritual path –
-                  and get grounded, non-fear based guidance.
-                </p>
-              </div>
+              <span className="text-[11px] text-slate-400">
+                Built for depth, not quick horoscopes.
+              </span>
             </div>
           </div>
 
-          {/* Right: small preview card */}
-          <div className="mt-8 flex flex-1 justify-center md:mt-0">
-            <Card className="w-full max-w-md rounded-3xl border-slate-700/80 bg-slate-900/60 backdrop-blur">
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between text-sm">
-                  <span>Today&apos;s Snapshot</span>
-                  <span className="text-[10px] text-slate-400">
-                    Demo preview
-                  </span>
+          {/* Right-side summary card */}
+          <Card className="border-slate-800 bg-slate-900/70 shadow-xl shadow-black/40 backdrop-blur">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-sm font-semibold text-slate-100">
+                <Star className="h-4 w-4 text-amber-300" />
+                What you get in minutes
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 text-xs text-slate-300">
+              <div className="flex gap-3">
+                <div className="mt-0.5 h-6 w-6 flex-shrink-0 rounded-full bg-indigo-500/20 text-[10px] font-semibold text-indigo-200 flex items-center justify-center">
+                  1
+                </div>
+                <div>
+                  <div className="font-medium text-slate-100">
+                    A clean Life Report
+                  </div>
+                  <p className="text-[11px] text-slate-400">
+                    Your ascendant, moons, dashas and key patterns explained in
+                    plain English—without cookbook copy-paste.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <div className="mt-0.5 h-6 w-6 flex-shrink-0 rounded-full bg-indigo-500/20 text-[10px] font-semibold text-indigo-200 flex items-center justify-center">
+                  2
+                </div>
+                <div>
+                  <div className="font-medium text-slate-100">
+                    Timing windows that make sense
+                  </div>
+                  <p className="text-[11px] text-slate-400">
+                    See which months & weeks are better for career moves,
+                    purchases, healing conversations and inner work.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <div className="mt-0.5 h-6 w-6 flex-shrink-0 rounded-full bg-indigo-500/20 text-[10px] font-semibold text-indigo-200 flex items-center justify-center">
+                  3
+                </div>
+                <div>
+                  <div className="font-medium text-slate-100">
+                    A calm, non-fatalistic view
+                  </div>
+                  <p className="text-[11px] text-slate-400">
+                    No “you are doomed” predictions. Just windows, tendencies
+                    and choices—so you stay in the driver’s seat.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </section>
+
+        {/* What you can do today */}
+        <section className="space-y-4">
+          <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-400">
+            Start with one of these
+          </h2>
+          <div className="grid gap-4 md:grid-cols-3">
+            <Card className="border-slate-800 bg-slate-900/70">
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-2 text-sm">
+                  <Clock className="h-4 w-4 text-indigo-300" />
+                  Life Report
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3 text-xs text-slate-200">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-[11px] uppercase tracking-[0.18em] text-slate-400">
-                      Emotional Weather
-                    </p>
-                    <p className="text-sm">Steady · Grounded · Focused</p>
-                  </div>
-                  <Badge className="border border-emerald-400/40 bg-emerald-500/10 text-[10px]">
-                    Good for deep work
-                  </Badge>
-                </div>
+              <CardContent className="space-y-3 text-[11px] text-slate-400">
+                <p>
+                  Complete MD/AD picture, key timelines and practical life
+                  themes based on your chart.
+                </p>
+                <Link href="/sarathi/life-report">
+                  <Button
+                    size="sm"
+                    className="mt-1 h-7 rounded-xl bg-indigo-500 text-[11px] hover:bg-indigo-400"
+                  >
+                    Generate report
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
 
-                <div className="h-px w-full bg-gradient-to-r from-transparent via-slate-600/70 to-transparent" />
+            <Card className="border-slate-800 bg-slate-900/70">
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-2 text-sm">
+                  <Star className="h-4 w-4 text-emerald-300" />
+                  Daily Guide
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 text-[11px] text-slate-400">
+                <p>
+                  Panchang + transits + dashas → one steady daily focus, fasting
+                  guidance and emotional weather.
+                </p>
+                <Link href="/sarathi/daily-guide">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="mt-1 h-7 rounded-xl border-slate-700 bg-slate-900 text-[11px] hover:bg-slate-800"
+                  >
+                    See today&apos;s day-plan
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="rounded-xl border border-slate-700 bg-slate-900/70 p-3">
-                    <p className="text-[11px] font-semibold text-slate-300">
-                      Money & Career
-                    </p>
-                    <p className="mt-1 text-[11px] text-slate-400">
-                      Use the day to clean up loose ends, paperwork, and
-                      follow-ups. A good window for steady effort, not big
-                      gambles.
-                    </p>
-                  </div>
-                  <div className="rounded-xl border border-slate-700 bg-slate-900/70 p-3">
-                    <p className="text-[11px] font-semibold text-slate-300">
-                      Food & Fasting
-                    </p>
-                    <p className="mt-1 text-[11px] text-slate-400">
-                      Light, sattvic meals will keep you sharp. Avoid heavy,
-                      late-night eating if you want to sleep deeply.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="rounded-xl border border-slate-700 bg-slate-900/70 p-3">
-                  <p className="text-[11px] font-semibold text-slate-300">
-                    One Clear Step
-                  </p>
-                  <p className="mt-1 text-[11px] text-slate-400">
-                    Pick one important task you&apos;ve been postponing and do it
-                    with full attention today. Your chart supports slow but
-                    meaningful progress.
-                  </p>
-                </div>
+            <Card className="border-slate-800 bg-slate-900/70">
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-2 text-sm">
+                  <MessageCircle className="h-4 w-4 text-sky-300" />
+                  Ask AstroSārathi
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 text-[11px] text-slate-400">
+                <p>
+                  Ask about job, money, property, relationships or vehicles.
+                  Answers stay grounded and specific.
+                </p>
+                <Link href="/sarathi/chat">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="mt-1 h-7 rounded-xl border-slate-700 bg-slate-900 text-[11px] hover:bg-slate-800"
+                  >
+                    Open chat
+                  </Button>
+                </Link>
               </CardContent>
             </Card>
           </div>
         </section>
-      </div>
 
-      {/* How it works */}
-      <section
-        id="how-it-works"
-        className="mx-auto max-w-6xl px-4 pb-16 pt-4 md:pb-20"
-      >
-        <h2 className="text-xl font-semibold tracking-tight text-slate-50 md:text-2xl">
-          How AstroSārathi works
-        </h2>
-        <p className="mt-2 max-w-2xl text-sm text-slate-300">
-          Under the hood, AstroSārathi is constantly combining three layers:
-        </p>
-
-        <div className="mt-6 grid gap-4 text-sm text-slate-200 md:grid-cols-3">
-          <Card className="h-full rounded-2xl border-slate-700/80 bg-slate-900/80">
-            <CardHeader>
-              <CardTitle className="text-sm">1. Precise Vedic maths</CardTitle>
-            </CardHeader>
-            <CardContent className="text-xs text-slate-300">
-              Your natal chart is calculated with Swiss ephemeris, Lahiri
-              ayanamsha, and divisional charts. Dasha periods and key transit
-              hits are mapped to timelines.
-            </CardContent>
-          </Card>
-
-          <Card className="h-full rounded-2xl border-slate-700/80 bg-slate-900/80">
-            <CardHeader>
-              <CardTitle className="text-sm">2. An AI master astrologer</CardTitle>
-            </CardHeader>
-            <CardContent className="text-xs text-slate-300">
-              A specialised AI prompt is trained to respond like a grounded,
-              non-fear based Vedic astrologer—accurate, practical, and focused
-              on your growth instead of superstition or fear.
-            </CardContent>
-          </Card>
-
-          <Card className="h-full rounded-2xl border-slate-700/80 bg-slate-900/80">
-            <CardHeader>
-              <CardTitle className="text-sm">3. Daily coaching layer</CardTitle>
-            </CardHeader>
-            <CardContent className="text-xs text-slate-300">
-              The app turns raw astrology into day-level guidance: what to
-              prioritise, what to avoid, and how to align food, fasting,
-              money decisions and emotional hygiene with your current dasha.
-            </CardContent>
-          </Card>
-        </div>
-      </section>
-
-      {/* FAQ / footer */}
-      <section
-        id="faq"
-        className="border-t border-slate-800 bg-slate-950/70 pb-10 pt-8"
-      >
-        <div className="mx-auto max-w-6xl px-4 text-xs text-slate-400 md:flex md:items-center md:justify-between">
-          <div className="space-y-1">
-            <p className="font-medium text-slate-200">Is this production-ready?</p>
-            <p>
-              Not yet. This is a private preview for internal testing. Accuracy,
-              wording and features are still being refined.
-            </p>
+        {/* Why different */}
+        <section className="space-y-4 border-t border-slate-800/70 pt-6">
+          <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-400">
+            Why AstroSārathi feels different
+          </h2>
+          <div className="grid gap-4 md:grid-cols-3 text-[11px] text-slate-300">
+            <div className="space-y-1.5">
+              <div className="font-semibold text-slate-100">
+                World-class logic, humble tone
+              </div>
+              <p className="text-slate-400">
+                Reads dashas & transits like a top astrologer—but talks like a
+                calm friend who wants you to win.
+              </p>
+            </div>
+            <div className="space-y-1.5">
+              <div className="font-semibold text-slate-100">
+                No fear, no superstition
+              </div>
+              <p className="text-slate-400">
+                No curses, no dramatic threats. Only windows, probabilities and
+                your choices.
+              </p>
+            </div>
+            <div className="space-y-1.5">
+              <div className="font-semibold text-slate-100">
+                Built for real life decisions
+              </div>
+              <p className="text-slate-400">
+                From “Should I change jobs?” to “Is this a good month to buy a
+                car?”—answers stay practical and specific.
+              </p>
+            </div>
           </div>
-          <div className="mt-4 md:mt-0">
-            <p>© {new Date().getFullYear()} AstroSārathi · All rights reserved.</p>
-          </div>
-        </div>
-      </section>
-    </main>
+        </section>
+      </main>
+    </div>
   );
 }
