@@ -6,8 +6,10 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
 
-  // Keep native modules like swisseph server-side (don’t bundle)
-  serverExternalPackages: ["swisseph"],
+  experimental: {
+    // Allow Next to use this native package in server components / routes
+    serverComponentsExternalPackages: ["swisseph"],
+  },
 };
 
 export default nextConfig;
