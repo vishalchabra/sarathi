@@ -6,10 +6,9 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
 
-  experimental: {
-    // Allow Next to use this native package in server components / routes
-    serverComponentsExternalPackages: ["swisseph"],
-  },
+  // Tell Next/Vercel this native package must be available at runtime,
+  // don't tree-shake or bundle it away
+  serverExternalPackages: ["swisseph"],
 };
 
 export default nextConfig;
