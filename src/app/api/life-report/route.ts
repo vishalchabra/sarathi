@@ -8,8 +8,8 @@ import { pickNotificationsForMoment } from "@/server/notifications/engine";
 import type { NotificationContext } from "@/server/notifications/types";
 import type { CoreSignals } from "@/server/guides/types";
 import { buildDailyGuideFromCore } from "@/server/guides/daily-core";
-
 import { todayISOForNotificationTz } from "@/server/notifications/today";
+
 /* -------------------------------------------------------
    Enrich with MD / AD / PD
 ------------------------------------------------------- */
@@ -138,7 +138,7 @@ export async function POST(req: Request) {
       },
       dashaStack: [],
       transits: [], // real transits can be wired later
-     moonToday: {
+      moonToday: {
         sign: (enriched as any).moonSign ?? "Unknown",
         // Prefer today's Panchang nakshatra (transit) over natal
         nakshatra:
@@ -165,26 +165,23 @@ export async function POST(req: Request) {
       dailyGuide,
     };
 
-        // ---------- Build daily-for-notifications view ----------
-        // ---------- Build daily-for-notifications view ----------
+    // ---------- Build daily-for-notifications view ----------
     const notificationTz =
       body.notificationTz || body.birthTz || "Asia/Dubai";
 
-    // ✅ Proper "today" for the user's notification timezone
+    // Proper "today" for the user's notification timezone
     const todayISO = todayISOForNotificationTz(notificationTz);
 
-   // Build compact facts bundle for notifications
-const dailyForNotifications = {
-  dateISO: todayISO, // or whatever variable you use for "today"
-  emotional: dailyGuide?.emotionalWeather ?? null,
-  money: dailyGuide?.moneyTip ?? null,
-  fasting: dailyGuide?.fasting ?? null,
-  food: dailyGuide?.food ?? null,           // 🆕 send food guidance
-  panchang: report.panchangToday ?? report.panchang ?? null,
-  transits: report.transits ?? [],
-};
-
-
+    // Build compact facts bundle for notifications
+    const dailyForNotifications = {
+      dateISO: todayISO,
+      emotional: dailyGuide?.emotionalWeather ?? null,
+      money: dailyGuide?.moneyTip ?? null,
+      fasting: dailyGuide?.fasting ?? null,
+      food: dailyGuide?.food ?? null,
+      panchang: report.panchangToday ?? report.panchang ?? null,
+      transits: report.transits ?? [],
+    };
 
     const userId = undefined; // later: real user id from auth/session
 
@@ -219,11 +216,28 @@ const dailyForNotifications = {
       previewNotifications,
       _cache: cacheFlag,
     });
-
   } catch (e: any) {
     console.error("life-report API error:", e);
+    const msg = String(e?.message ?? e);
+
+    // 🔴 Special case: Swiss ephemeris missing on Vercel
+    if (msg.includes("swisseph unavailable")) {
+      return NextResponse.json(
+        {
+          error: "astro_engine_unavailable",
+          message:
+            "High-precision chart engine is not available on this server environment yet. Full Life Report will be enabled soon.",
+        },
+        { status: 503 }
+      );
+    }
+
+    // Generic error
     return NextResponse.json(
-      { error: e?.message ?? "Unknown error" },
+      {
+        error: "internal_error",
+        message: msg || "Unknown error",
+      },
       { status: 500 }
     );
   }
