@@ -40,6 +40,7 @@ import Link from "next/link";
 const AYANAMSA_LAHIRI_APPROX = 23.85;
 
 /* ---------------- Locking city autocomplete (simplified – always typeable) ---------------- */
+const [engineUnavailable, setEngineUnavailable] = useState<string | null>(null);
 
 const cityCache = new Map<string, Array<{ name: string; lat: number; lon: number }>>();
 
@@ -3628,6 +3629,7 @@ const todaysFocus = useMemo(
   setDailyHighlights([]);
   setDailyError(null);
   setDailyLoading(false);
+  setEngineUnavailable(null);
 
   try {
   // --- validate date ---
@@ -3712,12 +3714,37 @@ if (!t) {
     }
     clearTimeout(timeout);
 
-    if (!res.ok) {
-      const msg = await res.text().catch(() => "");
-      throw new Error(msg || `Server returned ${res.status}`);
-    }
+   if (!res.ok) {
+  let json: any = null;
 
-  const data = (await res.json()) as LifeReportAPI;
+  // Try to parse JSON error from the API
+  try {
+    json = await res.json();
+  } catch {
+    // fall back to text below
+  }
+
+  // 🔴 Special case: our life-report API says swisseph / engine is unavailable
+  if (json?.error === "astro_engine_unavailable") {
+    const msg =
+      json?.message ||
+      "High-precision Life Report engine is not available on this server environment yet.";
+    setEngineUnavailable(msg);
+    setError(null);      // clear any generic error
+    setLoading(false);   // stop the spinner
+    return;              // IMPORTANT: don't throw, just exit handler
+  }
+
+  // Generic error path
+  const fallbackText =
+    (typeof json === "string" ? json : "") ||
+    (await res.text().catch(() => "")) ||
+    `Server returned ${res.status}`;
+
+  throw new Error(fallbackText);
+}
+
+const data = (await res.json()) as LifeReportAPI;
 
     // 🔹 Notifications from API → state (all 3 buckets)
     const anyData = data as any;
@@ -4585,8 +4612,25 @@ setDailyError(null);
   /* ---------------- Tab 1: Placements ---------------- */
 
   const TabPlacements = (() => {
-    if (!report) {
-      return (
+  if (!report) {
+    return (
+      <>
+        {engineUnavailable && (
+          <div className="mb-4 rounded-md border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900">
+            <div className="font-semibold">
+              Life Report engine not enabled yet
+            </div>
+            <p className="mt-1">
+              {engineUnavailable}
+            </p>
+            <p className="mt-1">
+              Panchang, Daily Guide and notifications will still work. 
+              Detailed MD / AD timelines will be enabled once the full engine 
+              is switched on for this server.
+            </p>
+          </div>
+        )}
+
         <Card className="rounded-2xl shadow-inner border-dashed border-2 border-muted-foreground/20">
           <CardHeader>
             <CardTitle className="text-lg font-medium">
@@ -4597,8 +4641,10 @@ setDailyError(null);
             Tab will populate after generation.
           </CardContent>
         </Card>
-      );
-    }
+      </>
+    );
+  }
+
 
     const yogaCalc = (() => {
       try {
