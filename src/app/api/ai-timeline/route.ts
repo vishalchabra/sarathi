@@ -62,7 +62,6 @@ export async function POST(req: Request) {
   try {
     const body = (await req.json().catch(() => ({}))) as any;
     const profile = body?.profile ?? {};
-    const dashaTimeline = body?.dashaTimeline ?? [];
     const lifeMilestones = body?.lifeMilestones ?? [];
 
     // Build compact milestone lines
@@ -156,14 +155,10 @@ ${JSON.stringify(lifeMilestones, null, 2)}
     return NextResponse.json({ text: fallback });
   } catch (e) {
     console.error("[ai-timeline] outer error", e);
-    const body = await req
-      .json()
-      .catch(() => ({} as any)); // in case we want to salvage profile
-
+    const body = await req.json().catch(() => ({} as any));
     const profile = body?.profile ?? {};
     const lifeMilestones = body?.lifeMilestones ?? [];
     const fallback = buildFallbackTimeline(profile, lifeMilestones);
-
     return NextResponse.json({ text: fallback }, { status: 200 });
   }
 }

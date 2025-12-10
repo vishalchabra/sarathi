@@ -16,8 +16,7 @@ function getOpenAIClient(): OpenAI {
 
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
-    // Important: this only runs when the route is actually hit,
-    // so it won't crash at build time.
+    // This will only run if the route is actually called at runtime.
     throw new Error("OPENAI_API_KEY is missing");
   }
 
@@ -39,7 +38,6 @@ function badJson(message: string, status = 400) {
 }
 
 export async function GET() {
-  // simple health check endpoint
   return okJson({ ok: true, modelUsed: GPT_MODEL });
 }
 
@@ -79,14 +77,13 @@ export async function POST(req: NextRequest) {
         "I’m not sure what to say yet, but I’m here to guide you gently.";
 
       return okJson({ text, modelUsed: GPT_MODEL });
-    } catch (err: any) {
-      // If key is missing or OpenAI fails → graceful fallback
+    } catch (err) {
       console.error("[api/ai-personality] OpenAI error, using fallback", err);
 
       const fallback =
         "I am Sārathi, here to remind you that your chart does not lock you in—it simply describes tendencies and timings. " +
-        "Your real power is in how you respond: staying honest with yourself, making small, aligned choices, " +
-        "and learning from each phase instead of judging it. Wherever you are right now, start with one simple, kind action toward yourself and your path.";
+        "Your real power is in how you respond: staying honest with yourself, making small, aligned choices, and learning from each phase instead of judging it. " +
+        "Wherever you are right now, start with one simple, kind action toward yourself and your path.";
 
       return okJson({
         text: fallback,
