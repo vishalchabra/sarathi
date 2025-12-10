@@ -158,7 +158,7 @@ export function buildSunPack(positions: PlanetPos[]): SunPack {
       deg: sun.deg,
       nak: sun.nakName ? { name: sun.nakName, pada: sun.pada! } : undefined,
     },
-    features: { dignity, yogas, conjunctions: conj, clusters, aspects_on_sun },
+    features: { dignity, yogas, conjunctions: conj, clusters, aspects_on_sun } as any,
     scores: {
       career: dignity === "exalted" ? 90 : dignity === "own" ? 80 : dignity === "debilitated" ? 40 : 65,
       status: 75,

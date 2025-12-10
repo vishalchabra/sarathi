@@ -1,35 +1,36 @@
-type Ctx = {
+// FILE: src/server/rag/retrieve.ts
+
+import { classifyIntent } from "@/server/reasoner/intent";
+
+export type Ctx = {
   message: string;
   profile: any;
   facts: any;
 };
-import { classifyIntent } from "@/server/reasoner/intent";
 
-export async function retrieve(ctx: any) {
-  // keep your existing logic; safe default:
+export type RetrievedChunk = {
+  id: string;
+  title: string;
+  body: string;
+  tags?: string[];
+  score?: number;
+};
+
+/**
+ * Simple stub RAG retriever.
+ * - Uses classifyIntent for future routing
+ * - Currently returns an empty chunk list so it’s safe for build.
+ * - We can later add ctx.facts / ctx.profile-based heuristics here.
+ */
+export async function retrieve(ctx: Ctx): Promise<RetrievedChunk[]> {
   const intent = classifyIntent(ctx.message);
-  return []; // or your actual retrieved chunks
-}
-  // Simple heuristic seeding based on hits
-  const hasMercReturn = ctx.facts.hits?.some((h: any) => h.target.includes("Natal Mercury"));
-  if (hasMercReturn) {
-    chunks.push({
-      id: "rule-mercury-return",
-      title: "Mercury Return",
-      text:
-        "Mercury returning to its natal degree refreshes themes of learning, writing, communication, short trips, and skills. Favor study, documentation, negotiations. Avoid overthinking.",
-    });
-  }
+  void intent; // avoid unused variable warning for now
 
-  // Panchang-based
-  if (ctx.facts.panchang?.tithi?.name) {
-    chunks.push({
-      id: "rule-tithi",
-      title: `Tithi: ${ctx.facts.panchang.tithi.name}`,
-      text:
-        "Use the Tithi’s quality to time efforts; harmonious tithis aid beginnings; challenging ones suit maintenance and inner work.",
-    });
-  }
+  const chunks: RetrievedChunk[] = [];
+
+  // 🔒 NOTE:
+  // Any heuristics that use ctx.facts (panchang, hits, etc.)
+  // will be added back here later in a type-safe way.
 
   return chunks;
 }

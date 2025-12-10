@@ -73,9 +73,13 @@ function computeAspectsOnto(targetId: string, positions: PlanetPos[], orb = VEDI
   const ALL = ["Sun","Moon","Mercury","Venus","Mars","Jupiter","Saturn","Rahu","Ketu"] as const;
 
   function check(fromId: string, patterns: { deg: number; kind: AspectKind }[]) {
-    const from = positions.find(p => p.id === fromId);
-    if (!from || from.id === targetId) return;
-    const sep = Math.round(degDiff(from.lon, target.lon)); // 0..180
+    const from = positions.find((p) => p.id === fromId);
+const target = positions.find((p) => p.id === targetId);
+
+if (!from || !target || from.id === targetId) return;
+
+const sep = Math.round(degDiff(from.lon, target.lon)); // 0..180
+
     for (const pat of patterns) {
       if (Math.abs(sep - pat.deg) <= orb) out.push({ from: fromId, kind: pat.kind });
     }

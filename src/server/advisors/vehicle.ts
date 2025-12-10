@@ -33,8 +33,19 @@ export async function vehicleAdvisor(params: {
   dateISO?: string;
   birth?: BirthData;
 }) {
-  const { place, dateISO, birth } = params;
-  const facts = await getFacts({ place, dateISO });
+   const { place, dateISO, birth } = params;
+
+  // Ensure we always have a date (YYYY-MM-DD)
+  const dateForFacts =
+    dateISO ?? new Date().toISOString().slice(0, 10);
+
+    // getFacts now expects (topic, context, ...).
+  const facts = await getFacts(
+    "vehicle",
+    { place, dateISO: dateForFacts } as any
+  );
+
+
 
   // Natal basics (from client if available)
   const natal = birth?.chart ?? {};
@@ -46,9 +57,11 @@ export async function vehicleAdvisor(params: {
   const now = new Date(dateISO ?? new Date().toISOString());
   const { md, ad } = fakeVimshottari(now, birth);
 
-  // Window construction: bestDay + Abhijit if available
-  const bestDay = facts.transit?.bestDay; // YYYY-MM-DD
-  const ab = facts.panchang?.abhijit;
+    // Window construction: bestDay + Abhijit if available
+  const f = facts as any;
+  const bestDay = f.transit?.bestDay as string | undefined; // YYYY-MM-DD
+  const ab = f.panchang?.abhijit as { start: string; end: string } | undefined;
+
   const windows =
     bestDay && ab
       ? [{ start: ab.start, peak: ab.start, end: ab.end, why: ["Abhijit within transit-favored day."] }]
@@ -58,7 +71,7 @@ export async function vehicleAdvisor(params: {
 
   // Headline/Summary
   const headline = bestDay ? `Good window detected for vehicle: ${bestDay}` : "Guidance • vehicle";
-  const summary = `Using Panchang & transits${facts.healthy ? "" : " (fallbacks)"} for your question.`;
+   const summary = `Using Panchang & transits${f.healthy ? "" : " (fallbacks)"} for your question.`;
 
   // Explanatory paragraph for the Answer panel
   const whySentence =
@@ -70,9 +83,10 @@ export async function vehicleAdvisor(params: {
 
   // Why lists
   const factsList: string[] = [];
-  if (facts.transit?.bestDay) factsList.push(`Best day: ${facts.transit.bestDay}`);
-  if (facts.panchang?.abhijit) factsList.push(`Abhijit: ${facts.panchang.abhijit.start}–${facts.panchang.abhijit.end}`);
-  if (facts.panchang?.rahuKaal) factsList.push(`Avoid Rahu Kaal: ${facts.panchang.rahuKaal.start}–${facts.panchang.rahuKaal.end}`);
+    if (f.transit?.bestDay) factsList.push(`Best day: ${f.transit.bestDay}`);
+  if (f.panchang?.abhijit) factsList.push(`Abhijit: ${f.panchang.abhijit.start}–${f.panchang.abhijit.end}`);
+  if (f.panchang?.rahuKaal) factsList.push(`Avoid Rahu Kaal: ${f.panchang.rahuKaal.start}–${f.panchang.rahuKaal.end}`);
+
   if (venHouse) factsList.push(`Natal Venus in ${houseName(venHouse)}.`);
   if (lordHouse) factsList.push(`4th lord ${fourthLord} in ${houseName(lordHouse)}.`);
   if (md || ad) factsList.push(`Current Vimshottari: MD ${md ?? "—"} / AD ${ad ?? "—"}.`);
@@ -84,36 +98,40 @@ export async function vehicleAdvisor(params: {
   ];
 
   // Normalize hits for the UI
-  const hitsUI = (facts.transit?.hits ?? []).map(h => ({
+    const hitsUI = (f.transit?.hits ?? []).map((h: any) => ({
+
     planet: h.name ?? "Transit",
     target: h.note ?? "",
     orb: typeof h.orbDays === "number" ? h.orbDays : undefined,
     exact: h.exact,
   }));
 
-  return {
+    return {
     answer: {
-      intent: "vehicle",
+      intent: "vehicle" as const,
       headline,
       summary,
       text: `${headline}\n\n${summary}\n\n${whySentence}`,
-      confidence: facts.healthy ? "High" : "Low",
+      confidence: f.healthy ? "High" : "Low",
       actions: [
         "Shortlist 2–3 cars",
         "Plan booking/test drive near the best window",
         "Avoid Rahu/Gulika windows",
       ],
       timing: { bestDay },
-      warnings: facts.warnings.length ? facts.warnings : undefined,
+      warnings: f.warnings?.length ? f.warnings : undefined,
     },
-    why: { facts: factsList, rules: rulesList, warnings: facts.warnings },
+    why: { facts: factsList, rules: rulesList, warnings: f.warnings ?? [] },
     context: {
-      panchang: facts.panchang,
+      panchang: f.panchang,
       hits: hitsUI,
-      windows: windows.map(w => ({
+      windows: windows.map((w) => ({
         planet: "Venus/Jupiter",
         target: "Vehicle matters",
-        start: w.start, peak: w.peak, end: w.end, minOrb: 0,
+        start: w.start,
+        peak: w.peak,
+        end: w.end,
+        minOrb: 0,
       })),
       dasha: { md, ad },
       natal: {

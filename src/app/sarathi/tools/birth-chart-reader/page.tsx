@@ -265,21 +265,14 @@ export default function BirthChartReaderPage() {
           name="tob-no-autofill"
         />
 
-        <CityAutocomplete
+                <CityAutocomplete
           key={cityKey}
-          className=""
           placeholder="Birth city (auto time-zone)"
-          initialLabel={undefined}
           onSelect={(p: Place) => {
-            setPlace({
-              name: p.name,
-              lat: Number((p as any).lat),
-              lon: Number((p as any).lon),
-              tz: (p as any).tz ?? tz,
-            });
-            setPlaceTouched(true);
+            // ...
           }}
         />
+
 
         <select className="border p-2 rounded" value={ayanamsa} onChange={(e) => setAyan(e.target.value as any)}>
           <option value="lahiri">Lahiri</option>

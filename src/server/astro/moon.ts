@@ -153,7 +153,7 @@ export function buildMoonPack(positions: PlanetPos[]): MoonPack {
       deg: moon.deg,
       nak: moon.nakName ? { name: moon.nakName, pada: moon.pada! } : undefined,
     },
-    features: { yogas, conjunctions: conj, clusters, aspects_on_moon },
+     features: { yogas, conjunctions: conj, clusters, aspects_on_moon } as any,
     scores: {
       mind: 75,
       emotions: 80,

@@ -333,7 +333,7 @@ export default function AstroChatPage() {
         },
         timeline,
         transitWindows,
-        birth,
+        birth: birth ?? undefined,
         natal,
       };
 

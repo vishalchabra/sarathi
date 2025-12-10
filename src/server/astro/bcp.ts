@@ -1,10 +1,18 @@
 // src/server/astro/bcp.ts
+import "server-only";
 import { DateTime } from "luxon";
 import type { BirthInput } from "@/types";
-import { ascAndHouseLords } from "@/server/astro/core";
-import { houseSign } from "@/server/astro/asc";
+// import { ascAndHouseLords } from "@/server/astro/core";  // <- removed
+
 import { SIGN_RULER } from "@/server/core/houselords";
 import { PLANET_NAMES } from "./nakshatra";
+
+// Temporary stub – replace with real logic when BCP is needed
+const ascAndHouseLords: any = (..._args: any[]) => ({} as any);
+// Given ascendant sign (1..12) and house number (1..12), return the sign in that house.
+const signForHouse = (ascSign: number, house: number): number =>
+  ((ascSign + house - 2 + 12) % 12) + 1;
+
 
 const HOUSE_NAMES = [
   "", // 0
@@ -63,7 +71,8 @@ export function buildBhriguPulses(birth: BirthInput, years = 7) {
 
     // classic BCP: one age → one house
     const house = ((A % 12) + 1); // 1..12
-    const hs = houseSign(ascSign, house);
+    const hs = signForHouse(ascSign, house);
+
     const lord = SIGN_RULER[hs];
     const lordName = PLANET_NAMES[lord] || `#${lord}`;
 

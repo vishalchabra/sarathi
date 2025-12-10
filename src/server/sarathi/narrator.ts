@@ -1,4 +1,8 @@
 // FILE: src/server/sarathi/narrator.ts
+type ComposeArgs = {
+  // keep this loose for now; we can tighten it later if needed
+  [key: string]: any;
+};
 
 /* -------------------------------------------------------------------------- */
 /* Types                                                                      */
@@ -171,10 +175,14 @@ function composeGeneric(args: ComposeArgs): {
 } {
   const topic = String(args.topic || "").toLowerCase();
   const mdad = args.nowLabel ? `You’re in **${args.nowLabel}**.` : "";
-  const firstWin = _firstWindow(args.windows);
+
+  // Use the helper `firstWin` defined above, not `_firstWindow`
+  const win = firstWin(args.windows);
   const when =
-    firstWin &&
-    `Supportive window: **${_nice(firstWin.fromISO)} → ${_nice(firstWin.toISO)}**${firstWin.tag ? ` (${firstWin.tag})` : ""}.`;
+    win &&
+    `Supportive window: **${_nice(win.fromISO)} → ${_nice(win.toISO)}**${
+      win.tag ? ` (${win.tag})` : ""
+    }.`;
 
   // Topic-specific opener + how-to
   let opener = "Here’s the clean, usable plan.";
@@ -182,29 +190,42 @@ function composeGeneric(args: ComposeArgs): {
 
   if (topic === "wealth") {
     opener = "Let’s steady your **money rhythm**—cash-in, cash-out, and buffers.";
-    how = "Automate a weekly SIP, track spends 1x/week, and aim for a quiet 1–2% spend cut each week. Park windfalls, avoid fresh EMI during weak weeks.";
+    how =
+      "Automate a weekly SIP, track spends 1x/week, and aim for a quiet 1–2% spend cut each week. Park windfalls, avoid fresh EMI during weak weeks.";
   } else if (topic === "health") {
     opener = "We’ll protect **energy, sleep, and routine**—slow and sustainable.";
-    how = "Anchor sleep/wake, 20-minute walks most days, light meals at dinner, and one screen-free evening per week. Book checkups inside supportive windows.";
+    how =
+      "Anchor sleep/wake, 20-minute walks most days, light meals at dinner, and one screen-free evening per week. Book checkups inside supportive windows.";
   } else if (topic === "vehicle") {
     opener = "Treat the vehicle decision like a mini project—TCO first, then test drives.";
-    how = "Shortlist 3 models, book test drives inside the window, compare TCO (fuel+ins+service), and negotiate calmly near the tail end.";
+    how =
+      "Shortlist 3 models, book test drives inside the window, compare TCO (fuel+ins+service), and negotiate calmly near the tail end.";
   } else if (topic === "property") {
     opener = "Property moves best with **documents first, visits second**.";
-    how = "Collect docs (title, encumbrance, society NOC), shortlist 3 areas, do weekend site visits, negotiate only after banker’s soft approval.";
+    how =
+      "Collect docs (title, encumbrance, society NOC), shortlist 3 areas, do weekend site visits, negotiate only after banker’s soft approval.";
   } else if (topic === "relationships") {
     opener = "Keep the relationship cadence warm and consistent.";
-    how = "One meaningful plan per week, one honest check-in, and meet a close friend/family during supportive weeks.";
+    how =
+      "One meaningful plan per week, one honest check-in, and meet a close friend/family during supportive weeks.";
   } else if (topic === "marriage") {
     opener = "Stage the milestones—discuss → families meet → formalize.";
-    how = "Use supportive sub-window for formal steps. Keep logistics ready (venues, documents) ahead of time.";
+    how =
+      "Use supportive sub-window for formal steps. Keep logistics ready (venues, documents) ahead of time.";
   } else if (topic === "disputes") {
     opener = "In disputes, **paper trail and patience** win the long game.";
-    how = "Date-stamp evidence, keep counsel in the loop, and use supportive days for filings/hearings. Don’t escalate on weak days.";
+    how =
+      "Date-stamp evidence, keep counsel in the loop, and use supportive days for filings/hearings. Don’t escalate on weak days.";
   }
 
   return {
-    answer: [opener, mdad, when || "I’ll show exact dates once sub-windows are available."].filter(Boolean).join("\n\n"),
+    answer: [
+      opener,
+      mdad,
+      when || "I’ll show exact dates once sub-windows are available.",
+    ]
+      .filter(Boolean)
+      .join("\n\n"),
     how,
   };
 }

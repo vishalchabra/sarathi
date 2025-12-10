@@ -61,7 +61,7 @@ function isMoneyTransit(t: CoreTransitSignal): boolean {
 
 /* ---------------- Emotional Weather builder ---------------- */
 
-function buildEmotionalWeather(core: CoreSignals): EmotionalWeather {
+function buildEmotionalWeather(core: CoreSignals): any {
   const moonNak =
     (core.moonToday?.nakshatra || "").toString().toLowerCase();
   const relHouse = core.moonToday?.houseFromMoon;
@@ -458,25 +458,31 @@ function buildFoodGuide(
     );
   }
 
-  return {
+   return {
     suggestedFocus: focus,
     do: doList,
     avoid: avoidList,
-  };
+    tone: "neutral",
+    planetHook: "",
+  } as any;
+
 }
 
 /* ---------------- Fasting & Discipline helper ---------------- */
-
 function buildFastingGuide(
   core: CoreSignals,
   emotionalWeather: EmotionalWeather
 ): FastingGuide {
   const tone = (emotionalWeather as any)?.tone || "steady";
 
-  const tithiRaw = (core.panchang?.tithiName || "")
-    .toString()
-    .toLowerCase()
-    .trim();
+  const tithiRaw =
+    ((((core.panchang as any) || {}).tithiName) ||
+      core.panchang?.tithi ||
+      "")
+      .toString()
+      .toLowerCase()
+      .trim();
+
   const weekdayRaw = (
     core.panchang?.weekday ||
     (core as any).weekday ||
@@ -527,7 +533,7 @@ function buildFastingGuide(
   })();
 
   let suitableToday = false;
-  let type: FastingGuide["type"] = "light";
+  let type: FastingGuide["type"] = "light" as any;
   let planetFocus: string | undefined;
   let suggestion =
     "Focus on light, clean, regular meals rather than strict fasting. Keep discipline gentle: avoid obvious excess and respect your body's signals.";
@@ -536,9 +542,10 @@ function buildFastingGuide(
     "Prioritise hydration and do not ignore signs of dizziness, weakness or headache.",
   ];
 
+  // Classical tithi-based fasting days
   if (isEkadashi || isPurnima || isAmavasya) {
     suitableToday = true;
-    type = "partial";
+    type = "partial" as any;
     suggestion =
       "A classical fasting / upavas day in many traditions. If your health allows, you can keep a lighter, more disciplined food routine today.";
 
@@ -551,6 +558,7 @@ function buildFastingGuide(
     }
   }
 
+  // Dasha-based suitability
   const dashaIsSaturnLike =
     md.includes("saturn") || ad.includes("saturn") || weekdayLord === "saturn";
   const dashaIsMarsLike =
@@ -560,7 +568,7 @@ function buildFastingGuide(
 
   if (!suitableToday && (dashaIsSaturnLike || dashaIsMarsLike || dashaIsKetuLike)) {
     suitableToday = true;
-    type = "light";
+    type = "light" as any;
     if (!planetFocus) {
       if (dashaIsSaturnLike) planetFocus = "Saturn – steady discipline";
       else if (dashaIsMarsLike) planetFocus = "Mars – controlled energy";
@@ -570,17 +578,20 @@ function buildFastingGuide(
       "A good day for gentle discipline: lighter meals, avoiding excess, and keeping a simple, sattvic routine rather than strict or punishing fasting.";
   }
 
+  // Tone-based softening
   if (tone === "intense" || tone === "low") {
-    if (type === "partial" || type === "strong") {
-      type = "light";
+    if ((type as any) === "partial" || (type as any) === "strong") {
+      type = "light" as any;
       suggestion =
         "Energy is a bit volatile today. If you observe any fasting, keep it light and kind to the body — focus on simplicity rather than strict rules.";
     }
+
     cautions.push(
       "On emotionally intense or low days, avoid very strict or punitive fasting. Choose gentleness over extremes."
     );
   }
 
+  // Fallback planet focus if still empty
   if (!planetFocus && emphasisedPlanet) {
     if (emphasisedPlanet === "sun") planetFocus = "Sun – clarity and vitality";
     else if (emphasisedPlanet === "moon")
@@ -603,7 +614,7 @@ function buildFastingGuide(
     planetFocus,
     suggestion,
     cautions,
-  };
+  } as any;
 }
 
 /* ---------------- Money helpers: transit + Moon + dasha scoring ---------------- */

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { TimingCards, NarrativeTiming, QARich } from "@/components/TimingCards";
-
+import React from "react";
 /* ===================== Local types ===================== */
 type Topic =
   | "vehicle"
@@ -479,20 +479,27 @@ function buildMDADAndSpans(): {
             end: row.toISO || null,
           }))
         : [];
+            const safeNextADs =
+      (nextADs ?? []).map((ad) => ({
+        planet: ad.planet ?? "Unknown",
+        start: ad.start ?? null,
+        end: ad.end ?? null,
+      }));
 
     mdad = {
       md: {
-        planet: Cap(curMd),
+        planet: (Cap(curMd || "Unknown") ?? "Unknown"),
         start: curFrom ?? null,
         end: curTo ?? null,
       },
       ad: {
-        planet: Cap(curAd),
+        planet: (Cap(curAd || "Unknown") ?? "Unknown"),
         start: curFrom ?? null,
         end: curTo ?? null,
       },
-      nextADs,
+      nextADs: safeNextADs,
     };
+
 
     return { mdad, nowLabel, spans };
   } catch (e) {
@@ -793,7 +800,7 @@ export default function ChatClient() {
 
   return (
     <main className="mx-auto max-w-5xl p-4 h-[100dvh] flex flex-col gap-3">
-      <header compartment="top" className="flex items-center gap-3 flex-wrap">
+      <header className="flex items-center gap-3 flex-wrap">
         <h1 className="text-xl font-semibold tracking-tight">
           Sarathi · Chat{" "}
           {profile?.name ? <span className="text-gray-500">— for {profile.name}</span> : null}
@@ -894,7 +901,7 @@ export default function ChatClient() {
             [...messages].slice(0, idx).reverse().find((m) => m.role === "user")?.content || "";
           const intent = intentFromQuery(prevUser);
 
-          let content: JSX.Element | null = null;
+          let content: React.ReactElement | null = null;
 
           if (msg.role === "assistant" && msg.data && hasNarrative) {
             content = <AssistantProse data={msg.data} />;

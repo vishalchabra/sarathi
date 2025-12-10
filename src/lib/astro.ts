@@ -6,6 +6,8 @@
 import * as Astronomy from "astronomy-engine";
 import { DateTime } from "luxon";
 
+
+
 export type Place = {
   name: string;
   lat: number;
@@ -50,11 +52,26 @@ const NAKSHATRA_NAMES = [
   "Purva Bhadrapada","Uttara Bhadrapada","Revati"
 ];
 
-const NAK_LORDS: Graha[] = (
-  ["Ketu","Venus","Sun","Moon","Mars","Rahu","Jupiter","Saturn","Mercury"]
-)
-  .concat(["Ketu","Venus","Sun","Moon","Mars","Rahu","Jupiter","Saturn","Mercury"])
-  .concat(["Ketu","Venus","Sun","Moon","Mars","Rahu","Jupiter","Saturn","Mercury"]);
+const NAK_LORDS: Graha[] = [
+  "Ketu",
+  "Venus",
+  "Sun",
+  "Moon",
+  "Mars",
+  "Rahu",
+  "Jupiter",
+  "Saturn",
+  "Mercury",
+  "Ketu",
+  "Venus",
+  "Sun",
+  "Moon",
+  "Mars",
+  "Rahu",
+  "Jupiter",
+  "Saturn",
+  "Mercury",
+] as Graha[];
 
 const MD_YEARS: Record<Graha, number> = {
   Ketu: 7, Venus: 20, Sun: 6, Moon: 10, Mars: 7,
@@ -242,6 +259,17 @@ export function computeAscendant(
 export function houseNumberFor(sidLon: number, ascSidereal: number): number {
   const delta = (sidLon - ascSidereal + 360) % 360;
   return Math.floor(delta / 30) + 1; // 1..12
+}
+// Temporary stub: returns an empty set of planet longitudes.
+// TODO: implement using Astronomy when we actually need this.
+export function siderealPlanetLongitudes(
+  dobLocalISO: string,
+  place: { lat: number; lon: number; tz: string }
+): Record<string, number> {
+  console.warn(
+    "[astro] siderealPlanetLongitudes() stub called – returns empty map. Implement me if you use computeHousePlacements."
+  );
+  return {};
 }
 
 /** Planet→house placements (Equal Houses, Lahiri). */

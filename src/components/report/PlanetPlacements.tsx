@@ -38,7 +38,7 @@ export default function PlanetPlacements({ planets = {} as any }) {
           </thead>
           <tbody>
             {ORDER.map(([name, id]) => {
-              const deg = P[id];
+              const deg = (P as any)[id];
               if (deg == null || Number.isNaN(deg)) return null;
               const sign = SIGNS[sIdx(deg)];
               return (

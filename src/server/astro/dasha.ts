@@ -216,7 +216,8 @@ function extractLongitude(res: any): number | undefined {
 }
 
 /** Convert JD → UTC DateTime safely (handles fractional hour, 24.0 rollover) */
-function dtUTCFromJD(jd: number): DateTime {
+function dtUTCFromJD(jd: number) {
+
   const swe = getSwe();
   const r = swe.swe_revjul(jd, swe.SE_GREG_CAL);
   const base = DateTime.utc(r.year, r.month, r.day, 0, 0, 0, 0);
@@ -295,7 +296,7 @@ function buildMDChain(
 }
 
 function mdToADs(md: DashaSpan) {
-  const seq = sequenceFrom(md.lord);
+  const seq = sequenceFrom(md.lord as any); // assume valid planet name
   const mdStart = DateTime.fromISO(md.start, { zone: "utc" });
   const mdEnd = DateTime.fromISO(md.end, { zone: "utc" });
   const spanMs = mdEnd.toMillis() - mdStart.toMillis(); // raw duration in ms

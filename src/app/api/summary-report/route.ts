@@ -103,7 +103,11 @@ function offlineSummary(r: LifeReportView): string {
   const drivers = r.money?.activeDrivers ?? r.money?.drivers ?? [];
   if (tilt || drivers.length) {
     lines.push(`\n**Money**`);
-    if (tilt) lines.push(`Tilt: ${tilt.replaceAll("_", " ")}.`);
+    if (tilt) {
+  const tiltLabel = tilt.replace(/_/g, " ");
+  lines.push(`Tilt: ${tiltLabel}.`);
+}
+
     if (drivers.length) lines.push(`Active drivers: ${drivers.join(", ")}.`);
   }
 

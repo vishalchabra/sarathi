@@ -567,14 +567,63 @@ function computeKaranaName(
 }
 
 /* ---------------- Helpers ---------------- */
-type TodaysFocusProfile = {
-  area: string;     // e.g. "Work & responsibilities"
-  headline: string; // 1-line summary   
-  summary: string;  // 2–4 sentences
-  do: string;       // "Do:" line
-  avoid: string;    // "Avoid:" line
-};
+function primaryCategoryForRange(
+  transits: any[] | null | undefined,
+  from: Date,
+  to: Date
+): string {
+  if (!Array.isArray(transits) || !transits.length) {
+    return "general";
+  }
 
+  // Very simple logic for now:
+  // pick the strongest transit whose active window overlaps the range
+  const overlapping = transits.filter((t: any) => {
+    if (!t?.from || !t?.to) return false;
+    const start = new Date(t.from);
+    const end = new Date(t.to);
+    return end >= from && start <= to;
+  });
+
+  const primary = overlapping[0] ?? transits[0];
+  return primary?.category ?? "general";
+}
+function strongestTransitForRange(
+  transits: any[] | null | undefined,
+  from: Date,
+  to: Date
+): any | null {
+  if (!Array.isArray(transits) || !transits.length) {
+    return null;
+  }
+
+  // Filter to only transits that overlap this range
+  const overlapping = transits.filter((t: any) => {
+    if (!t?.from || !t?.to) return false;
+    const start = new Date(t.from);
+    const end = new Date(t.to);
+    return end >= from && start <= to;
+  });
+
+  const pool = overlapping.length ? overlapping : transits;
+
+  // Prefer the one with highest "strength" if available
+  const withStrength = pool.filter(
+    (t: any) => typeof t?.strength === "number"
+  );
+
+  let primary: any | null = null;
+
+  if (withStrength.length) {
+    primary = withStrength.sort(
+      (a: any, b: any) => (b.strength ?? 0) - (a.strength ?? 0)
+    )[0];
+  } else {
+    primary = pool[0] ?? null;
+  }
+
+  return primary ?? null;
+}
 
 function normalizeDateForBackend(v: string): string | null {
   if (!v) return null;
@@ -1007,13 +1056,25 @@ function buildMonthlyFeaturesFromTransits(
       };
     }
 
+        const rawCategory = primaryCategory || "general";
+
+    const safeCategory: MonthlyFeature["primaryCategory"] =
+      rawCategory === "health" ||
+      rawCategory === "career" ||
+      rawCategory === "relationships" ||
+      rawCategory === "inner" ||
+      rawCategory === "general"
+        ? rawCategory
+        : "general";
+
     out.push({
       label,
       startISO: monthStart.toISOString().slice(0, 10),
       endISO: monthEnd.toISOString().slice(0, 10),
-      primaryCategory,
+      primaryCategory: safeCategory,
       strongestTransit,
     });
+
   }
 
   return out;
@@ -1980,18 +2041,39 @@ function buildPersonality(
 
 /* ---- misc UI helpers ---- */
 
-const fadeUp = {
+const fadeUp: any = {
   hidden: { opacity: 0, y: 12 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.28, ease: "easeOut" } },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.28,
+      ease: "easeOut",
+    },
+  },
 };
-const fadeUpSmall = {
+
+const fadeUpSmall: any = {
   hidden: { opacity: 0, y: 6 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.22, ease: "easeOut" } },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.22,
+      ease: "easeOut",
+    },
+  },
 };
-const staggerContainer = {
+
+const staggerContainer: any = {
   hidden: {},
-  show: { transition: { staggerChildren: 0.06 } },
+  show: {
+    transition: {
+      staggerChildren: 0.06,
+    },
+  },
 };
+
 
 function toneColor(flag?: "caution" | "opportunity" | "mixed") {
   switch (flag) {
@@ -2534,6 +2616,16 @@ function buildTodaysFocusV2(opts: {
       "Letting the day scatter into endless scrolling and reacting to others’ priorities only.",
   };
 }
+type MoneyTip = {
+  tone?: "caution" | "neutral" | "opportunity" | string; // how the day feels for money
+  headline?: string;
+  summary?: string;
+  tilt?: string;            // e.g. "caution", "opportunity", etc.
+  drivers?: string[];       // e.g. ["Saturn transit", "Rahu AD"]
+  windowLabel?: string;     // e.g. "Jan–Mar 2026" or "Next 30 days"
+  do?: string[];            // action recommendations
+  avoid?: string[];         // what to avoid
+};
 
 const TabDailyGuide: React.FC<{
   report: LifeReportView | null;
@@ -3026,13 +3118,14 @@ const future = dailyHighlights.slice(1);
             </p>
             <p className="text-sm">{guide.moneyTip.summary}</p>
             <p className="text-xs mt-1">
-              <span className="font-semibold">Do:</span>{" "}
-              {guide.moneyTip.do.join(", ")}
-            </p>
-            <p className="text-xs">
-              <span className="font-semibold">Avoid:</span>{" "}
-              {guide.moneyTip.avoid.join(", ")}
-            </p>
+  <span className="font-semibold">Do:</span>{" "}
+  {(guide.moneyTip.do ?? []).join(", ")}
+</p>
+<p className="text-xs">
+  <span className="font-semibold">Avoid:</span>{" "}
+  {(guide.moneyTip.avoid ?? []).join(", ")}
+</p>
+
           </div>
         )}
 
@@ -4628,13 +4721,13 @@ setDailyError(null);
                     : report.panchang?.karanaName ?? "—";
 
                 const moonNak =
-  report.panchangToday?.moonNakshatraName ??
-  report.panchangToday?.nakshatraName ??
-  report.panchangToday?.nakshatra?.name ??
+  (report as any).panchangToday?.moonNakshatraName ??
+  (report as any).panchangToday?.nakshatraName ??
+  (report as any).panchangToday?.nakshatra?.name ??
   report.panchang?.moonNakshatraName ??
-  report.moonToday?.nakshatra ??
-  report.moonNakshatraName ??
-  (moonSid !== undefined ? nakFromDeg(moonSid) : "—");
+  report.panchang?.moonNakshatraName ??
+  "";
+
 
 
                 return (
@@ -5393,13 +5486,16 @@ const TabMyths: React.FC<TabMythsProps> = ({ myths, loading, error }) => {
             houseFromMoon: (report as any)?.moon?.houseFromMoon ?? undefined,
             guna: (report as any)?.moon?.guna || undefined,
           },
-          panchang: {
+                            panchang: {
             tithi: report?.panchang?.tithiName || "Unknown",
-            weekday: report?.panchang?.weekdayName || "Unknown",
-            yogaName: report?.panchang?.yogaName,
-            karanaName: report?.panchang?.karanaName,
-            sunriseISO: report?.panchang?.sunriseISO,
+            weekday:
+              (report?.panchang as any)?.weekdayName || "Unknown",
+            yogaName: report?.panchang?.yogaName ?? undefined,
+            karanaName: report?.panchang?.karanaName ?? undefined,
+            sunriseISO: report?.panchang?.sunriseISO ?? undefined,
           },
+
+
         };
 
         const res = await fetch("/api/sarathi/myths", {
@@ -5484,14 +5580,23 @@ useEffect(() => {
           houseFromMoon: (report as any)?.moon?.houseFromMoon ?? undefined,
           guna: (report as any)?.moon?.guna || undefined,
         },
-        panchang: {
+                panchang: {
           tithi: report?.panchang?.tithiName || "Unknown",
-          weekday: report?.panchang?.weekdayName || "Unknown",
-          yogaName: report?.panchang?.yogaName,
-          karanaName: report?.panchang?.karanaName,
-          sunriseISO: report?.panchang?.sunriseISO,
+          weekday:
+            (report?.panchang as any)?.weekdayName || "Unknown",
+          yogaName: report?.panchang?.yogaName ?? undefined,
+          karanaName: report?.panchang?.karanaName ?? undefined,
+          sunriseISO: report?.panchang?.sunriseISO ?? undefined,
         },
+
       };
+
+           if (!report) {
+        console.warn(
+          "[life-report] No report available when building daily-guide cache key"
+        );
+        return;
+      }
 
       const cacheKey = `sarathi:daily-guide:${report.birthDateISO}:${report.birthTime}:${report.birthTz}:${dateISO}`;
 
@@ -5883,14 +5988,14 @@ useEffect(() => {
           />
         )}
 
-        {activeTab === "myths" && (
+                {activeTab === "myths" && (
           <TabMyths
             myths={myths}
             loading={mythsLoading}
             error={mythsError}
-            mounted={mounted}
           />
         )}
+
       </div>
     </main>
   );

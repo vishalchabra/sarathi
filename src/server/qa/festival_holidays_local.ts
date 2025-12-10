@@ -101,13 +101,20 @@ export async function findFestivalDateLocal(
     );
     if (hit) {
       const dateISO = (hit.date || hit.start || "").toString().slice(0, 10);
-      if (!dateISO) continue;
+           if (!dateISO) continue;
+
+      // Some holiday entries may have a `localName` field at runtime,
+      // but it's not declared on the Holiday type, so we access it via `any`.
+      const localName =
+        (hit as any)?.localName as string | undefined;
+
       return {
-        title: hit.name || hit.localName || key,
+        title: hit.name || localName || key,
         dateISO,
         weekday: weekday(dateISO, tz),
         source: "date-holidays",
       };
+
     }
   }
   return null;

@@ -428,8 +428,20 @@ ${mdAd ? `You’re in ${mdAd}. Proceed methodically; patience multiplies outcome
           const showWhy = (w.why || []).length > 0;
           const showDo = (w.do || []).length > 0;
           const showBaselineNote = !showWhy && !showDo;
-          const fromISO = w?.fromISO ?? w?.from ?? w?.start ?? w?.startISO ?? null;
-          const toISO = w?.toISO ?? w?.to ?? w?.end ?? w?.endISO ?? null;
+                    const fromISO =
+            w?.fromISO ??
+            (w as any)?.from ??
+            w?.start ??
+            w?.startISO ??
+            null;
+
+          const toISO =
+            w?.toISO ??
+            (w as any)?.to ??
+            w?.end ??
+            w?.endISO ??
+            null;
+
           const left = fmtDM(fromISO);
           const right = fmtDM(toISO);
           const yearL = fmtY(fromISO);
@@ -488,27 +500,74 @@ ${mdAd ? `You’re in ${mdAd}. Proceed methodically; patience multiplies outcome
 export function NarrativeTiming({ data }: { data: QAResponse }) {
   const mdAd = currentMdAdLabel(data);
 
-  const doc: NarrativeDoc = useMemo(() => {
-    if (data.narrative) return data.narrative;
+const doc = useMemo<NarrativeDoc>(() => {
+  if (data.narrative) return data.narrative;
 
-    const summary = `${data.bottomLine?.lead ?? ""} ${data.bottomLine?.nuance ?? ""}`.trim();
-    const advice = data.guidance || [];
-    const count = data.windows?.length ?? 0;
-    const context = `Dasha-aligned windows (${count})
-${mdAd ? `You’re in ${mdAd}. Proceed methodically; patience multiplies outcomes.` : `Engine running; MD/AD label unavailable.`}`;
+  const summary = `${data.bottomLine?.lead ?? ""} ${
+    data.bottomLine?.nuance ?? ""
+  }`.trim();
 
-    const timeline = (data.windows || []).map((w) => {
-      const fromISO = w?.fromISO ?? w?.from ?? w?.start ?? w?.startISO ?? null;
-      const toISO = w?.toISO ?? w?.to ?? w?.end ?? w?.endISO ?? null;
-      const period = `${fmtDM(fromISO)} ${fmtY(fromISO)} – ${fmtDM(toISO)} ${fmtY(toISO)}`;
-      return {
-        period,
-        note: `${w.tag}: ${(w.why && w.why[0]) ?? "favorable signals"}; focus: ${(w.do && w.do[0]) ?? "steady execution"}.`,
-      };
-    });
+  const context = data.contextLines?.join(" ") ?? "";
 
-    return { title: data.title, summary, context, advice, timeline };
-  }, [data, mdAd]);
+  const advice =
+    data.adviceLines && data.adviceLines.length > 0
+      ? data.adviceLines
+      : ["Keep execution steady; avoid impulsive switches."];
+
+  const timeline: NarrativeDoc["timeline"] = (data.windows || []).map((w) => {
+    const fromISO =
+      w?.fromISO ??
+      (w as any)?.from ??
+      w?.start ??
+      w?.startISO ??
+      null;
+
+    const toISO =
+      w?.toISO ??
+      (w as any)?.to ??
+      w?.end ??
+      w?.endISO ??
+      null;
+
+    const period = `${fmtDM(fromISO)} ${fmtY(fromISO)} – ${fmtDM(
+      toISO
+    )} ${fmtY(toISO)}`;
+
+    const noteParts: string[] = [];
+
+    if (w.tag) noteParts.push(w.tag);
+     const score = (w as any).score;
+  if (typeof score !== "undefined") {
+    noteParts.push(`score ${score}`);
+  }
+    if ((w as any).confidenceLabel) {
+      noteParts.push(`confidence ${(w as any).confidenceLabel}`);
+    }
+
+    const note =
+      noteParts.join(" • ") || "Window active for this dasha period.";
+
+    return {
+      period,
+      note,
+      // Optional: if you want, you *could* set a dasha label here:
+      // dasha: mdAd,
+    };
+  });
+
+  const title =
+    mdAd != null && mdAd !== ""
+      ? `Current dasha focus: ${mdAd}`
+      : data.title ?? "Current period overview";
+
+  return {
+    title,
+    summary,
+    context,
+    advice,
+    timeline,
+  };
+}, [data, mdAd]);
 
   return (
     <div className="w-full max-w-4xl mx-auto space-y-6">

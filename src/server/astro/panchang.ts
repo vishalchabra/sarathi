@@ -149,7 +149,7 @@ function computeRiseSet(
   );
 }
 
-function localTimeStr(dt: DateTime | null, tz: string) {
+function localTimeStr(dt: any | null, tz: string) {
   if (!dt) return "—";
   return dt.setZone(tz).toFormat("HH:mm");
 }

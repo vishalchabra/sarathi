@@ -86,7 +86,7 @@ export default function WheelChartClean({
           [CANON_IDS.Ketu, "Ke"],
         ] as Array<[number, string]>
       ).map(([pid, label]) => {
-        const deg = P[pid];
+         const deg = (P as any)[pid];
         if (!Number.isFinite(deg)) return null;
         // rotate chart so ASC sign starts at 0° (3 o’clock): planet visual angle =
         // (planetSignIndex - ascSign0)*30 + planetDegreeWithinSign

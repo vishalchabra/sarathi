@@ -39,13 +39,19 @@ export function safeSlots(p: Panchang | null, minMinutes = 45): string[] {
   if (!b) return [];
   const { sun, avoid } = b;
   const blocks = [...avoid].sort((x, y) => x[0] - y[0]);
-  const out: [number, number][] = [];
-  let cur = sun.start;
+    const out: [number, number][] = [];
+
+  // Guard against null start/end so TS knows they are numbers below
+  const { start, end } = sun;
+  if (start == null || end == null) return [];
+
+  let cur = start;
   for (const [a, e] of blocks) {
     if (a > cur && a - cur >= minMinutes) out.push([cur, a]);
     cur = Math.max(cur, e);
   }
-  if (sun.end > cur && sun.end - cur >= minMinutes) out.push([cur, sun.end]);
+  if (end > cur && end - cur >= minMinutes) out.push([cur, end]);
+
   return out.map(([a, e]) => fmtRange(a, e));
 }
 
@@ -70,9 +76,20 @@ export function pickBestSlotForDecision(p: Panchang | null): { start: string; en
   if (!slots.length) return null;
 
   // Choose slot closest to midday
-  const sun = b.sun;
-  const midday = Math.floor((sun.start + sun.end) / 2);
+   const sun = b.sun;
+  const { start, end } = sun;
+
+ if (start == null || end == null || slots.length === 0) {
+  return {
+    start: "",
+    end: "",
+    why: "No valid sun window available; falling back to empty slot.",
+  };
+}
+
+  const midday = Math.floor((start + end) / 2);
   let best = slots[0], bestDiff = Infinity;
+
   for (const s of slots) {
     const [a, e] = s.split("–").map(toMin) as [number, number];
     const mid = Math.floor((a + e) / 2);

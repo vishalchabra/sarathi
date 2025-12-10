@@ -10,13 +10,31 @@ export function SunCard({ data }: { data: SunPack }) {
       </h2>
 
       <div className="text-sm text-gray-700">
-        <p><b>Dignity:</b> {data.features.dignity}</p>
-        {data.features.yogas.length > 0 && <p><b>Yogas:</b> {data.features.yogas.join(", ")}</p>}
-        {data.features.conjunctions.length > 0 && <p><b>Conjunctions:</b> {data.features.conjunctions.join(", ")}</p>}
-        {data.features.aspects_on_sun.length > 0 && (
-          <p><b>Aspected by:</b> {data.features.aspects_on_sun.map(a => `${a.from} (${a.kind})`).join(", ")}</p>
-        )}
-      </div>
+  <p>
+    <b>Dignity:</b>{" "}
+    {(data.features as any).dignity ?? "Not computed"}
+  </p>
+  {data.features.yogas.length > 0 && (
+    <p>
+      <b>Yogas:</b> {data.features.yogas.join(", ")}
+    </p>
+  )}
+  {data.features.conjunctions.length > 0 && (
+    <p>
+      <b>Conjunctions:</b> {data.features.conjunctions.join(", ")}
+    </p>
+  )}
+  {data.features.aspects_on_sun.length > 0 && (
+  <p>
+    <b>Aspects:</b>{" "}
+    {data.features.aspects_on_sun
+      .map((a: any) => `${a.from} ${a.aspect} ${a.to}`)
+      .join("; ")}
+  </p>
+)}
+
+</div>
+
 
       {data.explain.length > 0 && (
         <details>

@@ -5,9 +5,11 @@ import "server-only";
 import type {
   NotificationContext,
   NotificationTemplate,
-  SarathiNotification,
+  
 } from "./types";
 import { NOTIFICATION_TEMPLATES } from "./templates";
+// Temporary alias – relax typing until types.ts exports this formally
+type SarathiNotification = any;
 
 /* ---------------- Condition checks ---------------- */
 

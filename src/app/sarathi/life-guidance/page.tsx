@@ -225,11 +225,9 @@ export default function LifeGuidancePage() {
                 {/* ⬇️ Dasha timeline bar */}
                 {Array.isArray(report?.dasha?.timeline) && report.dasha.timeline.length > 1 && (
                   <div className="mt-3">
-                    <DashaTimeline
-                      segments={report.dasha.timeline}
-                      current={report.dasha.current}
-                    />
-                  </div>
+  <DashaTimeline dasha={report.dasha} />
+</div>
+
                 )}
               </div>
 

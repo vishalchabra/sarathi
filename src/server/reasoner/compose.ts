@@ -65,10 +65,18 @@ export async function reason(ctx: any, _chunks: Chunk[]) {
       abOK = !avoid.some((blk) => !(B <= blk[0] || blk[1] <= A));
     }
   }
-  const safeTimes =
-    panchang?.sun && (rah || gul || yam)
-      ? freeSlots({ sunrise: panchang.sun.sunrise, sunset: panchang.sun.sunset, avoid: [rah || {}, gul || {}, yam || {}] }, 60).slice(0, 2)
-      : [];
+    const safeTimes =
+  panchang?.sun && (rah || gul || yam)
+    ? (((freeSlots(
+        {
+          sunrise: panchang.sun.sunrise,
+          sunset: panchang.sun.sunset,
+          avoid: [rah || {}, gul || {}, yam || {}],
+        },
+        60
+      ) as unknown) as any[]) || []).slice(0, 2)
+    : [];
+
 
   const lines: string[] = [];
   const actions: string[] = [];

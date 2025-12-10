@@ -3,7 +3,8 @@
 
 import { useEffect, useState } from "react";
 import { loadBirthProfile, type BirthProfile } from "@/lib/birth-profile";
-import ChatSuggestions from "@/components/ChatSuggestions";
+// Temporary stub until we build a proper ChatSuggestions component or move UI to /components
+const ChatSuggestions: React.FC<{ onPick: (q: string) => void }> = () => null;
 
 /* Types from your code (kept) */
 type QAResponse = {
@@ -31,8 +32,9 @@ type HistMsg = { id: string; role: "user" | "assistant"; content: string; ts: nu
 /* Helpers (kept) */
 function gcalLink(w: { planet: string; target: string; start: string; end: string; peak: string }) {
   const title = encodeURIComponent(`${w.planet} → ${w.target} (Peak ${w.peak})`);
-  const startDay = (w.start ?? "").slice(0, 10).replaceAll("-", "");
-  const endDay = (w.end ?? "").slice(0, 10).replaceAll("-", "");
+    const startDay = (w.start ?? "").slice(0, 10).replace(/-/g, "");
+  const endDay = (w.end ?? "").slice(0, 10).replace(/-/g, "");
+
   const startZ = `${startDay}T090000Z`;
   const endZ = `${endDay || startDay}T100000Z`;
   const details = encodeURIComponent("Transit window tracked by Sārathi.");

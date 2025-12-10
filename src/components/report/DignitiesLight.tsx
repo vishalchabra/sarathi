@@ -105,12 +105,13 @@ export default function DignitiesLight({ planets = {} as any }) {
               <th className="text-left py-1">Dignity</th>
             </tr>
           </thead>
-          <tbody>
+                    <tbody>
             {ORDER.map(([name, id]) => {
-              const deg = P[id];
+              const deg = (P as any)[id];
               if (deg == null) return null;
               const signIdx = sIdx(deg);
               const sign = SIGNS_ABBR[signIdx];
+
               const d = dignityFor(id, signIdx);
               const cls =
                 d.tone === "pos"

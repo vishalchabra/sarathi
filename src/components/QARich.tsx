@@ -84,41 +84,62 @@ export function QARich({ data, question }: { data: QAResponse | any; question?: 
       </Card>
 
       {/* Why / How */}
-      <div className="grid md:grid-cols-2 gap-4">
-        <Card title="Why this works">
-          <ul className="list-disc pl-5 text-sm">
-            {(copy.windowLines || []).map((l, i) => (
-              <li key={i} dangerouslySetInnerHTML={{ __html: l.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>") }} />
-            ))}
-            {!copy.windowLines?.length && <li className="text-gray-500">Engine did not surface sub-lines.</li>}
-          </ul>
-        </Card>
-        <Card title="How to use this period">
-          <ul className="list-disc pl-5 text-sm">
-            {copy.how ? copy.how.split(";").map((x, i) => <li key={i}>{x.trim()}</li>) : <li className="text-gray-500">Keep execution steady; avoid impulsive switches.</li>}
-          </ul>
-        </Card>
-      </div>
+<div className="grid md:grid-cols-2 gap-4">
+  <Card title="Why this works">
+    <ul className="list-disc pl-5 text-sm">
+      {(copy.windowLines || []).map((l: string, i: number) => (
+        <li
+          key={i}
+          dangerouslySetInnerHTML={{
+            __html: l.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>"),
+          }}
+        />
+      ))}
+      {!copy.windowLines?.length && (
+        <li className="text-gray-500">
+          Engine did not surface sub-lines.
+        </li>
+      )}
+    </ul>
+  </Card>
+  <Card title="How to use this period">
+    <ul className="list-disc pl-5 text-sm">
+      {copy.how ? (
+        copy.how.split(";").map((x: string, i: number) => (
+          <li key={i}>{x.trim()}</li>
+        ))
+      ) : (
+        <li className="text-gray-500">
+          Keep execution steady; avoid impulsive switches.
+        </li>
+      )}
+    </ul>
+  </Card>
+</div>
 
       {/* Opportunity windows (by AD) with sub-windows */}
       {opp.length > 0 && (
         <Card title="Opportunity windows (by AD)">
           <div className="space-y-3">
-            {opp.map((o, i) => (
+            {opp.map((o: any, i: number) => (
               <div key={i} className="rounded-lg border p-3">
                 <div className="text-sm font-medium">
                   {o.label} <span className="text-gray-500">({fmt(o.fromISO)} → {fmt(o.toISO)})</span>
                 </div>
                 {Array.isArray(o.sub) && o.sub.length > 0 && (
-                  <ul className="mt-2 grid md:grid-cols-3 gap-2">
-                    {o.sub.map((s, j) => (
-                      <li key={j} className="text-sm rounded border p-2">
-                        <div className="font-medium">{s.tag}</div>
-                        <div className="text-xs text-gray-600">{fmt(s.fromISO)} → {fmt(s.toISO)}</div>
-                      </li>
-                    ))}
-                  </ul>
-                )}
+  <ul className="mt-2 grid md:grid-cols-3 gap-2">
+    {o.sub.map((s: any, j: number) => (
+      <li key={j} className="text-sm rounded border p-2">
+        <div className="font-medium">{s.tag}</div>
+        <div className="text-xs text-gray-600">
+          {fmt(s.fromISO)} → {fmt(s.toISO)}
+        </div>
+        <div className="text-xs text-gray-500">{s.note}</div>
+      </li>
+    ))}
+  </ul>
+)}
+
               </div>
             ))}
           </div>
@@ -128,32 +149,33 @@ export function QARich({ data, question }: { data: QAResponse | any; question?: 
       {/* Main windows */}
       {windows.length > 0 && (
         <Card title="Your best windows">
-          <div className="space-y-3">
-            {windows.map((w, i) => (
-              <div key={i} className="rounded-lg border p-3">
-                <div className="text-sm font-medium">
-                  {fmt(w.fromISO)} → {fmt(w.toISO)} — {w.tag}
+  <div className="space-y-3">
+    {windows.map((w: any, i: number) => (
+      <div key={i} className="rounded-lg border p-3">
+        <div className="text-sm font-medium">
+          {fmt(w.fromISO)} → {fmt(w.toISO)} — {w.tag}
+        </div>
+        <div className="mt-1 text-xs text-gray-600">
+          Score: {w.score} / 100 • Confidence: {w.confidenceLabel}
+        </div>
+        {Array.isArray(w.sub) && w.sub.length > 0 && (
+          <ul className="mt-2 grid md:grid-cols-3 gap-2">
+            {w.sub.map((s: any, j: number) => (
+              <li key={j} className="text-sm rounded border p-2">
+                <div className="font-medium">{s.tag}</div>
+                <div className="text-xs text-gray-600">
+                  {fmt(s.fromISO)} → {fmt(s.toISO)}
                 </div>
-                {w.why?.length ? (
-                  <div className="mt-1">
-                    <div className="text-xs text-gray-500">Why</div>
-                    <ul className="list-disc pl-5 text-sm">
-                      {w.why.map((x, k) => <li key={k}>{x}</li>)}
-                    </ul>
-                  </div>
-                ) : null}
-                {w.do?.length ? (
-                  <div className="mt-1">
-                    <div className="text-xs text-gray-500">Do</div>
-                    <ul className="list-disc pl-5 text-sm">
-                      {w.do.map((x, k) => <li key={k}>{x}</li>)}
-                    </ul>
-                  </div>
-                ) : null}
-              </div>
+                <div className="text-xs text-gray-500">{s.note}</div>
+              </li>
             ))}
-          </div>
-        </Card>
+          </ul>
+        )}
+      </div>
+    ))}
+  </div>
+</Card>
+
       )}
 
       {/* Quarterly plan */}
@@ -184,17 +206,24 @@ export function QARich({ data, question }: { data: QAResponse | any; question?: 
         <div className="grid md:grid-cols-2 gap-4">
           {guidance.length > 0 && (
             <Card title="Guidance">
-              <ul className="list-disc pl-5 text-sm">
-                {guidance.map((g, i) => <li key={i}>{g}</li>)}
-              </ul>
-            </Card>
+  <ul className="list-disc pl-5 text-sm">
+    {guidance.map((g: string, i: number) => (
+      <li key={i}>{g}</li>
+    ))}
+  </ul>
+</Card>
+
+
           )}
           {checklist.length > 0 && (
             <Card title="Checklist">
-              <ul className="list-disc pl-5 text-sm">
-                {checklist.map((c, i) => <li key={i}>{c}</li>)}
-              </ul>
-            </Card>
+  <ul className="list-disc pl-5 text-sm">
+    {checklist.map((c: string, i: number) => (
+      <li key={i}>{c}</li>
+    ))}
+  </ul>
+</Card>
+
           )}
         </div>
       )}

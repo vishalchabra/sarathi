@@ -172,7 +172,7 @@ export function buildMarsPack(positions: PlanetPos[]): MarsPack {
       deg: mars.deg,
       nak: mars.nakName ? { name: mars.nakName, pada: mars.pada! } : undefined,
     },
-    features: { yogas, conjunctions: conj, clusters, aspects_on_mars },
+    features: { yogas, conjunctions: conj, clusters, aspects_on_mars } as any,
     scores,
     windows: [],
     explain: [

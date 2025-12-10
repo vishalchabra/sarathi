@@ -23,7 +23,7 @@ const addYears = (fromISO: string, years = 3) => {
 // ---------- AD builder from a known MD ----------
 async function buildADSpansFrom(mdPlanet: string, mdStartISO: string, yearsHorizon = 3): Promise<DashaSpan[]> {
   // Uses your existing lib/dasha buildAntardashaSchedule (already in your repo)
-  const { buildAntardashaSchedule } = await import("@/lib/dasha");
+   const { buildAntardashaSchedule } = (await import("@/lib/dasha")) as any;
   const rows = buildAntardashaSchedule(mdPlanet, new Date(mdStartISO));
   const fromISO = iso(new Date());
   const toISO = addYears(fromISO, yearsHorizon);

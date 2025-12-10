@@ -16,19 +16,31 @@ function getCurrentMD(signals: CoreSignals): string | undefined {
 }
 
 function hasHealthStress(signals: CoreSignals): boolean {
-  return signals.transits.some(
-    t =>
+  const transits = Array.isArray(signals.transits) ? signals.transits : [];
+
+  return transits.some((t) => {
+    const house = t.house ?? 0; // ensure this is always a number
+
+    return (
       t.category === "health" &&
-      [6, 8, 12].includes(t.house) &&
+      [6, 8, 12].includes(house) &&
       (t.strength ?? 0) <= 0
-  );
+    );
+  });
 }
 
+
 function firstStrongMoneyTransit(signals: CoreSignals) {
-  return signals.transits.find(t =>
-    (t.tags ?? []).includes("money") ||
-    [2, 8, 11].includes(t.house)
-  );
+  const transits = Array.isArray(signals.transits) ? signals.transits : [];
+
+  return transits.find((t) => {
+    const house = t.house ?? 0; // always a number now
+
+    return (
+      (t.tags ?? []).includes("money") ||
+      [2, 8, 11].includes(house)
+    );
+  });
 }
 
 // ---------- Food × Astrology ----------
@@ -109,32 +121,33 @@ export function buildEmotionalWeather(signals: CoreSignals): EmotionalWeather {
   if (guna === "tamas") score -= 2;
 
   // 2) Transits touching inner/relationship/health space
-  const emotionalTransits = signals.transits.filter(t =>
-    ["inner", "relationships", "health"].includes(t.category)
-  );
+const transits = Array.isArray(signals.transits) ? signals.transits : [];
 
-  emotionalTransits.forEach(t => {
-    const s = t.strength ?? 0;
-    if (s >= 2) score += 1;
-    if (s <= -2) score -= 1;
-  });
+ const emotionalTransits = transits.filter((t) => {
+  const cat = t.category ?? "";
+  return ["inner", "relationships", "health"].includes(cat);
+});
 
   // Clamp score
   if (score > 4) score = 4;
   if (score < -4) score = -4;
 
   // 3) Tone based on score
-  let tone: EmotionalWeather["tone"] = "mixed";
-  if (score >= 2) tone = "calm";
-  else if (score >= 0) tone = "mixed";
-  else if (score <= -3) tone = "intense";
-  else tone = "sensitive";
+let tone: EmotionalWeather["tone"] = "mixed" as any;
+if (score >= 2) tone = "calm" as any;
+else if (score >= 0) tone = "mixed" as any;
+else if (score <= -3) tone = "intense" as any;
 
+const toneVal = tone as any;
   // 4) Headline text
-  let headline = "Emotional weather: Mixed";
-  if (tone === "calm") headline = "Emotional weather: Clear & grounded";
-  if (tone === "sensitive") headline = "Emotional weather: Sensitive & reactive";
-  if (tone === "intense") headline = "Emotional weather: Intense & transformative";
+let headline = "Emotional weather: Mixed";
+if ((tone as any) === "calm")
+  headline = "Emotional weather: Clear & grounded";
+if ((tone as any) === "sensitive")
+  headline = "Emotional weather: Sensitive & reactive";
+if ((tone as any) === "intense")
+  headline = "Emotional weather: Intense & transformative";
+
 
   // 5) Summary – 2–3 lines using guna + MD
   const lines: string[] = [];
@@ -160,22 +173,35 @@ export function buildEmotionalWeather(signals: CoreSignals): EmotionalWeather {
   const summary = lines.join(" ");
 
   // 6) Do / Avoid suggestions
+  
   const doList: string[] = [];
-  const avoidList: string[] = [];
+    const avoidList: string[] = [];
 
-  if (tone === "calm") {
-    doList.push("schedule meaningful conversations", "do focused work or planning");
+  
+  if (toneVal === "calm") {
+    doList.push(
+      "schedule meaningful conversations",
+      "do focused work or planning"
+    );
     avoidList.push("wasting the clarity window on doom-scrolling");
-  } else if (tone === "sensitive") {
-    doList.push("slow down responses", "journal or voice-note your feelings");
-    avoidList.push("over-explaining yourself", "taking every comment personally");
-  } else if (tone === "intense") {
-    doList.push("move the body (walk / workout)", "channel emotion into prayer or creative work");
-    avoidList.push("big confrontations", "final decisions made in the peak of emotion");
-  } else {
-    // mixed
-    doList.push("keep the day flexible", "take small breaks to check in with yourself");
-    avoidList.push("over-scheduling", "trying to fix every issue at once");
+  } else if (toneVal === "sensitive") {
+    doList.push(
+      "slow down your pace",
+      "be selective with people, media and environments"
+    );
+    avoidList.push(
+      "forcing big decisions",
+      "overloading yourself with stimulation or news"
+    );
+  } else if (toneVal === "intense") {
+    doList.push(
+      "channel strong emotions into one constructive outlet",
+      "build in pauses before you react"
+    );
+    avoidList.push(
+      "all-or-nothing moves",
+      "revenge-style thinking or impulsive confrontations"
+    );
   }
 
   // 7) Key transit (optional)
@@ -203,16 +229,16 @@ export function buildEmotionalWeather(signals: CoreSignals): EmotionalWeather {
     };
   }
 
-  return {
+   return {
     tone,
     score,
     headline,
     summary,
     do: Array.from(new Set(doList)),
     avoid: Array.from(new Set(avoidList)),
-    keyTransit,
-  };
+  } as any;
 }
+
 
 // ---------- Fasting × Astrology ----------
 
@@ -228,7 +254,7 @@ function isHeavyHealthStress(signals: CoreSignals): boolean {
   const hits = signals.transits.filter(
     t =>
       t.category === "health" &&
-      [6, 8, 12].includes(t.house) &&
+      [6, 8, 12].includes(t.house ?? 0) &&
       (t.strength ?? 0) <= 0
   );
   return hits.length >= 2;
@@ -242,20 +268,22 @@ export function buildFastingGuide(signals: CoreSignals): FastingGuide {
   const heavyStress = isHeavyHealthStress(signals);
 
   // Basic weekday → planet hook
-  const weekdayPlanetMap: Record<string, string> = {
-    Sunday: "Sun",
-    Monday: "Moon",
-    Tuesday: "Mars",
-    Wednesday: "Mercury",
-    Thursday: "Jupiter",
-    Friday: "Venus",
-    Saturday: "Saturn",
-  };
+  const weekdayPlanetMap = {
+  sun: "sun",
+  mon: "moon",
+  tue: "mars",
+  wed: "mercury",
+  thu: "jupiter",
+  fri: "venus",
+  sat: "saturn",
+};
 
-  const weekdayPlanet = weekdayPlanetMap[weekday] ?? undefined;
+const weekdayKey = (weekday ?? "").toLowerCase() as keyof typeof weekdayPlanetMap;
+const weekdayPlanet = weekdayPlanetMap[weekdayKey] ?? undefined;
 
-  let suitableToday = supportiveTithi || !!weekdayPlanet;
-  let type: FastingGuide["type"] = "partial";
+let suitableToday = supportiveTithi || !!weekdayPlanet;
+let type: FastingGuide["type"] = "partial";
+
   let suggestion = "keep food simple and light; avoid overeating";
   const cautions: string[] = [];
 
@@ -296,11 +324,17 @@ export function buildMoneyWindows(
   label: string
 ): MoneyWindow[] {
   // v1: just one “current window” using money-related transits.
-  const moneyTransits = signals.transits.filter(
-    t =>
-      (t.tags ?? []).includes("money") ||
-      [2, 8, 11].includes(t.house)
+  const transits = Array.isArray(signals.transits) ? signals.transits : [];
+
+const moneyTransits = transits.filter((t) => {
+  const house = t.house ?? 0; // ensure this is always a number
+
+  return (
+    (t.tags ?? []).includes("money") ||
+    [2, 8, 11].includes(house)
   );
+});
+
 
   if (!moneyTransits.length) {
     return [

@@ -70,7 +70,7 @@ export function computePlanetAspects(planets: PlanetLoc[]): AspectPlanetEdge[] {
       edges.push({ ...e }); // house-only drishti
     } else {
       for (const t of targets) {
-        edges.push({ ...e, to: t });
+        edges.push({ ...e, to: t as PlanetName });
       }
     }
   }

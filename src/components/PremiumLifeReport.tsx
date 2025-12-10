@@ -1,16 +1,16 @@
 "use client";
 
 import React from "react";
-import DashaTimeline from "./Report/DashaTimeline";
-import DashaTable from "./Report/DashaTable";
-import YogasAuto from "./Report/YogasAuto";
-import AshtakavargaMini from "./Report/AshtakavargaMini";
-import DignitiesLight from "./Report/DignitiesLight";
-import HouseLords from "./Report/HouseLords";
-import StrengthSignatureV2 from "./Report/StrengthSignatureV2";
-import ThemeToggle from "./Report/ThemeToggle";
-import NarrativeSummaryPro from "./Report/NarrativeSummaryPro"; // ✅ use the new component
-import PlanetsAndAspects from "./Report/PlanetsAndAspects";
+import DashaTimeline from "./report/DashaTimeline";
+import DashaTable from "./report/DashaTable";
+import YogasAuto from "./report/YogasAuto";
+import AshtakavargaMini from "./report/AshtakavargaMini";
+import DignitiesLight from "./report/DignitiesLight";
+import HouseLords from "./report/HouseLords";
+import StrengthSignatureV2 from "./report/StrengthSignatureV2";
+import ThemeToggle from "./report/ThemeToggle";
+import NarrativeSummaryPro from "./report/NarrativeSummaryPro"; // ✅ use the new component
+import PlanetsAndAspects from "./report/PlanetsAndAspects";
 import { wrap360, degMin, SIGNS_FULL } from "@/lib/astro/canonical";
 
 /* ---------- small UI helpers ---------- */

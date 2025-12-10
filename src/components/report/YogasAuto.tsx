@@ -34,8 +34,12 @@ const exaltSign = {
 } as const;
 
 function inOwnOrExalt(pid: number, signIdx: number) {
-  return ownSigns[pid]?.includes(signIdx) || exaltSign[pid] === signIdx;
+  const own = (ownSigns as any)[pid] as number[] | undefined;
+  const exalt = (exaltSign as any)[pid] as number | undefined;
+
+  return (own?.includes(signIdx) ?? false) || exalt === signIdx;
 }
+
 
 function kendra(h: number) {
   return h === 1 || h === 4 || h === 7 || h === 10;
@@ -55,9 +59,9 @@ export default function YogasAuto({
   mode?: "strict" | "light";
 }) {
   const P = normalizePlanets(planets);
-  const asc0 = Number.isFinite(ascDeg) ? Math.floor(wrap360(Number(ascDeg)) / 30) : 0;
+    const asc0 = Number.isFinite(ascDeg) ? Math.floor(wrap360(Number(ascDeg)) / 30) : 0;
 
-  const signOf = (pid: number) => sIdx(P[pid] ?? NaN);
+  const signOf = (pid: number) => sIdx((P as any)[pid] ?? NaN);
   const houseOfP = (pid: number) => houseOf(signOf(pid), asc0);
 
   const list: Yoga[] = [];

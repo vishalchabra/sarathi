@@ -99,9 +99,10 @@ export async function findDiwali(year: number, place: Place) {
   const start = DateTime.fromObject({ year, month: 10, day: 10 }, { zone });
   const end   = DateTime.fromObject({ year, month: 11, day: 25 }, { zone });
 
-  // Build the date list once
-  const days: DateTime[] = [];
+    // Build the date list once
+  const days: any[] = [];
   for (let d = start; d <= end; d = d.plus({ days: 1 })) days.push(d);
+
 
   // Fetch all days in parallel (fast)
   const results = await Promise.allSettled(

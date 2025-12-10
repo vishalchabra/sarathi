@@ -193,8 +193,9 @@ function buildWhy(topic: NonNullable<OrchestrateInput["category"]>, idx: number)
 
 /** ------------- Public Orchestrator ------------- */
 export async function orchestrateQA(input: OrchestrateInput): Promise<OrchestrateOutput> {
-  const topic = input.category || detectTopic(input.question);
+    const topic = (input.category || detectTopic(input.question)) as keyof typeof PER_CAT;
   const cfg = PER_CAT[topic];
+
   const horizonDays = clamp(input.horizonDays ?? cfg.horizonDays, cfg.minSpan * 3, cfg.horizonDays);
 
   // If you already have per-category engines, attempt dynamic import here:

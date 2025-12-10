@@ -5,7 +5,13 @@
 // - Includes Rahu/Ketu (mean nodes)
 
 import * as Astronomy from "astronomy-engine";
+import type { Observer } from "astronomy-engine";
 import { DateTime } from "luxon";
+type AstroObserver = {
+  latitude: number;
+  longitude: number;
+  height: number;
+};
 
 export type Place = { lat: number; lon: number; tz: string };
 
@@ -50,7 +56,8 @@ function eclToRADec(lambdaDeg: number, epsRad: number) {
   if (ra < 0) ra += 2 * Math.PI;
   return { raHours: rad2deg(ra) / 15, decDeg: rad2deg(dec) };
 }
-function altAzAt(dateUTC: Date, obs: Astronomy.Observer, lambdaDeg: number, epsRad: number) {
+function altAzAt(dateUTC: Date, obs: AstroObserver, lambdaDeg: number, epsRad: number) {
+
   const { raHours, decDeg } = eclToRADec(lambdaDeg, epsRad);
   const h = Astronomy.Horizon(dateUTC, obs, raHours, decDeg, "normal");
   return { alt: h.altitude, az: h.azimuth };

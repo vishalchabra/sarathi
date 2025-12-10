@@ -5,6 +5,14 @@ import path from "node:path";
 import { DateTime } from "luxon";
 import type { Place, BirthInput } from "@/types";
 import { createRequire } from "module";
+// Temporary no-op; Swiss is already configured sidereal elsewhere.
+function ensureSidereal(): void {
+  // Intentionally empty
+}
+// Temporary no-op; ephemeris path is already set at process level or elsewhere.
+function setEphePath(): void {
+  // Intentionally empty
+}
 
 const require = createRequire(import.meta.url);
 
@@ -41,12 +49,15 @@ async function syntheticSignals(
 let _swe: any | null = null;
 function getSwe() {
   if (_swe) return _swe;
-  try {
-    _swe = requireCjs("swisseph");
-    return _swe;
-  } catch {
-    return null;
-  }
+try {
+  // Node-style require; typed as any so TS doesn't complain
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  _swe = (require as any)("swisseph");
+  return _swe;
+} catch {
+  return null;
+}
+
 }
   
 /* =========================
@@ -143,11 +154,14 @@ async function getNatal(birth?: BirthInput): Promise<Natal> {
 function ascAndHouseLords(birth?: BirthInput) {
   try {
     if (!birth) return null;
-    // These are your own modules; keep them try/catch
-    const { computeAscendant, houseSign } = requireCjs("@/server/astro/asc");
-    const { SIGN_RULER } = requireCjs("@/server/core/houselords");
+// These are your own modules; keep them try/catch
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { computeAscendant, houseSign } = (require as any)("@/server/astro/asc");
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { SIGN_RULER } = (require as any)("@/server/core/houselords");
 
-    const asc = computeAscendant(birth);
+const asc = computeAscendant(birth);
+
     if (!asc || typeof asc.ascSign !== "number") return null;
 
     const l1 = SIGN_RULER[asc.ascSign];
@@ -250,6 +264,8 @@ export async function dailyTransitSignals(
   topic: "vehicle" | "property" | "job" | "wealth" | "health" | "relationship",
   birth?: BirthInput
 ): Promise<TransitPoint[]> {
+  const swe = getSwe();
+
   // Fallback if Swiss unavailable
   if (!swe) return syntheticSignals(startISO, horizonDays, place, topic);
 
@@ -257,30 +273,42 @@ export async function dailyTransitSignals(
     ensureSidereal();
     setEphePath();
 
-    const start = DateTime.fromISO(startISO).setZone(place.tz ?? "UTC").startOf("day");
-    const natal = await getNatal(birth);
-    const house = ascAndHouseLords(birth);
-    const sweRef = getSwe();
-const cfg = topicConfig(topic, house, sweRef);
-    console.log("[SARATHI DEBUG] swe?", !!swe);
-console.log("[SARATHI DEBUG] natal planets keys", Object.keys(natal.planets));
-console.log("[SARATHI DEBUG] targets", cfg.targets.length);
-console.log("[SARATHI DEBUG] transiting", cfg.transiting.length);
+    const start = DateTime.fromISO(startISO)
+      .setZone(place.tz ?? "UTC")
+      .startOf("day");
 
-    if (!cfg.transiting.length || !cfg.targets.length || !Object.keys(natal.planets).length) {
+    const natal = await getNatal(birth);
+    const house = ascAndHouseLords(birth as any);
+    const sweRef = swe;
+    const cfg = topicConfig(topic, house, sweRef);
+
+    console.log("[SARATHI DEBUG] swe?", !!sweRef);
+    console.log("[SARATHI DEBUG] natal planets keys", Object.keys(natal.planets));
+    console.log("[SARATHI DEBUG] targets", cfg.targets.length);
+    console.log("[SARATHI DEBUG] transiting", cfg.transiting.length);
+
+    if (
+      !cfg.transiting.length ||
+      !cfg.targets.length ||
+      !Object.keys(natal.planets).length
+    ) {
       return syntheticSignals(startISO, horizonDays, place, topic);
     }
 
     const out: TransitPoint[] = [];
+
     for (let i = 0; i < horizonDays; i++) {
       const d = start.plus({ days: i }).toUTC().toJSDate();
 
       // Transit longitudes
       const tLon: Record<number, number> = {};
-for (const pl of cfg.transiting) {
-  const v = siderealLon(d, pl);
-  if (typeof v === "number") tLon[pl] = v; // only include if Swiss returned a value
-}
+      for (const pl of cfg.transiting) {
+        const v = siderealLon(d, pl);
+        if (typeof v === "number") tLon[pl] = v; // only include if Swiss returned a value
+      }
+
+      let dayScore = 0;
+      const facts: string[] = [];
 
       // Compare transiting planets to natal targets for supported aspects
       for (const tgt of cfg.targets) {
@@ -289,6 +317,8 @@ for (const pl of cfg.transiting) {
 
         for (const pl of cfg.transiting) {
           const lon = tLon[pl];
+          if (lon == null) continue;
+
           for (const asp of ASPECTS) {
             const delta = Math.min(
               diffDeg(lon, natalLon + asp.angle),
@@ -300,7 +330,9 @@ for (const pl of cfg.transiting) {
               gain += dignityBoost(pl, lon);
               dayScore += gain;
               facts.push(
-                `${swe.get_planet_name(pl)} ${asp.name} ${swe.get_planet_name(tgt.planet)} natal ~Δ${delta.toFixed(2)}°`
+                `${swe.get_planet_name(pl)} ${asp.name} ${swe.get_planet_name(
+                  tgt.planet
+                )} natal ~Δ${delta.toFixed(2)}°`
               );
             }
           }

@@ -132,11 +132,17 @@ function activeDashaContext(spans?: DashaSpan[]): { line: string; raw?: DashaSpa
       const b = Date.parse(s.toISO);
       return !isNaN(a) && !isNaN(b) && a <= now && now <= b;
     }) ?? spans[0];
-  const label = (cur?.label ?? "").trim();
+    const label = (cur?.label ?? "").trim();
+
+  // `note` is present at runtime but not on the DashaSpan type,
+  // so we read it via `any` to keep TypeScript happy.
+  const note = (cur as any)?.note as string | undefined;
+
   const line = label
-    ? `You’re in ${label}. ${cur?.note ?? CTX_FALLBACK}`
-    : `You’re in current period. ${cur?.note ?? CTX_FALLBACK}`;
+    ? `You’re in ${label}. ${note ?? CTX_FALLBACK}`
+    : `You’re in current period. ${note ?? CTX_FALLBACK}`;
   return { line, raw: cur };
+
 }
 
 /* ----------------------------- Panchang helpers ----------------------------- */
@@ -212,9 +218,16 @@ function buildStructuredNarrative(args: {
 
   const now = new Date(); const cutoff = new Date(now); cutoff.setMonth(cutoff.getMonth() + 24);
   const dashaLines = (dashaSpans || [])
-    .filter((d) => { const a = Date.parse(d.fromISO); return !isNaN(a) && a <= +cutoff; })
-    .slice(0, 8)
-    .map((d) => `• ${fmtISO(d.fromISO)} → ${fmtISO(d.toISO)} — ${d.label}${d.note ? ` (${d.note})` : ""}`);
+  .filter((d) => {
+    const a = Date.parse(d.fromISO);
+    return !isNaN(a) && a <= +cutoff;
+  })
+  .slice(0, 8)
+  .map((d) => {
+    const note = (d as any)?.note as string | undefined;
+    return `• ${fmtISO(d.fromISO)} → ${fmtISO(d.toISO)} — ${d.label}${note ? ` (${note})` : ""}`;
+  });
+
 
   let summary = bottomLine?.lead || `Good opportunities are visible for ${who}.`;
   if (top.length > 0) {

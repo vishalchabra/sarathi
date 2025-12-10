@@ -69,18 +69,36 @@ export async function calcPanchang(
   const sunrise = "06:06";
   const sunset  = "18:29";
 
-  const kaal = computeDayKaalam(date, sunrise, sunset);
-return { /* ... */ kaal, /* ... */ };
+   const kaal = computeDayKaalam(date, sunrise, sunset);
+
   // Stub values for the rest; replace when you wire your real GG Panchang.
+  // This shape is enough for now and is explicitly cast to RawPanchang.
   return {
-    tithi:     { name: "Shukla Dwitiya", phase: "Waxing", endTime: "13:42" },
-    nakshatra: { name: "Rohini",        pada: 2,         endTime: "18:05" },
-    yoga:      { name: "Siddhi",                         endTime: "16:11" },
-    karana:    { name: "Bava",                           endTime: "08:33" },
-    sun:       { sunrise, sunset },
-    moon:      { moonrise: "10:45", moonset: "22:18" },
-    kaal, // ← computed Rahu/Gulika from sunrise/sunset + weekday
-    muhurtas:  { abhijit: { start: "12:12", end: "12:59" } },
-    festivals: [],
-  };
+    tithi: {
+      name: "Shukla Dwitiya",
+      phase: "Waxing",
+      endTime: "13:42",
+    },
+    nakshatra: {
+      name: "Rohini",
+      endTime: "19:05",
+    },
+    yoga: {
+      name: "Siddhi",
+      endTime: "21:30",
+    },
+    karana: {
+      name: "Bava",
+      endTime: "10:15",
+    },
+    sun: {
+      sunrise,
+      sunset,
+    },
+    moon: {
+      moonrise: "--",
+      moonset: "--",
+    },
+    kaal,
+  } as unknown as RawPanchang;
 }

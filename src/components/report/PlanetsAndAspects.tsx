@@ -52,11 +52,14 @@ function readByName(planets: any, names: string[]): number | undefined {
 function normalizePlanets(planets: any): Record<string, number> {
   const out: Record<string, number> = {};
 
-  // 1) prefer name keys
-  for (const label of Object.keys(ALIASES) as (keyof typeof ALIASES)[]) {
-    const v = readByName(planets, ALIASES[label]);
-    if (Number.isFinite(v)) out[label] = v!;
-  }
+// 1) prefer name keys
+for (const label of Object.keys(ALIASES) as (keyof typeof ALIASES)[]) {
+  const v = readByName(
+    planets,
+    ALIASES[label] as unknown as string[]
+  );
+  if (Number.isFinite(v)) out[label] = v!;
+}
 
   // 2) numeric-only fallback (some feeds only give indices)
   // — If you're seeing the Ma/Ju swap, this is where it happens.
