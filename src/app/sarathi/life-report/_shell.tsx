@@ -40,7 +40,7 @@ import Link from "next/link";
 const AYANAMSA_LAHIRI_APPROX = 23.85;
 
 /* ---------------- Locking city autocomplete (simplified – always typeable) ---------------- */
-const [engineUnavailable, setEngineUnavailable] = useState<string | null>(null);
+
 
 const cityCache = new Map<string, Array<{ name: string; lat: number; lon: number }>>();
 
@@ -63,7 +63,7 @@ function LockingCityAutocomplete({
   >([]);
   const inputRef = React.useRef<HTMLInputElement>(null);
   const timerRef = React.useRef<number | null>(null);
-
+  
   // keep input in sync if parent changes value
   React.useEffect(() => {
     if (value?.name && value.name !== q) {
@@ -3266,7 +3266,7 @@ const LifeReportShell: React.FC<LifeReportShellProps> = ({
       // fall back silently
     }
   }, [initialTz]);
-
+  const [engineUnavailable, setEngineUnavailable] = useState<string | null>(null);
   const aiCtrlRef = useRef<AbortController | null>(null);
   const [dashaTransitSummary, setDashaTransitSummary] = useState<string>("");
 
