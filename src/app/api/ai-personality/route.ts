@@ -1,80 +1,107 @@
 // FILE: src/app/api/ai-personality/route.ts
+export const runtime = "nodejs";
+
+import "server-only";
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
 
-// Only create the OpenAI client if we actually have an API key.
-// This keeps Vercel builds from crashing when OPENAI_API_KEY is missing.
-const apiKey = process.env.OPENAI_API_KEY;
-const client = apiKey ? new OpenAI({ apiKey }) : null;
+/* ---------------- OpenAI setup (lazy) ---------------- */
 
-export async function POST(req: NextRequest) {
-  // If there is no OpenAI key on the server, return a safe fallback response.
-  if (!client) {
-    return NextResponse.json(
-      {
-        text:
-          "AI personality summary is temporarily disabled because OPENAI_API_KEY is not configured on the server.",
-        _meta: { disabled: true },
-      },
-      { status: 200 }
-    );
+const GPT_MODEL = process.env.OPENAI_MODEL || "gpt-4.1-mini";
+
+let cachedClient: OpenAI | null = null;
+
+function getOpenAIClient(): OpenAI {
+  if (cachedClient) return cachedClient;
+
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    // Important: this only runs when the route is actually hit,
+    // so it won't crash at build time.
+    throw new Error("OPENAI_API_KEY is missing");
   }
 
+  cachedClient = new OpenAI({ apiKey });
+  return cachedClient;
+}
+
+/* ---------------- helpers ---------------- */
+
+function okJson(data: any, status = 200) {
+  return new NextResponse(JSON.stringify(data), {
+    status,
+    headers: { "content-type": "application/json" },
+  });
+}
+
+function badJson(message: string, status = 400) {
+  return okJson({ error: message, modelUsed: GPT_MODEL }, status);
+}
+
+export async function GET() {
+  // simple health check endpoint
+  return okJson({ ok: true, modelUsed: GPT_MODEL });
+}
+
+/* ---------------- route ---------------- */
+
+export async function POST(req: NextRequest) {
   try {
-    const body = await req.json().catch(() => ({} as any));
-    const profile = body?.profile ?? {};
-    const planets = body?.planets ?? [];
-    const aspects = body?.aspects ?? [];
-    const nakshatraMap = body?.nakshatraMap ?? {};
+    const body = (await req.json().catch(() => ({}))) as any;
+    const prompt: string | undefined = body?.prompt;
 
-    const name = profile?.name || "the native";
+    if (!prompt || typeof prompt !== "string") {
+      return badJson("Missing 'prompt' in request body", 400);
+    }
 
-    const systemPrompt = `
-You are a Vedic astrology guide.
-Summarize the core personality and life approach of ${name} using:
-- Ascendant, Moon, and Sun signs
-- Planet placements
-- Key aspects
-- Nakshatra hints (if provided)
+    const systemPrompt =
+      "You are Sārathi, an AI astrologer-personality and guide. " +
+      "You speak in warm, grounded, simple language. " +
+      "You avoid fatalism, fear, and health scare predictions. " +
+      "You emphasise free will, learning, and conscious choices. " +
+      "Keep answers compact and human, not over-formal.";
 
-Rules:
-- Speak in 2nd person ("you").
-- Be supportive and practical, not fatalistic.
-- Focus on strengths, patterns, and gentle cautions.
-- Keep it about 300–500 words.
-`;
+    try {
+      const client = getOpenAIClient();
 
-    const userContent = `
-Profile:
-${JSON.stringify(profile, null, 2)}
+      const completion = await client.chat.completions.create({
+        model: GPT_MODEL,
+        temperature: 0.4,
+        max_tokens: 400,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: prompt },
+        ],
+      });
 
-Planets:
-${JSON.stringify(planets, null, 2)}
+      const text =
+        completion.choices[0]?.message?.content?.trim() ||
+        "I’m not sure what to say yet, but I’m here to guide you gently.";
 
-Aspects:
-${JSON.stringify(aspects, null, 2)}
+      return okJson({ text, modelUsed: GPT_MODEL });
+    } catch (err: any) {
+      // If key is missing or OpenAI fails → graceful fallback
+      console.error("[api/ai-personality] OpenAI error, using fallback", err);
 
-Nakshatra Map:
-${JSON.stringify(nakshatraMap, null, 2)}
-`;
+      const fallback =
+        "I am Sārathi, here to remind you that your chart does not lock you in—it simply describes tendencies and timings. " +
+        "Your real power is in how you respond: staying honest with yourself, making small, aligned choices, " +
+        "and learning from each phase instead of judging it. Wherever you are right now, start with one simple, kind action toward yourself and your path.";
 
-    const chat = await client.chat.completions.create({
-      model: "gpt-4.1-mini",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userContent },
-      ],
-      max_tokens: 700,
-      temperature: 0.6,
-    });
-
-    const text = chat.choices[0]?.message?.content?.trim() || "";
-    return NextResponse.json({ text });
-  } catch (e) {
-    console.error("[ai-personality] error", e);
-    return NextResponse.json(
-      { error: "Failed to build personality summary" },
-      { status: 500 }
+      return okJson({
+        text: fallback,
+        modelUsed: `${GPT_MODEL} (fallback-local)`,
+      });
+    }
+  } catch (err: any) {
+    console.error("[api/ai-personality] outer error", err);
+    return okJson(
+      {
+        error: "ai_personality_failed",
+        details: String(err),
+        modelUsed: GPT_MODEL,
+      },
+      502,
     );
   }
 }
