@@ -1,1 +1,6 @@
-export default function Home() { return <div style={{padding:24}}>Home OK</div>; }
+// FILE: src/app/page.tsx
+import { redirect } from "next/navigation";
+
+export default function Home() {
+  redirect("/sarathi");
+}
