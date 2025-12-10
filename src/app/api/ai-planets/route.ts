@@ -3,7 +3,12 @@ export const runtime = "nodejs";
 
 import "server-only";
 import { NextResponse } from "next/server";
-import { openai, GPT_MODEL } from "@/lib/ai";
+import OpenAI from "openai";
+
+// --- OpenAI client: safe even if OPENAI_API_KEY is missing ---
+const apiKey = process.env.OPENAI_API_KEY;
+const client = apiKey ? new OpenAI({ apiKey }) : null;
+const GPT_MODEL = "gpt-4.1-mini";
 
 /* ---------- Types ---------- */
 type PlanetRow = { name: string; sign?: string; house?: number; nakshatra?: string };
@@ -125,6 +130,7 @@ const PLANET_VOICES: Record<
     close: "return attention to essence over form",
   },
 };
+
 function planetVoiceFor(name?: string) {
   const k = (name || "").toLowerCase();
   return (
@@ -287,7 +293,9 @@ export async function POST(req: Request) {
 
     // ✅ ALWAYS use `rpt`
     const rpt = body?.report || {};
-    const planets: PlanetRow[] = Array.isArray((rpt as any).planets) ? ((rpt as any).planets as PlanetRow[]) : [];
+    const planets: PlanetRow[] = Array.isArray((rpt as any).planets)
+      ? ((rpt as any).planets as PlanetRow[])
+      : [];
 
     // aspects input (either array or map) from `rpt`
     const aspectsIn: AspectA[] | AspectsMap | undefined =
@@ -333,7 +341,26 @@ export async function POST(req: Request) {
       );
     }
 
+    // ---------- No OpenAI key? Use fallback-only ----------
+    if (!client) {
+      const insights: Record<string, { headline: string; summary: string }> = {};
+      for (const f of perPlanet) {
+        const headline = (f.headline || "Placement").trim();
+        const summary = fallbackMeaning(f.raw, f.pairs).replace(/\s+/g, " ").trim();
+        insights[f.name] = { headline, summary };
+      }
+
+      return NextResponse.json(
+        {
+          insights,
+          _meta: { disabled: true, reason: "OPENAI_API_KEY not configured" },
+        },
+        { status: 200 }
+      );
+    }
+
     // ---------- GPT generation ----------
+
     let ai: any | null = null;
     try {
       const system =
@@ -360,14 +387,22 @@ export async function POST(req: Request) {
             },
             guidanceStyle: {
               sentenceCount: "3-5",
-              avoid: ["bulleted lists", "overly generic cookbook lines", "repeating raw facts verbatim"],
-              do: ["weave aspects naturally", "name growth direction", "end with a clear, gentle nudge"],
+              avoid: [
+                "bulleted lists",
+                "overly generic cookbook lines",
+                "repeating raw facts verbatim",
+              ],
+              do: [
+                "weave aspects naturally",
+                "name growth direction",
+                "end with a clear, gentle nudge",
+              ],
             },
           };
         }),
       };
 
-      const completion = await openai.chat.completions.create({
+      const completion = await client.chat.completions.create({
         model: GPT_MODEL,
         temperature: 0.6,
         max_tokens: 2000,
@@ -422,7 +457,10 @@ export async function POST(req: Request) {
     return NextResponse.json({ insights }, { status: 200 });
   } catch (err: any) {
     return new NextResponse(
-      JSON.stringify({ error: "ai_planets_failed", message: err?.message || "Unknown error" }),
+      JSON.stringify({
+        error: "ai_planets_failed",
+        message: err?.message || "Unknown error",
+      }),
       { status: 500, headers: { "content-type": "application/json" } }
     );
   }

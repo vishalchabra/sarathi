@@ -1,13 +1,27 @@
-import { NextResponse } from "next/server";
+// FILE: src/app/api/ai-personality/route.ts
+import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
 
-const client = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Only create the OpenAI client if we actually have an API key.
+// This keeps Vercel builds from crashing when OPENAI_API_KEY is missing.
+const apiKey = process.env.OPENAI_API_KEY;
+const client = apiKey ? new OpenAI({ apiKey }) : null;
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
+  // If there is no OpenAI key on the server, return a safe fallback response.
+  if (!client) {
+    return NextResponse.json(
+      {
+        text:
+          "AI personality summary is temporarily disabled because OPENAI_API_KEY is not configured on the server.",
+        _meta: { disabled: true },
+      },
+      { status: 200 }
+    );
+  }
+
   try {
-    const body = await req.json().catch(() => ({}));
+    const body = await req.json().catch(() => ({} as any));
     const profile = body?.profile ?? {};
     const planets = body?.planets ?? [];
     const aspects = body?.aspects ?? [];

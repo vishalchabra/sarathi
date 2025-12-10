@@ -1,4 +1,7 @@
 // FILE: src/app/api/ai-weekly/route.ts
+export const runtime = "nodejs";
+
+import "server-only";
 import { NextResponse } from "next/server";
 
 type TransitCategory = "career" | "relationships" | "health" | "inner" | "general";
@@ -82,10 +85,7 @@ function primaryCategoryForWeek(
 }
 
 /* Build a human-friendly text for the week based on main category */
-function buildWeekText(
-  label: string,
-  mainCat: TransitCategory
-): string {
+function buildWeekText(label: string, mainCat: TransitCategory): string {
   switch (mainCat) {
     case "career":
       return [
@@ -162,7 +162,7 @@ export async function POST(req: Request) {
     console.error("[ai-weekly] error", e);
     return NextResponse.json(
       { error: "Failed to build weekly insights" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
