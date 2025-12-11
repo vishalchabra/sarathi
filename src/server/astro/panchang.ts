@@ -3,7 +3,7 @@
 // Sunrise/Sunset via JS approximation (no swe_rise_trans)
 
 import { DateTime } from "luxon";
-import { getSwe } from "@/server/astro/swe";
+import { julianDayUTC } from "@/server/astro/core";
 
 // --- ensure nakshatra module (with lord/theme) is loaded before we compute
 let _getNakshatra:
@@ -73,51 +73,37 @@ async function jdUTFromLocal(dateISO: string, timeHHmm: string, tz: string) {
     );
   }
 
-  const dtUTC = dtLocal.toUTC();
-  const swe = await getSwe();
+    const dtUTC = DateTime.fromISO(dateISO, { zone: tz }).toUTC();
 
-  const jd = swe.swe_julday(
-    dtUTC.year,
-    dtUTC.month,
-    dtUTC.day,
-    dtUTC.hour + dtUTC.minute / 60 + dtUTC.second / 3600,
-    swe.SE_GREG_CAL
-  );
+  const jd = await julianDayUTC(dtUTC.toJSDate());
+
 
   return { jd, dtUTC };
 }
-// ---------- Sun / Moon (sidereal Lahiri) ----------
+// ---------- Sun / Moon (sidereal Lahiri) – SWE-FREE STUB ----------
 async function getSiderealPositions(jdUT: number) {
-  const swe = await getSwe();
+  // Swiss Ephemeris (native/WASM) has been removed from the build.
+  // This helper now returns rough sidereal longitudes for Sun and Moon
+  // using simple average-motion formulas, just to keep Panchang-like
+  // logic running without depending on swisseph.
 
-  // getSwe already sets sidereal mode once; just in case:
-  try {
-    if (typeof swe.swe_set_sid_mode === "function") {
-      await swe.swe_set_sid_mode(swe.SE_SIDM_LAHIRI, 0, 0);
-    }
-  } catch {
-    // ignore, engine may already be in Lahiri mode
-  }
+  // Time in days from J2000.0
+  const daysFromJ2000 = jdUT - 2451545.0;
 
-  const flags =
-    (swe.SEFLG_SWIEPH ?? 2) |
-    (swe.SEFLG_SIDEREAL ?? 64) |
-    (swe.SEFLG_SPEED ?? 256);
+  // Mean tropical longitudes (very rough):
+  // Sun ≈ 0.985647° per day
+  // Moon ≈ 13.176358° per day
+  const sunTropical = daysFromJ2000 * 0.985647;
+  const moonTropical = daysFromJ2000 * 13.176358;
 
-  const s: any = await swe.swe_calc_ut(jdUT, swe.SE_SUN, flags);
-  const m: any = await swe.swe_calc_ut(jdUT, swe.SE_MOON, flags);
+  // Rough Lahiri ayanāṁśa (~24°); tweak later if you wire a better
+  // pure-TS ephemeris.
+  const lahiriAyanamsaDeg = 24;
 
-  const pick = (res: any) => {
-    if (typeof res?.longitude === "number") return res.longitude;
-    if (Array.isArray(res?.x) && typeof res.x[0] === "number") return res.x[0];
-    if (Array.isArray(res) && typeof res[0] === "number") return res[0];
-    return 0;
-  };
+  const sun = wrap360(sunTropical - lahiriAyanamsaDeg);
+  const moon = wrap360(moonTropical - lahiriAyanamsaDeg);
 
-  return {
-    sun: wrap360(pick(s)),
-    moon: wrap360(pick(m)),
-  };
+  return { sun, moon };
 }
 
 /** Approximate sunrise/sunset (NOAA-style) in local time "HH:mm". */

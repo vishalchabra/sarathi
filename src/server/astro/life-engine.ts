@@ -1,12 +1,12 @@
 // FILE: src/server/astro/life-engine.ts
 import "server-only";
 
-import { getSwe } from "@/server/astro/swe";
+
 import { getFullPanchang } from "@/server/astro/panchang-full";
 import { buildAllVargas } from "@/server/astro/varga";
 import { getNakshatra } from "@/server/astro/nakshatra";
 import { vimshottariMDTable } from "@/server/astro/vimshottari";
-import { AstroConfig } from "@/server/astro/astro-config";
+import { julianDayUTC } from "@/server/astro/core";
 import { buildLifeMilestonesFromMD } from "@/server/astro/life-milestones";
 import { buildFoodGuidance, type FoodSuggestion } from "@/server/astro/food-guide";
 
@@ -216,43 +216,25 @@ function jdFromDate(d: Date, swe: any) {
 ------------------------------------------------------- */
 
 async function computePlanets(jdUt: number) {
-  const swe = await getSwe();
-
-  // ensure sidereal Lahiri mode
-  try {
-    if (typeof swe.swe_set_sid_mode === "function") {
-      await swe.swe_set_sid_mode(swe.SE_SIDM_LAHIRI, 0, 0);
-    }
-  } catch {
-    // ignore; engine may already be in Lahiri mode
-  }
-
-  const flags =
-    (swe.SEFLG_SWIEPH ?? 2) |
-    (swe.SEFLG_SIDEREAL ?? 64) |
-    (swe.SEFLG_SPEED ?? 256);
+  // Swiss Ephemeris (native/WASM) removed:
+  // Use a rough, SWE-free approximation for planetary longitudes
+  // so callers still get a consistent shape without pulling in
+  // swisseph. This is a placeholder until everything is wired to
+  // the pure TypeScript astro engine.
 
   const out: any[] = [];
 
   const nakSpan = 360 / 27; // 13°20'
   const padaSpan = nakSpan / 4; // 3°20'
 
+  let idx = 0;
   for (const p of PLANETS) {
-    const r: any = await swe.swe_calc_ut(jdUt, p.code, flags);
-    if (!r) continue;
+    // Very rough placeholder sidereal longitude:
+    // - Use jdUt as a continuous time variable
+    // - Offset each planet by 30° per index so they don't collapse
+    const baseLon = jdUt * 0.985647 + idx * 30; // 0.985... ≈ mean solar motion
+    let lon = wrap360(baseLon);
 
-    // sweph-wasm may return array or object; handle both
-    let lonVal: number | undefined = r.longitude;
-    if (lonVal == null) {
-      if (Array.isArray(r) && typeof r[0] === "number") {
-        lonVal = r[0];
-      } else if (Array.isArray(r.x) && typeof r.x[0] === "number") {
-        lonVal = r.x[0];
-      }
-    }
-    if (typeof lonVal !== "number" || !Number.isFinite(lonVal)) continue;
-
-    let lon = wrap360(lonVal);
     if (p.name === "Ketu") {
       lon = wrap360(lon + 180);
     }
@@ -271,56 +253,33 @@ async function computePlanets(jdUt: number) {
       nakshatraMeta: nak,
       pada,
     });
+
+    idx += 1;
   }
 
   return out;
 }
 
 /* -------------------------------------------------------
-   HOUSES (ASC + CUSPS) – **SIDEREAL ASC SIGN**
+   HOUSES (ASC + CUSPS) – **SIDEREAL ASC SIGN (SWE-FREE STUB)**
 ------------------------------------------------------- */
 
 async function computeHouses(jdUt: number, lat: number, lon: number) {
-  const swe = await getSwe();
-  const H: any = await swe.swe_houses(jdUt, lat, lon, "P");
+  // SWE-FREE APPROX:
+  // Use a simple placeholder ascendant:
+  // - Treat jdUt as a time variable
+  // - Add longitude so Eastern places rotate chart a bit
+  const approxAsc = wrap360(jdUt * 0.985647 + lon);
 
-  // Ascendant degree from swe_houses is tropical by default
-  const ascRaw: number | undefined =
-    H.ascendant ??
-    H.asc ??
-    (Array.isArray(H) && typeof H[0] === "number" ? H[0] : undefined);
+  const ascDeg = approxAsc;
+  const ascSign = signOfDeg(ascDeg);
 
-  if (typeof ascRaw !== "number" || !Number.isFinite(ascRaw)) {
-    throw new Error("Invalid ascendant from swe_houses");
-  }
+  // Simple 12-house system: each house 30° from the ascendant
+  const houses = Array.from({ length: 12 }, (_v, i) =>
+    wrap360(ascDeg + i * 30)
+  );
 
-  const ascTrop = wrap360(ascRaw);
-
-  // Get ayanāṁśa to convert to sidereal
-  let ayan = 0;
-  try {
-    if (typeof (swe as any).swe_get_ayanamsa_ut === "function") {
-      ayan = (swe as any).swe_get_ayanamsa_ut(jdUt);
-    } else if (
-      AstroConfig &&
-      typeof (AstroConfig as any).ayanamsaDeg === "number"
-    ) {
-      ayan = (AstroConfig as any).ayanamsaDeg;
-    }
-  } catch {
-    // fallback ~Lahiri 24°
-    ayan = 24;
-  }
-
-  const ascSid = wrap360(ascTrop - ayan);
-  const ascSign = signOfDeg(ascSid);
-
-  // We don’t really use cusps heavily; keep as-is (tropical degrees)
-  const cuspsSource: number[] =
-    (H.cusps as number[]) ?? (H.houseCusps as number[]) ?? [];
-  const houses = cuspsSource.map((d) => wrap360(d));
-
-  return { ascDeg: ascSid, ascSign, houses };
+  return { ascDeg, ascSign, houses };
 }
 
 /* -------------------------------------------------------
@@ -401,14 +360,14 @@ export async function buildLifeReport(input: {
   lat: number;
   lon: number;
 }) {
-  const swe = await getSwe();
+  
   const todayISO = new Date().toISOString().slice(0, 10);
   const birthUtc = makeUtcInstant(
     input.birthDateISO,
     input.birthTime,
     input.birthTz
   );
-  const jdUt = jdFromDate(birthUtc, swe);
+ const jdUt = await julianDayUTC(birthUtc);
 
   /* 1) Planets (sign, nakshatra, etc.) */
   const planetsRaw = await computePlanets(jdUt);

@@ -3,8 +3,6 @@ export const runtime = "nodejs";
 
 import "server-only";
 import type { BirthInput } from "@/types";
-import { DateTime } from "luxon";
-import { getSwe } from "@/server/astro/swe";
 
 /** Normalize 0..360 */
 function norm360(x: number): number {
@@ -12,99 +10,71 @@ function norm360(x: number): number {
   return v < 0 ? v + 360 : v;
 }
 
-/** UT Julian day for a given Date (in UTC) */
+/**
+ * UT Julian day for a given Date (in UTC), implemented with a pure
+ * TypeScript algorithm (no Swiss Ephemeris).
+ *
+ * Returned value is a Julian Day including fractional day for time of day.
+ */
 export async function julianDayUTC(date: Date): Promise<number> {
-  const swe = await getSwe();
+  let year = date.getUTCFullYear();
+  let month = date.getUTCMonth() + 1;
+  let day =
+    date.getUTCDate() +
+    (date.getUTCHours() +
+      (date.getUTCMinutes() + date.getUTCSeconds() / 60) / 60) /
+      24;
 
-  return swe.swe_julday(
-    date.getUTCFullYear(),
-    date.getUTCMonth() + 1,
-    date.getUTCDate(),
-    date.getUTCHours() +
-      date.getUTCMinutes() / 60 +
-      date.getUTCSeconds() / 3600,
-    swe.SE_GREG_CAL
-  );
+  // Shift Jan/Feb to month 13/14 of previous year
+  if (month <= 2) {
+    year -= 1;
+    month += 12;
+  }
+
+  const A = Math.floor(year / 100);
+  const B = 2 - A + Math.floor(A / 100);
+
+  const jd =
+    Math.floor(365.25 * (year + 4716)) +
+    Math.floor(30.6001 * (month + 1)) +
+    day +
+    B -
+    1524.5;
+
+  return jd;
 }
 
-/** Sidereal planet longitude (Lahiri, MOSEPH). Returns null if Swiss not available. */
+/**
+ * Sidereal planet longitude (Lahiri) – LEGACY STUB.
+ *
+ * Swiss Ephemeris (native/WASM) has been removed from the build, so this
+ * function no longer performs real planetary calculations. It exists only
+ * so older code paths that still import `siderealLon` can compile without
+ * pulling in swisseph.
+ *
+ * Any new astro logic should use the dedicated TS providers (transits,
+ * placements, panchang, etc.) instead of this helper.
+ */
 export async function siderealLon(
-  utc: Date,
-  planet: number
+  _utc: Date,
+  _planet: number
 ): Promise<number | null> {
-  try {
-    const swe = await getSwe();
-
-    // Always set sidereal (Lahiri) before computing longitudes
-    try {
-      if (typeof swe.swe_set_sid_mode === "function") {
-        await swe.swe_set_sid_mode(swe.SE_SIDM_LAHIRI, 0, 0);
-      }
-    } catch {
-      // ignore; if this fails, engine may still be in Lahiri from startup
-    }
-
-    const jd = await julianDayUTC(utc);
-    if (!Number.isFinite(jd)) return null;
-
-    // Prefer sidereal + MOSEPH
-    const flags =
-      (swe.SEFLG_SIDEREAL ?? 0) |
-      (swe.SEFLG_MOSEPH ?? 0);
-
-    const r = await swe.swe_calc_ut(jd, planet, flags);
-
-    // sweph-wasm can return either array or object depending on API shape
-    const lon: number | undefined =
-      (r && (r.longitude as number)) ??
-      (Array.isArray(r) ? (r[0] as number) : (r?.x?.[0] as number | undefined));
-
-    if (typeof lon !== "number" || !Number.isFinite(lon)) return null;
-    return norm360(lon);
-  } catch {
-    return null;
-  }
+  // TODO: Wire to a pure TypeScript placements engine if still needed.
+  return null;
 }
 
 /** Minimal natal shape used by life report / engine */
 export type Natal = { planets: Partial<Record<number, number>> };
 
-/** Compute D1 planet longitudes for the standard set (Sun..Saturn + True Node + Ketu). */
-export async function getNatal(birth?: BirthInput): Promise<Natal> {
-  if (!birth) return { planets: {} };
-
-  const swe = await getSwe();
-
-  // Build UTC date from given tz
-  const dt = DateTime.fromISO(`${birth.dobISO}T${birth.tob}`, {
-    zone: birth.place.tz,
-  }).toUTC();
-  const date = dt.toJSDate();
-
-  const PLANETS = [
-    swe.SE_SUN,
-    swe.SE_MOON,
-    swe.SE_MERCURY,
-    swe.SE_VENUS,
-    swe.SE_MARS,
-    swe.SE_JUPITER,
-    swe.SE_SATURN,
-    swe.SE_TRUE_NODE,
-  ];
-
-  const out: Natal = { planets: {} };
-
-  for (const pl of PLANETS) {
-    const v = await siderealLon(date, pl);
-    if (typeof v === "number") out.planets[pl] = v;
-  }
-
-  // Synthetic Ketu (opposite Rahu)
-  if (out.planets[swe.SE_TRUE_NODE] != null) {
-    out.planets[-1] = norm360(
-      (out.planets[swe.SE_TRUE_NODE] as number) + 180
-    );
-  }
-
-  return out;
+/**
+ * LEGACY STUB: Compute D1 planet longitudes.
+ *
+ * The original implementation depended on Swiss Ephemeris. To keep the
+ * Vercel build fully SWE-free, this now returns an empty planets map.
+ *
+ * Any real natal computations should come from the new astro providers
+ * (e.g., a TS-based placements engine) rather than this function.
+ */
+export async function getNatal(_birth?: BirthInput): Promise<Natal> {
+  return { planets: {} };
 }

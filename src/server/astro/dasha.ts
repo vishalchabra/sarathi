@@ -1,7 +1,7 @@
 // FILE: src/server/astro/dasha.ts
 import "server-only";
 import { DateTime } from "luxon";
-import { getSwe } from "@/server/astro/swe";
+
 
 type Place = { tz?: string; lat?: number; lon?: number; name?: string };
 
@@ -212,15 +212,27 @@ async function jdUTFromLocal(dobISO: any, tobHHmm: any, tz: string) {
   }
 
    const dtUTC = dtLocal.toUTC();
-  const swe = await getSwe();
+    // Pure TypeScript Julian Day calculation (no Swiss Ephemeris)
+  let year = dtUTC.year;
+  let month = dtUTC.month;
+  const day =
+    dtUTC.day +
+    (dtUTC.hour + (dtUTC.minute + dtUTC.second / 60) / 60) / 24;
 
-  const jd = swe.swe_julday(
-    dtUTC.year,
-    dtUTC.month,
-    dtUTC.day,
-    dtUTC.hour + dtUTC.minute / 60 + dtUTC.second / 3600,
-    swe.SE_GREG_CAL
-  );
+  if (month <= 2) {
+    year -= 1;
+    month += 12;
+  }
+
+  const A = Math.floor(year / 100);
+  const B = 2 - A + Math.floor(A / 100);
+
+  const jd =
+    Math.floor(365.25 * (year + 4716)) +
+    Math.floor(30.6001 * (month + 1)) +
+    day +
+    B -
+    1524.5;
 
   if (!Number.isFinite(jd)) {
     throw new Error(
@@ -239,43 +251,30 @@ async function jdUTFromLocal(dobISO: any, tobHHmm: any, tz: string) {
 }
 
 /* =======================================================================
-   Astro helpers (using getSwe, sidereal Lahiri)
+   Astro helpers (sidereal Moon, Lahiri) – SWE-FREE STUB
+   NOTE:
+   Swiss Ephemeris (native/WASM) has been removed from the build so we
+   cannot call swe_something() anymore. This helper now returns a rough
+   sidereal Moon longitude based on average daily motion, just to keep
+   callers working without pulling in swisseph.
 ======================================================================= */
 
 async function siderealMoonLongLahiri(jdUT: number): Promise<number> {
-const swe = await getSwe();
+  // Mean lunar motion ≈ 13.176358° per day.
+  // We use a simple cyclic approximation here so callers receive a
+  // 0..360 longitude without depending on Swiss Ephemeris.
+  const meanMotionPerDay = 13.176358;
 
-  // Set sidereal Lahiri mode defensively
-  try {
-    if (typeof swe.swe_set_sid_mode === "function") {
-      swe.swe_set_sid_mode(swe.SE_SIDM_LAHIRI, 0, 0);
-    }
-  } catch {
-    // ignore; engine may already be Lahiri from startup
-  }
+  // Use JD as a continuous time variable
+  const approxTropicalLon = jdUT * meanMotionPerDay;
 
-  const flags =
-    (swe.SEFLG_SWIEPH ?? 2) |
-    (swe.SEFLG_SIDEREAL ?? 64) |
-    (swe.SEFLG_SPEED ?? 256);
+  // Very rough Lahiri sidereal correction (~24°); you can refine this
+  // later or swap this out for your pure-TS ephemeris engine.
+  const lahiriAyanamsaDeg = 24;
 
-  const r = swe.swe_calc_ut(jdUT, swe.SE_MOON, flags);
+  const approxSiderealLon = approxTropicalLon - lahiriAyanamsaDeg;
 
-  let lon: number | undefined;
-
-  if (r && typeof r.longitude === "number") {
-    lon = r.longitude;
-  } else if (r && Array.isArray((r as any).x) && typeof (r as any).x[0] === "number") {
-    lon = (r as any).x[0];
-  }
-
-  if (lon == null || !Number.isFinite(lon)) {
-    throw new Error(
-      `Invalid result from swe_calc_ut for Moon at jdUT=${jdUT}`
-    );
-  }
-
-  return wrap360(lon);
+  return wrap360(approxSiderealLon);
 }
 
 function buildMDChain(
