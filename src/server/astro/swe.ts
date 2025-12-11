@@ -6,37 +6,53 @@ let sweLoadError: Error | null = null;
 
 /**
  * Lazy getter for the swisseph module.
- * Throws "swisseph unavailable" if the native module can't be loaded.
+ * Throws with the underlying error message if loading fails.
  */
 export function getSwe() {
   if (sweInstance) return sweInstance;
+
   if (sweLoadError) {
-    throw new Error("swisseph unavailable");
+    // Re-throw but keep the original message so logs are useful
+    throw new Error(
+      `swisseph unavailable: ${(sweLoadError as any)?.message ?? sweLoadError}`
+    );
   }
 
   try {
+    // Helpful: log where Node tries to resolve from
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const resolved = require.resolve("swisseph");
+      console.log("[SARATHI] swisseph resolved at:", resolved);
+    } catch (e) {
+      console.error("[SARATHI] require.resolve('swisseph') failed:", e);
+    }
+
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const swe = require("swisseph");
+    console.log("[SARATHI] swisseph loaded OK");
     sweInstance = swe;
     return sweInstance;
   } catch (err: any) {
-    console.error("[SARATHI] Failed to load swisseph:", err);
-    sweLoadError = err;
-    throw new Error("swisseph unavailable");
+    console.error("[SARATHI] Failed to load swisseph (root error):", err);
+    sweLoadError = err instanceof Error ? err : new Error(String(err));
+    throw new Error(
+      `swisseph unavailable: ${(sweLoadError as any)?.message ?? sweLoadError}`
+    );
   }
 }
 
 /**
  * Small helper to call a swisseph function safely.
  */
-export async function sweCall<
-  T extends keyof any = any,
-  R = any
->(fn: T, ...args: any[]): Promise<R> {
+export async function sweCall<R = any>(
+  fn: string,
+  ...args: any[]
+): Promise<R> {
   const swe = getSwe();
-  const f = (swe as any)[fn as any];
+  const f = (swe as any)[fn];
   if (typeof f !== "function") {
-    throw new Error(`swisseph function not found: ${String(fn)}`);
+    throw new Error(`swisseph function not found: ${fn}`);
   }
   return f(...args) as R;
 }
