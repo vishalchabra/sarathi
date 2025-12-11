@@ -56,18 +56,26 @@ function normalizeTime(input: any) {
   return { hh: +m[1], mm: +m[2] };
 }
 
-function jdUTFromLocal(dobISO: any, tobHHmm: any, tz: string) {
-  const { y, m, d } = normalizeDate(dobISO);
-  const { hh, mm } = normalizeTime(tobHHmm);
+async function jdUTFromLocal(dateISO: string, timeHHmm: string, tz: string) {
+  const [y, m, d] = dateISO.split("-").map((n) => Number(n));
+  const [hh, mm] = timeHHmm.split(":").map((n) => Number(n));
 
   const dtLocal = DateTime.fromObject(
     { year: y, month: m, day: d, hour: hh, minute: mm, second: 0, millisecond: 0 },
-    { zone: tz }
+    { zone: tz || "UTC" }
   );
-  if (!dtLocal.isValid) throw new Error("Invalid local date/time");
+
+  if (!dtLocal.isValid) {
+    throw new Error(
+      `Invalid local date/time (${dateISO} ${timeHHmm}) for zone ${tz}: ${
+        dtLocal.invalidReason ?? ""
+      }`
+    );
+  }
 
   const dtUTC = dtLocal.toUTC();
-  const swe = getSwe();
+  const swe = await getSwe();
+
   const jd = swe.swe_julday(
     dtUTC.year,
     dtUTC.month,
@@ -75,33 +83,36 @@ function jdUTFromLocal(dobISO: any, tobHHmm: any, tz: string) {
     dtUTC.hour + dtUTC.minute / 60 + dtUTC.second / 3600,
     swe.SE_GREG_CAL
   );
-  return { jdUT: jd, dtLocal, dtUTC };
-}
 
+  return { jd, dtUTC };
+}
 // ---------- Sun / Moon (sidereal Lahiri) ----------
-function getSiderealPositions(jdUT: number) {
-  const swe = getSwe();
+async function getSiderealPositions(jdUT: number) {
+  const swe = await getSwe();
+
   // getSwe already sets sidereal mode once; just in case:
   try {
     if (typeof swe.swe_set_sid_mode === "function") {
-      swe.swe_set_sid_mode(swe.SE_SIDM_LAHIRI, 0, 0);
+      await swe.swe_set_sid_mode(swe.SE_SIDM_LAHIRI, 0, 0);
     }
-  } catch {}
+  } catch {
+    // ignore, engine may already be in Lahiri mode
+  }
 
   const flags =
     (swe.SEFLG_SWIEPH ?? 2) |
     (swe.SEFLG_SIDEREAL ?? 64) |
     (swe.SEFLG_SPEED ?? 256);
 
-  const s = swe.swe_calc_ut(jdUT, swe.SE_SUN, flags);
-  const m = swe.swe_calc_ut(jdUT, swe.SE_MOON, flags);
+  const s: any = await swe.swe_calc_ut(jdUT, swe.SE_SUN, flags);
+  const m: any = await swe.swe_calc_ut(jdUT, swe.SE_MOON, flags);
 
-  const pick = (res: any) =>
-    typeof res?.longitude === "number"
-      ? res.longitude
-      : Array.isArray(res?.x) && typeof res.x[0] === "number"
-      ? res.x[0]
-      : 0;
+  const pick = (res: any) => {
+    if (typeof res?.longitude === "number") return res.longitude;
+    if (Array.isArray(res?.x) && typeof res.x[0] === "number") return res.x[0];
+    if (Array.isArray(res) && typeof res[0] === "number") return res[0];
+    return 0;
+  };
 
   return {
     sun: wrap360(pick(s)),
@@ -287,13 +298,20 @@ export async function getPanchang(birth: BirthLike) {
   const lat = birth.place?.lat ?? 0;
   const lon = birth.place?.lon ?? 0;
 
-  const { jdUT, dtLocal } = jdUTFromLocal(birth.dobISO, birth.tob, tz);
-  const { sun, moon } = getSiderealPositions(jdUT);
+  // Use async JD helper (UT) + UTC DateTime
+  const { jd, dtUTC } = await jdUTFromLocal(birth.dobISO, birth.tob, tz);
+  const jdUT = jd;
+
+  // Get local wall time from UTC
+  const dtLocal = dtUTC.setZone(tz);
+
+  // Sidereal Sun/Moon (async now)
+  const { sun, moon } = await getSiderealPositions(jdUT);
 
   // load nakshatra metadata
   await ensureNakModule();
 
-  const weekday = dtLocal.setZone(tz).toFormat("cccc");
+  const weekday = dtLocal.toFormat("cccc");
   const tithi = computeTithi(moon, sun);
   const yoga = computeYoga(moon, sun);
   const karana = computeKarana(moon, sun);
@@ -317,7 +335,7 @@ export async function getPanchang(birth: BirthLike) {
   const moonriseStr = "—";
   const moonsetStr = "—";
 
-  const baseLocal = dtLocal.setZone(tz);
+  const baseLocal = dtLocal; // already in tz
 
   return {
     at: baseLocal.toISO(),
@@ -335,7 +353,8 @@ export async function getPanchang(birth: BirthLike) {
     rahuKaal: "—",
     gulikaKaal: "—",
     abhijitMuhurat: "—",
-    guidanceLine: "Birth energy favors clarity, steadiness, and inner alignment.",
+    guidanceLine:
+      "Birth energy favors clarity, steadiness, and inner alignment.",
   };
 }
 
