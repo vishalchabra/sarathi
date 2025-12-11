@@ -1,4 +1,7 @@
 // src/lib/panchang/swe.ts
+
+import "server-only";
+import { getSwe } from "@/server/astro/swe";
 // Server-only Swiss Ephemeris Panchang (Tithi / Yoga / Moon Nakshatra)
 export type PanchangInput = {
   dateISO: string;       // "1984-01-21"
@@ -40,7 +43,7 @@ function nakTheme(n: string) {
 
 export async function getPanchangWithSwiss(inp: PanchangInput): Promise<PanchangOut> {
   // dynamic import avoids bundling in client
-  const swe = await import("swisseph") as any;
+  const swe = await getSwe();
 
   // build UTC from local wall time + tz
   const zoned = new Date(`${inp.dateISO}T${inp.time}:00`);
