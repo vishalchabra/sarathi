@@ -211,8 +211,9 @@ async function jdUTFromLocal(dobISO: any, tobHHmm: any, tz: string) {
     );
   }
 
-  const dtUTC = dtLocal.toUTC();
-  const swe = getSwe();
+   const dtUTC = dtLocal.toUTC();
+  const swe = await getSwe();
+
   const jd = swe.swe_julday(
     dtUTC.year,
     dtUTC.month,
@@ -242,7 +243,7 @@ async function jdUTFromLocal(dobISO: any, tobHHmm: any, tz: string) {
 ======================================================================= */
 
 async function siderealMoonLongLahiri(jdUT: number): Promise<number> {
-  const swe = getSwe();
+const swe = await getSwe();
 
   // Set sidereal Lahiri mode defensively
   try {
