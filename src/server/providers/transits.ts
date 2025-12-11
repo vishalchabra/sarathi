@@ -95,28 +95,62 @@ function dignityBoost(planet: number, lon: number) {
   const ruler = RULERS[signIndex(lon)];
   return planet === ruler ? 0.1 : 0;
 }
-
+function wrap360(x: number): number {
+  let v = x % 360;
+  return v < 0 ? v + 360 : v;
+}
 // REPLACE your existing siderealLon with this:
-function siderealLon(utc: Date, planet: number): number | null {
-  const swe = await getSwe();
-  if (!swe) return null;
+async function siderealLon(
+  utc: Date,
+  planet: number
+): Promise<number | null> {
   try {
+    const swe = await getSwe();
+
     // Always set sidereal mode (Lahiri) before each calc
-    try { swe.swe_set_sid_mode(swe.SE_SIDM_LAHIRI, 0, 0); } catch {}
+    try {
+      if (typeof swe.swe_set_sid_mode === "function") {
+        await swe.swe_set_sid_mode(swe.SE_SIDM_LAHIRI, 0, 0);
+      }
+    } catch {
+      // ignore; engine may already be in Lahiri mode
+    }
+
+    // Build UT hours from Date
+    const utHours =
+      utc.getUTCHours() +
+      utc.getUTCMinutes() / 60 +
+      utc.getUTCSeconds() / 3600;
 
     const jd = swe.swe_julday(
       utc.getUTCFullYear(),
       utc.getUTCMonth() + 1,
       utc.getUTCDate(),
-      12.0,
+      utHours,
       swe.SE_GREG_CAL
     );
 
-    // Use MOSEPH so no ephemeris data files are required
-    const flags = swe.SEFLG_SIDEREAL | swe.SEFLG_MOSEPH;
-    const r = swe.swe_calc_ut(jd, planet, flags);
-    if (!r || typeof r.longitude !== "number") return null;
-    return normDeg(r.longitude);
+    const flags =
+      (swe.SEFLG_SWIEPH ?? 2) |
+      (swe.SEFLG_SIDEREAL ?? 64) |
+      (swe.SEFLG_SPEED ?? 256);
+
+    const res: any = await swe.swe_calc_ut(jd, planet, flags);
+
+    let lon: number | undefined = res?.longitude;
+    if (lon == null) {
+      if (Array.isArray(res?.x) && typeof res.x[0] === "number") {
+        lon = res.x[0];
+      } else if (Array.isArray(res) && typeof res[0] === "number") {
+        lon = res[0];
+      }
+    }
+
+    if (typeof lon !== "number" || !Number.isFinite(lon)) {
+      return null;
+    }
+
+    return wrap360(lon);
   } catch {
     return null;
   }
