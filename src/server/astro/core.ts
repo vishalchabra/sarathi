@@ -13,43 +13,54 @@ function norm360(x: number): number {
 }
 
 /** UT Julian day for a given Date (in UTC) */
-function jdUT(date: Date): number {
-  const swe = getSwe();
-  if (!swe) return NaN;
+export async function julianDayUTC(date: Date): Promise<number> {
+  const swe = await getSwe();
+
   return swe.swe_julday(
     date.getUTCFullYear(),
     date.getUTCMonth() + 1,
     date.getUTCDate(),
-    date.getUTCHours() + date.getUTCMinutes() / 60 + date.getUTCSeconds() / 3600,
+    date.getUTCHours() +
+      date.getUTCMinutes() / 60 +
+      date.getUTCSeconds() / 3600,
     swe.SE_GREG_CAL
   );
 }
 
-/** Sidereal planet longitude (Lahiri, MOSEPH), returns null if Swiss not available. */
-export function siderealLon(utc: Date, planet: number): number | null {
-  const swe = getSwe();
-  if (!swe) return null;
+/** Sidereal planet longitude (Lahiri, MOSEPH). Returns null if Swiss not available. */
+export async function siderealLon(
+  utc: Date,
+  planet: number
+): Promise<number | null> {
   try {
+    const swe = await getSwe();
+
     // Always set sidereal (Lahiri) before computing longitudes
     try {
       if (typeof swe.swe_set_sid_mode === "function") {
-        swe.swe_set_sid_mode(swe.SE_SIDM_LAHIRI, 0, 0);
+        await swe.swe_set_sid_mode(swe.SE_SIDM_LAHIRI, 0, 0);
       }
     } catch {
-      // ignore; if this fails, Swiss may still be in Lahiri from startup
+      // ignore; if this fails, engine may still be in Lahiri from startup
     }
 
-    const jd = jdUT(utc);
+    const jd = await julianDayUTC(utc);
     if (!Number.isFinite(jd)) return null;
 
-    // Prefer sidereal + MOSEPH (no se* files needed)
+    // Prefer sidereal + MOSEPH
     const flags =
       (swe.SEFLG_SIDEREAL ?? 0) |
       (swe.SEFLG_MOSEPH ?? 0);
 
-    const r = swe.swe_calc_ut(jd, planet, flags);
-    if (!r || typeof r.longitude !== "number") return null;
-    return norm360(r.longitude);
+    const r = await swe.swe_calc_ut(jd, planet, flags);
+
+    // sweph-wasm can return either array or object depending on API shape
+    const lon: number | undefined =
+      (r && (r.longitude as number)) ??
+      (Array.isArray(r) ? (r[0] as number) : (r?.x?.[0] as number | undefined));
+
+    if (typeof lon !== "number" || !Number.isFinite(lon)) return null;
+    return norm360(lon);
   } catch {
     return null;
   }
@@ -60,8 +71,9 @@ export type Natal = { planets: Partial<Record<number, number>> };
 
 /** Compute D1 planet longitudes for the standard set (Sun..Saturn + True Node + Ketu). */
 export async function getNatal(birth?: BirthInput): Promise<Natal> {
-  const swe = getSwe();
-  if (!swe || !birth) return { planets: {} };
+  if (!birth) return { planets: {} };
+
+  const swe = await getSwe();
 
   // Build UTC date from given tz
   const dt = DateTime.fromISO(`${birth.dobISO}T${birth.tob}`, {
@@ -81,8 +93,9 @@ export async function getNatal(birth?: BirthInput): Promise<Natal> {
   ];
 
   const out: Natal = { planets: {} };
+
   for (const pl of PLANETS) {
-    const v = siderealLon(date, pl);
+    const v = await siderealLon(date, pl);
     if (typeof v === "number") out.planets[pl] = v;
   }
 
