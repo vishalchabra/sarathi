@@ -1,4 +1,5 @@
-// src/server/astro/dasha.ts
+// FILE: src/server/astro/dasha.ts
+import "server-only";
 import { DateTime } from "luxon";
 import { getSwe } from "@/server/astro/swe";
 
@@ -14,7 +15,17 @@ export type DashaSpan = {
 /* =======================================================================
    Vimshottari constants
 ======================================================================= */
-const LORDS = ["Ketu","Venus","Sun","Moon","Mars","Rahu","Jupiter","Saturn","Mercury"] as const;
+const LORDS = [
+  "Ketu",
+  "Venus",
+  "Sun",
+  "Moon",
+  "Mars",
+  "Rahu",
+  "Jupiter",
+  "Saturn",
+  "Mercury",
+] as const;
 
 const YEARS: Record<(typeof LORDS)[number], number> = {
   Ketu: 7,
@@ -29,9 +40,33 @@ const YEARS: Record<(typeof LORDS)[number], number> = {
 };
 
 const NAK_LORD: (typeof LORDS)[number][] = [
-  "Ketu","Venus","Sun","Moon","Mars","Rahu","Jupiter","Saturn","Mercury",
-  "Ketu","Venus","Sun","Moon","Mars","Rahu","Jupiter","Saturn","Mercury",
-  "Ketu","Venus","Sun","Moon","Mars","Rahu","Jupiter","Saturn","Mercury",
+  "Ketu",
+  "Venus",
+  "Sun",
+  "Moon",
+  "Mars",
+  "Rahu",
+  "Jupiter",
+  "Saturn",
+  "Mercury",
+  "Ketu",
+  "Venus",
+  "Sun",
+  "Moon",
+  "Mars",
+  "Rahu",
+  "Jupiter",
+  "Saturn",
+  "Mercury",
+  "Ketu",
+  "Venus",
+  "Sun",
+  "Moon",
+  "Mars",
+  "Rahu",
+  "Jupiter",
+  "Saturn",
+  "Mercury",
 ];
 
 // 27 nakshatras * 13°20' = 13.333333...
@@ -53,7 +88,11 @@ function sequenceFrom(lord: (typeof LORDS)[number]) {
 /* =======================================================================
    Robust parsing (drop-in)
 ======================================================================= */
-function normalizeDate(input: unknown): { y: number; m: number; d: number } {
+function normalizeDate(input: unknown): {
+  y: number;
+  m: number;
+  d: number;
+} {
   // A) JS Date object
   if (input instanceof Date) {
     const dt = DateTime.fromJSDate(input);
@@ -73,7 +112,10 @@ function normalizeDate(input: unknown): { y: number; m: number; d: number } {
   }
 
   // C) Unix epoch seconds/ms (number or numeric string)
-  if (typeof input === "number" || (typeof input === "string" && /^\d{10,13}$/.test(input.trim()))) {
+  if (
+    typeof input === "number" ||
+    (typeof input === "string" && /^\d{10,13}$/.test(input.trim()))
+  ) {
     const n = typeof input === "number" ? input : Number(input.trim());
     const ms = n < 1e12 ? n * 1000 : n; // seconds → ms
     const dt = DateTime.fromMillis(ms);
@@ -123,7 +165,9 @@ function normalizeDate(input: unknown): { y: number; m: number; d: number } {
 
 function normalizeTime(input: unknown): { hh: number; mm: number } {
   if (typeof input !== "string" || !input.trim()) {
-    throw new Error('Missing or invalid "tob" (expected "HH:mm" like "23:35").');
+    throw new Error(
+      'Missing or invalid "tob" (expected "HH:mm" like "23:35").'
+    );
   }
   const s = input.trim().toUpperCase();
 
@@ -150,7 +194,7 @@ function normalizeTime(input: unknown): { hh: number; mm: number } {
 /* =======================================================================
    Time conversion to Julian Day (UT)
 ======================================================================= */
-function jdUTFromLocal(dobISO: any, tobHHmm: any, tz: string) {
+async function jdUTFromLocal(dobISO: any, tobHHmm: any, tz: string) {
   const { y, m, d } = normalizeDate(dobISO);
   const { hh, mm } = normalizeTime(tobHHmm);
 
@@ -161,7 +205,9 @@ function jdUTFromLocal(dobISO: any, tobHHmm: any, tz: string) {
 
   if (!dtLocal.isValid) {
     throw new Error(
-      `Invalid local date/time (${dobISO} ${tobHHmm}) for zone ${tz}: ${dtLocal.invalidReason ?? ""}`
+      `Invalid local date/time (${dobISO} ${tobHHmm}) for zone ${tz}: ${
+        dtLocal.invalidReason ?? ""
+      }`
     );
   }
 
@@ -176,86 +222,55 @@ function jdUTFromLocal(dobISO: any, tobHHmm: any, tz: string) {
   );
 
   if (!Number.isFinite(jd)) {
-    throw new Error(`Computed invalid Julian Day (NaN) from inputs: ${JSON.stringify({ y, m, d, hh, mm, tz })}`);
+    throw new Error(
+      `Computed invalid Julian Day (NaN) from inputs: ${JSON.stringify({
+        y,
+        m,
+        d,
+        hh,
+        mm,
+        tz,
+      })}`
+    );
   }
 
-  return jd;
+  return { jd, dtUTC };
 }
 
 /* =======================================================================
-   Astro helpers (with defensive checks)
+   Astro helpers (using getSwe, sidereal Lahiri)
 ======================================================================= */
-/** Try to extract ecliptic longitude from various possible result shapes */
-function extractLongitude(res: any): number | undefined {
-  // 1) Your wrapper’s named property
-  if (typeof res?.longitude === "number") return res.longitude;
 
-  // 2) Bare array [lon, lat, dist, ...]
-  if (Array.isArray(res) && typeof res[0] === "number") return res[0];
-
-  // 3) Classic swisseph-ish shapes
-  const candidates = [res?.x, res?.xx, res?.result, res?.r, res];
-  for (const c of candidates) {
-    if (Array.isArray(c) && typeof c[0] === "number") return c[0];
-    if (c && typeof c === "object") {
-      for (const k of Object.keys(c)) {
-        const v = (c as any)[k];
-        if (Array.isArray(v) && typeof v[0] === "number") return v[0];
-      }
-    }
-  }
-
-  // 4) Heuristic: any numeric field that looks like a longitude
-  if (res && typeof res === "object") {
-    for (const k of Object.keys(res)) {
-      const v = (res as any)[k];
-      if (typeof v === "number" && isFinite(v) && Math.abs(v) <= 720) return v;
-    }
-  }
-  return undefined;
-}
-
-/** Convert JD → UTC DateTime safely (handles fractional hour, 24.0 rollover) */
-function dtUTCFromJD(jd: number) {
-
-  const swe = getSwe();
-  const r = swe.swe_revjul(jd, swe.SE_GREG_CAL);
-  const base = DateTime.utc(r.year, r.month, r.day, 0, 0, 0, 0);
-  if (!base.isValid) {
-    throw new Error(`Invalid date from swe_revjul: ${JSON.stringify(r)}`);
-  }
-  const ms = Math.round((r.hour || 0) * 3600 * 1000); // hour may be fractional, may be 24.0
-  const dt = base.plus({ milliseconds: ms });
-  if (!dt.isValid) {
-    throw new Error(`Invalid DateTime after adding fractional hour: ${JSON.stringify({ r, ms })}`);
-  }
-  return dt;
-}
-
-function siderealMoonLongLahiri(jdUT: number) {
+async function siderealMoonLongLahiri(jdUT: number): Promise<number> {
   const swe = getSwe();
 
-  // Ensure sidereal mode (Lahiri)
-  if (typeof swe.swe_set_sid_mode === "function") {
-    swe.swe_set_sid_mode(swe.SE_SIDM_LAHIRI, 0, 0);
+  // Set sidereal Lahiri mode defensively
+  try {
+    if (typeof swe.swe_set_sid_mode === "function") {
+      swe.swe_set_sid_mode(swe.SE_SIDM_LAHIRI, 0, 0);
+    }
+  } catch {
+    // ignore; engine may already be Lahiri from startup
   }
 
-  const iflag =
-    (swe.SEFLG_SWIEPH ?? 0) |
-    (swe.SEFLG_SIDEREAL ?? 0) |
-    (swe.SEFLG_SPEED ?? 0);
+  const flags =
+    (swe.SEFLG_SWIEPH ?? 2) |
+    (swe.SEFLG_SIDEREAL ?? 64) |
+    (swe.SEFLG_SPEED ?? 256);
 
-  const r = typeof swe.swe_calc_ut === "function"
-    ? swe.swe_calc_ut(jdUT, swe.SE_MOON, iflag)
-    : undefined;
+  const r = swe.swe_calc_ut(jdUT, swe.SE_MOON, flags);
 
-  const serr = (r as any)?.serr || (r as any)?.error || "";
-  const lon = extractLongitude(r);
+  let lon: number | undefined;
+
+  if (r && typeof r.longitude === "number") {
+    lon = r.longitude;
+  } else if (r && Array.isArray((r as any).x) && typeof (r as any).x[0] === "number") {
+    lon = (r as any).x[0];
+  }
 
   if (lon == null || !Number.isFinite(lon)) {
-    const keys = r && typeof r === "object" ? Object.keys(r).join(",") : typeof r;
     throw new Error(
-      `Invalid result from swe_calc_ut for Moon at jdUT=${jdUT} (serr="${serr}", keys=${keys})`
+      `Invalid result from swe_calc_ut for Moon at jdUT=${jdUT}`
     );
   }
 
@@ -263,16 +278,14 @@ function siderealMoonLongLahiri(jdUT: number) {
 }
 
 function buildMDChain(
-  startJDUT: number,
+  startUTC: any, // 👈 changed from DateTime to any to avoid TS namespace type error
   startLord: (typeof LORDS)[number],
   startBalanceYears: number
 ) {
   const chain: DashaSpan[] = [];
   const seq = sequenceFrom(startLord);
 
-  const jdToDate = (jd: number) => dtUTCFromJD(jd);
-
-  let cursor = jdToDate(startJDUT);
+  let cursor = startUTC;
   let mdSeq = seq;
   let first = true;
 
@@ -285,9 +298,16 @@ function buildMDChain(
       const startISO = cursor.toUTC().toISO();
       const endISO = end.toUTC().toISO();
       if (!startISO || !endISO) {
-        throw new Error(`Could not produce ISO for MD span: ${lord} ${cursor.toISO()} → ${end.toISO()}`);
+        throw new Error(
+          `Could not produce ISO for MD span: ${lord} ${cursor.toISO()} → ${end.toISO()}`
+        );
       }
-      chain.push({ lord, start: startISO, end: endISO, level: "MD" });
+      chain.push({
+        lord,
+        start: startISO,
+        end: endISO,
+        level: "MD",
+      });
       cursor = end;
     }
     mdSeq = LORDS as unknown as (typeof LORDS)[number][];
@@ -308,11 +328,15 @@ function mdToADs(md: DashaSpan) {
     const startFrac = cumFrac(idx);
     const endFrac = startFrac + YEARS[lord] / 120;
 
-    const adStart = mdStart.plus({ milliseconds: spanMs * startFrac });
-    const adEnd   = mdStart.plus({ milliseconds: spanMs * endFrac });
+    const adStart = mdStart.plus({
+      milliseconds: spanMs * startFrac,
+    });
+    const adEnd = mdStart.plus({
+      milliseconds: spanMs * endFrac,
+    });
 
     const startISO = adStart.toUTC().toISO();
-    const endISO   = adEnd.toUTC().toISO();
+    const endISO = adEnd.toUTC().toISO();
     if (!startISO || !endISO) {
       throw new Error(
         `Could not produce ISO for AD span: ${lord} ${adStart.toISO()} → ${adEnd.toISO()}`
@@ -328,13 +352,16 @@ function mdToADs(md: DashaSpan) {
   });
 }
 
-
 /* =======================================================================
    Public API
 ======================================================================= */
-/** Canonical function */
-export function computeVimshottari(
-  dobISO: string | Date | { year: number; month: number; day: number } | number,
+/** Canonical function (now async) */
+export async function computeVimshottari(
+  dobISO:
+    | string
+    | Date
+    | { year: number; month: number; day: number }
+    | number,
   tobHHmm: string,
   place: Place = { tz: "UTC" },
   opts?: { includeAD?: boolean; horizonYears?: number }
@@ -342,11 +369,15 @@ export function computeVimshottari(
   const tz = place?.tz ?? "UTC";
   const horizonYears = opts?.horizonYears ?? 60;
 
-  // 1) Local → JD(UT)
-  const jdUT = jdUTFromLocal(dobISO, tobHHmm, tz);
+  // 1) Local → JD(UT) and birth UTC DateTime
+  const { jd: jdUT, dtUTC: birth } = await jdUTFromLocal(
+    dobISO,
+    tobHHmm,
+    tz
+  );
 
   // 2) Sidereal Moon @ birth (defensive)
-  const lon = siderealMoonLongLahiri(jdUT);
+  const lon = await siderealMoonLongLahiri(jdUT);
 
   // 3) Birth nakshatra & starting lord
   const nakIndex = Math.floor(wrap360(lon) / NAK_SIZE_DEG); // 0..26
@@ -354,45 +385,64 @@ export function computeVimshottari(
 
   // 4) Balance in first MD
   const startDeg = nakIndex * NAK_SIZE_DEG;
-  const traversed = wrap360(lon - startDeg);          // 0..13.3333
-  const fracTraversed = traversed / NAK_SIZE_DEG;     // 0..1
+  const traversed = wrap360(lon - startDeg); // 0..13.3333
+  const fracTraversed = traversed / NAK_SIZE_DEG; // 0..1
   const mdTotalYears = YEARS[startLord];
   const startBalanceYears = (1 - fracTraversed) * mdTotalYears;
 
   // 5) Build full MD chain
-  const mdChain = buildMDChain(jdUT, startLord, startBalanceYears);
+  const birthDT = DateTime.fromISO(
+    typeof (birth as any).toISO === "function" ? (birth as any).toISO() : String(birth),
+    { zone: "utc" }
+  );
+  const mdChain = buildMDChain(
+    birthDT,
+    startLord,
+    startBalanceYears
+  );
 
   // 6) Clip to horizon (birth → birth + N years)
-  const swe = getSwe();
-  const b = swe.swe_revjul(jdUT, swe.SE_GREG_CAL);
-  const birth = dtUTCFromJD(jdUT); // use safe converter
-  const endHorizon = birth.plus({ years: horizonYears });
+  const endHorizon = birthDT.plus({ years: horizonYears });
 
-  const MD = mdChain.filter(md => DateTime.fromISO(md.start) < endHorizon);
+  const MD = mdChain.filter(
+    (md) => DateTime.fromISO(md.start) < endHorizon
+  );
 
   if (!opts?.includeAD) return { MD };
 
-  const AD = MD.flatMap(md => mdToADs(md))
-               .filter(ad => DateTime.fromISO(ad.start) < endHorizon);
+  const AD = MD.flatMap((md) => mdToADs(md)).filter(
+    (ad) => DateTime.fromISO(ad.start) < endHorizon
+  );
 
   // Convenience: what’s active *now*
   const now = DateTime.utc();
-  const currentMD = MD.find(md => DateTime.fromISO(md.start) <= now && now < DateTime.fromISO(md.end));
+  const currentMD = MD.find(
+    (md) =>
+      DateTime.fromISO(md.start) <= now &&
+      now < DateTime.fromISO(md.end)
+  );
   const currentAD = currentMD
-    ? mdToADs(currentMD).find(ad => DateTime.fromISO(ad.start) <= now && now < DateTime.fromISO(ad.end))
+    ? mdToADs(currentMD).find(
+        (ad) =>
+          DateTime.fromISO(ad.start) <= now &&
+          now < DateTime.fromISO(ad.end)
+      )
     : undefined;
 
   return {
     MD,
     AD,
-    current: currentMD && currentAD ? {
-      mahadasha: currentMD.lord,
-      antardasha: currentAD.lord,
-      mdStart: currentMD.start,
-      mdEnd: currentMD.end,
-      adStart: currentAD.start,
-      adEnd: currentAD.end,
-    } : undefined,
+    current:
+      currentMD && currentAD
+        ? {
+            mahadasha: currentMD.lord,
+            antardasha: currentAD.lord,
+            mdStart: currentMD.start,
+            mdEnd: currentMD.end,
+            adStart: currentAD.start,
+            adEnd: currentAD.end,
+          }
+        : undefined,
   };
 }
 
@@ -442,7 +492,7 @@ function pickPlace(body: any) {
  * Drop-in adapter: pass your raw request JSON here.
  * It will map common aliases and call the canonical function.
  */
-export function computeVimshottariFromPayload(
+export async function computeVimshottariFromPayload(
   payload: any,
   opts?: { includeAD?: boolean; horizonYears?: number }
 ) {
@@ -453,15 +503,15 @@ export function computeVimshottariFromPayload(
   if (!dobAny || !tobAny) {
     throw new Error(
       `Required fields missing. Provide a date + time using any of these keys: ` +
-      `{"dobISO"/"dob"/"date"/"birthDate" or birth.date} + {"tob"/"time"/"birthTime" or birth.time"}. ` +
-      `Got dob=${JSON.stringify(dobAny)} tob=${JSON.stringify(tobAny)}`
+        `{"dobISO"/"dob"/"date"/"birthDate" or birth.date} + {"tob"/"time"/"birthTime" or birth.time"}. ` +
+        `Got dob=${JSON.stringify(dobAny)} tob=${JSON.stringify(tobAny)}`
     );
   }
 
   return computeVimshottari(
-    dobAny,                         // string | Date | {year,month,day} | number
-    String(tobAny),                 // normalize time to string
-    placeAny as Place,              // only tz is used for time conversion
+    dobAny, // string | Date | {year,month,day} | number
+    String(tobAny), // normalize time to string
+    placeAny as Place, // only tz is used for time conversion
     { includeAD: true, horizonYears: 60, ...opts }
   );
 }

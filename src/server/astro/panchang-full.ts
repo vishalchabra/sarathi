@@ -1,7 +1,11 @@
 // FILE: src/server/astro/panchang-full.ts
 import "server-only";
 
-import { getSwe } from "@/server/astro/swe";
+import {
+  sweJulday,
+  sweCall,
+  getSweConstants,
+} from "@/server/astro/swe-remote";
 import { getNakshatra } from "@/server/astro/nakshatra";
 import { getPanchang } from "@/server/astro/panchang";
 import { DateTime } from "luxon";
@@ -39,22 +43,16 @@ function tzOffsetMinutesAt(tz: string, probeUtc: Date): number {
 }
 
 function makeUtcInstant(dISO: string, hhmm: string, tz: string): Date {
-  const safeDate =
-    typeof dISO === "string" ? dISO.trim() : "";
-  const safeTime =
-    typeof hhmm === "string" ? hhmm.trim() : "";
+  const safeDate = typeof dISO === "string" ? dISO.trim() : "";
+  const safeTime = typeof hhmm === "string" ? hhmm.trim() : "";
 
   if (!/^\d{4}-\d{2}-\d{2}$/.test(safeDate)) {
-    throw new Error(
-      `Invalid dobISO in getFullPanchang: "${dISO}"`
-    );
+    throw new Error(`Invalid dobISO in getFullPanchang: "${dISO}"`);
   }
 
   const parts = safeTime.split(":");
   if (parts.length < 2) {
-    throw new Error(
-      `Invalid tob in getFullPanchang: "${hhmm}"`
-    );
+    throw new Error(`Invalid tob in getFullPanchang: "${hhmm}"`);
   }
 
   const [Hraw, Mraw] = parts;
@@ -144,10 +142,7 @@ const KARANA_MOVABLE = [
   "Vishti",
 ] as const;
 
-function computeKaranaName(
-  sunSid: number,
-  moonSid: number
-): string {
+function computeKaranaName(sunSid: number, moonSid: number): string {
   const D = wrap360(moonSid - sunSid);
   const K = Math.floor(D / 6);
 
@@ -175,7 +170,7 @@ function computeSunTimesApprox(
   const deg2rad = Math.PI / 180;
   const rad2deg = 180 / Math.PI;
 
-  const gamma = (2 * Math.PI / 365) * (N - 1);
+  const gamma = ((2 * Math.PI) / 365) * (N - 1);
 
   const eqTime =
     229.18 *
@@ -267,7 +262,7 @@ export async function getFullPanchang(req: PanchangRequest) {
 
   // Base Swiss ephemeris context
   const utc = makeUtcInstant(dobISO, tob, tz);
-  const swe = getSwe();
+  const constants = await getSweConstants();
 
   const year = utc.getUTCFullYear();
   const month = utc.getUTCMonth() + 1;
@@ -277,19 +272,31 @@ export async function getFullPanchang(req: PanchangRequest) {
     utc.getUTCMinutes() / 60 +
     utc.getUTCSeconds() / 3600;
 
-  const jdUt = swe.swe_julday(
+  const jdUt = await sweJulday(
     year,
     month,
     day,
     hour,
-    swe.SE_GREG_CAL
+    constants.SE_GREG_CAL
   );
 
   const flags =
-    swe.SEFLG_SWIEPH | swe.SEFLG_SPEED | swe.SEFLG_SIDEREAL;
+    (constants.SEFLG_SWIEPH ?? 2) |
+    (constants.SEFLG_SPEED ?? 256) |
+    (constants.SEFLG_SIDEREAL ?? 64);
 
-  const sunRes = swe.swe_calc_ut(jdUt, swe.SE_SUN, flags);
-  const moonRes = swe.swe_calc_ut(jdUt, swe.SE_MOON, flags);
+  const sunRes = await sweCall<any>(
+    "swe_calc_ut",
+    jdUt,
+    constants.SE_SUN,
+    flags
+  );
+  const moonRes = await sweCall<any>(
+    "swe_calc_ut",
+    jdUt,
+    constants.SE_MOON,
+    flags
+  );
 
   const sunSid = wrap360(
     typeof sunRes?.longitude === "number"
@@ -319,13 +326,11 @@ export async function getFullPanchang(req: PanchangRequest) {
   }
 
   // Names (prefer rich, fall back to old computations)
-  const weekday =
-    rich?.weekday ?? weekdayFromISO(dobISO);
+  const weekday = rich?.weekday ?? weekdayFromISO(dobISO);
 
-  const tithiName =
-    rich?.tithi
-      ? `${rich.tithi.paksha} ${rich.tithi.day}`
-      : computeTithiName(sunSid, moonSid);
+  const tithiName = rich?.tithi
+    ? `${rich.tithi.paksha} ${rich.tithi.day}`
+    : computeTithiName(sunSid, moonSid);
 
   const yogaName =
     rich?.yoga?.name ?? computeYogaName(sunSid, moonSid);
@@ -361,7 +366,7 @@ export async function getFullPanchang(req: PanchangRequest) {
   const startMinutes = hhmmToMinutes(sunrise);
   const endMinutes = hhmmToMinutes(sunset);
 
-    if (
+  if (
     startMinutes !== null &&
     endMinutes !== null &&
     endMinutes > startMinutes
@@ -397,16 +402,25 @@ export async function getFullPanchang(req: PanchangRequest) {
   }
 
   // Optional debug
-  console.log("[getFullPanchang] times =",
-    "sunrise:", sunrise,
-    "sunset:", sunset,
-    "moonrise:", moonrise,
-    "moonset:", moonset
+  console.log(
+    "[getFullPanchang] times =",
+    "sunrise:",
+    sunrise,
+    "sunset:",
+    sunset,
+    "moonrise:",
+    moonrise,
+    "moonset:",
+    moonset
   );
-  console.log("[getFullPanchang] kaal =",
-    "rahu:", rahuKaalStr,
-    "gulika:", gulikaKaalStr,
-    "abhijit:", abhijitStr
+  console.log(
+    "[getFullPanchang] kaal =",
+    "rahu:",
+    rahuKaalStr,
+    "gulika:",
+    gulikaKaalStr,
+    "abhijit:",
+    abhijitStr
   );
 
   return {

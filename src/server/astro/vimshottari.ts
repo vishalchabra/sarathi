@@ -2,8 +2,12 @@
 // Proper Vimshottari Mahadasha table based on sidereal Moon (Lahiri)
 
 import "server-only";
-import { getSwe } from "@/server/astro/swe";
 import { getNakshatra } from "@/server/astro/nakshatra";
+import {
+  sweJulday,
+  sweCall,
+  getSweConstants,
+} from "@/server/astro/swe-remote";
 
 export type Birth = {
   dateISO: string;  // "YYYY-MM-DD"
@@ -82,43 +86,93 @@ function makeUtcInstant(b: Birth): Date {
   return new Date(pretendUtc.getTime() - off * 60_000);
 }
 
-function jdFromDate(d: Date, swe: any) {
-  return swe.swe_julday(
+/* ---------------------- Swe helpers (remote) ---------------------- */
+
+function extractLongitude(res: any): number | null {
+  if (!res) return null;
+
+  // 1) Direct property
+  if (typeof res.longitude === "number") return res.longitude;
+
+  // 2) Bare array [lon, ...]
+  if (Array.isArray(res) && typeof res[0] === "number") return res[0];
+
+  // 3) Common container keys
+  const candidates = [res.x, res.xx, res.result, res.r];
+  for (const c of candidates) {
+    if (Array.isArray(c) && typeof c[0] === "number") return c[0];
+  }
+
+  // 4) Heuristic: any numeric field that looks like a longitude
+  if (res && typeof res === "object") {
+    for (const k of Object.keys(res)) {
+      const v = (res as any)[k];
+      if (
+        typeof v === "number" &&
+        isFinite(v) &&
+        Math.abs(v) <= 720
+      ) {
+        return v;
+      }
+    }
+  }
+
+  return null;
+}
+
+async function jdFromDateUTC(d: Date, gregCal: number): Promise<number> {
+  const hour =
+    d.getUTCHours() +
+    d.getUTCMinutes() / 60 +
+    d.getUTCSeconds() / 3600;
+  return sweJulday(
     d.getUTCFullYear(),
     d.getUTCMonth() + 1,
     d.getUTCDate(),
-    d.getUTCHours() + d.getUTCMinutes() / 60 + d.getUTCSeconds() / 3600,
-    swe.SE_GREG_CAL
+    hour,
+    gregCal
   );
 }
 
-/* ---------------------- Moon degree ---------------------- */
+/* ---------------------- Moon degree (remote sidereal) ---------------------- */
 
 async function moonSiderealDegAtBirth(birth: Birth): Promise<number> {
-  const swe = getSwe();
-  // getSwe already sets sidereal mode (Lahiri) once; just in case:
+  const constants = await getSweConstants();
+
+   // Ensure sidereal Lahiri mode on the engine (best-effort)
   try {
-    if (swe.swe_set_sid_mode) {
-      swe.swe_set_sid_mode(swe.SE_SIDM_LAHIRI, 0, 0);
+    const lahiri = (constants as any).SE_SIDM_LAHIRI;
+
+    if (typeof lahiri === "number") {
+      await sweCall(
+        "swe_set_sid_mode",
+        lahiri,
+        0,
+        0
+      );
     }
-  } catch {}
+  } catch {
+    // ignore; engine may already be in sidereal mode
+  }
 
   const birthUtc = makeUtcInstant(birth);
-  const jdUt = jdFromDate(birthUtc, swe);
+  const jdUt = await jdFromDateUTC(birthUtc, constants.SE_GREG_CAL);
+
   const flags =
-    swe.SEFLG_SWIEPH | swe.SEFLG_SIDEREAL | swe.SEFLG_SPEED;
+    (constants.SEFLG_SWIEPH ?? 2) |
+    (constants.SEFLG_SIDEREAL ?? 64) |
+    (constants.SEFLG_SPEED ?? 256);
 
-  const res = await new Promise<any>((resolve, reject) => {
-    try {
-      const r = swe.swe_calc_ut(jdUt, swe.SE_MOON, flags);
-      if (r?.error) return reject(new Error(r.error));
-      resolve(r);
-    } catch (e) {
-      reject(e);
-    }
-  });
+  const res = await sweCall<any>(
+    "swe_calc_ut",
+    jdUt,
+    constants.SE_MOON,
+    flags
+  );
 
-  const lon = typeof res.longitude === "number" ? res.longitude : 0;
+  const lonRaw = extractLongitude(res);
+  const lon = typeof lonRaw === "number" ? lonRaw : 0;
+
   return norm360(lon);
 }
 
@@ -142,7 +196,7 @@ function buildMDFromMoonDeg(birth: Birth, moonDeg: number): MDT[] {
   const seg = 360 / 27; // 13°20′ per nakshatra
   const pos = moonDeg % seg; // degrees inside nakshatra
   const fracElapsed = pos / seg; // part already elapsed
-  const nk = getNakshatra(moonDeg); // from your nakshatra.ts
+  const nk = getNakshatra(moonDeg); // from nakshatra.ts
   const startLord = nk.lord; // "Ketu", "Venus", etc.
 
   if (!MD_YEARS[startLord]) {
@@ -180,7 +234,6 @@ function buildMDFromMoonDeg(birth: Birth, moonDeg: number): MDT[] {
   let cursor = firstEnd;
   let idx = (startIndex + 1) % MD_ORDER.length;
 
-  // We’ll generate a single 120-year cycle (enough for life)
   for (let k = 0; k < MD_ORDER.length * 2; k++) {
     const lord = MD_ORDER[idx];
     const yrs = MD_YEARS[lord];

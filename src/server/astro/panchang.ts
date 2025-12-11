@@ -1,5 +1,6 @@
 // FILE: /src/server/astro/panchang.ts
-// FULL UPGRADED VERSION — REAL TITHI / NAKSHATRA / PADA / YOGA / KARANA / SUNRISE / MOONRISE
+// FULL UPGRADED VERSION — REAL TITHI / NAKSHATRA / PADA / YOGA / KARANA
+// Sunrise/Sunset via JS approximation (no swe_rise_trans)
 
 import { DateTime } from "luxon";
 import { getSwe } from "@/server/astro/swe";
@@ -43,14 +44,14 @@ function wrap360(x: number) {
 
 // ---------- Date helpers ----------
 function normalizeDate(input: any) {
-  const dt = DateTime.fromISO(input);
+  const dt = DateTime.fromISO(String(input));
   if (!dt.isValid) throw new Error("Invalid date " + input);
   return { y: dt.year, m: dt.month, d: dt.day };
 }
 
 function normalizeTime(input: any) {
   if (typeof input !== "string") throw new Error("Invalid time");
-  const m = input.match(/^(\d{1,2}):(\d{2})$/);
+  const m = input.trim().match(/^(\d{1,2}):(\d{2})$/);
   if (!m) throw new Error("Invalid HH:mm");
   return { hh: +m[1], mm: +m[2] };
 }
@@ -58,8 +59,9 @@ function normalizeTime(input: any) {
 function jdUTFromLocal(dobISO: any, tobHHmm: any, tz: string) {
   const { y, m, d } = normalizeDate(dobISO);
   const { hh, mm } = normalizeTime(tobHHmm);
+
   const dtLocal = DateTime.fromObject(
-    { year: y, month: m, day: d, hour: hh, minute: mm },
+    { year: y, month: m, day: d, hour: hh, minute: mm, second: 0, millisecond: 0 },
     { zone: tz }
   );
   if (!dtLocal.isValid) throw new Error("Invalid local date/time");
@@ -70,7 +72,7 @@ function jdUTFromLocal(dobISO: any, tobHHmm: any, tz: string) {
     dtUTC.year,
     dtUTC.month,
     dtUTC.day,
-    dtUTC.hour + dtUTC.minute / 60,
+    dtUTC.hour + dtUTC.minute / 60 + dtUTC.second / 3600,
     swe.SE_GREG_CAL
   );
   return { jdUT: jd, dtLocal, dtUTC };
@@ -79,14 +81,27 @@ function jdUTFromLocal(dobISO: any, tobHHmm: any, tz: string) {
 // ---------- Sun / Moon (sidereal Lahiri) ----------
 function getSiderealPositions(jdUT: number) {
   const swe = getSwe();
-  swe.swe_set_sid_mode(swe.SE_SIDM_LAHIRI, 0, 0);
-  const flags = swe.SEFLG_SWIEPH | swe.SEFLG_SIDEREAL;
+  // getSwe already sets sidereal mode once; just in case:
+  try {
+    if (typeof swe.swe_set_sid_mode === "function") {
+      swe.swe_set_sid_mode(swe.SE_SIDM_LAHIRI, 0, 0);
+    }
+  } catch {}
+
+  const flags =
+    (swe.SEFLG_SWIEPH ?? 2) |
+    (swe.SEFLG_SIDEREAL ?? 64) |
+    (swe.SEFLG_SPEED ?? 256);
 
   const s = swe.swe_calc_ut(jdUT, swe.SE_SUN, flags);
   const m = swe.swe_calc_ut(jdUT, swe.SE_MOON, flags);
 
   const pick = (res: any) =>
-    Array.isArray(res.x) ? res.x[0] : res.longitude ?? res.long ?? 0;
+    typeof res?.longitude === "number"
+      ? res.longitude
+      : Array.isArray(res?.x) && typeof res.x[0] === "number"
+      ? res.x[0]
+      : 0;
 
   return {
     sun: wrap360(pick(s)),
@@ -94,64 +109,83 @@ function getSiderealPositions(jdUT: number) {
   };
 }
 
-// ---------- SUNRISE / SUNSET / MOONRISE / MOONSET ----------
-function computeRiseSet(
-  jdUT: number,
+/** Approximate sunrise/sunset (NOAA-style) in local time "HH:mm". */
+function computeSunTimesApprox(
+  dateISO: string,
+  tz: string,
   lat: number,
-  lon: number,
-  body: number,
-  direction: "rise" | "set"
-) {
-  const swe = getSwe();
+  lon: number
+): { sunrise: string; sunset: string } {
+  const dt = DateTime.fromISO(String(dateISO), { zone: tz });
+  if (!dt.isValid) {
+    return { sunrise: "06:00", sunset: "18:00" };
+  }
 
-  // Swiss Ephemeris expects [lon, lat, alt] as geopos
-  const geopos = [lon, lat, 0]; // altitude = 0m
+  const N = dt.ordinal; // day of year
+  const deg2rad = Math.PI / 180;
+  const rad2deg = 180 / Math.PI;
 
-  // Ephemeris flags: plain SWIEPH (no sidereal here)
-  const epheflag = swe.SEFLG_SWIEPH;
+  const gamma = (2 * Math.PI / 365) * (N - 1);
 
-  // One of RISE or SET, not both
-  const rsmi = direction === "rise" ? swe.SE_CALC_RISE : swe.SE_CALC_SET;
+  const eqTime =
+    229.18 *
+    (0.000075 +
+      0.001868 * Math.cos(gamma) -
+      0.032077 * Math.sin(gamma) -
+      0.014615 * Math.cos(2 * gamma) -
+      0.040849 * Math.sin(2 * gamma));
 
-  // atpress, attemp (0 = standard)
-  const atpress = 0;
-  const attemp = 0;
+  const solarDec =
+    0.006918 -
+    0.399912 * Math.cos(gamma) +
+    0.070257 * Math.sin(gamma) -
+    0.006758 * Math.cos(2 * gamma) +
+    0.000907 * Math.sin(2 * gamma) -
+    0.002697 * Math.cos(3 * gamma) +
+    0.00148 * Math.sin(3 * gamma);
 
-  const rs = swe.swe_rise_trans(
-    jdUT,
-    body,
-    "",
-    epheflag,
-    rsmi,
-    geopos,
-    atpress,
-    attemp
-  );
+  const latRad = lat * deg2rad;
+  const zenith = 90.833 * deg2rad; // official sunrise/sunset
 
-  const jd = rs?.tret;
-  if (!jd || !isFinite(jd)) return null;
+  const cosH =
+    (Math.cos(zenith) - Math.sin(latRad) * Math.sin(solarDec)) /
+    (Math.cos(latRad) * Math.cos(solarDec));
 
-  const greg = swe.swe_revjul(jd, swe.SE_GREG_CAL);
+  if (cosH <= -1) {
+    // sun above horizon all day (polar) – not our use case, but keep safe
+    return { sunrise: "00:00", sunset: "23:59" };
+  }
+  if (cosH >= 1) {
+    // sun below horizon all day
+    return { sunrise: "—", sunset: "—" };
+  }
 
-  const hourFloat = greg.hour || 0;
-  const hourInt = Math.floor(hourFloat);
-  const minute = Math.round((hourFloat - hourInt) * 60);
+  const H = Math.acos(cosH);
+  const Hdeg = H * rad2deg;
 
-  return DateTime.fromObject(
-    {
-      year: greg.year,
-      month: greg.month,
-      day: greg.day,
-      hour: hourInt,
-      minute,
-    },
-    { zone: "UTC" }
-  );
-}
+  const solarNoonUTC = 720 - 4 * lon - eqTime; // minutes from midnight
+  const sunriseUTC = solarNoonUTC - 4 * Hdeg;
+  const sunsetUTC = solarNoonUTC + 4 * Hdeg;
 
-function localTimeStr(dt: any | null, tz: string) {
-  if (!dt) return "—";
-  return dt.setZone(tz).toFormat("HH:mm");
+  const offsetMinutes = dt.offset; // zone offset vs UTC in minutes
+  const sunriseLocal = sunriseUTC + offsetMinutes;
+  const sunsetLocal = sunsetUTC + offsetMinutes;
+
+  function toHHMM(mins: number) {
+    let m = Math.round(mins);
+    while (m < 0) m += 1440;
+    while (m >= 1440) m -= 1440;
+    const hh = Math.floor(m / 60);
+    const mm = m % 60;
+    return `${hh.toString().padStart(2, "0")}:${mm
+      .toString()
+      .padStart(2, "0")}`;
+  }
+
+  return {
+    sunrise: toHHMM(sunriseLocal),
+    sunset: toHHMM(sunsetLocal),
+  };
 }
 
 // ---------- TITHI ----------
@@ -189,8 +223,8 @@ function computeTithi(moon: number, sun: number) {
 
 // ---------- NAKSHATRA + PADA ----------
 function computeNakshatraPad(deg: number) {
-  const nakIndex = Math.floor(deg / NAK_SIZE);
-  const padaIndex = Math.floor((deg % NAK_SIZE) / PADA_SIZE) + 1;
+  const nakIndex = Math.floor(wrap360(deg) / NAK_SIZE);
+  const padaIndex = Math.floor((wrap360(deg) % NAK_SIZE) / PADA_SIZE) + 1;
 
   return {
     nakIndex,
@@ -274,34 +308,16 @@ export async function getPanchang(birth: BirthLike) {
     index: nakIndex,
   };
 
-  // Rise/Set (with fallback)
-  const swe = getSwe();
-  const sunriseUTC = computeRiseSet(jdUT, lat, lon, swe.SE_SUN, "rise");
-  const sunsetUTC  = computeRiseSet(jdUT, lat, lon, swe.SE_SUN, "set");
-  const moonriseUTC = computeRiseSet(jdUT, lat, lon, swe.SE_MOON, "rise");
-  const moonsetUTC  = computeRiseSet(jdUT, lat, lon, swe.SE_MOON, "set");
+  // Sunrise/Sunset via approximation (no swe_rise_trans)
+  const approx = computeSunTimesApprox(birth.dobISO, tz, lat, lon);
+  const sunriseStr = approx.sunrise || "06:00";
+  const sunsetStr = approx.sunset || "18:00";
 
-  // format to local "HH:mm" (or "—" if null)
-  let sunriseStr = localTimeStr(sunriseUTC, tz);
-  let sunsetStr  = localTimeStr(sunsetUTC, tz);
-  let moonriseStr = localTimeStr(moonriseUTC, tz);
-  let moonsetStr  = localTimeStr(moonsetUTC, tz);
+  // For now we don’t attempt Moonrise/Moonset at all
+  const moonriseStr = "—";
+  const moonsetStr = "—";
 
-  // fallback if Swiss call failed
   const baseLocal = dtLocal.setZone(tz);
-
-  if (!sunriseStr || sunriseStr === "—") {
-    sunriseStr = baseLocal.set({ hour: 6, minute: 0 }).toFormat("HH:mm");
-  }
-  if (!sunsetStr || sunsetStr === "—") {
-    sunsetStr = baseLocal.set({ hour: 18, minute: 0 }).toFormat("HH:mm");
-  }
-  if (!moonriseStr || moonriseStr === "—") {
-    moonriseStr = "—"; // refine later if you want
-  }
-  if (!moonsetStr || moonsetStr === "—") {
-    moonsetStr = "—"; // refine later if you want
-  }
 
   return {
     at: baseLocal.toISO(),

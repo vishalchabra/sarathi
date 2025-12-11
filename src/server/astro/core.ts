@@ -1,5 +1,6 @@
-// src/server/astro/core.ts
+// FILE: src/server/astro/core.ts
 export const runtime = "nodejs";
+
 import "server-only";
 import type { BirthInput } from "@/types";
 import { DateTime } from "luxon";
@@ -30,12 +31,22 @@ export function siderealLon(utc: Date, planet: number): number | null {
   if (!swe) return null;
   try {
     // Always set sidereal (Lahiri) before computing longitudes
-    try { swe.swe_set_sid_mode(swe.SE_SIDM_LAHIRI, 0, 0); } catch {}
+    try {
+      if (typeof swe.swe_set_sid_mode === "function") {
+        swe.swe_set_sid_mode(swe.SE_SIDM_LAHIRI, 0, 0);
+      }
+    } catch {
+      // ignore; if this fails, Swiss may still be in Lahiri from startup
+    }
 
     const jd = jdUT(utc);
     if (!Number.isFinite(jd)) return null;
 
-    const flags = swe.SEFLG_SIDEREAL | swe.SEFLG_MOSEPH;
+    // Prefer sidereal + MOSEPH (no se* files needed)
+    const flags =
+      (swe.SEFLG_SIDEREAL ?? 0) |
+      (swe.SEFLG_MOSEPH ?? 0);
+
     const r = swe.swe_calc_ut(jd, planet, flags);
     if (!r || typeof r.longitude !== "number") return null;
     return norm360(r.longitude);
@@ -44,7 +55,7 @@ export function siderealLon(utc: Date, planet: number): number | null {
   }
 }
 
-/** Minimal natal shape used by life report */
+/** Minimal natal shape used by life report / engine */
 export type Natal = { planets: Partial<Record<number, number>> };
 
 /** Compute D1 planet longitudes for the standard set (Sun..Saturn + True Node + Ketu). */
@@ -53,7 +64,9 @@ export async function getNatal(birth?: BirthInput): Promise<Natal> {
   if (!swe || !birth) return { planets: {} };
 
   // Build UTC date from given tz
-  const dt = DateTime.fromISO(`${birth.dobISO}T${birth.tob}`, { zone: birth.place.tz }).toUTC();
+  const dt = DateTime.fromISO(`${birth.dobISO}T${birth.tob}`, {
+    zone: birth.place.tz,
+  }).toUTC();
   const date = dt.toJSDate();
 
   const PLANETS = [
@@ -75,7 +88,9 @@ export async function getNatal(birth?: BirthInput): Promise<Natal> {
 
   // Synthetic Ketu (opposite Rahu)
   if (out.planets[swe.SE_TRUE_NODE] != null) {
-    out.planets[-1] = norm360((out.planets[swe.SE_TRUE_NODE] as number) + 180);
+    out.planets[-1] = norm360(
+      (out.planets[swe.SE_TRUE_NODE] as number) + 180
+    );
   }
 
   return out;

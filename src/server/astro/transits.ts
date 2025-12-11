@@ -1,7 +1,11 @@
 // FILE: src/server/astro/transits.ts
 
 import "server-only";
-import { getSwe } from "@/server/astro/swe";
+import {
+  sweJulday,
+  sweCall,
+  getSweConstants,
+} from "@/server/astro/swe-remote";
 
 export type TransitEngineBirth = {
   dateISO: string; // "YYYY-MM-DD"
@@ -27,8 +31,8 @@ export type TransitHit = {
 // NEW: daily Moon sample for horizon
 export type DailyMoonSample = {
   dateISO: string;
-  lon: number;            // sidereal longitude 0..360
-  nakshatra: string;      // Moon's nakshatra that day
+  lon: number; // sidereal longitude 0..360
+  nakshatra: string; // Moon's nakshatra that day
   houseFromMoon?: number; // 1..12 from natal Moon (Chandra Lagna)
 };
 
@@ -65,7 +69,7 @@ function angleDiff(a: number, b: number): number {
 }
 
 /* -------------------------------------------------------
-   TIME → JULIAN DAY HELPERS (copied from life-engine style)
+   TIME → JULIAN DAY HELPERS (same semantics as before)
 -------------------------------------------------------- */
 
 function parseGmtOffsetMinutes(label: string): number | undefined {
@@ -104,14 +108,70 @@ function makeUtcInstant(dateISO: string, time: string, tz: string): Date {
   return new Date(pretendUtc.getTime() - off * 60_000);
 }
 
-function jdFromDate(d: Date, swe: any): number {
-  return swe.swe_julday(
+async function jdFromDateUTC(d: Date, gregCal: number): Promise<number> {
+  const hour =
+    d.getUTCHours() +
+    d.getUTCMinutes() / 60 +
+    d.getUTCSeconds() / 3600;
+
+  return sweJulday(
     d.getUTCFullYear(),
     d.getUTCMonth() + 1,
     d.getUTCDate(),
-    d.getUTCHours() + d.getUTCMinutes() / 60 + d.getUTCSeconds() / 3600,
-    swe.SE_GREG_CAL
+    hour,
+    gregCal
   );
+}
+
+/* -------------------------------------------------------
+   REMOTE SWE HELPERS
+-------------------------------------------------------- */
+
+function extractLongitude(res: any): number | null {
+  if (!res) return null;
+
+  // 1) Direct property
+  if (typeof res.longitude === "number") return res.longitude;
+
+  // 2) Bare array [lon, ...]
+  if (Array.isArray(res) && typeof res[0] === "number") return res[0];
+
+  // 3) Common embedded arrays
+  const candidates = [res.x, res.xx, res.result, res.r];
+  for (const c of candidates) {
+    if (Array.isArray(c) && typeof c[0] === "number") return c[0];
+  }
+
+  // 4) Heuristic: any numeric field that looks like a longitude
+  if (res && typeof res === "object") {
+    for (const k of Object.keys(res)) {
+      const v = (res as any)[k];
+      if (
+        typeof v === "number" &&
+        isFinite(v) &&
+        Math.abs(v) <= 720
+      ) {
+        return v;
+      }
+    }
+  }
+
+  return null;
+}
+
+async function ensureSiderealMode(constants: any) {
+  try {
+    if (constants.SE_SIDM_LAHIRI != null) {
+      await sweCall(
+        "swe_set_sid_mode",
+        constants.SE_SIDM_LAHIRI,
+        0,
+        0
+      );
+    }
+  } catch {
+    // best-effort, engine may already be set
+  }
 }
 
 /* -------------------------------------------------------
@@ -171,42 +231,49 @@ type TransitPlanet = {
   lon: number; // sidereal longitude 0..360
 };
 
-const TRANSIT_PLANETS = [
-  { name: "Sun", code: 0 },
-  { name: "Mercury", code: 2 },
-  { name: "Venus", code: 3 },
-  { name: "Mars", code: 4 },
-  { name: "Jupiter", code: 5 },
-  { name: "Saturn", code: 6 },
-];
-
-const NATAL_PLANETS = [
-  { name: "Sun", code: 0 },
-  { name: "Moon", code: 1 },
-  { name: "Mercury", code: 2 },
-  { name: "Venus", code: 3 },
-  { name: "Mars", code: 4 },
-  { name: "Jupiter", code: 5 },
-  { name: "Saturn", code: 6 },
-  { name: "Rahu", code: 11 }, // True Node
-  { name: "Ketu", code: 11 }, // handled by +180°
-];
-
+/**
+ * Compute natal longitudes (sidereal) using the remote engine.
+ */
 async function computeNatalPlanets(
-  birth: TransitEngineBirth
+  birth: TransitEngineBirth,
+  constants: any
 ): Promise<NatalPlanet[]> {
-  const swe = getSwe();
-  const birthUtc = makeUtcInstant(birth.dateISO, birth.time, birth.tz);
-  const jdUt = jdFromDate(birthUtc, swe);
+  await ensureSiderealMode(constants);
 
-  const flags = swe.SEFLG_SWIEPH | swe.SEFLG_SPEED | swe.SEFLG_SIDEREAL;
+  const birthUtc = makeUtcInstant(birth.dateISO, birth.time, birth.tz);
+  const jdUt = await jdFromDateUTC(birthUtc, constants.SE_GREG_CAL);
+
+  const flags =
+    (constants.SEFLG_SWIEPH ?? 2) |
+    (constants.SEFLG_SPEED ?? 256) |
+    (constants.SEFLG_SIDEREAL ?? 64);
+
+  const defs = [
+    { name: "Sun", code: constants.SE_SUN },
+    { name: "Moon", code: constants.SE_MOON },
+    { name: "Mercury", code: constants.SE_MERCURY },
+    { name: "Venus", code: constants.SE_VENUS },
+    { name: "Mars", code: constants.SE_MARS },
+    { name: "Jupiter", code: constants.SE_JUPITER },
+    { name: "Saturn", code: constants.SE_SATURN },
+    { name: "Rahu", code: constants.SE_TRUE_NODE },
+    { name: "Ketu", code: constants.SE_TRUE_NODE }, // +180°
+  ];
 
   const out: NatalPlanet[] = [];
 
-  for (const p of NATAL_PLANETS) {
-    const r = swe.swe_calc_ut(jdUt, p.code, flags);
-    if (!r) continue;
-    let lon = wrap360(r.longitude);
+  for (const p of defs) {
+    if (p.code == null) continue;
+    const res = await sweCall<any>(
+      "swe_calc_ut",
+      jdUt,
+      p.code,
+      flags
+    );
+    const lonRaw = extractLongitude(res);
+    if (typeof lonRaw !== "number" || !isFinite(lonRaw)) continue;
+
+    let lon = wrap360(lonRaw);
     if (p.name === "Ketu") {
       lon = wrap360(lon + 180);
     }
@@ -216,20 +283,49 @@ async function computeNatalPlanets(
   return out;
 }
 
-function computeTransitPlanetsForDay(
-  swe: any,
-  date: Date
-): TransitPlanet[] {
-  const jdUt = jdFromDate(date, swe);
-  const flags = swe.SEFLG_SWIEPH | swe.SEFLG_SPEED | swe.SEFLG_SIDEREAL;
+/**
+ * Transit planets (Sun, Mercury, Venus, Mars, Jupiter, Saturn)
+ * for a specific UTC date.
+ */
+async function computeTransitPlanetsForDay(
+  date: Date,
+  constants: any
+): Promise<TransitPlanet[]> {
+  await ensureSiderealMode(constants);
+
+  const jdUt = await jdFromDateUTC(date, constants.SE_GREG_CAL);
+  const flags =
+    (constants.SEFLG_SWIEPH ?? 2) |
+    (constants.SEFLG_SPEED ?? 256) |
+    (constants.SEFLG_SIDEREAL ?? 64);
+
+  const defs = [
+    { name: "Sun", code: constants.SE_SUN },
+    { name: "Mercury", code: constants.SE_MERCURY },
+    { name: "Venus", code: constants.SE_VENUS },
+    { name: "Mars", code: constants.SE_MARS },
+    { name: "Jupiter", code: constants.SE_JUPITER },
+    { name: "Saturn", code: constants.SE_SATURN },
+  ];
 
   const out: TransitPlanet[] = [];
-  for (const p of TRANSIT_PLANETS) {
-    const r = swe.swe_calc_ut(jdUt, p.code, flags);
-    if (!r) continue;
-    const lon = wrap360(r.longitude);
+
+  for (const p of defs) {
+    if (p.code == null) continue;
+
+    const res = await sweCall<any>(
+      "swe_calc_ut",
+      jdUt,
+      p.code,
+      flags
+    );
+    const lonRaw = extractLongitude(res);
+    if (typeof lonRaw !== "number" || !isFinite(lonRaw)) continue;
+
+    const lon = wrap360(lonRaw);
     out.push({ name: p.name, lon });
   }
+
   return out;
 }
 
@@ -237,7 +333,12 @@ function computeTransitPlanetsForDay(
    ASPECT DETECTION (Hybrid Vedic + Western degree aspects)
 -------------------------------------------------------- */
 
-type AspectKind = "conjunction" | "opposition" | "trine" | "square" | "sextile";
+type AspectKind =
+  | "conjunction"
+  | "opposition"
+  | "trine"
+  | "square"
+  | "sextile";
 
 type AspectHit = {
   aspect: AspectKind;
@@ -344,8 +445,8 @@ async function buildRawDailyHits(
   birth: TransitEngineBirth,
   horizonDays: number
 ): Promise<RawDailyHit[]> {
-  const swe = getSwe();
-  const natal = await computeNatalPlanets(birth);
+  const constants = await getSweConstants();
+  const natal = await computeNatalPlanets(birth, constants);
 
   const today = startOfDay(new Date());
   const horizon = Math.max(7, Math.min(horizonDays, 730)); // clamp
@@ -355,7 +456,11 @@ async function buildRawDailyHits(
   for (let i = 0; i < horizon; i++) {
     const day = addDays(today, i);
     const dateISO = fmtISO(day);
-    const tPlanets = computeTransitPlanetsForDay(swe, day);
+
+    const tPlanets = await computeTransitPlanetsForDay(
+      day,
+      constants
+    );
 
     for (const tp of tPlanets) {
       for (const np of natal) {
@@ -387,26 +492,38 @@ export async function computeDailyMoonForHorizon(
   birth: TransitEngineBirth,
   horizonDays: number
 ): Promise<DailyMoonSample[]> {
-  const swe = getSwe();
-  const natal = await computeNatalPlanets(birth);
+  const constants = await getSweConstants();
+  await ensureSiderealMode(constants);
+
+  const natal = await computeNatalPlanets(birth, constants);
   const natalMoon = natal.find((p) => p.name === "Moon") || null;
 
   const today = startOfDay(new Date());
   const horizon = Math.max(7, Math.min(horizonDays, 730)); // clamp
 
-  const flags = swe.SEFLG_SWIEPH | swe.SEFLG_SPEED | swe.SEFLG_SIDEREAL;
+  const flags =
+    (constants.SEFLG_SWIEPH ?? 2) |
+    (constants.SEFLG_SPEED ?? 256) |
+    (constants.SEFLG_SIDEREAL ?? 64);
 
   const out: DailyMoonSample[] = [];
 
   for (let i = 0; i < horizon; i++) {
     const day = addDays(today, i);
     const dateISO = fmtISO(day);
-    const jdUt = jdFromDate(day, swe);
 
-    const r = swe.swe_calc_ut(jdUt, 1, flags); // 1 = Moon
-    if (!r) continue;
+    const jdUt = await jdFromDateUTC(day, constants.SE_GREG_CAL);
+    const res = await sweCall<any>(
+      "swe_calc_ut",
+      jdUt,
+      constants.SE_MOON,
+      flags
+    );
 
-    const lon = wrap360(r.longitude);
+    const lonRaw = extractLongitude(res);
+    if (typeof lonRaw !== "number" || !isFinite(lonRaw)) continue;
+
+    const lon = wrap360(lonRaw);
     const nakshatra = nakFromDegSidereal(lon);
 
     let houseFromMoon: number | undefined = undefined;
@@ -449,7 +566,9 @@ function buildWindowsFromHits(hits: RawDailyHit[]): TransitHit[] {
   if (!hits.length) return [];
 
   // Sort by date
-  hits.sort((a, b) => (a.dateISO < b.dateISO ? -1 : a.dateISO > b.dateISO ? 1 : 0));
+  hits.sort((a, b) =>
+    a.dateISO < b.dateISO ? -1 : a.dateISO > b.dateISO ? 1 : 0
+  );
 
   const windows: WindowAccumulator[] = [];
 
@@ -493,8 +612,10 @@ function buildWindowsFromHits(hits: RawDailyHit[]): TransitHit[] {
   // Convert accumulators → TransitHit[]
   const out: TransitHit[] = windows.map((w, idx) => {
     // Pick a representative hit (strongest)
-    const strongest =
-      w.hits.reduce((best, cur) => (cur.strength > best.strength ? cur : best), w.hits[0]);
+    const strongest = w.hits.reduce(
+      (best, cur) => (cur.strength > best.strength ? cur : best),
+      w.hits[0]
+    );
 
     const target = `${strongest.aspect} natal ${strongest.natalPlanet}`;
     const id = `win-${idx}-${w.planet.toLowerCase()}-${w.category}`;
@@ -626,7 +747,6 @@ export async function computeTransitWindows(
 
   try {
     const raw = await buildRawDailyHits(birth, horizonDays);
-
     if (!raw.length) return [];
 
     const windows = buildWindowsFromHits(raw);

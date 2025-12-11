@@ -1,29 +1,21 @@
 export default function AboutPage() {
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">About Sārathi</h1>
-
-      <section className="space-y-2">
-        <h2 className="text-lg font-medium">Vision</h2>
-        <p className="text-slate-700">
-          To be the charioteer of your journey within—clear, calm, and practical guidance.
+    <main className="min-h-screen bg-slate-950 text-slate-50">
+      <div className="mx-auto max-w-3xl px-4 py-10 space-y-6">
+        <h1 className="text-3xl font-semibold tracking-tight">
+          About AstroSārathi
+        </h1>
+        <p className="text-sm text-slate-300 leading-relaxed">
+          AstroSārathi is your practical Vedic astrology companion – built to give
+          grounded, day-to-day guidance on career, money, relationships and inner growth,
+          without fear, superstition or vague clichés.
         </p>
-      </section>
-
-      <section className="space-y-2">
-        <h2 className="text-lg font-medium">Mission</h2>
-        <p className="text-slate-700">
-          Combine classical wisdom with modern design to offer timing windows, lifestyle
-          prompts, and gentle nudges you can act on every day.
+        <p className="text-sm text-slate-300 leading-relaxed">
+          Behind the app is a mix of modern engineering and traditional jyotish logic –
+          combining birth chart, dasha, transits and Panchang into simple, actionable
+          insights you can actually use.
         </p>
-      </section>
-
-      <section className="space-y-2">
-        <h2 className="text-lg font-medium">Team</h2>
-        <p className="text-slate-700">
-          Built by Vishal and co-pilot AI, shipped with love.
-        </p>
-      </section>
-    </div>
+      </div>
+    </main>
   );
 }

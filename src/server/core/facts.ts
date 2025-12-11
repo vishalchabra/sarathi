@@ -18,25 +18,53 @@ debug?: Record<string, unknown>;
 
 
 export async function getFacts(
-question: string,
-category: Category,
-birth?: BirthInput
+  question: string,
+  category: Category,
+  birth?: BirthInput
 ): Promise<FactsOut> {
-const place = birth?.place ?? { tz: "Asia/Dubai", lat: 25.2048, lon: 55.2708, name: "Dubai" };
-const startISO = DateTime.now().setZone(place.tz).startOf("day").toISO();
-const catCfg = PER_CAT[category];
+  const place =
+    birth?.place ?? {
+      tz: "Asia/Dubai",
+      lat: 25.2048,
+      lon: 55.2708,
+      name: "Dubai",
+    };
 
+  const startISO = DateTime.now().setZone(place.tz).startOf("day").toISO();
+  const catCfg = PER_CAT[category];
 
-let points = [] as Awaited<ReturnType<typeof dailyTransitSignals>>;
-try {
-points = await dailyTransitSignals(startISO!, catCfg.horizonDays, place, category, birth);
-} catch (e) {
-points = await dailyTransitSignals(startISO!, Math.max(90, catCfg.horizonDays), place, category, birth);
-}
+  let points = [] as Awaited<ReturnType<typeof dailyTransitSignals>>;
 
+  try {
+    points = await dailyTransitSignals(
+      startISO!,
+      catCfg.horizonDays,
+      place,
+      category,
+      birth
+    );
+  } catch (e) {
+    // fallback with larger horizon if primary call fails
+    points = await dailyTransitSignals(
+      startISO!,
+      Math.max(90, catCfg.horizonDays),
+      place,
+      category,
+      birth
+    );
+  }
 
-// Dasha gating (0.75..1 range)
-const gated = points.map(p => ({ ...p, signal: Math.min(1, p.signal * dashaGate(p.date, birth, category)) }));
+  // Dasha gating (0.75..1 range) — now async-safe
+  const gated = await Promise.all(
+    points.map(async (p) => {
+      const gate = await dashaGate(p.date, birth, category);
+      return {
+        ...p,
+        signal: Math.min(1, p.signal * gate),
+      };
+    })
+  );
+
 
 
 const windows = windowsFromSignals(gated, { minDays: catCfg.minDays, maxDays: catCfg.maxDays });

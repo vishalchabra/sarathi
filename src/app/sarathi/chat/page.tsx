@@ -1,29 +1,13 @@
 // FILE: src/app/sarathi/chat/page.tsx
-"use client";
 
-import dynamic from "next/dynamic";
+import AstroChatPage from "@/app/chat/page";
 
-// Load the banner only on the client
-const LANBanner = dynamic(() => import("@/components/LANBanner"), {
-  ssr: false,
-});
-
-// Load the ChatClient only on the client as well
-const ChatClient = dynamic(() => import("./ChatClient"), {
-  ssr: false,
-  loading: () => (
-    <div className="p-6 text-sm text-gray-600">Loading chat…</div>
-  ),
-});
-
-export default function Page() {
+export default function SarathiChatPage() {
   return (
-    <>
-      {/* Top of the page: your LAN / beta banner */}
-      <LANBanner />
-
-      {/* Main chat experience */}
-      <ChatClient />
-    </>
+    <main className="min-h-screen bg-slate-950 text-slate-50">
+      <div className="mx-auto max-w-5xl px-4 py-6 md:py-8">
+        <AstroChatPage />
+      </div>
+    </main>
   );
 }

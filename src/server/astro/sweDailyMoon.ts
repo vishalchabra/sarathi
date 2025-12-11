@@ -1,7 +1,11 @@
 // FILE: src/server/astro/sweDailyMoon.ts
 
 import "server-only";
-import { getSwe } from "@/server/astro/swe";
+import {
+  sweJulday,
+  sweCall,
+  getSweConstants,
+} from "@/server/astro/swe-remote";
 
 /**
  * Input shape – we mostly care about tz & birth data so we can
@@ -132,17 +136,51 @@ function makeUtcInstant(dISO: string, hhmm: string, tz: string): Date {
 }
 
 /* -------------------------------------------------------
-   JULIAN DAY HELPER
+   JULIAN DAY + LONGITUDE HELPERS (remote Swisseph)
 -------------------------------------------------------- */
 
-function jdFromDate(d: Date, swe: any): number {
-  return swe.swe_julday(
+async function jdFromDate(d: Date, gregCal: number): Promise<number> {
+  return sweJulday(
     d.getUTCFullYear(),
     d.getUTCMonth() + 1,
     d.getUTCDate(),
-    d.getUTCHours() + d.getUTCMinutes() / 60 + d.getUTCSeconds() / 3600,
-    swe.SE_GREG_CAL
+    d.getUTCHours() +
+      d.getUTCMinutes() / 60 +
+      d.getUTCSeconds() / 3600,
+    gregCal
   );
+}
+
+function extractLongitude(res: any): number | null {
+  if (!res) return null;
+
+  // 1) named property
+  if (typeof res.longitude === "number") return res.longitude;
+
+  // 2) bare array [lon, ...]
+  if (Array.isArray(res) && typeof res[0] === "number") return res[0];
+
+  // 3) look at common containers
+  const candidates = [res.x, res.xx, res.result, res.r];
+  for (const c of candidates) {
+    if (Array.isArray(c) && typeof c[0] === "number") return c[0];
+  }
+
+  // 4) heuristic fallback
+  if (res && typeof res === "object") {
+    for (const k of Object.keys(res)) {
+      const v = (res as any)[k];
+      if (
+        typeof v === "number" &&
+        isFinite(v) &&
+        Math.abs(v) <= 720
+      ) {
+        return v;
+      }
+    }
+  }
+
+  return null;
 }
 
 /* -------------------------------------------------------
@@ -155,7 +193,7 @@ function jdFromDate(d: Date, swe: any): number {
  * - houseFromMoon = house number (1..12) from natal Moon (Moon as Lagna)
  *
  * We:
- * - use Swiss Ephemeris in sidereal mode
+ * - use Swiss Ephemeris in sidereal mode (via remote engine)
  * - compute natal Moon sign from birth
  * - then for each day's Moon, compute which sign/house it falls in
  *   relative to natal Moon.
@@ -164,19 +202,36 @@ export async function computeDailyMoonNakshatras(
   birth: DailyMoonBirth,
   days: number
 ): Promise<DailyMoonRow[]> {
-  const swe = getSwe();
+  const constants = await getSweConstants();
 
-  // sidereal mode (same as transits.ts)
-  const flags = swe.SEFLG_SWIEPH | swe.SEFLG_SPEED | swe.SEFLG_SIDEREAL;
+  const flags =
+    (constants.SEFLG_SWIEPH ?? 2) |
+    (constants.SEFLG_SPEED ?? 256) |
+    (constants.SEFLG_SIDEREAL ?? 64);
 
   // 1) Natal Moon: get its sign index (0..11) from birth data
-  const birthUtc = makeUtcInstant(birth.dateISO, birth.time, birth.tz);
-  const jdNatal = jdFromDate(birthUtc, swe);
-  const natalResult = swe.swe_calc_ut(jdNatal, swe.SE_MOON, flags);
+  const birthUtc = makeUtcInstant(
+    birth.dateISO,
+    birth.time,
+    birth.tz
+  );
+  const jdNatal = await jdFromDate(
+    birthUtc,
+    constants.SE_GREG_CAL
+  );
 
+  const natalRes = await sweCall<any>(
+    "swe_calc_ut",
+    jdNatal,
+    constants.SE_MOON,
+    flags
+  );
+
+  const natalLonRaw = extractLongitude(natalRes);
   let natalSignIndex: number | null = null;
-  if (natalResult && typeof natalResult.longitude === "number") {
-    const natalLon = wrap360(natalResult.longitude);
+
+  if (typeof natalLonRaw === "number") {
+    const natalLon = wrap360(natalLonRaw);
     natalSignIndex = Math.floor(natalLon / 30); // 0=Aries, 1=Taurus, ...
   }
 
@@ -187,10 +242,17 @@ export async function computeDailyMoonNakshatras(
 
   for (let i = 0; i < horizon; i++) {
     const day = addDays(today, i);
-    const jdUt = jdFromDate(day, swe);
+    const jdUt = await jdFromDate(day, constants.SE_GREG_CAL);
 
-    const result = swe.swe_calc_ut(jdUt, swe.SE_MOON, flags);
-    if (!result || typeof result.longitude !== "number") {
+    const result = await sweCall<any>(
+      "swe_calc_ut",
+      jdUt,
+      constants.SE_MOON,
+      flags
+    );
+    const lonRaw = extractLongitude(result);
+
+    if (lonRaw == null) {
       out.push({
         dateISO: fmtISO(day),
         moonNakshatra: null,
@@ -200,7 +262,7 @@ export async function computeDailyMoonNakshatras(
       continue;
     }
 
-    const lon = wrap360(result.longitude);
+    const lon = wrap360(lonRaw);
     const nak = nakFromDeg(lon);
 
     let houseFromMoon: number | null = null;

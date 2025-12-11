@@ -1,11 +1,21 @@
 // FILE: /src/server/astro/varga.ts
 import "server-only";
-import { getSwe } from "@/server/astro/swe";
 import { AstroConfig } from "@/server/astro/astro-config";
+import { sweCall } from "@/server/astro/swe-remote";
 
 const SIGNS = [
-  "Aries","Taurus","Gemini","Cancer","Leo","Virgo",
-  "Libra","Scorpio","Sagittarius","Capricorn","Aquarius","Pisces"
+  "Aries",
+  "Taurus",
+  "Gemini",
+  "Cancer",
+  "Leo",
+  "Virgo",
+  "Libra",
+  "Scorpio",
+  "Sagittarius",
+  "Capricorn",
+  "Aquarius",
+  "Pisces",
 ];
 
 function wrap360(x: number) {
@@ -18,27 +28,14 @@ function signOfDeg(deg: number) {
 }
 
 /* ---------------------------------------------------------
-   SWISS EPHEMERIS WRAPPER
-   --------------------------------------------------------- */
-async function getSiderealPlanetLon(jdUt: number, planetCode: number) {
-  const swe = getSwe();
-  swe.swe_set_sid_mode(swe.SE_SIDM_LAHIRI, 0, 0);
-
-  const flags = swe.SEFLG_SWIEPH | swe.SEFLG_SIDEREAL | swe.SEFLG_SPEED;
-
-  const r = swe.swe_calc_ut(jdUt, planetCode, flags);
-  return wrap360(r.longitude);
-}
-
-/* ---------------------------------------------------------
    CLASSICAL VARGA SIGN COMPUTATION
    --------------------------------------------------------- */
 
 function vargaSign(deg: number, varga: number): string {
   // Deg = 0–360
-  const signIndex = Math.floor(deg / 30);        // 0–11
-  const inSignDeg = deg % 30;                    // 0–30
-  const part = 30 / varga;                       // size of each varga division
+  const signIndex = Math.floor(deg / 30); // 0–11
+  const inSignDeg = deg % 30; // 0–30
+  const part = 30 / varga; // size of each varga division
 
   const division = Math.floor(inSignDeg / part); // 0–(varga-1)
 
@@ -58,7 +55,7 @@ function navamsaSign(deg: number): string {
   const inSignDeg = deg % 30;
 
   const pada = Math.floor(inSignDeg / 3.3333333); // 0–8
-  const start = [0,3,6,9,12,15,18,21,24,27,30,33]; // start points in D9 cycle
+  const start = [0, 3, 6, 9, 12, 15, 18, 21, 24, 27, 30, 33]; // start points in D9 cycle
 
   const idx = (start[signIndex] + pada) % 12;
   return SIGNS[idx];
@@ -221,22 +218,38 @@ function shashtiamsaSign(deg: number) {
 
 function getVargaSignFunction(v: number) {
   switch (v) {
-    case 1: return (deg: number) => signOfDeg(deg);
-    case 2: return (deg: number) => vargaSign(deg, 2);
-    case 3: return (deg: number) => vargaSign(deg, 3);
-    case 4: return (deg: number) => vargaSign(deg, 4);
-    case 7: return saptamsaSign;
-    case 9: return navamsaSign;
-    case 10: return dasamsaSign;
-    case 12: return dwadashaSign;
-    case 16: return shodashamsaSign;
-    case 20: return vimsamsaSign;
-    case 24: return chaturvimsamsaSign;
-    case 27: return bhamsaSign;
-    case 30: return trimsamsaSign;
-    case 40: return khavedamsaSign;
-    case 45: return akshavedamsaSign;
-    case 60: return shashtiamsaSign;
+    case 1:
+      return (deg: number) => signOfDeg(deg);
+    case 2:
+      return (deg: number) => vargaSign(deg, 2);
+    case 3:
+      return (deg: number) => vargaSign(deg, 3);
+    case 4:
+      return (deg: number) => vargaSign(deg, 4);
+    case 7:
+      return saptamsaSign;
+    case 9:
+      return navamsaSign;
+    case 10:
+      return dasamsaSign;
+    case 12:
+      return dwadashaSign;
+    case 16:
+      return shodashamsaSign;
+    case 20:
+      return vimsamsaSign;
+    case 24:
+      return chaturvimsamsaSign;
+    case 27:
+      return bhamsaSign;
+    case 30:
+      return trimsamsaSign;
+    case 40:
+      return khavedamsaSign;
+    case 45:
+      return akshavedamsaSign;
+    case 60:
+      return shashtiamsaSign;
     default:
       return (deg: number) => vargaSign(deg, v);
   }
@@ -259,13 +272,38 @@ function computeVargaHouses(vargaAsc: string, planetSign: string) {
    BUILD A SINGLE VARGA CHART
    --------------------------------------------------------- */
 
-export async function buildVarga(jdUt: number, lat: number, lon: number, varga: number, planetsInput: any[]) {
+export async function buildVarga(
+  jdUt: number,
+  lat: number,
+  lon: number,
+  varga: number,
+  planetsInput: any[]
+) {
   const signFn = getVargaSignFunction(varga);
 
-  // Compute ascendant degree for varga
-  const swe = getSwe();
-  const houses = swe.swe_houses(jdUt, lat, lon, "P");
-  const ascDeg = wrap360(houses.ascendant);
+  // Compute ascendant degree for varga (remote swe_houses)
+  const houses = await sweCall<any>(
+    "swe_houses",
+    jdUt,
+    lat,
+    lon,
+    "P"
+  );
+
+  const ascRaw =
+    houses?.ascendant ??
+    houses?.Asc ??
+    (Array.isArray(houses?.ascmc) ? houses.ascmc[0] : undefined);
+
+  if (typeof ascRaw !== "number" || !Number.isFinite(ascRaw)) {
+    throw new Error(
+      `buildVarga: could not determine ascendant from swe_houses result: ${JSON.stringify(
+        houses
+      )}`
+    );
+  }
+
+  const ascDeg = wrap360(ascRaw);
   const ascSign = signFn(ascDeg);
 
   const planets = [];
@@ -278,7 +316,7 @@ export async function buildVarga(jdUt: number, lat: number, lon: number, varga: 
       name: p.name,
       sign: plSign,
       house,
-      siderealLongitude: p.siderealLongitude
+      siderealLongitude: p.siderealLongitude,
     });
   }
 
@@ -287,7 +325,7 @@ export async function buildVarga(jdUt: number, lat: number, lon: number, varga: 
     name: `D${varga}`,
     ascDeg,
     ascSign,
-    planets
+    planets,
   };
 }
 
@@ -304,11 +342,13 @@ export async function buildAllVargas(opts: {
   const { jdUt, lat, lon, planets } = opts;
 
   if (!AstroConfig.returnAllVargas) {
-    return { D1: await buildVarga(jdUt, lat, lon, 1, planets) };
+    return {
+      D1: await buildVarga(jdUt, lat, lon, 1, planets),
+    };
   }
 
   const vargaList = [
-    1,2,3,4,7,9,10,12,16,20,24,27,30,40,45,60
+    1, 2, 3, 4, 7, 9, 10, 12, 16, 20, 24, 27, 30, 40, 45, 60,
   ];
 
   const out: any = {};
