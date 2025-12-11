@@ -98,7 +98,7 @@ function dignityBoost(planet: number, lon: number) {
 
 // REPLACE your existing siderealLon with this:
 function siderealLon(utc: Date, planet: number): number | null {
-  const swe = getSwe();
+  const swe = await getSwe();
   if (!swe) return null;
   try {
     // Always set sidereal mode (Lahiri) before each calc
@@ -127,7 +127,7 @@ function siderealLon(utc: Date, planet: number): number | null {
 type Natal = { planets: Partial<Record<number, number>> };
 
 async function getNatal(birth?: BirthInput): Promise<Natal> {
-  const swe = getSwe();
+  const swe = await getSwe();
   if (!swe || !birth) return { planets: {} };
 
   const dt = DateTime.fromISO(`${birth.dobISO}T${birth.tob}`, { zone: birth.place.tz }).toUTC();
@@ -264,7 +264,7 @@ export async function dailyTransitSignals(
   topic: "vehicle" | "property" | "job" | "wealth" | "health" | "relationship",
   birth?: BirthInput
 ): Promise<TransitPoint[]> {
-  const swe = getSwe();
+  const swe = await getSwe();
 
   // Fallback if Swiss unavailable
   if (!swe) return syntheticSignals(startISO, horizonDays, place, topic);

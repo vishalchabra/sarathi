@@ -1,58 +1,51 @@
 // FILE: src/server/astro/swe.ts
 import "server-only";
+import SwissEPH from "sweph-wasm";
 
-let sweInstance: any | null = null;
-let sweLoadError: Error | null = null;
+let swePromise: Promise<any> | null = null;
 
 /**
- * Lazy getter for the swisseph module.
- * Throws with the underlying error message if loading fails.
+ * Initialize and cache the sweph-wasm Swiss Ephemeris instance.
+ * This runs once per server process and is reused afterwards.
  */
-export function getSwe() {
-  if (sweInstance) return sweInstance;
+async function initSwe() {
+  if (!swePromise) {
+    swePromise = (async () => {
+      // Load WASM + ephemeris data
+      const swe = await SwissEPH.init();
 
-  if (sweLoadError) {
-    // Re-throw but keep the original message so logs are useful
-    throw new Error(
-      `swisseph unavailable: ${(sweLoadError as any)?.message ?? sweLoadError}`
-    );
+      try {
+        // Use default CDN ephemeris path (recommended by sweph-wasm)
+        await swe.swe_set_ephe_path();
+        console.log("[SARATHI] sweph-wasm initialized with default ephemeris path");
+      } catch (e) {
+        console.error("[SARATHI] swe_set_ephe_path failed in sweph-wasm:", e);
+      }
+
+      return swe;
+    })();
   }
-
-  try {
-    // Helpful: log where Node tries to resolve from
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const resolved = require.resolve("swisseph");
-      console.log("[SARATHI] swisseph resolved at:", resolved);
-    } catch (e) {
-      console.error("[SARATHI] require.resolve('swisseph') failed:", e);
-    }
-
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const swe = require("swisseph");
-    console.log("[SARATHI] swisseph loaded OK");
-    sweInstance = swe;
-    return sweInstance;
-  } catch (err: any) {
-    console.error("[SARATHI] Failed to load swisseph (root error):", err);
-    sweLoadError = err instanceof Error ? err : new Error(String(err));
-    throw new Error(
-      `swisseph unavailable: ${(sweLoadError as any)?.message ?? sweLoadError}`
-    );
-  }
+  return swePromise;
 }
 
 /**
- * Small helper to call a swisseph function safely.
+ * Async getter for the Swiss Ephemeris engine (WASM version).
+ */
+export async function getSwe() {
+  return initSwe();
+}
+
+/**
+ * Small helper to call a Swiss Ephemeris function safely (WASM).
  */
 export async function sweCall<R = any>(
   fn: string,
   ...args: any[]
 ): Promise<R> {
-  const swe = getSwe();
+  const swe = await getSwe();
   const f = (swe as any)[fn];
   if (typeof f !== "function") {
-    throw new Error(`swisseph function not found: ${fn}`);
+    throw new Error(`sweph-wasm function not found: ${fn}`);
   }
   return f(...args) as R;
 }

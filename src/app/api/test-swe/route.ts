@@ -1,46 +1,36 @@
 // FILE: src/app/api/test-swe/route.ts
+export const runtime = "nodejs";
+
 import "server-only";
 import { NextResponse } from "next/server";
 import { getSwe } from "@/server/astro/swe";
 
-export const runtime = "nodejs";
-
 export async function GET() {
-  const swe = getSwe();
-
-  // Simple JD for 2024-01-01 00:00 UT
-  const jd = swe.swe_julday(2024, 1, 1, 0, swe.SE_GREG_CAL);
-
   try {
-    // Swiss Ephemeris expects [longitude, latitude, altitude]
-    const geopos = [55.3, 25.2, 0]; // Dubai-ish: lon, lat, 0m
+    const swe = await getSwe();
 
-    const epheflag = swe.SEFLG_SWIEPH;      // normal ephemeris
-    const rsmi = swe.SE_CALC_RISE;          // tell it we want rise time
+    // Simple JD for 2024-01-01 00:00 UT
+    const jd = swe.swe_julday(2024, 1, 1, 0, swe.SE_GREG_CAL);
 
-    // Call the "return-object" version (no callback)
-    const res = swe.swe_rise_trans(
-      jd,
-      swe.SE_SUN,   // Sun
-      "",           // no star name
-      epheflag,
-      rsmi,
-      geopos,
-      0,            // atpress (0 = standard)
-      0             // attemp  (0 = standard)
-    );
+    const flags =
+      (swe.SEFLG_SWIEPH ?? 2) |
+      (swe.SEFLG_SIDEREAL ?? 64) |
+      (swe.SEFLG_SPEED ?? 256);
+
+    // Example: Moon position
+    const res = await swe.swe_calc_ut(jd, swe.SE_MOON, flags);
 
     return NextResponse.json({
-      type: "return-object",
       ok: true,
-      result: res,
+      jd,
+      raw: res,
     });
-  } catch (e: any) {
+  } catch (err: any) {
+    console.error("[test-swe] error:", err);
     return NextResponse.json(
       {
-        type: "error",
         ok: false,
-        error: String(e),
+        error: String(err?.message ?? err),
       },
       { status: 500 }
     );
