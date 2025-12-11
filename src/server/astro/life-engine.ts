@@ -216,26 +216,43 @@ function jdFromDate(d: Date, swe: any) {
 ------------------------------------------------------- */
 
 async function computePlanets(jdUt: number) {
-  const swe = getSwe();
+  const swe = await getSwe();
 
   // ensure sidereal Lahiri mode
   try {
-    if (swe.swe_set_sid_mode) {
-      swe.swe_set_sid_mode(swe.SE_SIDM_LAHIRI, 0, 0);
+    if (typeof swe.swe_set_sid_mode === "function") {
+      await swe.swe_set_sid_mode(swe.SE_SIDM_LAHIRI, 0, 0);
     }
-  } catch {}
+  } catch {
+    // ignore; engine may already be in Lahiri mode
+  }
 
-  const flags = swe.SEFLG_SWIEPH | swe.SEFLG_SPEED | swe.SEFLG_SIDEREAL;
+  const flags =
+    (swe.SEFLG_SWIEPH ?? 2) |
+    (swe.SEFLG_SIDEREAL ?? 64) |
+    (swe.SEFLG_SPEED ?? 256);
+
   const out: any[] = [];
 
   const nakSpan = 360 / 27; // 13°20'
   const padaSpan = nakSpan / 4; // 3°20'
 
   for (const p of PLANETS) {
-    const r = swe.swe_calc_ut(jdUt, p.code, flags);
+    const r: any = await swe.swe_calc_ut(jdUt, p.code, flags);
     if (!r) continue;
 
-    let lon = wrap360(r.longitude);
+    // sweph-wasm may return array or object; handle both
+    let lonVal: number | undefined = r.longitude;
+    if (lonVal == null) {
+      if (Array.isArray(r) && typeof r[0] === "number") {
+        lonVal = r[0];
+      } else if (Array.isArray(r.x) && typeof r.x[0] === "number") {
+        lonVal = r.x[0];
+      }
+    }
+    if (typeof lonVal !== "number" || !Number.isFinite(lonVal)) continue;
+
+    let lon = wrap360(lonVal);
     if (p.name === "Ketu") {
       lon = wrap360(lon + 180);
     }
@@ -263,19 +280,31 @@ async function computePlanets(jdUt: number) {
    HOUSES (ASC + CUSPS) – **SIDEREAL ASC SIGN**
 ------------------------------------------------------- */
 
-function computeHouses(jdUt: number, lat: number, lon: number) {
-  const swe = getSwe();
-  const H = swe.swe_houses(jdUt, lat, lon, "P");
+async function computeHouses(jdUt: number, lat: number, lon: number) {
+  const swe = await getSwe();
+  const H: any = await swe.swe_houses(jdUt, lat, lon, "P");
 
   // Ascendant degree from swe_houses is tropical by default
-  const ascTrop = wrap360(H.ascendant);
+  const ascRaw: number | undefined =
+    H.ascendant ??
+    H.asc ??
+    (Array.isArray(H) && typeof H[0] === "number" ? H[0] : undefined);
+
+  if (typeof ascRaw !== "number" || !Number.isFinite(ascRaw)) {
+    throw new Error("Invalid ascendant from swe_houses");
+  }
+
+  const ascTrop = wrap360(ascRaw);
 
   // Get ayanāṁśa to convert to sidereal
   let ayan = 0;
   try {
     if (typeof (swe as any).swe_get_ayanamsa_ut === "function") {
       ayan = (swe as any).swe_get_ayanamsa_ut(jdUt);
-    } else if (AstroConfig && typeof (AstroConfig as any).ayanamsaDeg === "number") {
+    } else if (
+      AstroConfig &&
+      typeof (AstroConfig as any).ayanamsaDeg === "number"
+    ) {
       ayan = (AstroConfig as any).ayanamsaDeg;
     }
   } catch {
@@ -287,7 +316,9 @@ function computeHouses(jdUt: number, lat: number, lon: number) {
   const ascSign = signOfDeg(ascSid);
 
   // We don’t really use cusps heavily; keep as-is (tropical degrees)
-  const houses = (H.cusps || []).map((d: number) => wrap360(d));
+  const cuspsSource: number[] =
+    (H.cusps as number[]) ?? (H.houseCusps as number[]) ?? [];
+  const houses = cuspsSource.map((d) => wrap360(d));
 
   return { ascDeg: ascSid, ascSign, houses };
 }
@@ -370,7 +401,7 @@ export async function buildLifeReport(input: {
   lat: number;
   lon: number;
 }) {
-  const swe = getSwe();
+  const swe = await getSwe();
   const todayISO = new Date().toISOString().slice(0, 10);
   const birthUtc = makeUtcInstant(
     input.birthDateISO,
@@ -383,7 +414,7 @@ export async function buildLifeReport(input: {
   const planetsRaw = await computePlanets(jdUt);
 
   /* 2) Houses (now with SIDEREAL asc sign) */
-  const houseData = computeHouses(jdUt, input.lat, input.lon);
+  const houseData = await computeHouses(jdUt, input.lat, input.lon);
 
   /* 2b) Attach whole-sign houses to planets using ascendant sign */
   const planets = attachWholeSignHouses(planetsRaw, houseData.ascSign);
