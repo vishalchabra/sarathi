@@ -27,16 +27,17 @@ export default function Home() {
           </Link>
 
           <nav className="hidden gap-4 text-sm text-slate-300 sm:flex">
-            <Link href="/sarathi/life-report" className="hover:text-slate-50">
-              Life Report
-            </Link>
-            <Link href="/sarathi/daily-guide" className="hover:text-slate-50">
-              Daily Guide
-            </Link>
-            <Link href="/sarathi/chat" className="hover:text-slate-50">
-              Ask AstroSārathi
-            </Link>
-          </nav>
+  <Link href="/sarathi/life-report" className="hover:text-slate-50">
+    Life Report
+  </Link>
+  <Link href="/sarathi/life-guidance" className="hover:text-slate-50">
+    Life Guidance
+  </Link>
+  <Link href="/sarathi/chat" className="hover:text-slate-50">
+    Ask AstroSārathi
+  </Link>
+</nav>
+
 
           <div className="flex items-center gap-2">
             <Badge className="hidden bg-emerald-500/15 text-[11px] font-normal text-emerald-300 border border-emerald-400/30 sm:inline-flex">
@@ -182,28 +183,29 @@ export default function Home() {
             </Card>
 
             <Card className="border-slate-800 bg-slate-900/70">
-              <CardHeader className="pb-2">
-                <CardTitle className="flex items-center gap-2 text-sm">
-                  <Star className="h-4 w-4 text-emerald-300" />
-                  Daily Guide
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 text-[11px] text-slate-400">
-                <p>
-                  Panchang + transits + dashas → one steady daily focus, fasting
-                  guidance and emotional weather.
-                </p>
-                <Link href="/sarathi/daily-guide">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="mt-1 h-7 rounded-xl border-slate-700 bg-slate-900 text-[11px] hover:bg-slate-800"
-                  >
-                    See today&apos;s day-plan
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
+  <CardHeader className="pb-2">
+    <CardTitle className="flex items-center gap-2 text-sm">
+      <Star className="h-4 w-4 text-emerald-300" />
+      Life Guidance
+    </CardTitle>
+  </CardHeader>
+  <CardContent className="space-y-3 text-[11px] text-slate-400">
+    <p>
+      A clean, print-friendly view of your main charts plus a concise guidance
+      summary based on your current dasha and life themes.
+    </p>
+    <Link href="/sarathi/life-guidance">
+      <Button
+        size="sm"
+        variant="outline"
+        className="mt-1 h-7 rounded-xl border-slate-700 bg-slate-900 text-[11px] hover:bg-slate-800"
+      >
+        Open Life Guidance
+      </Button>
+    </Link>
+  </CardContent>
+</Card>
+
 
             <Card className="border-slate-800 bg-slate-900/70">
               <CardHeader className="pb-2">

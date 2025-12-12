@@ -39,6 +39,7 @@ import {
 import Link from "next/link";
 const AYANAMSA_LAHIRI_APPROX = 23.85;
 
+
 /* ---------------- Locking city autocomplete (simplified – always typeable) ---------------- */
 
 
@@ -2640,7 +2641,7 @@ const TabDailyGuide: React.FC<{
   dailyHighlights: { dateISO: string; text: string }[];
   dailyLoading: boolean;
   mounted: boolean;
-  todaysFocus: any; // we can type this properly later
+  todaysFocus: any; // can type properly later
 }> = ({
   report,
   guide,
@@ -2651,579 +2652,369 @@ const TabDailyGuide: React.FC<{
   todaysFocus,
 }) => {
   if (!mounted) return null;
-    // ---- Panchang derived helpers ----
-      // Whatever you already had:
-const rAny: any = report || {};
-const gAny: any = guide || null;
-// 🆕 Food guidance source: prefer guide.food (from /daily-guide API), fall back to life-report.foodToday
-const food: any =
-  (gAny && gAny.food) ||
-  (rAny && rAny.foodToday) ||
-  null;
 
-const panchangToday: any =
-  rAny.panchangToday ||
-  rAny.panchang?.today ||
-  rAny.panchang ||
-  gAny?.panchangToday ||
-  gAny?.panchang?.today ||
-  gAny?.panchang ||
-  null;
+  // ---------------- Basic safe objects ----------------
+  const rAny: any = report || {};
+  const gAny: any = guide || {};
 
-// 🆕 Try to find a richer panchang that actually has timings
-const candidateFromReport: any =
-  (rAny.panchangToday && rAny.panchangToday) ||
-  (rAny.panchang && rAny.panchang) ||
-  null;
+  const emotional: any =
+    gAny.emotionalWeather ||
+    rAny.emotionalWeather ||
+    null;
 
-const candidateFromGuide: any =
-  (gAny?.panchangToday && gAny.panchangToday) ||
-  (gAny?.panchang && gAny.panchang) ||
-  null;
+  const food: any =
+    gAny.food ||
+    rAny.foodToday ||
+    null;
 
-// Build final pt by merging:
-// - base = whatever your existing logic picked as panchangToday
-// - then overlay anything present on report/guide candidates
-const pt: any = {
-  ...(panchangToday || {}),
-  ...(candidateFromGuide || {}),
-  ...(candidateFromReport || {}),
-};
+  const fasting: any =
+    gAny.fasting ||
+    rAny.fastingToday ||
+    null;
 
-// Optional debug: see what we actually ended up with
-console.log("[TabDailyGuide] pt (merged panchangToday) =", pt);
+  const money: any =
+    gAny.moneyTip ||
+    rAny.moneyToday ||
+    null;
 
-// Names
-const tithiName =
-  pt?.tithi?.fullName ||
-  pt?.tithi?.name ||
-  pt?.tithiName ||
-  null;
+  // ---------------- Panchang merge (today) ----------------
+  const panchangToday: any =
+    rAny.panchangToday ||
+    rAny.panchang?.today ||
+    rAny.panchang ||
+    gAny.panchangToday ||
+    gAny.panchang?.today ||
+    gAny.panchang ||
+    null;
 
-const nakshatraName =
-  pt?.nakshatra?.name ||
-  pt?.nakshatraName ||
-  pt?.moon?.nakshatraName ||
-  pt?.moon?.nakshatra?.name ||
-  rAny.moonNakshatraName ||
-  rAny.panchang?.moonNakshatraName ||
-  null;
+  const candidateFromReport: any =
+    (rAny.panchangToday && rAny.panchangToday) ||
+    (rAny.panchang && rAny.panchang) ||
+    null;
 
+  const candidateFromGuide: any =
+    (gAny.panchangToday && gAny.panchangToday) ||
+    (gAny.panchang && gAny.panchang) ||
+    null;
 
-// Raw times
-const sunriseRaw =
-  pt?.sunriseISO ||
-  pt?.sunrise ||
-  pt?.sun?.riseISO ||
-  pt?.sun?.rise ||
-  pt?.sun?.sunrise ||
-  null;
-
-const sunsetRaw =
-  pt?.sunsetISO ||
-  pt?.sunset ||
-  pt?.sun?.setISO ||
-  pt?.sun?.set ||
-  pt?.sun?.sunset ||
-  null;
-
-const moonriseRaw =
-  pt?.moonriseISO ||
-  pt?.moonrise ||
-  pt?.moon?.riseISO ||
-  pt?.moon?.rise ||
-  pt?.moon?.moonrise ||
-  null;
-
-const moonsetRaw =
-  pt?.moonsetISO ||
-  pt?.moonset ||
-  pt?.moon?.setISO ||
-  pt?.moon?.set ||
-  pt?.moon?.moonset ||
-  null;
-
-  // Kaal windows – accept both:
-  // 1) string "HH:MM – HH:MM"
-  // 2) object { startISO / start / from, endISO / end / to }
-  const parseRange = (
-    value: any
-  ): { start: string | null; end: string | null } => {
-    if (!value) return { start: null, end: null };
-
-    if (typeof value === "string") {
-      // handle both "09:37 – 10:54" and "09:37 - 10:54"
-      let parts = value.split("–");
-      if (parts.length < 2) {
-        parts = value.split("-"); // fallback
-      }
-      parts = parts.map((s) => s.trim());
-      if (parts.length >= 2) {
-        return {
-          start: parts[0] || null,
-          end: parts[1] || null,
-        };
-      }
-      return { start: value, end: null };
-    }
-
-    return {
-      start:
-        value.startISO ??
-        value.start ??
-        value.from ??
-        null,
-      end:
-        value.endISO ??
-        value.end ??
-        value.to ??
-        null,
-    };
+  const pt: any = {
+    ...(panchangToday || {}),
+    ...(candidateFromGuide || {}),
+    ...(candidateFromReport || {}),
   };
 
-  const rahuRange = parseRange(pt?.rahuKaal ?? pt?.rahu ?? null);
-  const gulikaRange = parseRange(pt?.gulikaKaal ?? pt?.gulika ?? null);
-  const abhijitRange = parseRange(pt?.abhijit ?? null);
+  const tithiName =
+    pt?.tithi?.fullName ||
+    pt?.tithi?.name ||
+    pt?.tithiName ||
+    null;
 
-  const rahuStartRaw = rahuRange.start;
-  const rahuEndRaw = rahuRange.end;
+  const nakshatraName =
+    pt?.nakshatra?.name ||
+    pt?.nakshatraName ||
+    pt?.moon?.nakshatraName ||
+    pt?.moon?.nakshatra?.name ||
+    rAny.moonNakshatraName ||
+    rAny.panchang?.moonNakshatraName ||
+    null;
 
-  const gulikaStartRaw = gulikaRange.start;
-  const gulikaEndRaw = gulikaRange.end;
+  // Times – we only keep sunrise / sunset (you asked to drop moonrise/moonset globally anyway)
+  const sunriseRaw =
+    pt?.sunriseISO ||
+    pt?.sunrise ||
+    pt?.sun?.riseISO ||
+    pt?.sun?.rise ||
+    pt?.sun?.sunrise ||
+    null;
 
-  const abhijitStartRaw = abhijitRange.start;
-  const abhijitEndRaw = abhijitRange.end;
+  const sunsetRaw =
+    pt?.sunsetISO ||
+    pt?.sunset ||
+    pt?.sun?.setISO ||
+    pt?.sun?.set ||
+    pt?.sun?.sunset ||
+    null;
 
-// One-line Panchang guidance, if present
-const panchangTip: string | undefined =
-  gAny?.panchangTip ||
-  rAny?.panchangTip ||
-  pt?.tip ||
-  undefined;
+  const formatTime = (raw: any): string | null => {
+    if (!raw) return null;
+    if (typeof raw === "string") {
+      // ISO: 2025-12-12T07:03:00+05:30 → 07:03
+      if (raw.includes("T") && raw.length >= 16) {
+        return raw.slice(11, 16);
+      }
+      return raw;
+    }
+    return null;
+  };
 
-// Simple time formatter (handles ISO → HH:MM)
-const fmtTime = (value?: string | null) => {
-  if (!value) return "—";
+  const sunrise = formatTime(sunriseRaw);
+  const sunset = formatTime(sunsetRaw);
 
-  const s = String(value).trim();
+  // ---------------- Todays Focus (MD/AD focus) ----------------
+  const tf: any = todaysFocus || {};
+  const focusArea: string =
+    tf.area ||
+    tf.domain ||
+    "Overall balance";
 
-  // If it's already a simple time like "06:45" or "06:45 AM"
-  if (!s.includes("T")) {
-    return s;
-  }
+  const focusHeadline: string =
+    tf.headline ||
+    "Day favours balanced, steady progress.";
 
-  // Else treat it as ISO
-  const d = new Date(s);
-  if (Number.isNaN(+d)) return s;
-  return d.toLocaleTimeString("en-IN", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-};
+  const focusSummary: string =
+    tf.summary ||
+    "Nothing extreme is required. Use the day to keep momentum in one or two important areas.";
 
+  const focusDo: string =
+    tf.do ||
+    "Pick one task that genuinely matters and complete it with full attention.";
 
+  const focusAvoid: string =
+    tf.avoid ||
+    "Avoid scattering attention across too many half-started things.";
 
-  // Clean up Daily Guide markdown: remove the old "Day rhythm" block
-  const cleanedTodayFocus = useMemo(() => {
-    // adapt these keys based on how todaysFocus is shaped
-    const raw: string =
-      (todaysFocus?.markdown as string) ||
-      (todaysFocus?.text as string) ||
-      "";
+  // ---------------- Helpers for money tone ----------------
+  const moneyTone: string =
+    money?.tone ||
+    money?.tilt ||
+    "neutral";
 
-    if (!raw) return "";
+  const moneyToneClass = (() => {
+    if (moneyTone === "opportunity")
+      return "bg-emerald-50 border-emerald-200 text-emerald-800";
+    if (moneyTone === "caution")
+      return "bg-red-50 border-red-200 text-red-800";
+    if (moneyTone === "mixed")
+      return "bg-amber-50 border-amber-200 text-amber-800";
+    return "bg-slate-50 border-slate-200 text-slate-700";
+  })();
 
-    const marker = "Day rhythm";
-    const idx = raw.indexOf(marker);
-
-    // If the old Day rhythm block is not present, just return as is
-    if (idx === -1) return raw.trim();
-
-    // Keep everything before "Day rhythm"
-    return raw.slice(0, idx).trim();
-  }, [todaysFocus]);
-
- const todayHighlight = dailyHighlights[0];
-const future = dailyHighlights.slice(1);
-  // Normalised emotional tone for this day
-  const ew = guide?.emotionalWeather as any | undefined;
-
-  const toneRaw = (
-    (ew?.tone as string | undefined) ??
-    (ew?.quality as string | undefined) ??
-    ""
-  ).toLowerCase();
-
-  const tone: "steady" | "sensitive" | "intense" | "low" | "unknown" =
-    toneRaw === "intense"
-      ? "intense"
-      : toneRaw === "sensitive"
-      ? "sensitive"
-      : toneRaw === "low"
-      ? "low"
-      : toneRaw === "steady"
-      ? "steady"
-      : "unknown";
+  const todayLabel: string =
+    rAny.todayLabel ||
+    rAny.dateISO ||
+    new Date().toISOString().slice(0, 10);
 
   return (
-    <Card className="shadow-xl rounded-2xl">
-      <CardHeader>
-        <CardTitle className="text-lg font-semibold">Daily Guide</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4 text-sm">
-        {/* Error state */}
-        {guideError && (
-          <p className="text-xs text-destructive">{guideError}</p>
-        )}
+    <div className="space-y-5">
+      {/* Error from /daily-guide API */}
+      {guideError && (
+        <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          {guideError}
+        </div>
+      )}
 
-        {/* Loading state */}
-        {dailyLoading && !guide && !dailyHighlights.length && (
-          <p className="text-xs text-muted-foreground">
-            Loading today&apos;s guide...
+      {/* Top row: AI Snapshot + Today's Focus + Panchang mini card */}
+      <div className="grid gap-4 md:grid-cols-3">
+        {/* AI Snapshot */}
+        <div className="md:col-span-2 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="flex items-center justify-between gap-2">
+            <div>
+              <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                AI Snapshot · {todayLabel}
+              </div>
+              <h3 className="mt-1 text-lg font-semibold">
+                {emotional?.headline ||
+                  "Today favours calm, conscious choices over impulsive moves."}
+              </h3>
+            </div>
+          </div>
+
+          <p className="mt-3 text-sm text-slate-700 leading-relaxed">
+            {emotional?.summary ||
+              "You don’t have to solve everything today. Focus on doing a few things slowly and well, instead of chasing ten things at once."}
           </p>
-        )}
 
-        
+          {/* “Your next step” CTA */}
+          <div className="mt-4 rounded-xl bg-slate-50 px-3 py-3 text-sm">
+            <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Your next step today
+            </div>
+            <p className="mt-1 text-slate-800">
+              {emotional?.nextStep ||
+                "Choose one small action you can complete in the next 30–60 minutes. Do it with full attention, then allow yourself a short conscious break."}
+            </p>
+          </div>
+        </div>
 
+        {/* Today’s Focus (MD/AD) */}
+        <div className="rounded-2xl border border-indigo-200 bg-indigo-50/70 p-4 text-sm text-slate-900">
+          <div className="text-xs font-semibold uppercase tracking-wide text-indigo-600">
+            Today’s Focus · Dasha
+          </div>
+          <div className="mt-1 text-sm font-semibold">{focusArea}</div>
+          <p className="mt-1 text-xs text-slate-700">{focusHeadline}</p>
+          <p className="mt-2 text-xs text-slate-700">{focusSummary}</p>
 
-{/* Today’s Focus – from your chart (dasha-based) */}
-{todaysFocus && (
-  <div className="space-y-1">
-    <p className="font-semibold">Today&apos;s Focus</p>
+          <div className="mt-3 grid gap-2 text-xs">
+            <div>
+              <div className="font-semibold text-slate-900">Do</div>
+              <p className="text-slate-700">{focusDo}</p>
+            </div>
+            <div>
+              <div className="font-semibold text-slate-900">Avoid</div>
+              <p className="text-slate-700">{focusAvoid}</p>
+            </div>
+          </div>
+        </div>
+      </div>
 
-    {/* Area / theme */}
-    {todaysFocus.area && (
-      <p className="text-xs uppercase tracking-wide text-muted-foreground">
-        {todaysFocus.area}
-      </p>
-    )}
+      {/* Panchang mini bar */}
+      <div className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-xs text-slate-700 md:grid-cols-4">
+        <div>
+          <div className="font-semibold text-slate-900">Tithi</div>
+          <div>{tithiName || "—"}</div>
+        </div>
+        <div>
+          <div className="font-semibold text-slate-900">Nakshatra</div>
+          <div>{nakshatraName || "—"}</div>
+        </div>
+        <div>
+          <div className="font-semibold text-slate-900">Sunrise</div>
+          <div>{sunrise || "—"}</div>
+        </div>
+        <div>
+          <div className="font-semibold text-slate-900">Sunset</div>
+          <div>{sunset || "—"}</div>
+        </div>
+      </div>
 
-    {/* Main headline */}
-    {todaysFocus.headline && (
-      <p className="text-sm font-medium">
-        {todaysFocus.headline}
-      </p>
-    )}
-
-    {/* Summary / explanation */}
-    {todaysFocus.summary && (
-      <p className="text-xs whitespace-pre-line">
-        {todaysFocus.summary}
-      </p>
-    )}
-
-    {/* Do / Avoid */}
-    {todaysFocus.do && (
-      <p className="text-xs">
-        <span className="font-semibold">Do:</span>{" "}
-        {todaysFocus.do}
-      </p>
-    )}
-    {todaysFocus.avoid && (
-      <p className="text-xs">
-        <span className="font-semibold">Avoid:</span>{" "}
-        {todaysFocus.avoid}
-      </p>
-    )}
-  </div>
-)}
-
-{todayHighlight && (
-  <div className="space-y-1">
-    <p className="font-semibold">AI Snapshot</p>
-    <p className="text-xs whitespace-pre-line">
-      {todayHighlight.text}
-    </p>
-  </div>
-)}
-
-        {/* Next few days – compact list from remaining dailyHighlights */}
-        {future.length > 0 && (
-          <div className="space-y-1">
-            <p className="font-semibold">Next few days</p>
-            <ul className="space-y-1 text-xs">
-              {future.map((d) => (
-                <li key={d.dateISO}>
-                  <span className="font-semibold">{d.dateISO}:</span>{" "}
-                  {d.text}
-                </li>
+      {/* Middle row: Food · Fasting · Money */}
+      <div className="grid gap-4 md:grid-cols-3">
+        {/* Food card */}
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4 text-sm text-slate-900">
+          <div className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
+            Food · Body
+          </div>
+          <h3 className="mt-1 text-sm font-semibold">
+            {food?.headline || "Keep food light and sattvic where possible."}
+          </h3>
+          <p className="mt-1 text-xs text-slate-800">
+            {food?.summary ||
+              "Favour simple, clean meals that don’t weigh you down. Avoid heavy or very late-night eating if you can."}
+          </p>
+          {Array.isArray(food?.suggestions) && food.suggestions.length > 0 && (
+            <ul className="mt-2 list-disc pl-4 text-xs">
+              {food.suggestions.map((s: string, i: number) => (
+                <li key={i}>{s}</li>
               ))}
             </ul>
-          </div>
-        )}
-
-                {/* Food for today */}
-        {food && (
-          <div className="space-y-1">
-            <p className="font-semibold">Food for today</p>
-
-            {/* Tone line */}
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">
-              {food.tone === "sattvic"
-                ? "Sattvic • light, clean, calming"
-                : food.tone === "rajasic"
-                ? "Rajasic • warm, active, energising"
-                : food.tone === "tamasic"
-                ? "Tamasic • heavier, grounding"
-                : ""}
-            </p>
-
-            {/* Headline */}
-            {food.headline && (
-              <p className="text-sm font-medium">{food.headline}</p>
-            )}
-
-            {/* Description */}
-            {food.description && (
-              <p className="text-xs whitespace-pre-line">
-                {food.description}
-              </p>
-            )}
-
-            {/* Favour foods */}
-            {Array.isArray(food.examplesToFavor) &&
-              food.examplesToFavor.length > 0 && (
-                <p className="text-xs">
-                  <span className="font-semibold">Favour:</span>{" "}
-                  {food.examplesToFavor.join(", ")}
-                </p>
-              )}
-
-            {/* Reduce foods */}
-            {Array.isArray(food.examplesToReduce) &&
-              food.examplesToReduce.length > 0 && (
-                <p className="text-xs">
-                  <span className="font-semibold">Go lighter on:</span>{" "}
-                  {food.examplesToReduce.join(", ")}
-                </p>
-              )}
-
-            {/* Reason / astrological explanation */}
-            {food.reason && (
-              <p className="text-[11px] text-muted-foreground">
-                Why this: {food.reason}
-              </p>
-            )}
-          </div>
-        )}
-
-        {/* Fasting & Discipline */}
-        {guide?.fasting && (
-          <div className="space-y-1">
-            <p className="font-semibold">Fasting &amp; Discipline</p>
-            <p className="text-xs">
-              {guide.fasting.suitableToday
-                ? `Suitable today (${guide.fasting.type}${
-                    guide.fasting.planetFocus
-                      ? ` • ${guide.fasting.planetFocus}`
-                      : ""
-                  }).`
-                : "Not a strong day for strict fasting; focus on light, regular meals and gentle discipline."}
-            </p>
-            <p className="text-xs">{guide.fasting.suggestion}</p>
-            {guide.fasting.cautions &&
-              guide.fasting.cautions.length > 0 && (
-                <ul className="list-disc pl-4 text-[11px] text-muted-foreground">
-                  {guide.fasting.cautions.map((c, i) => (
-                    <li key={i}>{c}</li>
-                  ))}
-                </ul>
-              )}
-          </div>
-        )}
-
-               
-                     
-                       {/* Inner practice – tuned to tone */}
-        <div className="space-y-1">
-          <p className="font-semibold">Inner practice</p>
-
-          {tone === "low" && (
-            <>
-              <p className="text-xs">
-                Aim for a gentle 5–10 minute practice that feels kind, not
-                demanding – slow breathing, soft music, or sitting quietly
-                with a warm drink.
-              </p>
-              <p className="text-xs">
-                If thoughts become heavy, try{" "}
-                <span className="font-semibold">
-                  inhale 4 · exhale 6–8
-                </span>{" "}
-                for a few rounds, and remind yourself: &quot;Today, small is
-                enough.&quot;
-              </p>
-            </>
-          )}
-
-          {tone === "sensitive" && (
-            <>
-              <p className="text-xs">
-                Choose a soothing practice – light pranayama, a short
-                prayer, or simply observing your breath without forcing it.
-              </p>
-              <p className="text-xs">
-                When emotions rise, place a hand on your chest, breathe{" "}
-                <span className="font-semibold">
-                  inhale 4 · hold 4 · exhale 6
-                </span>{" "}
-                and silently repeat a calming word like &quot;shanti&quot;.
-              </p>
-            </>
-          )}
-
-          {tone === "intense" && (
-            <>
-              <p className="text-xs">
-                Start with the body: a brisk walk, light stretching or
-                shaking out tension, then sit for a few minutes of slower
-                breathing.
-              </p>
-              <p className="text-xs">
-                Use{" "}
-                <span className="font-semibold">
-                  inhale 4 · hold 4 · exhale 8
-                </span>{" "}
-                to lengthen the exhale and signal &quot;it&apos;s safe to
-                slow down&quot; to your system.
-              </p>
-            </>
-          )}
-
-          {(tone === "steady" || tone === "unknown") && (
-            <>
-              <p className="text-xs">
-                Keep a simple 5–10 minute practice today: slow breathing,
-                short prayer or silent reflection. Let this be a daily
-                anchor rather than a big ritual.
-              </p>
-              <p className="text-xs">
-                If emotions feel strong, try{" "}
-                <span className="font-semibold">
-                  inhale for 4 counts, hold for 4, exhale for 6–8
-                </span>{" "}
-                for a few rounds while mentally repeating a calm word like
-                &ldquo;peace&rdquo; or &ldquo;shanti&rdquo;.
-              </p>
-            </>
           )}
         </div>
 
-
-        {/* Money – personal money climate */}
-        {guide?.moneyTip && (
-          <div className="space-y-2">
-            <p className="font-semibold">Money</p>
-            <p className="text-xs capitalize">
-              Tone: {guide.moneyTip.tone}
-            </p>
-            <p className="text-sm">{guide.moneyTip.summary}</p>
-            <p className="text-xs mt-1">
-  <span className="font-semibold">Do:</span>{" "}
-  {(guide.moneyTip.do ?? []).join(", ")}
-</p>
-<p className="text-xs">
-  <span className="font-semibold">Avoid:</span>{" "}
-  {(guide.moneyTip.avoid ?? []).join(", ")}
-</p>
-
+        {/* Fasting card */}
+        <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-4 text-sm text-slate-900">
+          <div className="text-xs font-semibold uppercase tracking-wide text-amber-700">
+            Fasting · Reset
           </div>
+          <h3 className="mt-1 text-sm font-semibold">
+            {fasting?.headline || "Use simple discipline over extreme fasting."}
+          </h3>
+          <p className="mt-1 text-xs text-slate-800">
+            {fasting?.summary ||
+              "If you’re fasting, keep it gentle and hydrated. If not, you can still “fast” from noise, screens, or negativity."}
+          </p>
+          {fasting?.isGoodDay != null && (
+            <div className="mt-2 inline-flex rounded-full bg-white/70 px-2 py-1 text-[11px] font-medium text-amber-800">
+              {fasting.isGoodDay ? "Supportive day for fasting" : "Not a strong day for full fasting — choose lightness instead."}
+            </div>
+          )}
+        </div>
+
+        {/* Money card */}
+        <div
+          className={`rounded-2xl border p-4 text-sm ${moneyToneClass}`}
+        >
+          <div className="text-xs font-semibold uppercase tracking-wide">
+            Money · Day Tilt
+          </div>
+          <h3 className="mt-1 text-sm font-semibold">
+            {money?.headline ||
+              (moneyTone === "opportunity"
+                ? "Day leans mildly favourable for money decisions."
+                : moneyTone === "caution"
+                ? "Go slow with big money moves today."
+                : "Neutral day — keep it steady.")}
+          </h3>
+          <p className="mt-1 text-xs">
+            {money?.summary ||
+              "Treat money decisions as part of the long game. Avoid panic moves just because of today’s mood."}
+          </p>
+
+          {Array.isArray(money?.do) && money.do.length > 0 && (
+            <div className="mt-2">
+              <div className="text-[11px] font-semibold">Do</div>
+              <ul className="mt-1 list-disc pl-4 text-[11px]">
+                {money.do.map((s: string, i: number) => (
+                  <li key={i}>{s}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {Array.isArray(money?.avoid) && money.avoid.length > 0 && (
+            <div className="mt-2">
+              <div className="text-[11px] font-semibold">Avoid</div>
+              <ul className="mt-1 list-disc pl-4 text-[11px]">
+                {money.avoid.map((s: string, i: number) => (
+                  <li key={i}>{s}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Next few days section */}
+      <div className="rounded-2xl border border-slate-200 bg-white p-4">
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Next few days
+            </div>
+            <p className="text-xs text-slate-700">
+              Glance ahead so you don’t overreact to just today.
+            </p>
+          </div>
+          {dailyLoading && (
+            <div className="text-[11px] text-slate-500">
+              Loading…
+            </div>
+          )}
+        </div>
+
+        {!dailyLoading && dailyHighlights?.length === 0 && (
+          <p className="mt-3 text-xs text-slate-500">
+            No upcoming highlights available right now.
+          </p>
         )}
 
-        {/* Market mood – small reflection wrapper on moneyTone */}
-        {guide?.moneyTip && (
-          <div className="space-y-1">
-            <p className="font-semibold">Market mood</p>
-            <p className="text-xs">
-              <span className="font-semibold">Overall tone:</span>{" "}
-              {guide.moneyTip.tone}
-            </p>
-            <p className="text-xs">
-              Treat today as a signal to align your risk posture with this
-              tone. Favour observation and capital preservation over big,
-              impulsive moves.
-            </p>
-            <p className="text-[11px] text-muted-foreground">
-              This is reflective guidance, not financial advice. Always
-              check your own research, time horizon and risk capacity
-              before any trade or investment.
-            </p>
+        {dailyHighlights?.length > 0 && (
+          <div className="mt-3 space-y-2">
+            {dailyHighlights.slice(0, 5).map((d, i) => {
+              const label = d.dateISO
+                ? new Date(d.dateISO).toLocaleDateString()
+                : `Day ${i + 1}`;
+              return (
+                <div
+                  key={d.dateISO ?? i}
+                  className="flex items-start gap-3 rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-800"
+                >
+                  <div className="mt-[2px] h-2 w-2 flex-shrink-0 rounded-full bg-slate-400" />
+                  <div>
+                    <div className="font-semibold text-slate-900">
+                      {label}
+                    </div>
+                    <div className="text-xs text-slate-700">
+                      {d.text}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
-               {/* Panchang today – embedded in Daily Guide */}
-<div className="space-y-1">
-  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-    Panchang today
-  </p>
-
-  <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
-    {/* Core elements */}
-    <div>
-      <span className="font-semibold">Tithi:</span>{" "}
-      {tithiName || "—"}
+      </div>
     </div>
-    <div>
-      <span className="font-semibold">Nakshatra:</span>{" "}
-      {nakshatraName || "—"}
-    </div>
-
-    <div>
-      <span className="font-semibold">Yoga:</span>{" "}
-      {pt?.yoga?.name || pt?.yogaName || "—"}
-    </div>
-    <div>
-      <span className="font-semibold">Karana:</span>{" "}
-      {pt?.karana?.name || pt?.karanaName || "—"}
-    </div>
-
-    {/* Sun / Moon */}
-    <div>
-      <span className="font-semibold">Sunrise:</span>{" "}
-      {fmtTime(
-        sunriseRaw
-      )}
-    </div>
-    <div>
-      <span className="font-semibold">Sunset:</span>{" "}
-      {fmtTime(
-        sunsetRaw
-      )}
-    </div>
-
-    
-    {/* Kaal windows */}
-    <div>
-      <span className="font-semibold">Rahu Kaal:</span>{" "}
-      {fmtTime(rahuStartRaw)} – {fmtTime(rahuEndRaw)}
-    </div>
-    <div>
-      <span className="font-semibold">Gulika Kaal:</span>{" "}
-      {fmtTime(gulikaStartRaw)} – {fmtTime(gulikaEndRaw)}
-    </div>
-
-    <div>
-      <span className="font-semibold">Abhijit:</span>{" "}
-      {fmtTime(abhijitStartRaw)} – {fmtTime(abhijitEndRaw)}
-    </div>
-  </div>
-
-  {/* Festivals / vrats if present */}
-  {Array.isArray(pt?.festivals) && pt.festivals.length > 0 && (
-    <p className="text-xs">
-      <span className="font-semibold">Festivals / Vrats:</span>{" "}
-      {pt.festivals.join(", ")}
-    </p>
-  )}
-
-  {/* One-line personalised guidance */}
-  {panchangTip && (
-    <p className="text-xs text-muted-foreground">
-      {panchangTip}
-    </p>
-  )}
-</div>
-      </CardContent>
-    </Card>
   );
 };
 
@@ -4822,141 +4613,9 @@ setDailyError(null);
                   </div>
                 );
               })()}
-
-                   
-{/* 🔹 Career window (job prediction) */}
-          <div className="md:col-span-2 mt-4">
-            <p className="text-[11px] text-slate-500 mb-1">
-              Career window (next 90 days):{" "}
-              {jobPrediction ? "ready" : "loading..."}
-            </p>
-
-            {jobPrediction && (
-              <div className="rounded-lg border bg-white p-3 text-xs shadow-sm">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="font-semibold">
-                    {jobPrediction.mainWindow?.label ??
-                      "Core window for job"}
-                  </span>
-                  <span className="text-[11px] text-slate-500">
-                    {jobPrediction.mainWindow?.strengthLabel ?? ""}
-                  </span>
-                </div>
-             <p className="text-[11px] text-slate-500 mb-2">
-      This looks at your dasha + transits and marks when career moves are more supported.
-    </p>
-                {jobPrediction.mainWindow && (
-                  <p className="text-slate-700 mb-2">
-                    From{" "}
-                    <span className="font-mono">
-                      {jobPrediction.mainWindow.fromISO}
-                    </span>{" "}
-                    to{" "}
-                    <span className="font-mono">
-                      {jobPrediction.mainWindow.toISO}
-                    </span>
-                    .
-                  </p>
-                )}
-
-                {Array.isArray(jobPrediction.recommendedActions) &&
-                  jobPrediction.recommendedActions.length > 0 && (
-                    <ul className="mt-1 space-y-1 list-disc list-inside">
-                      {jobPrediction.recommendedActions.map(
-                        (tip: string, idx: number) => (
-                          <li key={idx}>{tip}</li>
-                        )
-                      )}
-                    </ul>
-                  )}
-
-                {Array.isArray(jobPrediction.keySignals) &&
-                  jobPrediction.keySignals.length > 0 && (
-                    <div className="mt-2 border-t pt-1">
-                      <p className="text-[11px] font-semibold text-slate-500">
-                        Signals
-                      </p>
-                      <ul className="mt-1 space-y-0.5 text-[11px] text-slate-600">
-                        {jobPrediction.keySignals.map(
-                          (s: string, idx: number) => (
-                            <li key={idx}>{s}</li>
-                          )
-                        )}
-                      </ul>
-                    </div>
-                  )}
-              </div>
-            )}
-
-            {jobPredictionError && (
-              <p className="mt-2 text-[11px] text-red-600">
-                {jobPredictionError}
-              </p>
-            )}
-          </div>
             </CardContent>
           </Card>
         </motion.div>
-
-<Card className="mt-6 rounded-2xl shadow-sm">
-  <CardHeader>
-    <CardTitle className="text-sm font-semibold">
-      Sarathi notifications preview
-    </CardTitle>
-  </CardHeader>
-  <CardContent className="text-xs space-y-3">
-    {(() => {
-      const src = notificationsPreview as any;
-
-      const hasAny =
-        src &&
-        (["morning", "midday", "evening"] as const).some((slot) => {
-          const list = src[slot] as SarathiNotification[] | undefined;
-          return Array.isArray(list) && list.length > 0;
-        });
-
-    if (!src || !hasAny) {
-      return (
-        <p className="text-[11px] text-muted-foreground">
-          No notifications for today yet. They’ll appear here once Sarathi
-          has enough context from your chart.
-        </p>
-      );
-    }
-
-      return (["morning", "midday", "evening"] as const).map((slot) => {
-        const list = src[slot] as SarathiNotification[] | undefined;
-        if (!Array.isArray(list) || list.length === 0) return null;
-
-        const label =
-          slot === "morning"
-            ? "Morning"
-            : slot === "midday"
-            ? "Midday"
-            : "Evening";
-
-        return (
-          <div key={slot}>
-            <div className="text-[11px] font-semibold mb-1">
-              {label}
-            </div>
-            <ul className="space-y-1">
-              {list.map((n) => (
-                <li key={n.id}>
-                  <span className="inline-block px-2 py-0.5 text-[10px] rounded-full bg-slate-200 mr-2">
-                    {n.domain}
-                  </span>
-                  <span>{n.text}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        );
-      });
-    })()}
-  </CardContent>
-</Card>
-
         {/* Wheel + placements */}
         <motion.div variants={fadeUpSmall} className="space-y-4">
           {report.planets?.length ? (
@@ -5235,66 +4894,77 @@ type SavedProfile = {
             )}
 
           {/* Life story by Dasha (milestones) */}
-          {Array.isArray(report.lifeMilestones) &&
-            report.lifeMilestones.length > 0 && (
-              <AccordionItem value="life-story">
-                <AccordionTrigger className="text-sm font-semibold">
-                  Life Story by Dasha
-                </AccordionTrigger>
-                <AccordionContent>
-                  <Card className="rounded-2xl shadow-sm">
-                    <CardContent className="pt-4 space-y-4">
-                      {report.lifeMilestones.map((m: any, idx: number) => (
-                        <div
-                          key={idx}
-                          className="rounded-xl border border-muted-foreground/20 bg-muted/40 p-3 text-sm leading-relaxed"
-                        >
-                          <div className="flex flex-wrap items-start justify-between gap-2">
-                            <div className="space-y-1">
-                              <div className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-                                {m.label}
-                              </div>
-                              <div className="text-[11px] text-muted-foreground">
-                                {m.approxAgeRange} (
-                                {new Date(m.periodStart).getFullYear()}–
-                                {new Date(m.periodEnd).getFullYear()})
-                              </div>
-                              <div className="text-[11px] text-muted-foreground">
-                                {m.drivers}
-                              </div>
-                            </div>
-                            <div
-                              className={
-                                "text-[10px] leading-none rounded-md px-2 py-1 font-medium " +
-                                toneColor(m.risk)
-                              }
-                            >
-                              {m.risk === "opportunity"
-                                ? "Opportunity"
-                                : m.risk === "caution"
-                                ? "Caution"
-                                : "Mixed"}
-                            </div>
-                          </div>
-                          <div className="text-xs mt-2 leading-relaxed space-y-1">
-                            {Array.isArray(m.themes) && m.themes.length ? (
-                              m.themes.map((t: string, i2: number) => (
-                                <p key={i2}>{t}</p>
-                              ))
-                            ) : (
-                              <p className="text-muted-foreground">
-                                (No notes.)
-                              </p>
-                            )}
-                          </div>
+{Array.isArray(report.lifeMilestones) &&
+  report.lifeMilestones.length > 0 && (
+    <AccordionItem value="life-story">
+      <AccordionTrigger className="text-sm font-semibold">
+        Life Story by Dasha
+      </AccordionTrigger>
+      <AccordionContent>
+        <Card className="rounded-2xl shadow-sm">
+          <CardContent className="pt-4">
+            <div className="space-y-4">
+              {report.lifeMilestones.map((m: any, idx: number) => (
+                <div
+                  key={idx}
+                  className="relative pl-4 border-l border-muted-foreground/20 last:border-l-0"
+                >
+                  {/* timeline dot */}
+                  <div className="absolute -left-[5px] top-2 h-2 w-2 rounded-full bg-sky-500 shadow-sm" />
+
+                  <div className="rounded-xl border border-muted-foreground/15 bg-muted/40 p-3 text-sm leading-relaxed">
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <div className="space-y-1">
+                        <div className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
+                          {m.label}
                         </div>
-                      ))}
-                    </CardContent>
-                  </Card>
-                </AccordionContent>
-              </AccordionItem>
-            )}
-        </Accordion>
+                        <div className="text-[11px] text-muted-foreground">
+                          {m.approxAgeRange} (
+                          {new Date(m.periodStart).getFullYear()}–
+                          {new Date(m.periodEnd).getFullYear()})
+                        </div>
+                        {m.drivers && (
+                          <div className="text-[11px] text-muted-foreground">
+                            {m.drivers}
+                          </div>
+                        )}
+                      </div>
+
+                      <div
+                        className={
+                          "text-[10px] leading-none rounded-md px-2 py-1 font-medium " +
+                          toneColor(m.risk)
+                        }
+                      >
+                        {m.risk === "opportunity"
+                          ? "Opportunity"
+                          : m.risk === "caution"
+                          ? "Caution"
+                          : "Mixed"}
+                      </div>
+                    </div>
+
+                    <div className="mt-2 space-y-1 text-xs leading-relaxed">
+                      {Array.isArray(m.themes) && m.themes.length ? (
+                        m.themes.map((t: string, i2: number) => (
+                          <p key={i2}>{t}</p>
+                        ))
+                      ) : (
+                        <p className="text-muted-foreground">
+                          (No notes.)
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </AccordionContent>
+    </AccordionItem>
+  )}
+</Accordion>
       </div>
     );
   }

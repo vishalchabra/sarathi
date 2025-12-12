@@ -1,13 +1,15 @@
 // FILE: src/app/sarathi/life-report/page.tsx
 
-import LifeReportShell from "./_shell";
+import TopNav from "../TopNav";
+import LifeReportShell from "./_shell"; // or { LifeReportShell } if that's how it's exported
 
 export default function LifeReportPage() {
   return (
-    <main className="min-h-screen bg-slate-950 text-slate-50">
-      <div className="mx-auto max-w-6xl px-4 py-6 md:py-8">
+    <div className="min-h-screen bg-slate-950 text-slate-50">
+      <TopNav />
+      <main className="mx-auto max-w-5xl px-4 py-6">
         <LifeReportShell />
-      </div>
-    </main>
+      </main>
+    </div>
   );
 }
