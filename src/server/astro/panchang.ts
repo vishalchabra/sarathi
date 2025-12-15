@@ -1,9 +1,12 @@
 // FILE: /src/server/astro/panchang.ts
 // FULL UPGRADED VERSION — REAL TITHI / NAKSHATRA / PADA / YOGA / KARANA
-// Sunrise/Sunset via JS approximation (no swe_rise_trans)
+// Sunrise/Sunset via JS approximation
 
 import { DateTime } from "luxon";
 import { julianDayUTC } from "@/server/astro/core";
+
+// ✅ Astro Engine v2 (pure JS)
+import { computePlacementsV2 } from "@/server/astro-v2/placements";
 
 // --- ensure nakshatra module (with lord/theme) is loaded before we compute
 let _getNakshatra:
@@ -26,10 +29,8 @@ type BirthLike = { dobISO: any; tob: any; place?: Place };
 const NAK_SIZE = 360 / 27;
 const PADA_SIZE = 360 / 108;
 
-// fixed 7 karanas
 const MOVABLE_KARANAS = ["Bava", "Balava", "Kaulava", "Taitila", "Gara", "Vanija", "Vishti"];
 
-// full list for safety:
 const FIXED_KARANAS: Record<number, string> = {
   0: "Kimstughna",
   57: "Shakuni",
@@ -37,12 +38,10 @@ const FIXED_KARANAS: Record<number, string> = {
   59: "Naga",
 };
 
-// ---------- helpers ----------
 function wrap360(x: number) {
   return ((x % 360) + 360) % 360;
 }
 
-// ---------- Date helpers ----------
 function normalizeDate(input: any) {
   const dt = DateTime.fromISO(String(input));
   if (!dt.isValid) throw new Error("Invalid date " + input);
@@ -67,42 +66,22 @@ async function jdUTFromLocal(dateISO: string, timeHHmm: string, tz: string) {
 
   if (!dtLocal.isValid) {
     throw new Error(
-      `Invalid local date/time (${dateISO} ${timeHHmm}) for zone ${tz}: ${
-        dtLocal.invalidReason ?? ""
-      }`
+      `Invalid local date/time (${dateISO} ${timeHHmm}) for zone ${tz}: ${dtLocal.invalidReason ?? ""}`
     );
   }
 
-    const dtUTC = DateTime.fromISO(dateISO, { zone: tz }).toUTC();
+  // ✅ correct UTC instant for that local time
+  const dtUTC = dtLocal.toUTC();
 
   const jd = await julianDayUTC(dtUTC.toJSDate());
-
-
   return { jd, dtUTC };
 }
-// ---------- Sun / Moon (sidereal Lahiri) – SWE-FREE STUB ----------
-async function getSiderealPositions(jdUT: number) {
-  // Swiss Ephemeris (native/WASM) has been removed from the build.
-  // This helper now returns rough sidereal longitudes for Sun and Moon
-  // using simple average-motion formulas, just to keep Panchang-like
-  // logic running without depending on swisseph.
 
-  // Time in days from J2000.0
-  const daysFromJ2000 = jdUT - 2451545.0;
-
-  // Mean tropical longitudes (very rough):
-  // Sun ≈ 0.985647° per day
-  // Moon ≈ 13.176358° per day
-  const sunTropical = daysFromJ2000 * 0.985647;
-  const moonTropical = daysFromJ2000 * 13.176358;
-
-  // Rough Lahiri ayanāṁśa (~24°); tweak later if you wire a better
-  // pure-TS ephemeris.
-  const lahiriAyanamsaDeg = 24;
-
-  const sun = wrap360(sunTropical - lahiriAyanamsaDeg);
-  const moon = wrap360(moonTropical - lahiriAyanamsaDeg);
-
+// ✅ Sun / Moon (from Astro Engine v2) — single source of truth
+async function getSiderealPositionsV2(dtUTC: Date) {
+  const rows = computePlacementsV2(dtUTC);
+  const sun = wrap360(rows.find((r) => r.key === "Sun")?.siderealLon ?? 0);
+  const moon = wrap360(rows.find((r) => r.key === "Moon")?.siderealLon ?? 0);
   return { sun, moon };
 }
 
@@ -114,11 +93,9 @@ function computeSunTimesApprox(
   lon: number
 ): { sunrise: string; sunset: string } {
   const dt = DateTime.fromISO(String(dateISO), { zone: tz });
-  if (!dt.isValid) {
-    return { sunrise: "06:00", sunset: "18:00" };
-  }
+  if (!dt.isValid) return { sunrise: "06:00", sunset: "18:00" };
 
-  const N = dt.ordinal; // day of year
+  const N = dt.ordinal;
   const deg2rad = Math.PI / 180;
   const rad2deg = 180 / Math.PI;
 
@@ -142,29 +119,23 @@ function computeSunTimesApprox(
     0.00148 * Math.sin(3 * gamma);
 
   const latRad = lat * deg2rad;
-  const zenith = 90.833 * deg2rad; // official sunrise/sunset
+  const zenith = 90.833 * deg2rad;
 
   const cosH =
     (Math.cos(zenith) - Math.sin(latRad) * Math.sin(solarDec)) /
     (Math.cos(latRad) * Math.cos(solarDec));
 
-  if (cosH <= -1) {
-    // sun above horizon all day (polar) – not our use case, but keep safe
-    return { sunrise: "00:00", sunset: "23:59" };
-  }
-  if (cosH >= 1) {
-    // sun below horizon all day
-    return { sunrise: "—", sunset: "—" };
-  }
+  if (cosH <= -1) return { sunrise: "00:00", sunset: "23:59" };
+  if (cosH >= 1) return { sunrise: "—", sunset: "—" };
 
   const H = Math.acos(cosH);
   const Hdeg = H * rad2deg;
 
-  const solarNoonUTC = 720 - 4 * lon - eqTime; // minutes from midnight
+  const solarNoonUTC = 720 - 4 * lon - eqTime;
   const sunriseUTC = solarNoonUTC - 4 * Hdeg;
   const sunsetUTC = solarNoonUTC + 4 * Hdeg;
 
-  const offsetMinutes = dt.offset; // zone offset vs UTC in minutes
+  const offsetMinutes = dt.offset;
   const sunriseLocal = sunriseUTC + offsetMinutes;
   const sunsetLocal = sunsetUTC + offsetMinutes;
 
@@ -174,18 +145,12 @@ function computeSunTimesApprox(
     while (m >= 1440) m -= 1440;
     const hh = Math.floor(m / 60);
     const mm = m % 60;
-    return `${hh.toString().padStart(2, "0")}:${mm
-      .toString()
-      .padStart(2, "0")}`;
+    return `${hh.toString().padStart(2, "0")}:${mm.toString().padStart(2, "0")}`;
   }
 
-  return {
-    sunrise: toHHMM(sunriseLocal),
-    sunset: toHHMM(sunsetLocal),
-  };
+  return { sunrise: toHHMM(sunriseLocal), sunset: toHHMM(sunsetLocal) };
 }
 
-// ---------- TITHI ----------
 function computeTithi(moon: number, sun: number) {
   const diff = wrap360(moon - sun);
   const index = Math.floor(diff / 12); // 0..29
@@ -210,26 +175,15 @@ function computeTithi(moon: number, sun: number) {
     paksha === "Shukla" ? "Purnima" : "Amavasya",
   ];
 
-  return {
-    name: TITHI_NAMES[day - 1],
-    paksha,
-    day,
-    index,
-  };
+  return { name: TITHI_NAMES[day - 1], paksha, day, index };
 }
 
-// ---------- NAKSHATRA + PADA ----------
 function computeNakshatraPad(deg: number) {
   const nakIndex = Math.floor(wrap360(deg) / NAK_SIZE);
   const padaIndex = Math.floor((wrap360(deg) % NAK_SIZE) / PADA_SIZE) + 1;
-
-  return {
-    nakIndex,
-    pada: padaIndex, // 1–4
-  };
+  return { nakIndex, pada: padaIndex };
 }
 
-// ---------- YOGA ----------
 const YOGA_NAMES_27 = [
   "Vishkambha",
   "Priti",
@@ -266,35 +220,26 @@ function computeYoga(moon: number, sun: number) {
   return { name: YOGA_NAMES_27[index], index };
 }
 
-// ---------- KARANA ----------
 function computeKarana(moon: number, sun: number) {
   const diff = wrap360(moon - sun);
   const K = Math.floor(diff / 6); // 0..59
-
-  // fixed karanas
   if (FIXED_KARANAS[K]) return { name: FIXED_KARANAS[K] };
-
-  // movable set
   return { name: MOVABLE_KARANAS[(K - 1 + 7) % 7] };
 }
 
-// ---------- MAIN API ----------
 export async function getPanchang(birth: BirthLike) {
   const tz = birth.place?.tz || "UTC";
   const lat = birth.place?.lat ?? 0;
   const lon = birth.place?.lon ?? 0;
 
-  // Use async JD helper (UT) + UTC DateTime
   const { jd, dtUTC } = await jdUTFromLocal(birth.dobISO, birth.tob, tz);
   const jdUT = jd;
 
-  // Get local wall time from UTC
   const dtLocal = dtUTC.setZone(tz);
 
-  // Sidereal Sun/Moon (async now)
-  const { sun, moon } = await getSiderealPositions(jdUT);
+  // ✅ Sidereal Sun/Moon from Astro Engine v2
+  const { sun, moon } = await getSiderealPositionsV2(dtUTC.toJSDate());
 
-  // load nakshatra metadata
   await ensureNakModule();
 
   const weekday = dtLocal.toFormat("cccc");
@@ -302,7 +247,6 @@ export async function getPanchang(birth: BirthLike) {
   const yoga = computeYoga(moon, sun);
   const karana = computeKarana(moon, sun);
 
-  // Nakshatra + Pada
   const nakBase = _getNakshatra ? _getNakshatra(moon) : { name: "Unknown" };
   const { nakIndex, pada } = computeNakshatraPad(moon);
 
@@ -312,16 +256,14 @@ export async function getPanchang(birth: BirthLike) {
     index: nakIndex,
   };
 
-  // Sunrise/Sunset via approximation (no swe_rise_trans)
   const approx = computeSunTimesApprox(birth.dobISO, tz, lat, lon);
   const sunriseStr = approx.sunrise || "06:00";
   const sunsetStr = approx.sunset || "18:00";
 
-  // For now we don’t attempt Moonrise/Moonset at all
   const moonriseStr = "—";
   const moonsetStr = "—";
 
-  const baseLocal = dtLocal; // already in tz
+  const baseLocal = dtLocal;
 
   return {
     at: baseLocal.toISO(),
@@ -339,8 +281,10 @@ export async function getPanchang(birth: BirthLike) {
     rahuKaal: "—",
     gulikaKaal: "—",
     abhijitMuhurat: "—",
-    guidanceLine:
-      "Birth energy favors clarity, steadiness, and inner alignment.",
+    guidanceLine: "Birth energy favors clarity, steadiness, and inner alignment.",
+
+    // optional debug/meta
+    meta: { jdUT, engine: "astro-v2" },
   };
 }
 

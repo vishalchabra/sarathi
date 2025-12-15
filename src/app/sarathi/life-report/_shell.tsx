@@ -5466,26 +5466,11 @@ useEffect(() => {
       moonNakshatraTheme: rep.moonNakshatraTheme ?? null,
     };
 
-    const cacheForChat = {
-      name: birthName,
-      birthDateISO,
-      birthTime,
-      birthTz,
-      birthLat,
-      birthLon,
+    
+    // ✅ NO HIDING: disable chat cache while we debug houses/asc
+window.localStorage.removeItem("sarathi.lifeReportCache.v2");
+// console.log("[life-report] chat cache disabled");
 
-      activePeriods: rep.activePeriods ?? null,
-      timeline,
-      transits: transitsArray,
-      transitWindows,
-      natal,
-    };
-
-    window.localStorage.setItem(
-      "sarathi.lifeReportCache.v2",
-      JSON.stringify(cacheForChat)
-    );
-    console.log("[life-report] cached for chat", cacheForChat);
   } catch (e) {
     console.warn("[life-report] failed to cache for chat", e);
   }

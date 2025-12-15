@@ -1,20 +1,19 @@
 // FILE: src/server/astro/panchang-full.ts
 import "server-only";
 
-import {
-  sweJulday,
-  sweCall,
-  getSweConstants,
-} from "@/server/astro/swe-remote";
 import { getNakshatra } from "@/server/astro/nakshatra";
 import { getPanchang } from "@/server/astro/panchang";
 import { DateTime } from "luxon";
+import { julianDayUTC } from "@/server/astro/core";
+
+// ✅ Astro Engine v2 (pure JS)
+import { computePlacementsV2 } from "@/server/astro-v2/placements";
 
 type PanchangRequest = {
   dobISO: string; // "YYYY-MM-DD"
-  tob: string;    // "HH:mm"
+  tob: string; // "HH:mm"
   place: {
-    tz: string;   // IANA TZ
+    tz: string; // IANA TZ
     lat: number;
     lon: number;
   };
@@ -83,9 +82,7 @@ function weekdayFromISO(localISO: string): string {
       +localISO.slice(8, 10)
     )
   );
-  return new Intl.DateTimeFormat("en-US", {
-    weekday: "long",
-  }).format(d);
+  return new Intl.DateTimeFormat("en-US", { weekday: "long" }).format(d);
 }
 
 function computeTithiName(sunSid: number, moonSid: number): string {
@@ -162,9 +159,7 @@ function computeSunTimesApprox(
   lon: number
 ): { sunrise: string; sunset: string } {
   const dt = DateTime.fromISO(dateISO, { zone: tz });
-  if (!dt.isValid) {
-    return { sunrise: "06:00", sunset: "18:00" };
-  }
+  if (!dt.isValid) return { sunrise: "06:00", sunset: "18:00" };
 
   const N = dt.ordinal; // day of year
   const deg2rad = Math.PI / 180;
@@ -190,18 +185,14 @@ function computeSunTimesApprox(
     0.00148 * Math.sin(3 * gamma);
 
   const latRad = lat * deg2rad;
-  const zenith = 90.833 * deg2rad; // official sunrise/sunset
+  const zenith = 90.833 * deg2rad;
 
   const cosH =
     (Math.cos(zenith) - Math.sin(latRad) * Math.sin(solarDec)) /
     (Math.cos(latRad) * Math.cos(solarDec));
 
-  if (cosH <= -1) {
-    return { sunrise: "00:00", sunset: "23:59" };
-  }
-  if (cosH >= 1) {
-    return { sunrise: "—", sunset: "—" };
-  }
+  if (cosH <= -1) return { sunrise: "00:00", sunset: "23:59" };
+  if (cosH >= 1) return { sunrise: "—", sunset: "—" };
 
   const H = Math.acos(cosH);
   const Hdeg = H * rad2deg;
@@ -210,7 +201,7 @@ function computeSunTimesApprox(
   const sunriseUTC = solarNoonUTC - 4 * Hdeg;
   const sunsetUTC = solarNoonUTC + 4 * Hdeg;
 
-  const offsetMinutes = dt.offset; // zone offset vs UTC in minutes
+  const offsetMinutes = dt.offset;
   const sunriseLocal = sunriseUTC + offsetMinutes;
   const sunsetLocal = sunsetUTC + offsetMinutes;
 
@@ -225,10 +216,7 @@ function computeSunTimesApprox(
       .padStart(2, "0")}`;
   }
 
-  return {
-    sunrise: toHHMM(sunriseLocal),
-    sunset: toHHMM(sunsetLocal),
-  };
+  return { sunrise: toHHMM(sunriseLocal), sunset: toHHMM(sunsetLocal) };
 }
 
 function hhmmToMinutes(str?: string | null): number | null {
@@ -253,67 +241,26 @@ function minutesToHHMM(total: number): string {
 
 /**
  * Main Panchang API used by life-engine.
- * Returns weekday, tithi, yoga, karana, moon nakshatra
- * + sunrise/sunset + Rahu/Gulika/Abhijit windows.
  */
 export async function getFullPanchang(req: PanchangRequest) {
   const { dobISO, tob, place } = req;
   const { tz, lat, lon } = place;
 
-  // Base Swiss ephemeris context
+  // Build UTC instant for the requested local date/time
   const utc = makeUtcInstant(dobISO, tob, tz);
-  const constants = await getSweConstants();
 
-  const year = utc.getUTCFullYear();
-  const month = utc.getUTCMonth() + 1;
-  const day = utc.getUTCDate();
-  const hour =
-    utc.getUTCHours() +
-    utc.getUTCMinutes() / 60 +
-    utc.getUTCSeconds() / 3600;
+  // Keep JD around for meta/debug/compat
+  const jdUt = await julianDayUTC(utc);
 
-  const jdUt = await sweJulday(
-    year,
-    month,
-    day,
-    hour,
-    constants.SE_GREG_CAL
-  );
+  // ✅ Sun/Moon from Astro Engine v2 (same engine as Life Report)
+  const v2Rows = computePlacementsV2(utc);
+  const sunRow = v2Rows.find((r) => r.key === "Sun");
+  const moonRow = v2Rows.find((r) => r.key === "Moon");
 
-  const flags =
-    (constants.SEFLG_SWIEPH ?? 2) |
-    (constants.SEFLG_SPEED ?? 256) |
-    (constants.SEFLG_SIDEREAL ?? 64);
+  const sunSid = wrap360(sunRow?.siderealLon ?? 0);
+  const moonSid = wrap360(moonRow?.siderealLon ?? 0);
 
-  const sunRes = await sweCall<any>(
-    "swe_calc_ut",
-    jdUt,
-    constants.SE_SUN,
-    flags
-  );
-  const moonRes = await sweCall<any>(
-    "swe_calc_ut",
-    jdUt,
-    constants.SE_MOON,
-    flags
-  );
-
-  const sunSid = wrap360(
-    typeof sunRes?.longitude === "number"
-      ? sunRes.longitude
-      : Array.isArray(sunRes?.x)
-      ? sunRes.x[0]
-      : 0
-  );
-  const moonSid = wrap360(
-    typeof moonRes?.longitude === "number"
-      ? moonRes.longitude
-      : Array.isArray(moonRes?.x)
-      ? moonRes.x[0]
-      : 0
-  );
-
-  // Rich Panchang engine (for tithi/yoga/karana/nakshatra & possibly times)
+  // Rich Panchang engine (now also upgraded in panchang.ts, see below)
   let rich: any = null;
   try {
     rich = await getPanchang({
@@ -325,25 +272,21 @@ export async function getFullPanchang(req: PanchangRequest) {
     rich = null;
   }
 
-  // Names (prefer rich, fall back to old computations)
   const weekday = rich?.weekday ?? weekdayFromISO(dobISO);
 
   const tithiName = rich?.tithi
     ? `${rich.tithi.paksha} ${rich.tithi.day}`
     : computeTithiName(sunSid, moonSid);
 
-  const yogaName =
-    rich?.yoga?.name ?? computeYogaName(sunSid, moonSid);
+  const yogaName = rich?.yoga?.name ?? computeYogaName(sunSid, moonSid);
 
   const karanaName =
     rich?.karana?.name ?? computeKaranaName(sunSid, moonSid);
 
   const moonNakshatraName =
-    rich?.nakshatra?.name ??
-    getNakshatra(moonSid)?.name ??
-    "—";
+    rich?.nakshatra?.name ?? getNakshatra(moonSid)?.name ?? "—";
 
-  // --- Times: sunrise/sunset (rich or approx), moonrise/moonset basic ---
+  // --- Times ---
   let sunrise: string | null = rich?.sunrise ?? null;
   let sunset: string | null = rich?.sunset ?? null;
   let moonrise: string | null = rich?.moonrise ?? null;
@@ -358,7 +301,7 @@ export async function getFullPanchang(req: PanchangRequest) {
   if (!moonrise) moonrise = "—";
   if (!moonset) moonset = "—";
 
-  // --- Rahu Kaal / Gulika Kaal / Abhijit from sunrise/sunset + weekday ---
+  // --- Kaal windows (approx) ---
   let rahuKaalStr = "— – —";
   let gulikaKaalStr = "— – —";
   let abhijitStr = "— – —";
@@ -366,62 +309,26 @@ export async function getFullPanchang(req: PanchangRequest) {
   const startMinutes = hhmmToMinutes(sunrise);
   const endMinutes = hhmmToMinutes(sunset);
 
-  if (
-    startMinutes !== null &&
-    endMinutes !== null &&
-    endMinutes > startMinutes
-  ) {
+  if (startMinutes !== null && endMinutes !== null && endMinutes > startMinutes) {
     const dayLen = endMinutes - startMinutes;
-    const segment = dayLen / 8; // 8 equal daytime parts
+    const segment = dayLen / 8;
 
-    // Simple fixed segments (approximate, but always defined)
-    // Rahu: 3rd segment of the day
     const rahuStart = startMinutes + 2 * segment;
     const rahuEnd = rahuStart + segment;
 
-    // Gulika: 6th segment of the day
     const gulikaStart = startMinutes + 5 * segment;
     const gulikaEnd = gulikaStart + segment;
 
-    rahuKaalStr = `${minutesToHHMM(rahuStart)} – ${minutesToHHMM(
-      rahuEnd
-    )}`;
-    gulikaKaalStr = `${minutesToHHMM(
-      gulikaStart
-    )} – ${minutesToHHMM(gulikaEnd)}`;
+    rahuKaalStr = `${minutesToHHMM(rahuStart)} – ${minutesToHHMM(rahuEnd)}`;
+    gulikaKaalStr = `${minutesToHHMM(gulikaStart)} – ${minutesToHHMM(gulikaEnd)}`;
 
-    // Abhijit: centred around midday, width = 2/15 of daytime
     const mid = startMinutes + dayLen / 2;
     const halfWidth = dayLen / 30;
     const abhStart = mid - halfWidth;
     const abhEnd = mid + halfWidth;
 
-    abhijitStr = `${minutesToHHMM(abhStart)} – ${minutesToHHMM(
-      abhEnd
-    )}`;
+    abhijitStr = `${minutesToHHMM(abhStart)} – ${minutesToHHMM(abhEnd)}`;
   }
-
-  // Optional debug
-  console.log(
-    "[getFullPanchang] times =",
-    "sunrise:",
-    sunrise,
-    "sunset:",
-    sunset,
-    "moonrise:",
-    moonrise,
-    "moonset:",
-    moonset
-  );
-  console.log(
-    "[getFullPanchang] kaal =",
-    "rahu:",
-    rahuKaalStr,
-    "gulika:",
-    gulikaKaalStr,
-    "abhijit:",
-    abhijitStr
-  );
 
   return {
     weekday,
@@ -437,6 +344,7 @@ export async function getFullPanchang(req: PanchangRequest) {
       lat,
       lon,
       tz,
+      engine: "astro-v2",
     },
 
     sunrise,

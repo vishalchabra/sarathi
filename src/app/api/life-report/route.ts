@@ -10,10 +10,11 @@ import type { CoreSignals } from "@/server/guides/types";
 import { buildDailyGuideFromCore } from "@/server/guides/daily-core";
 import { todayISOForNotificationTz } from "@/server/notifications/today";
 
+export const runtime = "nodejs";
+
 /* -------------------------------------------------------
    Enrich with MD / AD / PD
 ------------------------------------------------------- */
-
 function enrichWithActivePeriods(report: any) {
   if (!report) return report;
 
@@ -86,63 +87,85 @@ function enrichWithActivePeriods(report: any) {
 /* -------------------------------------------------------
    Route
 ------------------------------------------------------- */
-
 export async function POST(req: Request) {
   try {
     const body = await req.json();
 
-    // Stable cache key: tie to birth details only
+    // Defensive coercion (avoid "string" lat/lon bugs)
+    const lat = typeof body.lat === "string" ? Number(body.lat) : body.lat;
+    const lon = typeof body.lon === "string" ? Number(body.lon) : body.lon;
+    const cacheBuster = Date.now(); // temp
+    // Cache key: tie to birth details + engine version
+    // IMPORTANT: bump this when astro engine changes so we don't serve stale charts
     const cacheKey = makeCacheKey({
       feature: "life-report",
       birthDateISO: body.birthDateISO,
       birthTime: body.birthTime,
       birthTz: body.birthTz,
-      version: "v3-mdadpd+daily-v1",
+      lat,
+      lon,
+      version: "engine-v2b-asc-sidereal-1", // 👈 bump on engine changes
+      cacheBuster,
     });
 
     let report: any;
-    let cacheFlag: "hit" | "miss" = "miss";
+    let cacheFlag: "hit" | "miss" | "miss-dev" = "miss";
 
-    // Try cache first
-    const cached = await cacheGet<any>(cacheKey);
-    if (cached) {
-      report = cached;
-      cacheFlag = "hit";
-    } else {
-      // Build fresh report
+    // ✅ DEV: always rebuild so fixes show immediately
+    if (process.env.NODE_ENV !== "production") {
       report = await buildLifeReport({
         name: body.name,
         birthDateISO: body.birthDateISO,
         birthTime: body.birthTime,
         birthTz: body.birthTz,
-        lat: body.lat,
-        lon: body.lon,
+        lat, // ✅ use coerced values
+        lon, // ✅ use coerced values
       });
-
-      // Store in cache (30 days)
-      await cacheSet(cacheKey, report, 60 * 60 * 24 * 30);
+      cacheFlag = "miss-dev";
+    } else {
+      // ✅ PROD: use cache
+      const cached = await cacheGet<any>(cacheKey);
+      if (cached) {
+        report = cached;
+        cacheFlag = "hit";
+      } else {
+        report = await buildLifeReport({
+          name: body.name,
+          birthDateISO: body.birthDateISO,
+          birthTime: body.birthTime,
+          birthTz: body.birthTz,
+          lat, // ✅ use coerced values
+          lon, // ✅ use coerced values
+        });
+        await cacheSet(cacheKey, report, 60 * 60 * 24 * 30);
+        cacheFlag = "miss";
+      }
     }
 
-    // Enrich with MD / AD / PD
     const enriched = enrichWithActivePeriods(report);
+
+    // Pull asc sign from the correct place (life-engine returns it under core)
+    const lagnaSign =
+      (enriched as any)?.core?.ascSign ?? (enriched as any)?.ascSign ?? undefined;
 
     // ---------- Build CoreSignals for Daily Guide ----------
     const core: CoreSignals = {
       birth: {
-        dateISO: body.birthDateISO,
+        dateISO: body.birthDateISO, // ✅ keep birth date as birth date
         time: body.birthTime,
         tz: body.birthTz,
-        lat: body.lat,
-        lon: body.lon,
-        lagnaSign: (enriched as any).ascSign ?? undefined,
+        lat,
+        lon,
       },
+      lagnaSign, // ✅ put at top-level (more consistent with rest of engine)
       dashaStack: [],
-      transits: [], // real transits can be wired later
+      transits: [],
       moonToday: {
         sign: (enriched as any).moonSign ?? "Unknown",
         // Prefer today's Panchang nakshatra (transit) over natal
         nakshatra:
           (enriched as any).panchang?.moonNakshatraName ??
+          (enriched as any).panchangToday?.nakshatraName ??
           (enriched as any).moonNakshatraName ??
           "Unknown",
       },
@@ -154,10 +177,7 @@ export async function POST(req: Request) {
     if (ap?.antardasha) core.dashaStack.push(ap.antardasha as any);
     if (ap?.pratyantardasha) core.dashaStack.push(ap.pratyantardasha as any);
 
-    // Use TODAY as the “guide day”
-    const guideDayISO = new Date().toISOString().slice(0, 10);
-    core.birth.dateISO = guideDayISO;
-
+    // Build Daily Guide (it internally uses "today" + panchang; no need to mutate birth date)
     const dailyGuide = await buildDailyGuideFromCore(core);
 
     const enrichedWithDaily = {
@@ -165,14 +185,10 @@ export async function POST(req: Request) {
       dailyGuide,
     };
 
-    // ---------- Build daily-for-notifications view ----------
-    const notificationTz =
-      body.notificationTz || body.birthTz || "Asia/Dubai";
-
-    // Proper "today" for the user's notification timezone
+    // ---------- Notifications ----------
+    const notificationTz = body.notificationTz || body.birthTz || "Asia/Dubai";
     const todayISO = todayISOForNotificationTz(notificationTz);
 
-    // Build compact facts bundle for notifications
     const dailyForNotifications = {
       dateISO: todayISO,
       emotional: dailyGuide?.emotionalWeather ?? null,
@@ -183,14 +199,13 @@ export async function POST(req: Request) {
       transits: report.transits ?? [],
     };
 
-    const userId = undefined; // later: real user id from auth/session
+    const userId = undefined;
 
     const notificationFacts = buildNotificationFactsFromDailyGuide(
       dailyForNotifications,
       userId
     );
 
-    // Build previews for all 3 times of day
     const morningCtx: NotificationContext = {
       timeOfDay: "morning",
       facts: notificationFacts,
@@ -215,12 +230,15 @@ export async function POST(req: Request) {
       notificationFacts,
       previewNotifications,
       _cache: cacheFlag,
+      _debugAsc: {
+        ascDeg: report?.core?.ascDeg,
+        ascSign: report?.core?.ascSign,
+      },
     });
   } catch (e: any) {
     console.error("life-report API error:", e);
     const msg = String(e?.message ?? e);
 
-    // 🔴 Special case: Swiss ephemeris missing on Vercel
     if (msg.includes("swisseph unavailable")) {
       return NextResponse.json(
         {
@@ -232,7 +250,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // Generic error
     return NextResponse.json(
       {
         error: "internal_error",
