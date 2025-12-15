@@ -18,7 +18,7 @@ export default function Home() {
             </div>
             <div className="leading-tight">
               <div className="text-sm font-semibold tracking-wide">
-                AstroSārathi
+                Sārathi
               </div>
               <div className="text-[11px] text-slate-400">
                 The charioteer of your journey within
@@ -31,10 +31,10 @@ export default function Home() {
     Life Report
   </Link>
   <Link href="/sarathi/life-guidance" className="hover:text-slate-50">
-    Life Guidance
+    Guidance
   </Link>
   <Link href="/sarathi/chat" className="hover:text-slate-50">
-    Ask AstroSārathi
+    Ask Sārathi
   </Link>
 </nav>
 
@@ -65,16 +65,17 @@ export default function Home() {
             </Badge>
 
             <h1 className="text-balance text-3xl font-semibold tracking-tight sm:text-4xl md:text-5xl">
-              A world-class Vedic astrologer,
+              Clarity for life’s decisions —
               <span className="text-indigo-300"> in your browser.</span>
             </h1>
 
             <p className="max-w-xl text-sm leading-relaxed text-slate-300 sm:text-[15px]">
-              AstroSārathi reads your chart, dashas and transits like an expert
-              astrologer—then translates it into clear, practical guidance for
-              career, money, relationships and inner growth. No fear, no drama,
-              just honest direction.
-            </p>
+  Sārathi reads your chart, dashas and transits with depth—then
+  translates them into calm, practical guidance for career, money,
+  relationships and inner growth. No fear. No fatalism. Just honest
+  direction.
+</p>
+
 
             <div className="flex flex-wrap items-center gap-3">
               <Link href="/sarathi/life-report">
@@ -186,7 +187,7 @@ export default function Home() {
   <CardHeader className="pb-2">
     <CardTitle className="flex items-center gap-2 text-sm">
       <Star className="h-4 w-4 text-emerald-300" />
-      Life Guidance
+      Guidance
     </CardTitle>
   </CardHeader>
   <CardContent className="space-y-3 text-[11px] text-slate-400">
@@ -200,7 +201,7 @@ export default function Home() {
         variant="outline"
         className="mt-1 h-7 rounded-xl border-slate-700 bg-slate-900 text-[11px] hover:bg-slate-800"
       >
-        Open Life Guidance
+        Open Guidance
       </Button>
     </Link>
   </CardContent>
@@ -211,7 +212,7 @@ export default function Home() {
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-center gap-2 text-sm">
                   <MessageCircle className="h-4 w-4 text-sky-300" />
-                  Ask AstroSārathi
+                  Ask Sārathi
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3 text-[11px] text-slate-400">
@@ -236,7 +237,7 @@ export default function Home() {
         {/* Why different */}
         <section className="space-y-4 border-t border-slate-800/70 pt-6">
           <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-400">
-            Why AstroSārathi feels different
+            Why Sārathi feels different
           </h2>
           <div className="grid gap-4 md:grid-cols-3 text-[11px] text-slate-300">
             <div className="space-y-1.5">
