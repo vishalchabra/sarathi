@@ -44,6 +44,7 @@ export type CoreSignals = {
   transits: CoreTransitSignal[];
   moonToday: CoreMoonToday;
   panchang: CorePanchangToday;
+  lagnaSign?: string | null;
 };
 
 /* ---------------- Emotional Weather ---------------- */
