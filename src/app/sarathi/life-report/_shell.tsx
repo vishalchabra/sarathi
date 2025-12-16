@@ -4385,6 +4385,14 @@ setDailyError(null);
 
   // finally update UI
   setReport(next);
+  // Fill Life Story Overview (until we wire a dedicated AI endpoint)
+setTimelineSummary(
+  (next as any)?.timelineSummary ||
+    (next as any)?.lifeOverview ||
+    (next as any)?.lifeStoryOverview ||
+    ""
+);
+
   setActiveTab("overview");
 } catch (err: any) {
   console.error("life-report error", err);
