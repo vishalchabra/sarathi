@@ -4209,15 +4209,16 @@ setDailyError(null);
             .json()
             .catch(() => ({} as any));
 
-          if (fusionRes.ok && fusionJson?.text) {
-            setDashaTransitSummary(fusionJson.text as string);
-          } else {
-            console.error(
-              "ai-dasha-transits failed",
-              fusionRes.status,
-              fusionJson
-            );
-          }
+          if (fusionRes.ok) {
+  const fusionText = (fusionJson as any)?.text ?? "";
+  setDashaTransitSummary(fusionText);
+
+  // reuse the same text as fallback life story overview
+  setTimelineSummary(fusionText);
+} else {
+  console.error("ai-dasha-transits failed", fusionRes.status, fusionJson);
+}
+
         } catch (err) {
           console.error("ai-dasha-transits error", err);
         }
