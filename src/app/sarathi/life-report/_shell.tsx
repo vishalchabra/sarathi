@@ -4784,7 +4784,7 @@ setDailyError(null);
     }
   );
 
-  /* ---------------- Tab 3: Timeline ---------------- */
+ /* ---------------- Tab 3: Timeline ---------------- */
 type SavedProfile = {
   id: string;
   label: string;
@@ -4797,17 +4797,22 @@ type SavedProfile = {
   placeName: string;
 };
 
-  type TabTimelineProps = {
-    report: LifeReportView | null;
-    mounted: boolean;
-    timelineSummary: string;
-    dashaTransitSummary: string;
-  };
+type TabTimelineProps = {
+  report: LifeReportView | null;
+  mounted: boolean;
+  timelineSummary: string;
+  dashaTransitSummary: string;
+};
 
-  const TabTimeline: React.FC<TabTimelineProps> = memo(
+const TabTimeline: React.FC<TabTimelineProps> = memo(
   ({ report, mounted, timelineSummary, dashaTransitSummary }) => {
     if (!report) return null;
-    const ap = report.activePeriods;
+    const ap = report.activePeriods as any;
+
+    const sectionTrigger =
+      "text-sm font-semibold text-slate-100 hover:text-slate-50";
+    const subNote = "text-xs text-slate-200/70";
+    const divider = "border-white/10";
 
     return (
       <div
@@ -4816,102 +4821,135 @@ type SavedProfile = {
           (mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2")
         }
       >
-        {/* 1. Current Dasha Progress – always visible, moved to top */}
+        {/* 1) Current dasha progress (simple, always visible) */}
         {ap && (
-          <Card className="rounded-2xl shadow-xl">
-            <CardHeader>
-              <CardTitle className="text-xl font-semibold">
+          <Card className="rounded-2xl border border-white/10 bg-indigo-950/40 backdrop-blur-sm shadow-xl">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg font-semibold text-slate-100">
                 Current Dasha Progress
               </CardTitle>
+              <p className={subNote}>
+                Where you are right now in the dasha cycle (big → medium → short).
+              </p>
             </CardHeader>
+
             <CardContent className="space-y-3">
-              {(ap as any).mahadasha && (
+              {ap.mahadasha && (
                 <DashaBar
-                  label={`Mahadasha — ${(ap as any).mahadasha.lord}`}
-                  start={(ap as any).mahadasha.start}
-                  end={(ap as any).mahadasha.end}
-                  subtitle={(ap as any).mahadasha.summary}
+                  label={`Mahadasha — ${ap.mahadasha.lord}`}
+                  start={ap.mahadasha.start}
+                  end={ap.mahadasha.end}
+                  subtitle={ap.mahadasha.summary}
                 />
               )}
-              {(ap as any).antardasha && (
+
+              {ap.antardasha && (
                 <DashaBar
-                  label={`Antardasha — ${
-                    (ap as any).antardasha.subLord
-                  } (in ${(ap as any).antardasha.mahaLord})`}
-                  start={(ap as any).antardasha.start}
-                  end={(ap as any).antardasha.end}
-                  subtitle={(ap as any).antardasha.summary}
+                  label={`Antardasha — ${ap.antardasha.subLord} (in ${ap.antardasha.mahaLord})`}
+                  start={ap.antardasha.start}
+                  end={ap.antardasha.end}
+                  subtitle={ap.antardasha.summary}
                 />
               )}
-              {(ap as any).pratyantardasha && (
+
+              {ap.pratyantardasha && (
                 <DashaBar
-                  label={`Pratyantardasha — ${
-                    (ap as any).pratyantardasha.lord
-                  }`}
-                  start={(ap as any).pratyantardasha.start}
-                  end={(ap as any).pratyantardasha.end}
-                  subtitle={(ap as any).pratyantardasha.summary}
+                  label={`Pratyantardasha — ${ap.pratyantardasha.lord}`}
+                  start={ap.pratyantardasha.start}
+                  end={ap.pratyantardasha.end}
+                  subtitle={ap.pratyantardasha.summary}
                 />
               )}
             </CardContent>
           </Card>
         )}
 
-        {/* 2. Collapsible sections for the heavy text + timelines */}
-        <Accordion
-  type="multiple"
-  className="w-full space-y-2"
->
-
-          {/* Year-ahead insight */}
-          <AccordionItem value="year-ahead">
-            <AccordionTrigger className="text-sm font-semibold">
+        {/* 2) Details (collapsible, avoids overwhelm) */}
+        <Accordion type="multiple" className="w-full space-y-2">
+          {/* A) Year-ahead insight */}
+          <AccordionItem
+            value="year-ahead"
+            className={"rounded-2xl border " + divider + " bg-indigo-950/30"}
+          >
+            <AccordionTrigger className={sectionTrigger}>
               Dasha × Transits — Year Ahead Insight
             </AccordionTrigger>
-            <AccordionContent>
-  {dashaTransitSummary ? (
-    <Card className={ACC_CARD}>
-      <CardContent className="pt-4 space-y-3 text-sm">
-        {renderAiTextBlocks(cleanTransitText(dashaTransitSummary))}
-      </CardContent>
-    </Card>
-  ) : (
-    <p className={"text-xs " + ACC_MUTED}>No year-ahead summary available.</p>
-  )}
-</AccordionContent>
 
+            <AccordionContent className="pt-2">
+              <p className={subNote}>
+                A simple “what to expect” story for the coming year, based on your running
+                dasha + major transits.
+              </p>
+
+              <div className="mt-3">
+                {dashaTransitSummary ? (
+                  <Card className={ACC_CARD}>
+                    <CardContent className="pt-4">
+                      <div className="text-slate-100 text-sm leading-relaxed">
+                        {renderAiTextBlocks(cleanTransitText(dashaTransitSummary))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <p className={"mt-2 text-xs " + ACC_MUTED}>
+                    No year-ahead summary available yet.
+                  </p>
+                )}
+              </div>
+            </AccordionContent>
           </AccordionItem>
 
-          {/* Life story overview */}
-          <AccordionItem value="life-overview">
-            <AccordionTrigger className="text-sm font-semibold">
+          {/* B) Life story overview */}
+          <AccordionItem
+            value="life-overview"
+            className={"rounded-2xl border " + divider + " bg-indigo-950/30"}
+          >
+            <AccordionTrigger className={sectionTrigger}>
               Life Story Overview
             </AccordionTrigger>
-            <AccordionContent>
-  {timelineSummary ? (
-    <Card className={ACC_CARD}>
-      <CardContent className="pt-4 space-y-3 text-sm">
-        {renderAiTextBlocks(cleanTransitText(timelineSummary))}
-      </CardContent>
-    </Card>
-  ) : (
-    <p className={"text-xs " + ACC_MUTED}>
-      Your life themes are reflected below through dashas and timelines.
-    </p>
-  )}
-</AccordionContent>
+
+            <AccordionContent className="pt-2">
+              <p className={subNote}>
+                A short “thread” that connects your phases — what keeps repeating, what you’re
+                learning, and where things are headed.
+              </p>
+
+              <div className="mt-3">
+                {timelineSummary ? (
+                  <Card className={ACC_CARD}>
+                    <CardContent className="pt-4">
+                      <div className="text-slate-100 text-sm leading-relaxed">
+                        {renderAiTextBlocks(cleanTransitText(timelineSummary))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <p className={"mt-2 text-xs " + ACC_MUTED}>
+                    Your life themes will appear here once your report summary is ready.
+                  </p>
+                )}
+              </div>
+            </AccordionContent>
           </AccordionItem>
 
-          {/* Full Vimshottari Mahadasha timeline */}
-          {Array.isArray(report.dashaTimeline) &&
-            report.dashaTimeline.length > 0 && (
-              <AccordionItem value="timeline">
-                <AccordionTrigger className="text-sm font-semibold">
-                  Vimshottari Mahadasha Timeline
-                </AccordionTrigger>
-                <AccordionContent>
+          {/* C) Vimshottari timeline (compact list) */}
+          {Array.isArray(report.dashaTimeline) && report.dashaTimeline.length > 0 && (
+            <AccordionItem
+              value="timeline"
+              className={"rounded-2xl border " + divider + " bg-indigo-950/30"}
+            >
+              <AccordionTrigger className={sectionTrigger}>
+                Vimshottari Mahadasha Timeline
+              </AccordionTrigger>
+
+              <AccordionContent className="pt-2">
+                <p className={subNote}>
+                  The full sequence of mahadashas. The active one is highlighted.
+                </p>
+
+                <div className="mt-3">
                   <Card className={ACC_CARD}>
-                    <CardContent className="pt-4 space-y-3 text-sm">
+                    <CardContent className="pt-4 space-y-2">
                       {report.dashaTimeline.map((row: any, idx: number) => {
                         const now = Date.now();
                         const s = new Date(row.startISO).getTime();
@@ -4922,107 +4960,121 @@ type SavedProfile = {
                           <div
                             key={idx}
                             className={
-  "flex items-center justify-between rounded-xl border px-3 py-2 " +
-  (isActive
-    ? "border-emerald-400/30 bg-emerald-500/10"
-    : "border-white/10 bg-slate-950/40")
-}
-
+                              "flex items-center justify-between rounded-xl border px-3 py-2 " +
+                              (isActive
+                                ? "border-indigo-400/40 bg-indigo-500/10"
+                                : "border-white/10 bg-slate-950/40")
+                            }
                           >
                             <div className="space-y-0.5">
-                              <div className="text-xs font-semibold uppercase tracking-wide text-slate-300/70">
-  {row.planet} Mahadasha
-</div>
+                              <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-300/70">
+                                {row.planet} Mahadasha
+                              </div>
                               <div className="text-[13px] text-slate-200/80">
-  {row.startISO} → {row.endISO}
-</div>
+                                {row.startISO} → {row.endISO}
+                              </div>
                             </div>
+
                             {isActive && (
-                              <span className="text-[11px] font-semibold text-emerald-200">
-  Current
-</span>
+                              <span className="text-[11px] font-semibold text-indigo-200">
+                                Current
+                              </span>
                             )}
                           </div>
                         );
                       })}
                     </CardContent>
                   </Card>
-                </AccordionContent>
-              </AccordionItem>
-            )}
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          )}
 
-          {/* Life story by Dasha (milestones) */}
-{Array.isArray(report.lifeMilestones) &&
-  report.lifeMilestones.length > 0 && (
-    <AccordionItem value="life-story">
-      <AccordionTrigger className="text-sm font-semibold">
-        Life Story by Dasha
-      </AccordionTrigger>
-      <AccordionContent>
-        <Card className={ACC_CARD}>
-          <CardContent className="pt-4">
-            <div className="space-y-4">
-              {report.lifeMilestones.map((m: any, idx: number) => (
-                <div
-                  key={idx}
-                  className="relative pl-4 border-l border-white/10 last:border-l-0"
-                >
-                  {/* timeline dot */}
-                  <div className="absolute -left-[5px] top-2 h-2 w-2 rounded-full bg-sky-500 shadow-sm" />
+          {/* D) Key phases (limit to avoid overwhelm) */}
+          {Array.isArray(report.lifeMilestones) && report.lifeMilestones.length > 0 && (
+            <AccordionItem
+              value="life-story"
+              className={"rounded-2xl border " + divider + " bg-indigo-950/30"}
+            >
+              <AccordionTrigger className={sectionTrigger}>
+                Life Story — Key Phases
+              </AccordionTrigger>
 
-                  <div className="rounded-xl border border-white/10 bg-slate-950/40 p-3 text-sm leading-relaxed text-slate-100">
-                    <div className="flex flex-wrap items-start justify-between gap-2">
-                      <div className="space-y-1">
-                        <div className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-                          {m.label}
-                        </div>
-                        <div className="text-[11px] text-muted-foreground">
-                          {m.approxAgeRange} (
-                          {new Date(m.periodStart).getFullYear()}–
-                          {new Date(m.periodEnd).getFullYear()})
-                        </div>
-                        {m.drivers && (
-                          <div className="text-[11px] text-muted-foreground">
-                            {m.drivers}
+              <AccordionContent className="pt-2">
+                <p className={subNote}>
+                  The most important turning points. Kept short so it’s easy to digest.
+                </p>
+
+                <div className="mt-3">
+                  <Card className={ACC_CARD}>
+                    <CardContent className="pt-4">
+                      <div className="space-y-4">
+                        {report.lifeMilestones.slice(0, 6).map((m: any, idx: number) => (
+                          <div
+                            key={idx}
+                            className="relative pl-4 border-l border-white/10 last:border-l-0"
+                          >
+                            <div className="absolute -left-[5px] top-2 h-2 w-2 rounded-full bg-indigo-400 shadow-sm" />
+
+                            <div className="rounded-xl border border-white/10 bg-slate-950/40 p-3 text-sm leading-relaxed text-slate-100">
+                              <div className="flex flex-wrap items-start justify-between gap-2">
+                                <div className="space-y-1">
+                                  <div className="text-xs font-semibold uppercase text-slate-300/70 tracking-wide">
+                                    {m.label}
+                                  </div>
+
+                                  <div className="text-[11px] text-slate-200/70">
+                                    {m.approxAgeRange} (
+                                    {new Date(m.periodStart).getFullYear()}–{new Date(m.periodEnd).getFullYear()})
+                                  </div>
+
+                                  {m.drivers && (
+                                    <div className="text-[11px] text-slate-200/60">
+                                      {m.drivers}
+                                    </div>
+                                  )}
+                                </div>
+
+                                <div
+                                  className={
+                                    "text-[10px] leading-none rounded-md px-2 py-1 font-medium " +
+                                    toneColor(m.risk)
+                                  }
+                                >
+                                  {m.risk === "opportunity"
+                                    ? "Opportunity"
+                                    : m.risk === "caution"
+                                    ? "Caution"
+                                    : "Mixed"}
+                                </div>
+                              </div>
+
+                              <div className="mt-2 space-y-1 text-xs leading-relaxed text-slate-100">
+                                {Array.isArray(m.themes) && m.themes.length ? (
+                                  m.themes.slice(0, 3).map((t: string, i2: number) => (
+                                    <p key={i2}>{t}</p>
+                                  ))
+                                ) : (
+                                  <p className="text-slate-200/60">(No notes.)</p>
+                                )}
+                              </div>
+                            </div>
                           </div>
+                        ))}
+
+                        {report.lifeMilestones.length > 6 && (
+                          <p className="text-xs text-slate-200/60">
+                            Showing 6 key phases. (We can add a “Show all” button later if you want.)
+                          </p>
                         )}
                       </div>
-
-                      <div
-                        className={
-                          "text-[10px] leading-none rounded-md px-2 py-1 font-medium " +
-                          toneColor(m.risk)
-                        }
-                      >
-                        {m.risk === "opportunity"
-                          ? "Opportunity"
-                          : m.risk === "caution"
-                          ? "Caution"
-                          : "Mixed"}
-                      </div>
-                    </div>
-
-                    <div className="mt-2 space-y-1 text-xs leading-relaxed">
-                      {Array.isArray(m.themes) && m.themes.length ? (
-                        m.themes.map((t: string, i2: number) => (
-                          <p key={i2}>{t}</p>
-                        ))
-                      ) : (
-                        <p className="text-muted-foreground">
-                          (No notes.)
-                        </p>
-                      )}
-                    </div>
-                  </div>
+                    </CardContent>
+                  </Card>
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </AccordionContent>
-    </AccordionItem>
-  )}
-</Accordion>
+              </AccordionContent>
+            </AccordionItem>
+          )}
+        </Accordion>
       </div>
     );
   }
