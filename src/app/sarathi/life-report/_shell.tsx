@@ -2223,6 +2223,92 @@ function DashaBar({
     </div>
   );
 }
+function renderAiTextBlocks(raw: string) {
+  const text = (raw ?? "").trim();
+  if (!text) return null;
+
+  const lines = text.split("\n");
+  const out: React.ReactNode[] = [];
+  let bullets: string[] = [];
+  let para: string[] = [];
+  let k = 0;
+
+  const flushBullets = () => {
+    if (!bullets.length) return;
+    out.push(
+      <ul key={`b${k++}`} className="list-disc pl-5 space-y-2">
+        {bullets.map((b, i) => (
+          <li key={i}>{b}</li>
+        ))}
+      </ul>
+    );
+    bullets = [];
+  };
+
+  const flushPara = () => {
+    const p = para.join(" ").trim();
+    if (!p) return;
+    out.push(
+      <p key={`p${k++}`} className="whitespace-pre-wrap">
+        {p}
+      </p>
+    );
+    para = [];
+  };
+
+  for (const line0 of lines) {
+    const line = line0.replace(/\t/g, "  ").trimEnd();
+
+    if (/^---+$/.test(line.trim())) {
+      flushBullets();
+      flushPara();
+      out.push(<hr key={`hr${k++}`} className="border-white/10" />);
+      continue;
+    }
+
+    const h = line.match(/^(#{2,4})\s+(.*)$/);
+    if (h) {
+      flushBullets();
+      flushPara();
+      const level = h[1].length;
+      const title = h[2].trim();
+      out.push(
+        <div
+          key={`h${k++}`}
+          className={
+            level === 2
+              ? "text-base font-semibold text-indigo-100 mt-4"
+              : "text-sm font-semibold text-indigo-100 mt-3"
+          }
+        >
+          {title}
+        </div>
+      );
+      continue;
+    }
+
+    const b = line.match(/^[-•]\s+(.*)$/);
+    if (b) {
+      flushPara();
+      bullets.push(b[1].trim());
+      continue;
+    }
+
+    if (!line.trim()) {
+      flushBullets();
+      flushPara();
+      continue;
+    }
+
+    flushBullets();
+    para.push(line.trim());
+  }
+
+  flushBullets();
+  flushPara();
+
+  return <div className="space-y-3">{out}</div>;
+}
 
 /* ---------- Tab prop types ---------- */
 
@@ -2329,10 +2415,10 @@ const categories = Array.from(
         }
       >
         {/* Card 1: key themes + short-term view */}
-        <Card className="rounded-2xl shadow-xl">
+        <Card className="rounded-2xl border border-white/10 bg-indigo-950/40 backdrop-blur-sm shadow-xl">
           <CardHeader>
             <CardTitle className="text-xl font-semibold">
-              Transits — Key Themes
+              Transits - Key Themes
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
@@ -2356,10 +2442,10 @@ const categories = Array.from(
 
 
             {!loading && !error && transitSummary && (
-              <p className="text-xs whitespace-pre-wrap leading-relaxed">
-                {transitSummary}
-              </p>
-            )}
+  <div className="text-sm leading-relaxed text-slate-100">
+    {renderAiTextBlocks(transitSummary)}
+  </div>
+)}
 
             {/* Today + next few days (reuse dailyHighlights) */}
             {!loading && !error && dailyHighlights.length > 0 && (
@@ -2392,7 +2478,7 @@ const categories = Array.from(
 
        {/* Card 2: full transit windows, but hidden behind <details> */}
 {hasTransits && (
-  <Card className="rounded-2xl shadow-xl">
+  <Card className="rounded-2xl border border-white/10 bg-indigo-950/40 backdrop-blur-sm shadow-xl">
     <CardHeader>
       <CardTitle className="text-lg font-semibold">
         Upcoming transit windows
@@ -2400,17 +2486,7 @@ const categories = Array.from(
     </CardHeader>
 
     <CardContent className="text-sm space-y-3">
-      {/* Hidden raw technical dump */}
-      {transitSummary && (
-        <details>
-          <summary className="cursor-pointer text-xs text-muted-foreground">
-            Show technical transit details
-          </summary>
-          <pre className="mt-2 text-[11px] whitespace-pre-wrap">
-            {transitSummary}
-          </pre>
-        </details>
-      )}
+
 
       {/* User-friendly cards */}
       {/* Controls */}
@@ -2487,11 +2563,11 @@ const categories = Array.from(
           return (
             <div
               key={idx}
-              className="rounded-xl border border-muted-foreground/20 bg-muted/40 p-3 text-xs leading-relaxed"
+              className="rounded-xl border border-white/10 bg-slate-950/40 p-3 text-xs leading-relaxed text-slate-100"
             >
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div className="space-y-0.5">
-                  <div className="font-semibold">{title}</div>
+                  <div className="font-semibold text-indigo-100">{title}</div>
 
                   {line2 && (
                     <div className="text-[11px] text-muted-foreground">
@@ -2507,13 +2583,19 @@ const categories = Array.from(
                 </div>
 
                 {category && (
-                  <span className="text-[10px] rounded-full border border-muted-foreground/40 px-2 py-0.5 uppercase tracking-wide">
-                    {category}
-                  </span>
+                  <span className="text-[10px] rounded-full border border-indigo-400/20 bg-indigo-500/10 px-2 py-0.5 uppercase tracking-wide text-indigo-200">
+  {category}
+</span>
+
                 )}
               </div>
 
-              {short && <p className="mt-2 whitespace-pre-wrap">{short}</p>}
+              {short && (
+  <div className="mt-2 text-slate-100">
+    {renderAiTextBlocks(short)}
+  </div>
+)}
+
             </div>
           );
         })}
@@ -2524,7 +2606,7 @@ const categories = Array.from(
         <div className="mt-3">
           <Button
             type="button"
-            variant="outline"
+            variant="secondary"
             size="sm"
             onClick={() => setShowAllTransits((v) => !v)}
           >
@@ -2573,11 +2655,11 @@ const TabMonthly: React.FC<TabMonthlyProps> = memo(
       (mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2")
     }
   >
-    <Card className="rounded-2xl shadow-xl">
+    <Card className="rounded-2xl border border-white/10 bg-indigo-950/40 backdrop-blur-sm shadow-xl">
       <CardHeader>
         <CardTitle className="text-lg font-semibold">Next 12 months</CardTitle>
       </CardHeader>
-      <CardContent className="text-sm space-y-3">
+      <CardContent className="text-sm space-y-3 text-slate-100">
         {loading && (
           <div className="text-muted-foreground">
             Building your 12-month overview…
@@ -3166,7 +3248,7 @@ const TabDailyGuide: React.FC<{
   );
 };
 
-  
+
 /* ---------------- Main Shell ---------------- */
 
 
