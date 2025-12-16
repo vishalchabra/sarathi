@@ -2856,14 +2856,14 @@ const TabDailyGuide: React.FC<{
         </div>
       )}
 
-      {/* Top row: AI Snapshot + Today's Focus + Panchang mini card */}
+      {/* Top row: Sārathi Snapshot + Today's Focus + Panchang mini card */}
       <div className="grid gap-4 md:grid-cols-3">
-        {/* AI Snapshot */}
+        {/* Sārathi Snapshot */}
         <div className="md:col-span-2 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <div className="flex items-center justify-between gap-2">
             <div>
               <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                AI Snapshot · {todayLabel}
+                Sārathi Snapshot · {todayLabel}
               </div>
               <h3 className="mt-1 text-lg font-semibold">
                 {emotional?.headline ||
