@@ -3893,7 +3893,7 @@ setTimeout(async () => {
     if (!next || !Array.isArray(next.planets) || next.planets.length === 0) return;
 
     // Cache key: stable per profile inputs
-    const cacheKey = `sarathi:ai-personality:${next.birthDateISO}:${next.birthTime}:${next.birthTz}:${next.ascSign}:${next.moonSign}:${next.sunSign}`;
+    const cacheKey = `sarathi:ai-personality:v2:${next.birthDateISO}:${next.birthTime}:${next.birthTz}:${next.ascSign}:${next.moonSign}:${next.sunSign}`;
 
     // 1) Try cache first (skip API call if fresh)
     try {
