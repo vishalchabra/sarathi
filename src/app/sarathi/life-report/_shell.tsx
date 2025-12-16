@@ -3478,8 +3478,16 @@ const todaysFocus = useMemo(
 
   // Clear report when inputs change
   useEffect(() => {
-    setReport(null);
-  }, [dateISO, time, tz, place?.lat, place?.lon]);
+  setReport(null);
+  setActiveTab("overview");
+}, [dateISO, time, tz, place?.lat, place?.lon]);
+
+// Ensure activeTab is always valid (prevents blank screen)
+useEffect(() => {
+  const allowed = new Set(["overview", "phases", "now", "advanced"]);
+  if (!allowed.has(activeTab as any)) setActiveTab("overview");
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, []);
 
 
 
@@ -3554,7 +3562,7 @@ if (!t) {
 
     const payload = {
       name: name || "User",
-      birthDateISO: dateISO,
+      birthDateISO: dISO,
       birthTime: t,
       birthTz: tz,
       lat: place.lat,
@@ -4485,7 +4493,7 @@ setDailyError(null);
 
   // finally update UI
   setReport(next);
-  setActiveTab("placements");
+  setActiveTab("overview");
 } catch (err: any) {
   console.error("life-report error", err);
   setError(
@@ -4713,45 +4721,51 @@ setDailyError(null);
             </CardContent>
           </Card>
         </motion.div>
-        {/* Wheel + placements */}
-        <motion.div variants={fadeUpSmall} className="space-y-4">
-          {report.planets?.length ? (
-            <Card className="rounded-2xl shadow-xl">
-              <CardHeader>
-                <CardTitle className="text-xl font-semibold flex items-center justify-between">
-                  Planet placements
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-5 text-sm">
-                <div className="text-xs grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {(report.planets ?? [])
-                    .filter(
-                      (p) =>
-                        p?.name && p.name.toLowerCase() !== "ascendant"
-                    )
-                    .slice()
-                    .sort(
-                      (a, b) =>
-                        PLANET_ORDER.indexOf(a.name) -
-                        PLANET_ORDER.indexOf(b.name)
-                    )
-                    .map((pl, idx) => renderPlacement(pl as any, idx))}
-                </div>
-              </CardContent>
-            </Card>
-          ) : (
-            <Card className="rounded-2xl shadow-inner border-dashed border-2 border-muted-foreground/20">
-              <CardHeader>
-                <CardTitle className="text-lg font-medium">
-                  No planet table available.
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="text-sm text-muted-foreground">
-                Generate again to see planet placements.
-              </CardContent>
-            </Card>
-          )}
-        </motion.div>
+        {/* Wheel + placements (collapsed by default) */}
+<motion.div variants={fadeUpSmall} className="space-y-4">
+  <Accordion type="single" collapsible className="w-full">
+    <AccordionItem value="placements-details">
+      <AccordionTrigger className="text-sm font-semibold">
+        Show detailed chart (planet placements)
+      </AccordionTrigger>
+
+      <AccordionContent>
+        {report.planets?.length ? (
+          <Card className="rounded-2xl shadow-xl">
+            <CardHeader>
+              <CardTitle className="text-xl font-semibold flex items-center justify-between">
+                Planet placements
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-5 text-sm">
+              <div className="text-xs grid grid-cols-1 md:grid-cols-2 gap-3">
+                {(report.planets ?? [])
+                  .filter((p) => p?.name && p.name.toLowerCase() !== "ascendant")
+                  .slice()
+                  .sort(
+                    (a, b) =>
+                      PLANET_ORDER.indexOf(a.name) - PLANET_ORDER.indexOf(b.name)
+                  )
+                  .map((pl, idx) => renderPlacement(pl as any, idx))}
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card className="rounded-2xl shadow-inner border-dashed border-2 border-muted-foreground/20">
+            <CardHeader>
+              <CardTitle className="text-lg font-medium">
+                No planet table available.
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="text-sm text-muted-foreground">
+              Generate again to see planet placements.
+            </CardContent>
+          </Card>
+        )}
+      </AccordionContent>
+    </AccordionItem>
+  </Accordion>
+</motion.div>
       </motion.div>
     );
   })();
@@ -4791,45 +4805,57 @@ setDailyError(null);
                 </CardHeader>
                 <CardContent className="text-sm leading-relaxed space-y-3">
   {(() => {
-    const raw = (aiSummary ?? "").trim();
+    const raw0 = (aiSummary ?? "").trim();
+    if (!raw0) return null;
 
-    // If AI returned ```json ... ``` strip the fences first
-    const unfenced = raw
+    // Strip markdown fences if present
+    const raw1 = raw0
       .replace(/^```json\s*/i, "")
       .replace(/^```\s*/i, "")
       .replace(/```$/i, "")
       .trim();
 
-    let obj: any = null;
+    // Try parse JSON; also handle double-encoded JSON
+    const tryParse = (s: string) => {
+      try {
+        return JSON.parse(s);
+      } catch {
+        return null;
+      }
+    };
 
-    try {
-      obj = JSON.parse(unfenced);
-    } catch {
-      obj = null;
+    let obj: any = tryParse(raw1);
+    if (typeof obj === "string") {
+      const obj2 = tryParse(obj);
+      if (obj2) obj = obj2;
     }
 
-    if (obj && (Array.isArray(obj.text) || typeof obj.closing === "string")) {
-      const bullets = Array.isArray(obj.text) ? obj.text : [];
-      const closing = typeof obj.closing === "string" ? obj.closing : "";
+    // If it is { text: [...], closing: "..." } render nicely
+    const bullets =
+      obj && Array.isArray(obj.text) ? (obj.text as string[]) : null;
+    const closing =
+      obj && typeof obj.closing === "string" ? (obj.closing as string) : "";
 
+    if (bullets && bullets.length) {
       return (
         <>
-          {bullets.length > 0 && (
-            <ul className="list-disc pl-5 space-y-2">
-              {bullets.map((b: string, i: number) => (
-                <li key={i}>{b}</li>
-              ))}
-            </ul>
-          )}
-
-          {closing && <p className="text-muted-foreground">{closing}</p>}
+          <ul className="list-disc pl-5 space-y-2">
+            {bullets.map((b, i) => (
+              <li key={i}>{String(b)}</li>
+            ))}
+          </ul>
+          {closing ? (
+            <p className="text-muted-foreground">{closing}</p>
+          ) : null}
         </>
       );
     }
 
-    return <p className="whitespace-pre-wrap">{raw}</p>;
+    // If it is plain text, show it normally
+    return <p className="whitespace-pre-wrap">{raw1}</p>;
   })()}
 </CardContent>
+
               </Card>
             </motion.div>
           )}

@@ -46,17 +46,17 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
-    const body = (await req.json().catch(() => ({}))) as any;
-    const userPrompt = String(
-  body?.prompt ?? body?.question ?? body?.text ?? ""
-).trim();
+    const body = await req.json().catch(() => ({}));
+const report = body?.report ?? body?.lifeReport ?? body;
 
-if (!userPrompt) {
+if (!report || typeof report !== "object") {
   return NextResponse.json(
-    { error: "Missing 'prompt' in request body" },
+    { ok: false, error: "Missing report in POST body" },
     { status: 400 }
   );
 }
+
+
 
     const systemPrompt =
       "You are Sārathi, an AI astrologer-personality and guide. " +
@@ -67,6 +67,14 @@ if (!userPrompt) {
 
     try {
       const client = getOpenAIClient();
+      const userPrompt = `Write a concise, warm, practical personality snapshot (Vedic style) for this person based on the provided birth chart data.
+
+Return JSON with:
+- text: string (5-10 bullet points + 1 short closing paragraph)
+
+Chart data:
+${JSON.stringify(report, null, 2)}
+`;
 
       const completion = await client.chat.completions.create({
         model: GPT_MODEL,

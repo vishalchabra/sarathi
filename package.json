@@ -10,6 +10,7 @@
     "clean": "rimraf .next .turbo",
     "dev:clean": "rimraf .next .turbo && next dev --turbopack",
     "build:clean": "rimraf .next .turbo && next build --turbopack",
+    "test:vim": "tsx -r ./src/server/astro/tests/server-only-shim.cjs src/server/astro/tests/vimshottari-regression.ts",
     "test:asc": "tsx src/server/astro/tests/ascendant-regression.ts"
   },
   "dependencies": {

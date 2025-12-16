@@ -443,15 +443,25 @@ const planetsWholeSign = (planetsRaw || []).map((p: any) => {
   /* 4) Aspects */
   const aspects = computeAspects(planetsWholeSign);
 
+  const moonBirth = (planetsWholeSign ?? []).find(
+  (p) => (p.name || "").toLowerCase() === "moon"
+);
+
+const moonSid = typeof moonBirth?.siderealLongitude === "number"
+  ? moonBirth.siderealLongitude
+  : null;
 
   /* 5) Vimshottari Mahadasha timeline */
   const dashaTimeline = await vimshottariMDTable({
-    dateISO: input.birthDateISO,
-    time: input.birthTime,
-    tz: input.birthTz,
-    lat: input.lat,
-    lon: input.lon,
-  });
+  dateISO: input.birthDateISO,
+  time: input.birthTime,
+  tz: input.birthTz,
+  lat: input.lat,
+  lon: input.lon,
+  moonSiderealLongitude: moonSid ?? undefined,
+});
+
+
 
   const currentMD =
     dashaTimeline.find((row) => row.startISO <= todayISO && todayISO <= row.endISO) || null;
