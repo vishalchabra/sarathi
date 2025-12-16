@@ -3685,30 +3685,46 @@ if (!t) {
 }
 
 const data = (await res.json()) as LifeReportAPI;
-
+console.log("[AI SUMMARY RAW FROM API]", data?.aiSummary);
 
 // ✅ STEP 2: call /api/ai-personality using the REAL life-report payload
 try {
   const pRes = await fetch("/api/ai-personality", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ report: data }), // or { report: next } if inside that section
+    cache: "no-store",
+    body: JSON.stringify({ report: data }),
   });
 
   const pJson = await pRes.json().catch(() => ({}));
 
   if (!pRes.ok) {
-    console.error("ai-personality failed", pRes.status, pJson);
-    // If you have setAiError, use it. Otherwise just don't crash.
-    // setAiError?.(`ai-personality failed (${pRes.status})`);
-    return;
-  }
+    const errMsg =
+      (pJson as any)?.error ??
+      (pJson as any)?.message ??
+      `ai-personality failed (${pRes.status})`;
+    console.error("ai-personality failed:", pRes.status, pJson);
 
-  const text = (pJson as any)?.text ?? (pJson as any)?.personality ?? "";
-  if (text) setAiSummary(text);
+    // TEMP: show the real reason on the card so production debugging is easy
+    setAiSummary(`(DEBUG) ai-personality failed: ${errMsg}`);
+  } else {
+    const textVal = (pJson as any)?.text ?? (pJson as any)?.personality ?? "";
+
+    // Always store as string so your render logic works consistently
+    const asString =
+      typeof textVal === "string"
+        ? textVal
+        : JSON.stringify({
+            text: textVal,
+            closing: (pJson as any)?.closing ?? "",
+          });
+
+    setAiSummary(asString);
+    console.log("[AI SUMMARY RAW]", asString.slice(0, 120));
+  }
 } catch (e: any) {
   console.error("ai-personality crashed", e?.message ?? e);
-  // setAiError?.(e?.message ?? "ai-personality crashed");
+  setAiSummary(`(DEBUG) ai-personality crashed: ${e?.message ?? String(e)}`);
 }
 
     // 🔹 Notifications from API → state (all 3 buckets)
@@ -4861,7 +4877,7 @@ setDailyError(null);
   {(() => {
     const raw0 = (aiSummary ?? "").trim();
     if (!raw0) return null;
-
+   
     // Strip markdown fences if present
     const raw1 = raw0
       .replace(/^```json\s*/i, "")
@@ -4886,7 +4902,12 @@ setDailyError(null);
 
     // If it is { text: [...], closing: "..." } render nicely
     const bullets =
-      obj && Array.isArray(obj.text) ? (obj.text as string[]) : null;
+  obj && Array.isArray(obj.text)
+    ? (obj.text as string[])
+    : obj && typeof obj.text === "string"
+      ? [obj.text]
+      : null;
+
     const closing =
       obj && typeof obj.closing === "string" ? (obj.closing as string) : "";
 
