@@ -2157,6 +2157,11 @@ const fadeUpSmall: any = {
     },
   },
 };
+const ACC_CARD =
+  "rounded-2xl border border-white/10 bg-indigo-950/60 backdrop-blur-sm shadow-lg shadow-[0_0_40px_rgba(99,102,241,0.10)]";
+
+const ACC_TEXT = "text-slate-100";
+const ACC_MUTED = "text-slate-300/70";
 
 const staggerContainer: any = {
   hidden: {},
@@ -2337,6 +2342,17 @@ type TabWeeklyProps = {
   loading: boolean;
   error: string | null;
   mounted: boolean;
+};
+const cleanTransitText = (raw: string) => {
+  const s = (raw || "").toString();
+
+  // remove bold markers and stray markdown noise
+  return s
+    .replace(/\*\*/g, "")                 // **bold**
+    .replace(/__+/g, "")                  // __bold__
+    .replace(/^\s*#+\s*/gm, "")           // headings like ### Title
+    .replace(/\n{3,}/g, "\n\n")           // collapse extra blank lines
+    .trim();
 };
 
 /* ---------- Individual tab components ---------- */
@@ -4853,18 +4869,17 @@ type SavedProfile = {
               Dasha × Transits — Year Ahead Insight
             </AccordionTrigger>
             <AccordionContent>
-              {dashaTransitSummary ? (
-                <Card className="rounded-2xl shadow-sm">
-                  <CardContent className="pt-4 text-sm whitespace-pre-wrap leading-relaxed">
-                    {dashaTransitSummary}
-                  </CardContent>
-                </Card>
-              ) : (
-                <p className="text-xs text-muted-foreground">
-                  No year-ahead summary available.
-                </p>
-              )}
-            </AccordionContent>
+  {dashaTransitSummary ? (
+    <Card className={ACC_CARD}>
+      <CardContent className="pt-4 space-y-3 text-sm">
+        {renderAiTextBlocks(cleanTransitText(dashaTransitSummary))}
+      </CardContent>
+    </Card>
+  ) : (
+    <p className={"text-xs " + ACC_MUTED}>No year-ahead summary available.</p>
+  )}
+</AccordionContent>
+
           </AccordionItem>
 
           {/* Life story overview */}
@@ -4873,19 +4888,18 @@ type SavedProfile = {
               Life Story Overview
             </AccordionTrigger>
             <AccordionContent>
-              {timelineSummary ? (
-                <Card className="rounded-2xl shadow-sm">
-                  <CardContent className="pt-4 text-sm whitespace-pre-wrap leading-relaxed">
-                    {timelineSummary}
-                  </CardContent>
-                </Card>
-              ) : (
-                <p className="text-xs text-muted-foreground">
-  Your life themes are reflected below through dashas and timelines.
-</p>
-
-              )}
-            </AccordionContent>
+  {timelineSummary ? (
+    <Card className={ACC_CARD}>
+      <CardContent className="pt-4 space-y-3 text-sm">
+        {renderAiTextBlocks(cleanTransitText(timelineSummary))}
+      </CardContent>
+    </Card>
+  ) : (
+    <p className={"text-xs " + ACC_MUTED}>
+      Your life themes are reflected below through dashas and timelines.
+    </p>
+  )}
+</AccordionContent>
           </AccordionItem>
 
           {/* Full Vimshottari Mahadasha timeline */}
@@ -4896,7 +4910,7 @@ type SavedProfile = {
                   Vimshottari Mahadasha Timeline
                 </AccordionTrigger>
                 <AccordionContent>
-                  <Card className="rounded-2xl shadow-sm">
+                  <Card className={ACC_CARD}>
                     <CardContent className="pt-4 space-y-3 text-sm">
                       {report.dashaTimeline.map((row: any, idx: number) => {
                         const now = Date.now();
@@ -4908,24 +4922,25 @@ type SavedProfile = {
                           <div
                             key={idx}
                             className={
-                              "flex items-center justify-between rounded-lg border px-3 py-2 " +
-                              (isActive
-                                ? "border-emerald-300 bg-emerald-50"
-                                : "border-muted-foreground/20 bg-muted/40")
-                            }
+  "flex items-center justify-between rounded-xl border px-3 py-2 " +
+  (isActive
+    ? "border-emerald-400/30 bg-emerald-500/10"
+    : "border-white/10 bg-slate-950/40")
+}
+
                           >
                             <div className="space-y-0.5">
-                              <div className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-                                {row.planet} Mahadasha
-                              </div>
-                              <div className="text-xs text-muted-foreground">
-                                {row.startISO} → {row.endISO}
-                              </div>
+                              <div className="text-xs font-semibold uppercase tracking-wide text-slate-300/70">
+  {row.planet} Mahadasha
+</div>
+                              <div className="text-[13px] text-slate-200/80">
+  {row.startISO} → {row.endISO}
+</div>
                             </div>
                             {isActive && (
-                              <span className="text-[10px] font-semibold text-emerald-700">
-                                Current
-                              </span>
+                              <span className="text-[11px] font-semibold text-emerald-200">
+  Current
+</span>
                             )}
                           </div>
                         );
@@ -4944,18 +4959,18 @@ type SavedProfile = {
         Life Story by Dasha
       </AccordionTrigger>
       <AccordionContent>
-        <Card className="rounded-2xl shadow-sm">
+        <Card className={ACC_CARD}>
           <CardContent className="pt-4">
             <div className="space-y-4">
               {report.lifeMilestones.map((m: any, idx: number) => (
                 <div
                   key={idx}
-                  className="relative pl-4 border-l border-muted-foreground/20 last:border-l-0"
+                  className="relative pl-4 border-l border-white/10 last:border-l-0"
                 >
                   {/* timeline dot */}
                   <div className="absolute -left-[5px] top-2 h-2 w-2 rounded-full bg-sky-500 shadow-sm" />
 
-                  <div className="rounded-xl border border-muted-foreground/15 bg-muted/40 p-3 text-sm leading-relaxed">
+                  <div className="rounded-xl border border-white/10 bg-slate-950/40 p-3 text-sm leading-relaxed text-slate-100">
                     <div className="flex flex-wrap items-start justify-between gap-2">
                       <div className="space-y-1">
                         <div className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
