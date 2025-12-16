@@ -1,14 +1,28 @@
 import { vimshottariMDTable } from "@/server/astro/vimshottari-core";
 
+/**
+ * Type-narrowing assertion.
+ * This tells TypeScript that after this runs, `value` is NOT null/undefined.
+ */
+function assertExists<T>(
+  value: T,
+  msg: string
+): asserts value is NonNullable<T> {
+  if (value === null || value === undefined) throw new Error(msg);
+}
 
-
-
-function assert(cond: any, msg: string) {
+function assert(cond: unknown, msg: string): asserts cond {
   if (!cond) throw new Error(msg);
 }
 
+function daysBetween(aISO: string, bISO: string) {
+  const a = new Date(aISO + "T00:00:00.000Z").getTime();
+  const b = new Date(bISO + "T00:00:00.000Z").getTime();
+  return Math.round(Math.abs(a - b) / 86400000);
+}
+
 async function main() {
-  // Use the SAME Moon sidereal longitude you logged earlier (Moon°= 251.53)
+  // Use the SAME Moon sidereal longitude you logged earlier
   const birth = {
     dateISO: "1984-01-21",
     time: "23:35",
@@ -21,28 +35,21 @@ async function main() {
   const rows = await vimshottariMDTable(birth);
 
   assert(Array.isArray(rows) && rows.length > 0, "No MD rows returned");
-  function daysBetween(aISO: string, bISO: string) {
-  const a = new Date(aISO + "T00:00:00.000Z").getTime();
-  const b = new Date(bISO + "T00:00:00.000Z").getTime();
-  return Math.round(Math.abs(a - b) / 86400000);
-}
 
   const rahu = rows.find((r) => r.planet === "Rahu");
-  assert(!!rahu, "Rahu MD not found");
+  assertExists(rahu, "Rahu MD not found");
 
-  // These dates match your screenshot (the correct “finally” output)
-  const expectedRahuStart = "2014-08-04"; // keep your original expected
-assert(
-  daysBetween(rahu.startISO, expectedRahuStart) <= 1,
-  `Rahu start mismatch: got ${rahu.startISO}, expected ~${expectedRahuStart}`
-);
+  const expectedRahuStart = "2014-08-04";
+  assert(
+    daysBetween(rahu.startISO, expectedRahuStart) <= 1,
+    `Rahu start mismatch: got ${rahu.startISO}, expected ~${expectedRahuStart}`
+  );
 
- const expectedRahuEnd = "2032-08-04"; // keep your original expected
-assert(
-  daysBetween(rahu.endISO, expectedRahuEnd) <= 1,
-  `Rahu end mismatch: got ${rahu.endISO}, expected ~${expectedRahuEnd}`
-);
-
+  const expectedRahuEnd = "2032-08-04";
+  assert(
+    daysBetween(rahu.endISO, expectedRahuEnd) <= 1,
+    `Rahu end mismatch: got ${rahu.endISO}, expected ~${expectedRahuEnd}`
+  );
 
   console.log("✅ Vimshottari regression test passed:", rahu);
 }
