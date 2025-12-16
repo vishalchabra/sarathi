@@ -1,17 +1,6 @@
 import { vimshottariMDTable } from "@/server/astro/vimshottari-core";
 
-/**
- * Type-narrowing assertion.
- * This tells TypeScript that after this runs, `value` is NOT null/undefined.
- */
-function assertExists<T>(
-  value: T,
-  msg: string
-): asserts value is NonNullable<T> {
-  if (value === null || value === undefined) throw new Error(msg);
-}
-
-function assert(cond: unknown, msg: string): asserts cond {
+function assert(cond: any, msg: string): asserts cond {
   if (!cond) throw new Error(msg);
 }
 
@@ -22,7 +11,6 @@ function daysBetween(aISO: string, bISO: string) {
 }
 
 async function main() {
-  // Use the SAME Moon sidereal longitude you logged earlier
   const birth = {
     dateISO: "1984-01-21",
     time: "23:35",
@@ -37,7 +25,7 @@ async function main() {
   assert(Array.isArray(rows) && rows.length > 0, "No MD rows returned");
 
   const rahu = rows.find((r) => r.planet === "Rahu");
-  assertExists(rahu, "Rahu MD not found");
+  assert(rahu, "Rahu MD not found");
 
   const expectedRahuStart = "2014-08-04";
   assert(

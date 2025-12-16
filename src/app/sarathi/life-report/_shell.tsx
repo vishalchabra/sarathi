@@ -2347,9 +2347,14 @@ const TabTransits: React.FC<TabTransitsProps> = memo(
             </CardHeader>
             <CardContent className="text-sm">
               <details>
-                <summary className="cursor-pointer text-xs text-muted-foreground">
-                  Show full list of transit windows (next 12 months)
-                </summary>
+  <summary className="cursor-pointer text-xs text-muted-foreground">
+    Show technical transit details
+  </summary>
+  <pre className="mt-2 text-[11px] whitespace-pre-wrap">
+    {transitSummary}
+  </pre>
+</details>
+
 
                 <div className="mt-3 space-y-3">
                   {(transits as any[]).map((tr, idx) => {
@@ -4797,7 +4802,7 @@ setDailyError(null);
               <Card className="rounded-2xl border border-muted-foreground/20 bg-muted/40">
                 <CardHeader>
                   <CardTitle className="text-sm font-semibold">
-                    AI Personality Overview
+                    Sārathi’s Perspective
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="text-sm leading-relaxed space-y-3">
@@ -4997,8 +5002,9 @@ type SavedProfile = {
                 </Card>
               ) : (
                 <p className="text-xs text-muted-foreground">
-                  No life-story summary available.
-                </p>
+  Your life themes are reflected below through dashas and timelines.
+</p>
+
               )}
             </AccordionContent>
           </AccordionItem>
