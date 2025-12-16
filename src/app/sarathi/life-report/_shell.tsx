@@ -2337,88 +2337,90 @@ const TabTransits: React.FC<TabTransitsProps> = memo(
           </CardContent>
         </Card>
 
-        {/* Card 2: full transit windows, but hidden behind <details> */}
-        {hasTransits && (
-          <Card className="rounded-2xl shadow-xl">
-            <CardHeader>
-              <CardTitle className="text-lg font-semibold">
-                Upcoming transit windows
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="text-sm">
-              <details>
-  <summary className="cursor-pointer text-xs text-muted-foreground">
-    Show technical transit details
-  </summary>
-  <pre className="mt-2 text-[11px] whitespace-pre-wrap">
-    {transitSummary}
-  </pre>
-</details>
+       {/* Card 2: full transit windows, but hidden behind <details> */}
+{hasTransits && (
+  <Card className="rounded-2xl shadow-xl">
+    <CardHeader>
+      <CardTitle className="text-lg font-semibold">
+        Upcoming transit windows
+      </CardTitle>
+    </CardHeader>
 
+    <CardContent className="text-sm space-y-3">
+      {/* Hidden raw technical dump */}
+      {transitSummary && (
+        <details>
+          <summary className="cursor-pointer text-xs text-muted-foreground">
+            Show technical transit details
+          </summary>
+          <pre className="mt-2 text-[11px] whitespace-pre-wrap">
+            {transitSummary}
+          </pre>
+        </details>
+      )}
 
-                <div className="mt-3 space-y-3">
-                  {(transits as any[]).map((tr, idx) => {
-                    const title =
-                      tr.label ??
-                      tr.windowLabel ??
-                      `${tr.planet ?? ""} ${tr.aspectLabel ?? tr.aspect ?? ""} ${
-                        tr.targetLabel ?? tr.natalPoint ?? ""
-                      }`.trim();
+      {/* User-friendly cards */}
+      <div className="space-y-3">
+        {(transits as any[]).map((tr, idx) => {
+          const title =
+            tr.label ??
+            tr.windowLabel ??
+            `${tr.planet ?? ""} ${tr.aspectLabel ?? tr.aspect ?? ""} ${
+              tr.targetLabel ?? tr.natalPoint ?? ""
+            }`.trim();
 
-                    const line2 = [
-                      tr.planet,
-                      (tr as any).aspectLabel ?? tr.aspect,
-                      (tr as any).targetLabel ?? tr.natalPoint,
-                    ]
-                      .filter(Boolean)
-                      .join(" ");
+          const line2 = [
+            tr.planet,
+            (tr as any).aspectLabel ?? tr.aspect,
+            (tr as any).targetLabel ?? tr.natalPoint,
+          ]
+            .filter(Boolean)
+            .join(" ");
 
-                    const category =
-                      (tr as any).categoryLabel ?? tr.category ?? "";
+          const category = (tr as any).categoryLabel ?? tr.category ?? "";
 
-                    const description =
-                      tr.description ?? tr.text ?? tr.summary ?? "";
+          const description = tr.description ?? tr.text ?? tr.summary ?? "";
 
-                    return (
-                      <div
-                        key={idx}
-                        className="rounded-xl border border-muted-foreground/20 bg-muted/40 p-3 text-xs leading-relaxed"
-                      >
-                        <div className="flex flex-wrap items-start justify-between gap-2">
-                          <div className="space-y-0.5">
-                            <div className="font-semibold">{title}</div>
-                            {line2 && (
-                              <div className="text-[11px] text-muted-foreground">
-                                {line2}
-                              </div>
-                            )}
-                            {(tr.startISO || tr.endISO) && (
-                              <div className="text-[11px] text-muted-foreground">
-                                {tr.startISO} → {tr.endISO}
-                              </div>
-                            )}
-                          </div>
-                          {category && (
-                            <span className="text-[10px] rounded-full border border-muted-foreground/40 px-2 py-0.5 uppercase tracking-wide">
-                              {category}
-                            </span>
-                          )}
-                        </div>
+          return (
+            <div
+              key={idx}
+              className="rounded-xl border border-muted-foreground/20 bg-muted/40 p-3 text-xs leading-relaxed"
+            >
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div className="space-y-0.5">
+                  <div className="font-semibold">{title}</div>
 
-                        {description && (
-                          <p className="mt-2 whitespace-pre-wrap">
-                            {description}
-                          </p>
-                        )}
-                      </div>
-                    );
-                  })}
-                        
+                  {line2 && (
+                    <div className="text-[11px] text-muted-foreground">
+                      {line2}
+                    </div>
+                  )}
+
+                  {(tr.startISO || tr.endISO) && (
+                    <div className="text-[11px] text-muted-foreground">
+                      {tr.startISO} → {tr.endISO}
+                    </div>
+                  )}
                 </div>
-              </details>
-            </CardContent>
-          </Card>
-        )}
+
+                {category && (
+                  <span className="text-[10px] rounded-full border border-muted-foreground/40 px-2 py-0.5 uppercase tracking-wide">
+                    {category}
+                  </span>
+                )}
+              </div>
+
+              {description && (
+                <p className="mt-2 whitespace-pre-wrap">{description}</p>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </CardContent>
+  </Card>
+)}
+
       </div>
     );
   }
