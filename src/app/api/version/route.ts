@@ -8,5 +8,9 @@ export async function GET() {
     vercelEnv: process.env.VERCEL_ENV ?? null,
     gitCommit: process.env.VERCEL_GIT_COMMIT_SHA ?? null,
     gitMsg: process.env.VERCEL_GIT_COMMIT_MESSAGE ?? null,
+
+    // ✅ add these:
+    hasOpenAIKey: Boolean(process.env.OPENAI_API_KEY),
+    gptModel: process.env.GPT_MODEL ?? null,
   });
 }
