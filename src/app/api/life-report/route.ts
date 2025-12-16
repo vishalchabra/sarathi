@@ -1,4 +1,5 @@
 // FILE: src/app/api/life-report/route.ts
+
 import "server-only";
 import { NextResponse } from "next/server";
 import { buildLifeReport } from "@/server/astro/life-engine";
@@ -11,6 +12,8 @@ import { buildDailyGuideFromCore } from "@/server/guides/daily-core";
 import { todayISOForNotificationTz } from "@/server/notifications/today";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 /* -------------------------------------------------------
    Enrich with MD / AD / PD
@@ -97,7 +100,7 @@ export async function POST(req: Request) {
     const cacheBuster = Date.now(); // temp
     // Cache key: tie to birth details + engine version
     // IMPORTANT: bump this when astro engine changes so we don't serve stale charts
-    const cacheKey = makeCacheKey({
+    const cacheKey = `v2:${makeCacheKey({
       feature: "life-report",
       birthDateISO: body.birthDateISO,
       birthTime: body.birthTime,
@@ -137,7 +140,7 @@ export async function POST(req: Request) {
           lat, // ✅ use coerced values
           lon, // ✅ use coerced values
         });
-        await cacheSet(cacheKey, report, 60 * 60 * 24 * 30);
+        await cacheSet(cacheKey, report, 60 * 60); // 1 hour
         cacheFlag = "miss";
       }
     }
