@@ -3893,7 +3893,7 @@ setTimeout(async () => {
     if (!next || !Array.isArray(next.planets) || next.planets.length === 0) return;
 
     // Cache key: stable per profile inputs
-    const cacheKey = `sarathi:ai-personality:v2:${next.birthDateISO}:${next.birthTime}:${next.birthTz}:${next.ascSign}:${next.moonSign}:${next.sunSign}`;
+    const cacheKey = `sarathi:ai-personality:v3:${next.birthDateISO}:${next.birthTime}:${next.birthTz}:${next.ascSign}:${next.moonSign}:${next.sunSign}`;
 
     // 1) Try cache first (skip API call if fresh)
     try {
@@ -3939,11 +3939,13 @@ setTimeout(async () => {
     const aiJson = await aiRes.json().catch(() => ({}));
 
     // NOTE: your API sometimes returns {text: {...}} or {text: "..." }
-    const payload = aiJson?.text ?? aiJson;
+    const asString = JSON.stringify({
+  text: aiJson.text,
+  closing: aiJson.closing ?? "",
+});
 
-    if (aiRes.ok && payload) {
-      const asString = typeof payload === "string" ? payload : JSON.stringify(payload);
-      setAiSummary(asString);
+setAiSummary(asString);
+
 
       // 3) Save cache
       try {
