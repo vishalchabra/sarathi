@@ -3690,6 +3690,7 @@ console.log("[AI SUMMARY RAW FROM API]", (data as any)?.aiSummary);
 
 // ✅ STEP 2: call /api/ai-personality using the REAL life-report payload
 try {
+  setAiSummary("(DEBUG) Calling /api/ai-personality…");
   const pRes = await fetch("/api/ai-personality", {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -3962,58 +3963,7 @@ setTimeout(async () => {
   }
 }, 0);
 
-        // --- non-blocking AI personality with cache ---
-setTimeout(async () => {
-  try {
-    // ✅ Guard FIRST (before any fetch)
-    if (!next || !Array.isArray(next.planets) || next.planets.length === 0) return;
-
-    const cacheKey = `sarathi:ai-personality:${next.birthDateISO}:${next.birthTime}:${next.birthTz}`;
-
-    // 1) Cache read
-    try {
-      if (typeof window !== "undefined") {
-        const raw = window.localStorage.getItem(cacheKey);
-        if (raw) {
-          const cached = JSON.parse(raw) as { text?: string; ts?: number };
-          if (cached?.text) setAiSummary(cached.text);
-        }
-      }
-    } catch {
-      // ignore
-    }
-
-    // 2) Call API using the REAL full report object (✅ most reliable)
-    const aiRes = await fetch("/api/ai-personality", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ report: next }),
-      signal: ctrl.signal,
-    });
-
-    const aiJson = await aiRes.json().catch(() => ({}));
-    if (aiRes.ok && aiJson?.text) {
-      const text = aiJson.text as string;
-      setAiSummary(text);
-
-      // 3) Cache write
-      try {
-        if (typeof window !== "undefined") {
-          window.localStorage.setItem(cacheKey, JSON.stringify({ text, ts: Date.now() }));
-        }
-      } catch {
-        // ignore
-      }
-    } else if (!aiRes.ok) {
-      const msg = (aiJson as any)?.error || (aiJson as any)?.message || "";
-      console.error("ai-personality failed", aiRes.status, msg);
-    }
-  } catch {
-    // ignore personality AI errors
-  }
-}, 0);
-
-    
+           
 
   // --- compute md/ad/pd once for fusion & monthly/weekly ---
 
