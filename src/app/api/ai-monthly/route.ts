@@ -131,7 +131,7 @@ export async function POST(req: Request) {
     const count = Math.max(1, Math.min(monthsRequested, 12)); // 1–12
 
     const startBase =
-      parseISODate(body.startMonthISO || profile.birthDateISO || null) ||
+      parseISODate(body.startMonthISO || null) ||
       new Date();
     // normalise to 1st of month
     const startMonth = new Date(
