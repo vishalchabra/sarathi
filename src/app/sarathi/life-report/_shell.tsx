@@ -2257,16 +2257,69 @@ type TabWeeklyProps = {
 
 const TabTransits: React.FC<TabTransitsProps> = memo(
   ({
-    transits,
-    loading,
-    error,
-    transitSummary,
-    dailyHighlights,
-    dailyLoading,
-    dailyError,
-    mounted,
-  }) => {
+  transits,
+  loading,
+  error,
+  transitSummary,
+  dailyHighlights,
+  dailyLoading: dailyLoadingProp,
+  dailyError: dailyErrorProp,
+  mounted,
+}) => {
+
     const hasTransits = Array.isArray(transits) && transits.length > 0;
+    const [showAllTransits, setShowAllTransits] = useState(false);
+const [catFilter, setCatFilter] = useState<string>("all");
+
+   // ---- Transits tab: reduce overload ----
+const now = Date.now();
+const list = Array.isArray(transits) ? (transits as any[]) : [];
+
+const normStrength = (tr: any) => {
+  const v =
+    tr?.strength ??
+    tr?.score ??
+    tr?.confidence ??
+    tr?.weight ??
+    tr?.impact ??
+    null;
+  return typeof v === "number" && Number.isFinite(v) ? v : null;
+};
+
+const startMs = (tr: any) => {
+  const s = tr?.startISO ? new Date(tr.startISO).getTime() : NaN;
+  return Number.isFinite(s) ? s : Infinity;
+};
+
+const endMs = (tr: any) => {
+  const e = tr?.endISO ? new Date(tr.endISO).getTime() : NaN;
+  return Number.isFinite(e) ? e : Infinity;
+};
+
+// keep only upcoming-ish (end is in future)
+const upcoming = list
+  .filter((tr) => endMs(tr) >= now)
+  .sort((a, b) => startMs(a) - startMs(b));
+
+// soft ranking: earlier + stronger
+const ranked = [...upcoming].sort((a, b) => {
+  const sa = normStrength(a) ?? 0;
+  const sb = normStrength(b) ?? 0;
+  // prioritize earlier start, then strength
+  const ds = startMs(a) - startMs(b);
+  if (Math.abs(ds) > 1) return ds;
+  return (sb - sa);
+});
+
+// categories for filter
+const catLabel = (tr: any) =>
+  (tr?.categoryLabel ?? tr?.category ?? "").toString().trim();
+
+const categories = Array.from(
+  new Set(ranked.map(catLabel).filter(Boolean))
+);
+
+// local UI state (add these useState hooks at the top of TabTransits component)
 
     return (
       <div
@@ -2325,11 +2378,11 @@ const TabTransits: React.FC<TabTransitsProps> = memo(
               </div>
             )}
 
-            {!loading && !error && dailyError && (
-              <div className="text-xs text-red-500">{dailyError}</div>
+            {!loading && !error && dailyErrorProp && (
+              <div className="text-xs text-red-500">{dailyErrorProp}</div>
             )}
 
-            {dailyLoading && (
+            {dailyLoadingProp && (
               <div className="text-xs text-muted-foreground">
                 Loading daily highlights...
               </div>
@@ -2360,8 +2413,52 @@ const TabTransits: React.FC<TabTransitsProps> = memo(
       )}
 
       {/* User-friendly cards */}
+      {/* Controls */}
+<div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+    <span className="font-medium text-foreground">Showing:</span>
+    {showAllTransits ? "All upcoming windows" : "Top 6 windows"}
+  </div>
+
+  {categories.length > 0 && (
+    <div className="flex items-center gap-2">
+      <span className="text-xs text-muted-foreground">Filter</span>
+      <select
+        className="h-8 rounded-md border border-muted-foreground/30 bg-transparent px-2 text-xs"
+        value={catFilter}
+        onChange={(e) => setCatFilter(e.target.value)}
+      >
+        <option value="all">All</option>
+        {categories.map((c) => (
+          <option key={c} value={c}>
+            {c}
+          </option>
+        ))}
+      </select>
+    </div>
+  )}
+</div>
+
+{(() => {
+  const filtered =
+    catFilter === "all"
+      ? ranked
+      : ranked.filter((tr) => catLabel(tr) === catFilter);
+
+  const toShow = showAllTransits ? filtered : filtered.slice(0, 6);
+
+  if (toShow.length === 0) {
+    return (
+      <p className="text-xs text-muted-foreground">
+        No upcoming transit windows found.
+      </p>
+    );
+  }
+
+  return (
+    <>
       <div className="space-y-3">
-        {(transits as any[]).map((tr, idx) => {
+        {toShow.map((tr, idx) => {
           const title =
             tr.label ??
             tr.windowLabel ??
@@ -2371,15 +2468,21 @@ const TabTransits: React.FC<TabTransitsProps> = memo(
 
           const line2 = [
             tr.planet,
-            (tr as any).aspectLabel ?? tr.aspect,
-            (tr as any).targetLabel ?? tr.natalPoint,
+            tr.aspectLabel ?? tr.aspect,
+            tr.targetLabel ?? tr.natalPoint,
           ]
             .filter(Boolean)
             .join(" ");
 
-          const category = (tr as any).categoryLabel ?? tr.category ?? "";
+          const category = catLabel(tr);
+          const description =
+            (tr.description ?? tr.text ?? tr.summary ?? "").toString().trim();
 
-          const description = tr.description ?? tr.text ?? tr.summary ?? "";
+          // short description (prevents wall of text)
+          const short =
+            description.length > 220
+              ? description.slice(0, 220).trim() + "…"
+              : description;
 
           return (
             <div
@@ -2410,13 +2513,29 @@ const TabTransits: React.FC<TabTransitsProps> = memo(
                 )}
               </div>
 
-              {description && (
-                <p className="mt-2 whitespace-pre-wrap">{description}</p>
-              )}
+              {short && <p className="mt-2 whitespace-pre-wrap">{short}</p>}
             </div>
           );
         })}
       </div>
+
+      {/* Show all / show less */}
+      {filtered.length > 6 && (
+        <div className="mt-3">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setShowAllTransits((v) => !v)}
+          >
+            {showAllTransits ? "Show less" : `Show all (${filtered.length})`}
+          </Button>
+        </div>
+      )}
+    </>
+  );
+})()}
+
     </CardContent>
   </Card>
 )}
@@ -2447,97 +2566,79 @@ const TabMonthly: React.FC<TabMonthlyProps> = memo(
       transitText = after.trim();
     }
 
-    return (
-      <div
-        className={
-          "space-y-4 transform transition-all duration-300 " +
-          (mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2")
-        }
-      >
-        {/* Top: Next 12 months overview */}
-        <Card className="rounded-2xl shadow-xl">
-          <CardHeader>
-            <CardTitle className="text-xl font-semibold">
-              Next 12 Months — Overview
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm">
-            {loading && (
-              <div className="text-muted-foreground">
-                Building your 12-month overview...
-              </div>
+   return (
+  <div
+    className={
+      "space-y-4 transform transition-all duration-300 " +
+      (mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2")
+    }
+  >
+    <Card className="rounded-2xl shadow-xl">
+      <CardHeader>
+        <CardTitle className="text-lg font-semibold">Next 12 months</CardTitle>
+      </CardHeader>
+      <CardContent className="text-sm space-y-3">
+        {loading && (
+          <div className="text-muted-foreground">
+            Building your 12-month overview…
+          </div>
+        )}
+
+        {!loading && error && (
+          <div className="text-sm text-red-500">{error}</div>
+        )}
+
+        {!loading && !error && !hasData && (
+          <div className="text-muted-foreground">
+            12-month overview will appear here once transits are available.
+          </div>
+        )}
+
+        {!loading && !error && hasData && (
+          <>
+            {mainNarrative && (
+              <pre className="text-[12px] whitespace-pre-wrap leading-relaxed">
+                {mainNarrative}
+              </pre>
             )}
 
-            {!loading && error && (
-              <div className="text-sm text-red-500">{error}</div>
+            {transitText && (
+              <details className="mt-3">
+                <summary className="cursor-pointer text-xs text-muted-foreground">
+                  Show technical transit details
+                </summary>
+                <pre className="mt-2 text-[11px] whitespace-pre-wrap leading-relaxed">
+                  {transitText}
+                </pre>
+              </details>
             )}
+          </>
+        )}
+      </CardContent>
+    </Card>
 
-            {!loading && !error && !hasData && (
-              <div className="text-muted-foreground">
-                Monthly guidance will appear here once transits are available.
-              </div>
-            )}
-
-            {!loading && !error && overview && (
-              <div className="space-y-3">
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  {overview.label}
-                </p>
-
-                {mainNarrative && (
-                  <p className="text-xs whitespace-pre-wrap leading-relaxed">
-                    {mainNarrative}
-                  </p>
-                )}
-
-                {transitText && (
-                  <div className="text-xs">
-                    <details>
-                      <summary className="cursor-pointer text-[11px] text-muted-foreground">
-                        Show upcoming transit windows (next 12 months)
-                      </summary>
-                      <p className="mt-2 whitespace-pre-wrap leading-relaxed">
-                        {transitText}
-                      </p>
-                    </details>
-                  </div>
-                )}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Below: month-by-month guidance, if any months exist beyond the overview */}
-        {rest.length > 0 && (
-          <Card className="rounded-2xl shadow-xl">
-            <CardHeader>
-              <CardTitle className="text-lg font-semibold">
-                Month-by-Month Guidance
-              </CardTitle>
+    {/* Optional: show remaining months as cards */}
+    {!loading && !error && rest.length > 0 && (
+      <div className="space-y-3">
+        {rest.map((m) => (
+          <Card
+            key={m.label}
+            className="border border-muted-foreground/30 bg-muted/40 rounded-2xl"
+          >
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-semibold">{m.label}</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3 text-sm">
-              <div className="space-y-3">
-                {rest.map((m) => (
-                  <Card
-                    key={m.label}
-                    className="border border-muted-foreground/30 bg-muted/40"
-                  >
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-sm font-semibold">
-                        {m.label}
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="pt-0 text-xs whitespace-pre-wrap leading-relaxed">
-                      {m.text}
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+            <CardContent className="pt-0 text-xs whitespace-pre-wrap leading-relaxed">
+              {m.text}
             </CardContent>
           </Card>
-        )}
+        ))}
       </div>
-    );
+    )}
+  </div>
+);
+
+
   }
 );
 
@@ -3061,57 +3162,6 @@ const TabDailyGuide: React.FC<{
           )}
         </div>
       </div>
-
-      {/* Next few days section */}
-      <div className="rounded-2xl border border-slate-200 bg-white p-4">
-        <div className="flex items-center justify-between gap-2">
-          <div>
-            <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Next few days
-            </div>
-            <p className="text-xs text-slate-700">
-              Glance ahead so you don’t overreact to just today.
-            </p>
-          </div>
-          {dailyLoading && (
-            <div className="text-[11px] text-slate-500">
-              Loading…
-            </div>
-          )}
-        </div>
-
-        {!dailyLoading && dailyHighlights?.length === 0 && (
-          <p className="mt-3 text-xs text-slate-500">
-            No upcoming highlights available right now.
-          </p>
-        )}
-
-        {dailyHighlights?.length > 0 && (
-          <div className="mt-3 space-y-2">
-            {dailyHighlights.slice(0, 5).map((d, i) => {
-              const label = d.dateISO
-                ? new Date(d.dateISO).toLocaleDateString()
-                : `Day ${i + 1}`;
-              return (
-                <div
-                  key={d.dateISO ?? i}
-                  className="flex items-start gap-3 rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-800"
-                >
-                  <div className="mt-[2px] h-2 w-2 flex-shrink-0 rounded-full bg-slate-400" />
-                  <div>
-                    <div className="font-semibold text-slate-900">
-                      {label}
-                    </div>
-                    <div className="text-xs text-slate-700">
-                      {d.text}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
     </div>
   );
 };
@@ -3204,7 +3254,7 @@ const LifeReportShell: React.FC<LifeReportShellProps> = ({
 
       type DailyHighlightLocal = { dateISO: string; text: string };
   const [dailyHighlights, setDailyHighlights] = useState<DailyHighlightLocal[]>([]);
-  const [dailyLoading, setDailyLoading] = useState(false);
+  const [dailyLoading, setDailyLoading] = useState<boolean>(false);
   const [dailyError, setDailyError] = useState<string | null>(null);
 
       type MythCardLocal = {
@@ -5837,6 +5887,8 @@ window.localStorage.removeItem("sarathi.lifeReportCache.v2");
           todaysFocus={todaysFocus}
         />
         <DailyRhythmCard report={report} />
+
+
       </div>
 
       <TabWeekly
