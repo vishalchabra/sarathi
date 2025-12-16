@@ -2370,6 +2370,18 @@ const TabTransits: React.FC<TabTransitsProps> = memo(
         transitText = transitSummary.trim();
       }
     }
+const cleanTransitText = (raw: string) => {
+  return (raw || "")
+    // remove markdown bold markers
+    .replace(/\*\*/g, "")
+    // remove heading hashes like ##, ### etc
+    .replace(/^#{1,6}\s*/gm, "")
+    // remove long separator lines like --- or ___
+    .replace(/^\s*[-_]{3,}\s*$/gm, "")
+    // normalize excessive blank lines
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+};
 
     return (
       <div
@@ -2386,7 +2398,7 @@ const TabTransits: React.FC<TabTransitsProps> = memo(
             </CardTitle>
           </CardHeader>
 
-          <CardContent className="text-sm">
+          <CardContent className="text-sm text-slate-100">
             {dailyLoadingProp && (
               <div className="text-xs text-muted-foreground">
                 Loading daily highlights...
@@ -2394,10 +2406,12 @@ const TabTransits: React.FC<TabTransitsProps> = memo(
             )}
 
             {!loading && !error && Array.isArray(dailyHighlights) && dailyHighlights.length > 0 && (
-              <ul className="space-y-2 text-xs">
+              <ul className="space-y-3 text-sm leading-relaxed">
                 {dailyHighlights.map((d) => (
                   <li key={d.dateISO} className="leading-relaxed">
-                    <span className="font-semibold">{d.dateISO}:</span>{" "}
+                    <span className="mr-2 inline-flex rounded-md bg-white/5 px-2 py-0.5 text-xs font-semibold text-indigo-100">
+  {d.dateISO}
+</span>
                     {d.text}
                   </li>
                 ))}
@@ -2417,6 +2431,7 @@ const TabTransits: React.FC<TabTransitsProps> = memo(
             )}
           </CardContent>
         </Card>
+       
 
         {/* 2) 12-month overview */}
         <Card className="rounded-2xl border border-white/10 bg-indigo-950/40 backdrop-blur-sm shadow-xl">
@@ -2426,7 +2441,7 @@ const TabTransits: React.FC<TabTransitsProps> = memo(
             </CardTitle>
           </CardHeader>
 
-          <CardContent className="text-sm">
+          <CardContent className="text-sm text-slate-100">
             {loading && (
               <div className="text-xs text-muted-foreground">
                 Loading transits...
@@ -2438,9 +2453,9 @@ const TabTransits: React.FC<TabTransitsProps> = memo(
             )}
 
             {!loading && !error && transitText ? (
-              <div className="whitespace-pre-wrap text-xs leading-relaxed text-slate-100">
-                {transitText}
-              </div>
+              <div className="text-slate-100">
+  {renderAiTextBlocks(cleanTransitText(transitText))}
+</div>
             ) : (
               !loading &&
               !error && (
