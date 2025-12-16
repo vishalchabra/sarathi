@@ -2436,7 +2436,7 @@ const cleanTransitText = (raw: string) => {
         {/* 2) 12-month overview */}
         <Card className="rounded-2xl border border-white/10 bg-indigo-950/40 backdrop-blur-sm shadow-xl">
           <CardHeader>
-            <CardTitle className="text-lg font-semibold">
+            <CardTitle className="text-lg font-semibold !text-slate-100">
               Next 12 months
             </CardTitle>
           </CardHeader>
