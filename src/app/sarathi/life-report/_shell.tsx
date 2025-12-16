@@ -3685,7 +3685,8 @@ if (!t) {
 }
 
 const data = (await res.json()) as LifeReportAPI;
-console.log("[AI SUMMARY RAW FROM API]", data?.aiSummary);
+console.log("[AI SUMMARY RAW FROM API]", (data as any)?.aiSummary);
+
 
 // ✅ STEP 2: call /api/ai-personality using the REAL life-report payload
 try {
