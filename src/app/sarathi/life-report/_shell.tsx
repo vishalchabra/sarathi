@@ -5786,18 +5786,11 @@ window.localStorage.removeItem("sarathi.lifeReportCache.v2");
           mounted={mounted}
           todaysFocus={todaysFocus}
         />
-        <DailyRhythmCard report={report} />
 
 
       </div>
 
-      <TabWeekly
-        weeklyInsights={weeklyInsights}
-        loading={weeklyLoading}
-        error={weeklyError}
-        mounted={mounted}
-      />
-
+      
       <TabMonthly
         monthlyInsights={monthlyInsights}
         loading={monthlyLoading}
