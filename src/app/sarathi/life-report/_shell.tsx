@@ -2343,46 +2343,13 @@ type TabWeeklyProps = {
 
 const TabTransits: React.FC<TabTransitsProps> = memo(
   ({
-    transits,
     loading,
     error,
-    transitSummary,
     dailyHighlights,
     dailyLoading: dailyLoadingProp,
     dailyError: dailyErrorProp,
     mounted,
   }) => {
-    // 12-month overview text (we'll show ONLY this, no extra cards/lists)
-    const list = Array.isArray(transits) ? (transits as any[]) : [];
-
-    // Try to split overview into “overview text” vs “raw transit list”
-    // We keep ONLY the overview text.
-    let transitText = "";
-    const splitMarker = "Upcoming transit windows (next 12 months)";
-
-    if (typeof transitSummary === "string" && transitSummary.trim()) {
-      const idx = transitSummary.indexOf(splitMarker);
-      if (idx >= 0) {
-        const after = transitSummary.slice(idx + splitMarker.length);
-        transitText = after.trim();
-      } else {
-        // If no marker exists, still show the summary as the 12-month overview
-        transitText = transitSummary.trim();
-      }
-    }
-const cleanTransitText = (raw: string) => {
-  return (raw || "")
-    // remove markdown bold markers
-    .replace(/\*\*/g, "")
-    // remove heading hashes like ##, ### etc
-    .replace(/^#{1,6}\s*/gm, "")
-    // remove long separator lines like --- or ___
-    .replace(/^\s*[-_]{3,}\s*$/gm, "")
-    // normalize excessive blank lines
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
-};
-
     return (
       <div
         className={
@@ -2390,29 +2357,26 @@ const cleanTransitText = (raw: string) => {
           (mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2")
         }
       >
-        {/* 1) Today + next few days */}
-        <Card className="rounded-2xl border border-white/10 bg-indigo-950/40 backdrop-blur-sm shadow-xl">
+        <Card className="rounded-2xl border border-white/10 bg-indigo-950/60 backdrop-blur-sm shadow-xl">
           <CardHeader>
-            <CardTitle className="text-lg font-semibold text-slate-100">
+            <CardTitle className="text-lg font-semibold !text-slate-100">
               Today &amp; next few days
             </CardTitle>
           </CardHeader>
 
-          <CardContent className="text-sm text-slate-100">
+          <CardContent className="text-sm">
             {dailyLoadingProp && (
-              <div className="text-xs text-muted-foreground">
-                Loading daily highlights...
-              </div>
+              <div className="text-xs text-slate-300">Loading next few days…</div>
             )}
 
             {!loading && !error && Array.isArray(dailyHighlights) && dailyHighlights.length > 0 && (
-              <ul className="space-y-3 text-sm leading-relaxed">
+              <ul className="space-y-2">
                 {dailyHighlights.map((d) => (
                   <li key={d.dateISO} className="leading-relaxed">
-                    <span className="mr-2 inline-flex rounded-md bg-white/5 px-2 py-0.5 text-xs font-semibold text-indigo-100">
-  {d.dateISO}
-</span>
-                    {d.text}
+                    <span className="mr-2 inline-flex rounded-md bg-white/5 px-2 py-0.5 text-sm font-semibold text-indigo-100">
+                      {d.dateISO}
+                    </span>
+                    <span className="text-slate-200">{d.text}</span>
                   </li>
                 ))}
               </ul>
@@ -2421,48 +2385,13 @@ const cleanTransitText = (raw: string) => {
             {!loading &&
               !error &&
               (!Array.isArray(dailyHighlights) || dailyHighlights.length === 0) && (
-                <div className="text-xs text-muted-foreground">
-                  No highlights available yet.
+                <div className="text-xs text-slate-300">
+                  No strong transit windows are active in the next few days.
                 </div>
               )}
 
             {!loading && !error && dailyErrorProp && (
-              <div className="mt-2 text-xs text-red-500">{dailyErrorProp}</div>
-            )}
-          </CardContent>
-        </Card>
-       
-
-        {/* 2) 12-month overview */}
-        <Card className="rounded-2xl border border-white/10 bg-indigo-950/40 backdrop-blur-sm shadow-xl">
-          <CardHeader>
-            <CardTitle className="text-lg font-semibold !text-slate-100">
-              Next 12 months
-            </CardTitle>
-          </CardHeader>
-
-          <CardContent className="text-sm text-slate-100">
-            {loading && (
-              <div className="text-xs text-muted-foreground">
-                Loading transits...
-              </div>
-            )}
-
-            {!loading && error && (
-              <div className="text-xs text-red-500">{error}</div>
-            )}
-
-            {!loading && !error && transitText ? (
-              <div className="text-slate-100">
-  {renderAiTextBlocks(cleanTransitText(transitText))}
-</div>
-            ) : (
-              !loading &&
-              !error && (
-                <div className="text-xs text-muted-foreground">
-                  12-month overview will appear here once transits are available.
-                </div>
-              )
+              <div className="mt-2 text-xs text-red-400">{dailyErrorProp}</div>
             )}
           </CardContent>
         </Card>
@@ -3203,9 +3132,7 @@ const LifeReportShell: React.FC<LifeReportShellProps> = ({
   const [notificationsPreview, setNotificationsPreview] =
     useState<NotificationPreviewBuckets | null>(null);
 
-  const [myths, setMyths] = useState<MythCardLocal[]>([]);
-  const [mythsLoading, setMythsLoading] = useState(false);
-  const [mythsError, setMythsError] = useState<string | null>(null);
+  
   const [guide, setGuide] = useState<{
     emotionalWeather?: EmotionalWeather;
     food?: FoodGuide;
@@ -5085,145 +5012,6 @@ type SavedProfile = {
     );
   }
 );
-/* ---------------- Tab: Myths (Myth of the Day) ---------------- */
-
-type TabMythsProps = {
-  myths: any[] | null;
-  loading: boolean;
-  error: string | null;
-};
-
-const TabMyths: React.FC<TabMythsProps> = ({ myths, loading, error }) => {
-  // Default myths with proper clarifications
-  const defaultMyths = [
-    {
-      title: "Myth 1",
-      text: "Astrology decides your fate. Reality: it shows tendencies and timings, but your choices and effort still shape outcomes.",
-    },
-    {
-      title: "Myth 2",
-      text: "Rahu & Ketu only bring problems. Reality: they often trigger big learning curves, breakthroughs and non-linear growth.",
-    },
-    {
-      title: "Myth 3",
-      text: "A ‘bad’ planet ruins life. Reality: every planet has constructive and challenging expressions depending on how you work with it.",
-    },
-    {
-      title: "Myth 4",
-      text: "You must follow harsh, complicated remedies. Reality: awareness, aligned action and simple consistent practices often matter more.",
-    },
-    {
-      title: "Myth 5",
-      text: "Charts of partners must be ‘perfect matches’. Reality: maturity, communication and shared values matter more than exact alignment.",
-    },
-  ];
-
-  // Normalise whatever comes in:
-  // - if it's a string → use as title, attach default text by index
-  // - if it's an object with only title → fill in missing text from defaults
-  const rawList: any[] =
-    Array.isArray(myths) && myths.length ? myths : defaultMyths;
-
-  const listToShow = rawList.map((item, index) => {
-    const def = defaultMyths[index % defaultMyths.length] || defaultMyths[0];
-
-    if (typeof item === "string") {
-      return {
-        title: item,
-        text: def.text,
-      };
-    }
-
-    return {
-      title: item.title || def.title,
-      text: item.text || def.text,
-    };
-  });
-
-  // 🔹 Pick Myth of the Day based on date (stable but simple)
-  const today = new Date();
-  const idx =
-    listToShow.length > 0 ? today.getDate() % listToShow.length : 0;
-
-  const mythOfTheDay =
-    listToShow.length > 0 ? listToShow[idx] : null;
-
-  const otherMyths =
-    mythOfTheDay && listToShow.length > 1
-      ? listToShow.filter((m) => m !== mythOfTheDay)
-      : listToShow;
-
-  return (
-    <Card className="rounded-2xl shadow-inner border-2 border-dashed border-muted-foreground/20">
-      <CardHeader>
-        <CardTitle className="text-lg font-semibold">
-          Astrology myths &amp; clarifications
-        </CardTitle>
-      </CardHeader>
-
-      <CardContent className="space-y-4 text-sm text-muted-foreground">
-        {loading && <p>Loading myths...</p>}
-
-        {!loading && error && (
-          <p className="text-red-600 text-xs">
-            {error || "Could not load myths right now."}
-          </p>
-        )}
-
-        {/* Myth of the day */}
-        {!loading && !error && mythOfTheDay && (
-          <div className="rounded-xl border bg-white/60 p-3 shadow-sm">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-amber-600 mb-1">
-              Myth of the day
-            </p>
-            <div className="font-medium text-slate-900">
-              {mythOfTheDay.title}
-            </div>
-            {mythOfTheDay.text && (
-              <p className="text-xs text-slate-700 mt-1">
-                {mythOfTheDay.text}
-              </p>
-            )}
-          </div>
-        )}
-
-        {/* All myths list */}
-        {!loading && !error && otherMyths && otherMyths.length > 0 && (
-          <div className="space-y-2">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-              All myths
-            </p>
-            <ul className="space-y-2">
-              {otherMyths.map((item: any, idx2: number) => (
-                <li
-                  key={idx2}
-                  className="border-b pb-2 last:border-b-0 last:pb-0"
-                >
-                  <div className="font-medium text-slate-800">
-                    {item.title || `Myth ${idx2 + 1}`}
-                  </div>
-                  {item.text && (
-                    <p className="text-xs text-slate-600 mt-1">
-                      {item.text}
-                    </p>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {!loading && !error && listToShow.length === 0 && (
-          <p className="text-xs text-muted-foreground">
-            This section will soon bust common astrology myths and explain what
-            actually matters in your chart.
-          </p>
-        )}
-      </CardContent>
-    </Card>
-  );
-};
-
 
     /* ---------------- TZ mismatch banner ---------------- */
 
@@ -5249,126 +5037,7 @@ const TabMyths: React.FC<TabMythsProps> = ({ myths, loading, error }) => {
     }
     return null;
   }, [place?.name, tz]);
-  // Load myths & reality cards once when we have a report + transits
-  useEffect(() => {
-    if (!report) return;
-
-    let cancelled = false;
-
-    async function loadMyths() {
-      try {
-        setMythsError(null);
-        setMythsLoading(true);
-
-        // build dashaStack from activePeriods (same idea as daily-guide)
-        const periods: any = (report as any)?.activePeriods;
-        const dashaStack: CoreSignals["dashaStack"] = [];
-
-        if (periods?.mahadasha?.lord) {
-          dashaStack.push({
-            planet: periods.mahadasha.lord,
-            startISO: periods.mahadasha.start,
-            endISO: periods.mahadasha.end,
-            level: "md",
-          });
-        }
-
-        if (periods?.antardasha?.subLord) {
-          dashaStack.push({
-            planet: periods.antardasha.subLord,
-            startISO: periods.antardasha.start,
-            endISO: periods.antardasha.end,
-            level: "ad",
-          });
-        }
-
-        if (periods?.pratyantardasha?.lord) {
-          dashaStack.push({
-            planet: periods.pratyantardasha.lord,
-            startISO: periods.pratyantardasha.start,
-            endISO: periods.pratyantardasha.end,
-            level: "pd",
-          });
-        }
-
-        const core: CoreSignals = {
-          birth: {
-            dateISO: dateISO || new Date().toISOString().slice(0, 10),
-            time: time || "00:00",
-            tz: tz || "Asia/Dubai",
-            lat: place?.lat ?? 0,
-            lon: place?.lon ?? 0,
-            lagnaSign: (report as any)?.ascendant?.sign,
-          },
-          dashaStack,
-          transits: (transits ?? []).map((t: any) => ({
-            planet: t.planet,
-            house: t.house,
-            sign: t.sign,
-            category: t.category,
-            strength: t.strength,
-            tags: t.tags,
-            windowLabel: t.windowLabel,
-            startISO: t.startISO,
-            endISO: t.endISO,
-          })),
-          moonToday: {
-            sign: (report as any)?.moon?.sign || "Unknown",
-            nakshatra: (report as any)?.moon?.nakshatra || "Unknown",
-            houseFromMoon: (report as any)?.moon?.houseFromMoon ?? undefined,
-            guna: (report as any)?.moon?.guna || undefined,
-          },
-                            panchang: {
-            tithi: report?.panchang?.tithiName || "Unknown",
-            weekday:
-              (report?.panchang as any)?.weekdayName || "Unknown",
-            yogaName: report?.panchang?.yogaName ?? undefined,
-            karanaName: report?.panchang?.karanaName ?? undefined,
-            sunriseISO: report?.panchang?.sunriseISO ?? undefined,
-          },
-
-
-        };
-
-        const res = await fetch("/api/sarathi/myths", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ core }),
-        });
-
-        if (!res.ok) {
-          const txt = await res.text().catch(() => "");
-          console.error("myths API failed", res.status, txt);
-          if (!cancelled) {
-            setMythsError("Could not load myths.");
-          }
-          return;
-        }
-
-        const json = await res.json();
-        if (!cancelled) {
-          setMyths(Array.isArray(json.myths) ? json.myths : []);
-          setMythsError(null);
-        }
-      } catch (err) {
-        console.error("myths fetch error", err);
-        if (!cancelled) {
-          setMythsError("Could not load myths.");
-        }
-      } finally {
-        if (!cancelled) {
-          setMythsLoading(false);
-        }
-      }
-    }
-
-    loadMyths();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [report, transits, dateISO, time, tz, place]);
-
+ 
      // Keep daily guide in sync with latest Life Report + transits
 useEffect(() => {
   if (!report) {
@@ -5786,19 +5455,7 @@ window.localStorage.removeItem("sarathi.lifeReportCache.v2");
           mounted={mounted}
           todaysFocus={todaysFocus}
         />
-
-
       </div>
-
-      
-      <TabMonthly
-        monthlyInsights={monthlyInsights}
-        loading={monthlyLoading}
-        error={monthlyError}
-        mounted={mounted}
-      />
-
-      <TabMyths myths={myths} loading={mythsLoading} error={mythsError} />
     </div>
   )}
 </div>
