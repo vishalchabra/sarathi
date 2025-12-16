@@ -2361,6 +2361,7 @@ const TabTransits: React.FC<TabTransitsProps> = memo(
   ({
     loading,
     error,
+     transitSummary,
     dailyHighlights,
     dailyLoading: dailyLoadingProp,
     dailyError: dailyErrorProp,
@@ -2409,6 +2410,31 @@ const TabTransits: React.FC<TabTransitsProps> = memo(
             {!loading && !error && dailyErrorProp && (
               <div className="mt-2 text-xs text-red-400">{dailyErrorProp}</div>
             )}
+            {/* 2) Next 12 months */}
+<div className="space-y-2">
+  <p className="text-xs font-semibold uppercase tracking-wide text-slate-300/70">
+    Next 12 months
+  </p>
+
+  {loading && (
+    <p className="text-xs text-slate-300/70">Building your 12-month overview…</p>
+  )}
+
+  {!loading && !error && (transitSummary || "").trim() ? (
+    <div className="rounded-2xl border border-white/10 bg-indigo-950/40 backdrop-blur-sm p-4 text-slate-100">
+      {renderAiTextBlocks(cleanTransitText(transitSummary))}
+    </div>
+  ) : null}
+
+  {!loading && !error && !(transitSummary || "").trim() && (
+    <p className="text-xs text-slate-300/70">
+      12-month overview will appear here once transits are available.
+    </p>
+  )}
+
+  {!loading && !!error && <p className="text-xs text-red-400">{error}</p>}
+</div>
+
           </CardContent>
         </Card>
       </div>
