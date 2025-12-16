@@ -4908,38 +4908,36 @@ const TabTimeline: React.FC<TabTimelineProps> = memo(
             </AccordionContent>
           </AccordionItem>
 
-          {/* B) Life story overview */}
-          <AccordionItem
-            value="life-overview"
-            className={"rounded-2xl border " + divider + " bg-indigo-950/30"}
-          >
-            <AccordionTrigger className={sectionTrigger}>
-              Life Story Overview
-            </AccordionTrigger>
+          {/* Life story overview (hide if it's the same as year-ahead) */}
+{(() => {
+  const y = (dashaTransitSummary || "").trim();
+  const t = (timelineSummary || "").trim();
+  const isDuplicate = !!y && !!t && y === t;
 
-            <AccordionContent className="pt-2">
-              <p className={subNote}>
-                A short “thread” that connects your phases — what keeps repeating, what you’re
-                learning, and where things are headed.
-              </p>
+  if (isDuplicate) return null;
 
-              <div className="mt-3">
-                {timelineSummary ? (
-                  <Card className={ACC_CARD}>
-                    <CardContent className="pt-4">
-                      <div className="text-slate-100 text-sm leading-relaxed">
-                        {renderAiTextBlocks(cleanTransitText(timelineSummary))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ) : (
-                  <p className={"mt-2 text-xs " + ACC_MUTED}>
-                    Your life themes will appear here once your report summary is ready.
-                  </p>
-                )}
-              </div>
-            </AccordionContent>
-          </AccordionItem>
+  return (
+    <AccordionItem value="life-overview">
+      <AccordionTrigger className="text-xs font-medium text-muted-foreground">
+        Life Story Overview
+      </AccordionTrigger>
+
+      <AccordionContent>
+        {t ? (
+          <Card className={ACC_CARD}>
+            <CardContent className="pt-4 space-y-3 text-sm">
+              {renderAiTextBlocks(cleanTransitText(t))}
+            </CardContent>
+          </Card>
+        ) : (
+          <p className={"text-xs " + ACC_MUTED}>
+            Your life themes will appear here once your report summary is ready.
+          </p>
+        )}
+      </AccordionContent>
+    </AccordionItem>
+  );
+})()}
 
           {/* C) Vimshottari timeline (compact list) */}
           {Array.isArray(report.dashaTimeline) && report.dashaTimeline.length > 0 && (
