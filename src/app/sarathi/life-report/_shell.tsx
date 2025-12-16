@@ -3882,18 +3882,14 @@ try {
         moonNakFinal ?? next.panchang.moonNakshatraName;
     }
     
-       // --- non-blocking AI personality summary with client-side cache ---
-    try {
-      aiCtrlRef.current?.abort();
-    } catch {}
-    const ctrl = new AbortController();
-    aiCtrlRef.current = ctrl;
+       // --- non-blocking AI personality with cache ---
 setTimeout(async () => {
   try {
     if (!next || !Array.isArray(next.planets) || next.planets.length === 0) return;
 
-    // Cache key: stable per profile inputs
-    const cacheKey = `sarathi:ai-personality:v3:${next.birthDateISO}:${next.birthTime}:${next.birthTz}:${next.ascSign}:${next.moonSign}:${next.sunSign}`;
+    // ✅ bump version to invalidate old cached generic text
+    const cacheKey =
+      `sarathi:ai-personality:v3:${next.birthDateISO}:${next.birthTime}:${next.birthTz}:${next.ascSign}:${next.moonSign}:${next.sunSign}`;
 
     // 1) Try cache first (skip API call if fresh)
     try {
@@ -3904,12 +3900,14 @@ setTimeout(async () => {
           const ts = typeof cached?.ts === "number" ? cached.ts : 0;
           const ageMs = Date.now() - ts;
 
-          // freshness window: 14 days (change if you want)
+          // freshness window: 14 days
           if (cached?.payload && ageMs < 14 * 24 * 60 * 60 * 1000) {
-            setAiSummary(
-              typeof cached.payload === "string" ? cached.payload : JSON.stringify(cached.payload)
-            );
-            return; // ✅ IMPORTANT: do not call API
+            const cachedStr =
+              typeof cached.payload === "string"
+                ? cached.payload
+                : JSON.stringify(cached.payload);
+            setAiSummary(cachedStr);
+            return;
           }
         }
       }
@@ -3922,6 +3920,7 @@ setTimeout(async () => {
     const aiRes = await fetch("/api/ai-personality", {
       method: "POST",
       headers: { "content-type": "application/json" },
+      cache: "no-store",
       body: JSON.stringify({
         profile: {
           name: next.name,
@@ -3936,16 +3935,16 @@ setTimeout(async () => {
       signal: ctrl.signal,
     });
 
-    const aiJson = await aiRes.json().catch(() => ({}));
+    const aiJson = await aiRes.json().catch(() => ({} as any));
 
-    // NOTE: your API sometimes returns {text: {...}} or {text: "..." }
-    const asString = JSON.stringify({
-  text: aiJson.text,
-  closing: aiJson.closing ?? "",
-});
-
-setAiSummary(asString);
-
+    if (aiRes.ok && aiJson?.text) {
+      // ✅ store in the exact shape your renderer expects: { text: string[], closing: string }
+      const payload = {
+        text: aiJson.text,
+        closing: aiJson.closing ?? "",
+      };
+      const asString = JSON.stringify(payload);
+      setAiSummary(asString);
 
       // 3) Save cache
       try {
@@ -3958,14 +3957,17 @@ setAiSummary(asString);
       } catch {
         // ignore cache write errors
       }
+    } else if (!aiRes.ok) {
+      const msg = aiJson?.error ?? aiJson?.message ?? "";
+      console.error("ai-personality failed", aiRes.status, msg);
+      setAiSummary(`(DEBUG) ai-personality failed: ${aiRes.status} ${msg}`);
     }
   } catch (e: any) {
     console.error("ai-personality crashed", e?.message ?? e);
-    // optional: show a tiny inline error state if you have one
+    setAiSummary(`(DEBUG) ai-personality crashed: ${e?.message ?? String(e)}`);
   }
 }, 0);
-
-           
+    
 
   // --- compute md/ad/pd once for fusion & monthly/weekly ---
 
