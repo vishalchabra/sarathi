@@ -262,7 +262,7 @@ function AssistantProse({ data }: { data: QAResponse }) {
   const [showLong, setShowLong] = useState(false);
 
   return (
-    <div className="rounded-2xl bg-gray-100 p-3 text-sm leading-6">
+    <div className="rounded-2xl bg-white/5 border border-white/10 p-3 text-sm leading-6">
       {c.answer ? <p className="mb-2">{c.answer}</p> : null}
 
       {c.long ? (
@@ -799,7 +799,7 @@ export default function ChatClient() {
   if (!mounted) return <div className="p-6 text-sm text-gray-600">Loading chat…</div>;
 
   return (
-    <main className="mx-auto max-w-5xl p-4 h-[100dvh] flex flex-col gap-3">
+    <main className="mx-auto max-w-5xl p-4 h-[100dvh] flex flex-col gap-3 text-slate-100 bg-gradient-to-b from-slate-950 via-indigo-950/30 to-slate-950">
       <header className="flex items-center gap-3 flex-wrap">
         <h1 className="text-xl font-semibold tracking-tight">
           Sarathi · Chat{" "}
@@ -892,7 +892,7 @@ export default function ChatClient() {
       </header>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto rounded-2xl border border-black/10 bg-white p-4 space-y-6">
+      <div className="flex-1 overflow-y-auto rounded-2xl border border-white/10 bg-indigo-950/40 backdrop-blur-sm p-4 space-y-6">
         {messages.map((msg, idx) => {
           const hasWindows = !!(msg.data && Array.isArray(msg.data.windows) && msg.data.windows.length);
           const hasNarrative = !!(msg.data && msg.data.copy && msg.data.copy.answer);
@@ -938,7 +938,7 @@ export default function ChatClient() {
               msg.data?.extra?.nowLabel;
             const wins = normalizeWindows(msg.data?.windows);
             content = (
-              <div className="rounded-2xl bg-gray-100 p-3 text-sm leading-6">
+              <div className="rounded-2xl bg-white/5 border border-white/10 p-3 text-sm leading-6">
                 <p className="mb-2">
                   I couldn’t fetch specific guidance for that request just now.
                   {now ? ` You’re currently in **${now}**.` : ""} Here’s the big picture:
@@ -964,7 +964,7 @@ export default function ChatClient() {
             );
           } else if (msg.role === "assistant" && msg.data) {
             content = (
-              <div className="rounded-2xl bg-gray-100 px-3 py-2 text-sm">
+              <div className="rounded-2xl bg-white/5 border border-white/5 px-3 py-2 text-sm">
                 {msg.data.bottomLine?.lead || "Here’s what I found."}
               </div>
             );
@@ -979,7 +979,7 @@ export default function ChatClient() {
             >
               <div className={`max-w-[85%] ${msg.role === "user" ? "text-right" : "text-left"}`}>
                 {safeMode && msg.data ? (
-                  <pre className="max-w-[85%] overflow-auto rounded-2xl bg-gray-100 p-3 text-xs">
+                  <pre className="max-w-[85%] overflow-auto rounded-2xl bg-white/5 border border-white/10 p-3 text-xs">
                     {JSON.stringify(msg.data, null, 2)}
                   </pre>
                 ) : msg.role === "assistant" && msg.data ? (
@@ -987,7 +987,7 @@ export default function ChatClient() {
                 ) : msg.content ? (
                   <div
                     className={`rounded-2xl px-3 py-2 text-sm ${
-                      msg.role === "user" ? "bg-black text-white" : "bg-gray-100"
+                      msg.role === "user" ? "bg-black text-white" : "bg-white/5 border border-white/10"
                     }`}
                   >
                     {msg.content}
@@ -1009,7 +1009,7 @@ export default function ChatClient() {
       {/* Input */}
       <div className="flex gap-2">
         <input
-          className="h-10 flex-1 rounded-md border border-black/10 bg-white px-3 text-sm outline-none focus:border-black/30"
+          className="h-10 flex-1 rounded-md border border-black/5 bg-white px-3 text-sm outline-none focus:border-black/30"
           placeholder="Type your question…"
           value={input}
           onChange={(e) => setInput(e.target.value)}
