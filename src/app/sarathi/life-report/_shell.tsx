@@ -2393,7 +2393,7 @@ const cleanTransitText = (raw: string) => {
         {/* 1) Today + next few days */}
         <Card className="rounded-2xl border border-white/10 bg-indigo-950/40 backdrop-blur-sm shadow-xl">
           <CardHeader>
-            <CardTitle className="text-lg font-semibold">
+            <CardTitle className="text-lg font-semibold text-slate-100">
               Today &amp; next few days
             </CardTitle>
           </CardHeader>
@@ -2500,7 +2500,7 @@ const TabMonthly: React.FC<TabMonthlyProps> = memo(
   >
     <Card className="rounded-2xl border border-white/10 bg-indigo-950/40 backdrop-blur-sm shadow-xl">
       <CardHeader>
-        <CardTitle className="text-lg font-semibold">Next 12 months</CardTitle>
+        <CardTitle className="text-lg font-semibold text-slate-100">Next 12 months</CardTitle>
       </CardHeader>
       <CardContent className="text-sm space-y-3 text-slate-100">
         {loading && (
