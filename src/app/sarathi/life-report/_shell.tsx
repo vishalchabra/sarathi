@@ -3690,8 +3690,7 @@ console.log("[AI SUMMARY RAW FROM API]", (data as any)?.aiSummary);
 
 // ✅ STEP 2: call /api/ai-personality using the REAL life-report payload
 try {
-  setAiSummary("(DEBUG) Calling /api/ai-personality…");
-  const pRes = await fetch("/api/ai-personality", {
+    const pRes = await fetch("/api/ai-personality", {
     method: "POST",
     headers: { "content-type": "application/json" },
     cache: "no-store",
@@ -4822,13 +4821,13 @@ setDailyError(null);
         >
           {aiSummary && (
             <motion.div variants={fadeUpSmall}>
-              <Card className="rounded-2xl border border-muted-foreground/20 bg-muted/40">
+              <Card className="rounded-2xl border border-white/10 bg-indigo-950/60 backdrop-blur-sm shadow-lg shadow-[0_0_40px_rgba(99,102,241,0.12)]">
                 <CardHeader>
-                  <CardTitle className="text-sm font-semibold">
+                  <CardTitle className="text-sm font-semibold text-indigo-100">
                     Sārathi’s Perspective
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="text-sm leading-relaxed space-y-3">
+                <CardContent className="text-sm leading-relaxed space-y-3 text-indigo-50/90">
   {(() => {
     const raw0 = (aiSummary ?? "").trim();
     if (!raw0) return null;
@@ -4869,13 +4868,13 @@ setDailyError(null);
     if (bullets && bullets.length) {
       return (
         <>
-          <ul className="list-disc pl-5 space-y-2">
+          <ul className="list-disc pl-5 space-y-2 text-indigo-50/90">
             {bullets.map((b, i) => (
               <li key={i}>{String(b)}</li>
             ))}
           </ul>
           {closing ? (
-            <p className="text-muted-foreground">{closing}</p>
+            <p className="text-indigo-200/70 italic">{closing}</p>
           ) : null}
         </>
       );
