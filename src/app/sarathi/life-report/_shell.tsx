@@ -2343,69 +2343,33 @@ type TabWeeklyProps = {
 
 const TabTransits: React.FC<TabTransitsProps> = memo(
   ({
-  transits,
-  loading,
-  error,
-  transitSummary,
-  dailyHighlights,
-  dailyLoading: dailyLoadingProp,
-  dailyError: dailyErrorProp,
-  mounted,
-}) => {
+    transits,
+    loading,
+    error,
+    transitSummary,
+    dailyHighlights,
+    dailyLoading: dailyLoadingProp,
+    dailyError: dailyErrorProp,
+    mounted,
+  }) => {
+    // 12-month overview text (we'll show ONLY this, no extra cards/lists)
+    const list = Array.isArray(transits) ? (transits as any[]) : [];
 
-    const hasTransits = Array.isArray(transits) && transits.length > 0;
-    const [showAllTransits, setShowAllTransits] = useState(false);
-const [catFilter, setCatFilter] = useState<string>("all");
+    // Try to split overview into “overview text” vs “raw transit list”
+    // We keep ONLY the overview text.
+    let transitText = "";
+    const splitMarker = "Upcoming transit windows (next 12 months)";
 
-   // ---- Transits tab: reduce overload ----
-const now = Date.now();
-const list = Array.isArray(transits) ? (transits as any[]) : [];
-
-const normStrength = (tr: any) => {
-  const v =
-    tr?.strength ??
-    tr?.score ??
-    tr?.confidence ??
-    tr?.weight ??
-    tr?.impact ??
-    null;
-  return typeof v === "number" && Number.isFinite(v) ? v : null;
-};
-
-const startMs = (tr: any) => {
-  const s = tr?.startISO ? new Date(tr.startISO).getTime() : NaN;
-  return Number.isFinite(s) ? s : Infinity;
-};
-
-const endMs = (tr: any) => {
-  const e = tr?.endISO ? new Date(tr.endISO).getTime() : NaN;
-  return Number.isFinite(e) ? e : Infinity;
-};
-
-// keep only upcoming-ish (end is in future)
-const upcoming = list
-  .filter((tr) => endMs(tr) >= now)
-  .sort((a, b) => startMs(a) - startMs(b));
-
-// soft ranking: earlier + stronger
-const ranked = [...upcoming].sort((a, b) => {
-  const sa = normStrength(a) ?? 0;
-  const sb = normStrength(b) ?? 0;
-  // prioritize earlier start, then strength
-  const ds = startMs(a) - startMs(b);
-  if (Math.abs(ds) > 1) return ds;
-  return (sb - sa);
-});
-
-// categories for filter
-const catLabel = (tr: any) =>
-  (tr?.categoryLabel ?? tr?.category ?? "").toString().trim();
-
-const categories = Array.from(
-  new Set(ranked.map(catLabel).filter(Boolean))
-);
-
-// local UI state (add these useState hooks at the top of TabTransits component)
+    if (typeof transitSummary === "string" && transitSummary.trim()) {
+      const idx = transitSummary.indexOf(splitMarker);
+      if (idx >= 0) {
+        const after = transitSummary.slice(idx + splitMarker.length);
+        transitText = after.trim();
+      } else {
+        // If no marker exists, still show the summary as the 12-month overview
+        transitText = transitSummary.trim();
+      }
+    }
 
     return (
       <div
@@ -2414,219 +2378,83 @@ const categories = Array.from(
           (mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2")
         }
       >
-        {/* Card 1: key themes + short-term view */}
+        {/* 1) Today + next few days */}
         <Card className="rounded-2xl border border-white/10 bg-indigo-950/40 backdrop-blur-sm shadow-xl">
           <CardHeader>
-            <CardTitle className="text-xl font-semibold">
-              Transits - Key Themes
+            <CardTitle className="text-lg font-semibold">
+              Today &amp; next few days
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3 text-sm">
-            {loading && (
-              <div className="text-muted-foreground">
-                Looking at your current and upcoming transits...
-              </div>
-            )}
 
-            {!loading && error && (
-              <div className="text-sm text-red-500">{error}</div>
-            )}
-
-                        {!loading && !error && !hasTransits && (
-              <div className="text-muted-foreground text-xs leading-relaxed">
-                Right now the sky looks relatively calm for you.
-                No strong transit windows are active in the next few days,
-                so focus on steady, simple actions and rest where you can.
-              </div>
-            )}
-
-
-            {!loading && !error && transitSummary && (
-  <div className="text-sm leading-relaxed text-slate-100">
-    {renderAiTextBlocks(transitSummary)}
-  </div>
-)}
-
-            {/* Today + next few days (reuse dailyHighlights) */}
-            {!loading && !error && dailyHighlights.length > 0 && (
-              <div className="space-y-1">
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Today &amp; next few days
-                </p>
-                <ul className="space-y-1 text-xs">
-                  {dailyHighlights.map((d) => (
-                    <li key={d.dateISO}>
-                      <span className="font-semibold">{d.dateISO}:</span>{" "}
-                      {d.text}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {!loading && !error && dailyErrorProp && (
-              <div className="text-xs text-red-500">{dailyErrorProp}</div>
-            )}
-
+          <CardContent className="text-sm">
             {dailyLoadingProp && (
               <div className="text-xs text-muted-foreground">
                 Loading daily highlights...
               </div>
             )}
+
+            {!loading && !error && Array.isArray(dailyHighlights) && dailyHighlights.length > 0 && (
+              <ul className="space-y-2 text-xs">
+                {dailyHighlights.map((d) => (
+                  <li key={d.dateISO} className="leading-relaxed">
+                    <span className="font-semibold">{d.dateISO}:</span>{" "}
+                    {d.text}
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {!loading &&
+              !error &&
+              (!Array.isArray(dailyHighlights) || dailyHighlights.length === 0) && (
+                <div className="text-xs text-muted-foreground">
+                  No highlights available yet.
+                </div>
+              )}
+
+            {!loading && !error && dailyErrorProp && (
+              <div className="mt-2 text-xs text-red-500">{dailyErrorProp}</div>
+            )}
           </CardContent>
         </Card>
 
-       {/* Card 2: full transit windows, but hidden behind <details> */}
-{hasTransits && (
-  <Card className="rounded-2xl border border-white/10 bg-indigo-950/40 backdrop-blur-sm shadow-xl">
-    <CardHeader>
-      <CardTitle className="text-lg font-semibold">
-        Upcoming transit windows
-      </CardTitle>
-    </CardHeader>
+        {/* 2) 12-month overview */}
+        <Card className="rounded-2xl border border-white/10 bg-indigo-950/40 backdrop-blur-sm shadow-xl">
+          <CardHeader>
+            <CardTitle className="text-lg font-semibold">
+              Next 12 months
+            </CardTitle>
+          </CardHeader>
 
-    <CardContent className="text-sm space-y-3">
-
-
-      {/* User-friendly cards */}
-      {/* Controls */}
-<div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-    <span className="font-medium text-foreground">Showing:</span>
-    {showAllTransits ? "All upcoming windows" : "Top 6 windows"}
-  </div>
-
-  {categories.length > 0 && (
-    <div className="flex items-center gap-2">
-      <span className="text-xs text-muted-foreground">Filter</span>
-      <select
-        className="h-8 rounded-md border border-muted-foreground/30 bg-transparent px-2 text-xs"
-        value={catFilter}
-        onChange={(e) => setCatFilter(e.target.value)}
-      >
-        <option value="all">All</option>
-        {categories.map((c) => (
-          <option key={c} value={c}>
-            {c}
-          </option>
-        ))}
-      </select>
-    </div>
-  )}
-</div>
-
-{(() => {
-  const filtered =
-    catFilter === "all"
-      ? ranked
-      : ranked.filter((tr) => catLabel(tr) === catFilter);
-
-  const toShow = showAllTransits ? filtered : filtered.slice(0, 6);
-
-  if (toShow.length === 0) {
-    return (
-      <p className="text-xs text-muted-foreground">
-        No upcoming transit windows found.
-      </p>
-    );
-  }
-
-  return (
-    <>
-      <div className="space-y-3">
-        {toShow.map((tr, idx) => {
-          const title =
-            tr.label ??
-            tr.windowLabel ??
-            `${tr.planet ?? ""} ${tr.aspectLabel ?? tr.aspect ?? ""} ${
-              tr.targetLabel ?? tr.natalPoint ?? ""
-            }`.trim();
-
-          const line2 = [
-            tr.planet,
-            tr.aspectLabel ?? tr.aspect,
-            tr.targetLabel ?? tr.natalPoint,
-          ]
-            .filter(Boolean)
-            .join(" ");
-
-          const category = catLabel(tr);
-          const description =
-            (tr.description ?? tr.text ?? tr.summary ?? "").toString().trim();
-
-          // short description (prevents wall of text)
-          const short =
-            description.length > 220
-              ? description.slice(0, 220).trim() + "…"
-              : description;
-
-          return (
-            <div
-              key={idx}
-              className="rounded-xl border border-white/10 bg-slate-950/40 p-3 text-xs leading-relaxed text-slate-100"
-            >
-              <div className="flex flex-wrap items-start justify-between gap-2">
-                <div className="space-y-0.5">
-                  <div className="font-semibold text-indigo-100">{title}</div>
-
-                  {line2 && (
-                    <div className="text-[11px] text-muted-foreground">
-                      {line2}
-                    </div>
-                  )}
-
-                  {(tr.startISO || tr.endISO) && (
-                    <div className="text-[11px] text-muted-foreground">
-                      {tr.startISO} → {tr.endISO}
-                    </div>
-                  )}
-                </div>
-
-                {category && (
-                  <span className="text-[10px] rounded-full border border-indigo-400/20 bg-indigo-500/10 px-2 py-0.5 uppercase tracking-wide text-indigo-200">
-  {category}
-</span>
-
-                )}
+          <CardContent className="text-sm">
+            {loading && (
+              <div className="text-xs text-muted-foreground">
+                Loading transits...
               </div>
+            )}
 
-              {short && (
-  <div className="mt-2 text-slate-100">
-    {renderAiTextBlocks(short)}
-  </div>
-)}
+            {!loading && error && (
+              <div className="text-xs text-red-500">{error}</div>
+            )}
 
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Show all / show less */}
-      {filtered.length > 6 && (
-        <div className="mt-3">
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            onClick={() => setShowAllTransits((v) => !v)}
-          >
-            {showAllTransits ? "Show less" : `Show all (${filtered.length})`}
-          </Button>
-        </div>
-      )}
-    </>
-  );
-})()}
-
-    </CardContent>
-  </Card>
-)}
-
+            {!loading && !error && transitText ? (
+              <div className="whitespace-pre-wrap text-xs leading-relaxed text-slate-100">
+                {transitText}
+              </div>
+            ) : (
+              !loading &&
+              !error && (
+                <div className="text-xs text-muted-foreground">
+                  12-month overview will appear here once transits are available.
+                </div>
+              )
+            )}
+          </CardContent>
+        </Card>
       </div>
     );
   }
 );
-
 
 const TabMonthly: React.FC<TabMonthlyProps> = memo(
   ({ monthlyInsights, loading, error, mounted }) => {
