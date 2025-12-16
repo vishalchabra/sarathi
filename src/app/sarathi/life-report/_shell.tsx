@@ -3555,10 +3555,7 @@ if (!t) {
     if (!place?.lat || !place?.lon) {
       throw new Error("Pick a birth place from the dropdown.");
     }
-    const dISO =
-  d instanceof Date && Number.isFinite(d.getTime())
-    ? d.toISOString().slice(0, 10)
-    : String(d);
+    const dISO = String(d);
 
     const payload = {
       name: name || "User",
