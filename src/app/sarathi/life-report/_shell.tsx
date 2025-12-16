@@ -835,6 +835,93 @@ function ordinal(n?: number): string {
       : "th";
   return `${v}${suffix}`;
 }
+
+function classifyBullet(line: string): "strength" | "challenge" | "growth" {
+  const s = (line || "").toLowerCase();
+
+  const challengeHints = [
+    "struggle",
+    "struggles",
+    "watch for",
+    "beware",
+    "risk",
+    "may feel",
+    "can feel",
+    "conflict",
+    "impatient",
+    "misunderstood",
+    "self-doubt",
+    "periodic",
+    "tension",
+  ];
+  const growthHints = [
+    "learn",
+    "growth",
+    "practice",
+    "build",
+    "develop",
+    "focus",
+    "improve",
+    "nudge",
+    "work on",
+    "try",
+    "discipline",
+    "steady",
+  ];
+
+  if (challengeHints.some((k) => s.includes(k))) return "challenge";
+  if (growthHints.some((k) => s.includes(k))) return "growth";
+  return "strength";
+}
+
+function parsePersonality(raw: unknown): { bullets: string[]; closing: string } {
+  // raw can be string JSON, plain string, or object
+  if (raw == null) return { bullets: [], closing: "" };
+
+  // if already an object
+  if (typeof raw === "object") {
+    const obj: any = raw;
+    const bullets = Array.isArray(obj.text) ? obj.text.filter(Boolean) : [];
+    const closing = typeof obj.closing === "string" ? obj.closing : "";
+    return { bullets, closing };
+  }
+
+  const str = String(raw);
+
+  // try JSON parse
+  try {
+    const obj = JSON.parse(str);
+    const bullets = Array.isArray((obj as any)?.text) ? (obj as any).text.filter(Boolean) : [];
+    const closing = typeof (obj as any)?.closing === "string" ? (obj as any).closing : "";
+    if (bullets.length || closing) return { bullets, closing };
+  } catch {
+    // ignore
+  }
+
+  // plain text fallback → split into lines if it looks list-y
+  const lines = str
+    .split("\n")
+    .map((x) => x.trim())
+    .filter(Boolean);
+
+  return { bullets: lines.length > 1 ? lines : [str], closing: "" };
+}
+function normalizeDateToISO(input: string): string {
+  const s = (input || "").trim();
+
+  // already ISO: YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+
+  // DD/MM/YYYY
+  const m = s.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (m) {
+    const [, dd, mm, yyyy] = m;
+    return `${yyyy}-${mm}-${dd}`;
+  }
+
+  return s; // fallback (won't crash)
+}
+
 // ---------------- Weekly guidance helper (client-side) ----------------
 
 function fmtRangeLabel(start: Date, end: Date): string {
@@ -1501,12 +1588,16 @@ function makeUtcInstant(dISO: string, hhmm: string, tz: string): Date {
 
 // --- weekday from yyyy-mm-dd (local calendar date, tz-agnostic) ---
 
-function weekdayFromISODate(localISOyyyy_mm_dd: string): string | undefined {
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(localISOyyyy_mm_dd);
-  if (!m) return;
-  const d = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3]));
+function weekdayFromISODate(iso: string): string | undefined {
+  // iso must be "YYYY-MM-DD"
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return;
+
+  // Use noon UTC to avoid edge cases around DST/offsets
+  const d = new Date(`${iso}T12:00:00Z`);
+
   return new Intl.DateTimeFormat("en-US", { weekday: "long" }).format(d);
 }
+
 
 /* ---------------- Sidereal degree helpers for planets ---------------- */
 
@@ -3072,16 +3163,7 @@ const LifeReportShell: React.FC<LifeReportShellProps> = ({
     return null;
   });
 
-  const [activeTab, setActiveTab] = useState<
-  | "placements"
-  | "personality"
-  | "timeline"
-  | "transits"
-  | "daily"
-  | "monthly"
-  | "weekly"
-  | "myths"
->("placements");
+  const [activeTab, setActiveTab] = useState("overview");
 
   const [dashaTimeline, setDashaTimeline] = useState<any[] | null>(null);
   const [loading, setLoading] = useState(false);
@@ -3465,10 +3547,14 @@ if (!t) {
     if (!place?.lat || !place?.lon) {
       throw new Error("Pick a birth place from the dropdown.");
     }
+    const dISO =
+  d instanceof Date && Number.isFinite(d.getTime())
+    ? d.toISOString().slice(0, 10)
+    : String(d);
 
     const payload = {
       name: name || "User",
-      birthDateISO: d,
+      birthDateISO: dateISO,
       birthTime: t,
       birthTz: tz,
       lat: place.lat,
@@ -3476,6 +3562,7 @@ if (!t) {
       placeName: place.name,
       notificationTz,
     };
+    console.log("[PAYLOAD life-report]", payload);
 
     // --- call /api/life-report ---
     const ac = new AbortController();
@@ -3514,7 +3601,7 @@ if (!t) {
   } catch {
     // fall back to text below
   }
-
+  
   // 🔴 Special case: our life-report API says swisseph / engine is unavailable
   if (json?.error === "astro_engine_unavailable") {
     const msg =
@@ -3536,6 +3623,31 @@ if (!t) {
 }
 
 const data = (await res.json()) as LifeReportAPI;
+
+
+// ✅ STEP 2: call /api/ai-personality using the REAL life-report payload
+try {
+  const pRes = await fetch("/api/ai-personality", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ report: data }), // or { report: next } if inside that section
+  });
+
+  const pJson = await pRes.json().catch(() => ({}));
+
+  if (!pRes.ok) {
+    console.error("ai-personality failed", pRes.status, pJson);
+    // If you have setAiError, use it. Otherwise just don't crash.
+    // setAiError?.(`ai-personality failed (${pRes.status})`);
+    return;
+  }
+
+  const text = (pJson as any)?.text ?? (pJson as any)?.personality ?? "";
+  if (text) setAiSummary(text);
+} catch (e: any) {
+  console.error("ai-personality crashed", e?.message ?? e);
+  // setAiError?.(e?.message ?? "ai-personality crashed");
+}
 
     // 🔹 Notifications from API → state (all 3 buckets)
     const anyData = data as any;
@@ -3696,146 +3808,131 @@ const data = (await res.json()) as LifeReportAPI;
     } catch {}
     const ctrl = new AbortController();
     aiCtrlRef.current = ctrl;
+setTimeout(async () => {
+  try {
+    if (!next || !Array.isArray(next.planets) || next.planets.length === 0) return;
 
-    setTimeout(async () => {
-      try {
-        // Build a cache key tied to this birth data
-        const cacheKey = `sarathi:ai-personality:${next.birthDateISO}:${next.birthTime}:${next.birthTz}`;
+    // Cache key: stable per profile inputs
+    const cacheKey = `sarathi:ai-personality:${next.birthDateISO}:${next.birthTime}:${next.birthTz}:${next.ascSign}:${next.moonSign}:${next.sunSign}`;
 
-        // 1) Try localStorage cache first
-        try {
-          if (typeof window !== "undefined") {
-            const raw = window.localStorage.getItem(cacheKey);
-            if (raw) {
-              const parsed = JSON.parse(raw) as { text?: string; ts?: number };
-              if (parsed?.text) {
-                // Use cached text immediately
-                setAiSummary(parsed.text);
-                // Optional: you could return here to *skip* the network call entirely.
-                // For now we still fall through to refresh occasionally.
-              }
-            }
+    // 1) Try cache first (skip API call if fresh)
+    try {
+      if (typeof window !== "undefined") {
+        const raw = window.localStorage.getItem(cacheKey);
+        if (raw) {
+          const cached = JSON.parse(raw) as { payload?: any; ts?: number };
+          const ts = typeof cached?.ts === "number" ? cached.ts : 0;
+          const ageMs = Date.now() - ts;
+
+          // freshness window: 14 days (change if you want)
+          if (cached?.payload && ageMs < 14 * 24 * 60 * 60 * 1000) {
+            setAiSummary(
+              typeof cached.payload === "string" ? cached.payload : JSON.stringify(cached.payload)
+            );
+            return; // ✅ IMPORTANT: do not call API
           }
-        } catch {
-          // ignore localStorage errors
         }
+      }
+    } catch {
+      // ignore cache read errors
+    }
 
-        // 2) Call API to refresh / fill cache
-        const aiRes = await fetch("/api/ai-personality", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            profile: {
-              name: next.name,
-              ascSign: next.ascSign,
-              moonSign: next.moonSign,
-              sunSign: next.sunSign,
-            },
-            planets: next.planets,
-            aspects: next.aspects,
-            nakshatraMap: (data as any)?.nakshatraMap || {},
-          }),
-          signal: ctrl.signal,
-        });
+    // 2) Call API (only if no fresh cache)
+    const ctrl = new AbortController();
+    const aiRes = await fetch("/api/ai-personality", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        profile: {
+          name: next.name,
+          ascSign: next.ascSign,
+          moonSign: next.moonSign,
+          sunSign: next.sunSign,
+        },
+        planets: next.planets,
+        aspects: next.aspects,
+        nakshatraMap: (data as any)?.nakshatraMap || {},
+      }),
+      signal: ctrl.signal,
+    });
 
-        const aiJson = await aiRes.json().catch(() => ({}));
-        if (aiRes.ok && aiJson?.text) {
-          const text = aiJson.text as string;
-          setAiSummary(text);
+    const aiJson = await aiRes.json().catch(() => ({}));
 
-          // 3) Store in cache for future visits
-          try {
-            if (typeof window !== "undefined") {
-              const payload = JSON.stringify({
-                text,
-                ts: Date.now(),
-              });
-              window.localStorage.setItem(cacheKey, payload);
-            }
-          } catch {
-            // ignore caching errors
-          }
+    // NOTE: your API sometimes returns {text: {...}} or {text: "..." }
+    const payload = aiJson?.text ?? aiJson;
+
+    if (aiRes.ok && payload) {
+      const asString = typeof payload === "string" ? payload : JSON.stringify(payload);
+      setAiSummary(asString);
+
+      // 3) Save cache
+      try {
+        if (typeof window !== "undefined") {
+          window.localStorage.setItem(
+            cacheKey,
+            JSON.stringify({ payload, ts: Date.now() })
+          );
         }
       } catch {
-        // ignore personality AI errors
+        // ignore cache write errors
       }
-    }, 0);
+    }
+  } catch (e: any) {
+    console.error("ai-personality crashed", e?.message ?? e);
+    // optional: show a tiny inline error state if you have one
+  }
+}, 0);
 
-        // --- non-blocking AI timeline narration (life story by dasha) with cache ---
-    setTimeout(async () => {
+        // --- non-blocking AI personality with cache ---
+setTimeout(async () => {
+  try {
+    // ✅ Guard FIRST (before any fetch)
+    if (!next || !Array.isArray(next.planets) || next.planets.length === 0) return;
+
+    const cacheKey = `sarathi:ai-personality:${next.birthDateISO}:${next.birthTime}:${next.birthTz}`;
+
+    // 1) Cache read
+    try {
+      if (typeof window !== "undefined") {
+        const raw = window.localStorage.getItem(cacheKey);
+        if (raw) {
+          const cached = JSON.parse(raw) as { text?: string; ts?: number };
+          if (cached?.text) setAiSummary(cached.text);
+        }
+      }
+    } catch {
+      // ignore
+    }
+
+    // 2) Call API using the REAL full report object (✅ most reliable)
+    const aiRes = await fetch("/api/ai-personality", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ report: next }),
+      signal: ctrl.signal,
+    });
+
+    const aiJson = await aiRes.json().catch(() => ({}));
+    if (aiRes.ok && aiJson?.text) {
+      const text = aiJson.text as string;
+      setAiSummary(text);
+
+      // 3) Cache write
       try {
-        if (
-          !Array.isArray(next.lifeMilestones) ||
-          !next.lifeMilestones.length
-        ) {
-          return;
-        }
-
-        // 🔥 store dashaTimeline in state so a client-side effect can cache it
-        if (
-          Array.isArray(next.dashaTimeline) &&
-          next.dashaTimeline.length > 0
-        ) {
-          setDashaTimeline(next.dashaTimeline);
-        } else {
-          setDashaTimeline(null);
-        }
-
-        const cacheKey = `sarathi:ai-timeline:${next.birthDateISO}:${next.birthTime}:${next.birthTz}`;
-
-        // 1) Try cache first
-        try {
-          if (typeof window !== "undefined") {
-            const raw = window.localStorage.getItem(cacheKey);
-            if (raw) {
-              const cached = JSON.parse(raw) as { text?: string; ts?: number };
-              if (cached?.text) {
-                setTimelineSummary(cached.text);
-                // optional: we could return here to skip API entirely
-              }
-            }
-          }
-        } catch {
-          // ignore cache read errors
-        }
-
-        // 2) Always call API to refresh for now
-        const tlRes = await fetch("/api/ai-timeline", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            profile: {
-              name: next.name,
-              birthDateISO: next.birthDateISO,
-              birthTime: next.birthTime,
-              birthTz: next.birthTz,
-            },
-            dashaTimeline: next.dashaTimeline,
-            lifeMilestones: next.lifeMilestones,
-          }),
-        });
-
-        const tlJson = await tlRes.json().catch(() => ({}));
-        if (tlRes.ok && tlJson?.text) {
-          const text = tlJson.text as string;
-          setTimelineSummary(text);
-
-          // 3) Save to cache
-          try {
-            if (typeof window !== "undefined") {
-              window.localStorage.setItem(
-                cacheKey,
-                JSON.stringify({ text, ts: Date.now() })
-              );
-            }
-          } catch {
-            // ignore cache write errors
-          }
+        if (typeof window !== "undefined") {
+          window.localStorage.setItem(cacheKey, JSON.stringify({ text, ts: Date.now() }));
         }
       } catch {
-        // silent fail; timeline narration is optional
+        // ignore
       }
-    }, 0);
+    } else if (!aiRes.ok) {
+      const msg = (aiJson as any)?.error || (aiJson as any)?.message || "";
+      console.error("ai-personality failed", aiRes.status, msg);
+    }
+  } catch {
+    // ignore personality AI errors
+  }
+}, 0);
 
     
 
@@ -4692,9 +4789,47 @@ setDailyError(null);
                     AI Personality Overview
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="text-sm whitespace-pre-wrap leading-relaxed">
-                  {aiSummary}
-                </CardContent>
+                <CardContent className="text-sm leading-relaxed space-y-3">
+  {(() => {
+    const raw = (aiSummary ?? "").trim();
+
+    // If AI returned ```json ... ``` strip the fences first
+    const unfenced = raw
+      .replace(/^```json\s*/i, "")
+      .replace(/^```\s*/i, "")
+      .replace(/```$/i, "")
+      .trim();
+
+    let obj: any = null;
+
+    try {
+      obj = JSON.parse(unfenced);
+    } catch {
+      obj = null;
+    }
+
+    if (obj && (Array.isArray(obj.text) || typeof obj.closing === "string")) {
+      const bullets = Array.isArray(obj.text) ? obj.text : [];
+      const closing = typeof obj.closing === "string" ? obj.closing : "";
+
+      return (
+        <>
+          {bullets.length > 0 && (
+            <ul className="list-disc pl-5 space-y-2">
+              {bullets.map((b: string, i: number) => (
+                <li key={i}>{b}</li>
+              ))}
+            </ul>
+          )}
+
+          {closing && <p className="text-muted-foreground">{closing}</p>}
+        </>
+      );
+    }
+
+    return <p className="whitespace-pre-wrap">{raw}</p>;
+  })()}
+</CardContent>
               </Card>
             </motion.div>
           )}
@@ -5601,103 +5736,97 @@ window.localStorage.removeItem("sarathi.lifeReportCache.v2");
           className="flex-1"
         >
           <TabsList className="flex flex-wrap gap-2">
-            <TabsTrigger value="placements">Placements</TabsTrigger>
-            <TabsTrigger value="personality">Personality</TabsTrigger>
-            <TabsTrigger value="timeline">Timeline</TabsTrigger>
-            <TabsTrigger value="transits">Transits</TabsTrigger>
-            <TabsTrigger value="daily">Daily Guide</TabsTrigger>
-            <TabsTrigger value="weekly">Weekly</TabsTrigger>
-            <TabsTrigger value="monthly">Monthly</TabsTrigger>
-            <TabsTrigger value="myths">Myths</TabsTrigger>
-          </TabsList>
+  <TabsTrigger value="overview">Overview</TabsTrigger>
+  <TabsTrigger value="phases">Life Phases</TabsTrigger>
+  <TabsTrigger value="now">Now & Near Future</TabsTrigger>
+  <TabsTrigger value="advanced">Advanced</TabsTrigger>
+</TabsList>
         </Tabs>
 
-        <Link href="/chat" className="md:ml-4">
+        <Link href="/sarathi/chat" className="md:ml-4">
           <Button
             type="button"
             variant="outline"
             size="sm"
             className="w-full md:w-auto"
           >
-            Open Daily Guide Chat
+           Ask Sārathi
           </Button>
         </Link>
       </div>
 
-      {/* Tab content */}
-      <div className="mt-4 space-y-6">
-        {activeTab === "placements" && TabPlacements}
+    {/* Tab content */}
+<div className="mt-4 space-y-6">
+  {/* OVERVIEW = show ONLY placements (core signature) + personality summary */}
+  {activeTab === "overview" && (
+    <div className="space-y-6">
+      {TabPlacements}
 
-        {activeTab === "personality" && (
-          <TabPersonality report={report} aiSummary={aiSummary} />
-        )}
+      {/* Keep personality, but it now belongs to Overview */}
+      <TabPersonality report={report} aiSummary={aiSummary} />
+    </div>
+  )}
 
-        {activeTab === "timeline" && (
-          <TabTimeline
-            report={report}
-            mounted={mounted}
-            timelineSummary={timelineSummary}
-            dashaTransitSummary={dashaTransitSummary}
-          />
-        )}
-
-        {activeTab === "transits" && (
-          <TabTransits
-            transits={transits}
-            loading={transitsLoading}
-            error={transitsError}
-            transitSummary={transitSummary}
-            dailyHighlights={dailyHighlights}
-            dailyLoading={dailyLoading}
-            dailyError={dailyError}
-            mounted={mounted}
-          />
-        )}
-
-      {activeTab === "daily" && (
-  <div className="space-y-4">
-    <TabDailyGuide
+  {/* LIFE PHASES = timeline only */}
+  {activeTab === "phases" && (
+    <TabTimeline
       report={report}
-      guide={guide}
-      guideError={guideError}
+      mounted={mounted}
+      timelineSummary={timelineSummary}
+      dashaTransitSummary={dashaTransitSummary}
+    />
+  )}
+
+  {/* NOW & NEAR FUTURE = transits only */}
+  {activeTab === "now" && (
+    <TabTransits
+      transits={transits}
+      loading={transitsLoading}
+      error={transitsError}
+      transitSummary={transitSummary}
       dailyHighlights={dailyHighlights}
       dailyLoading={dailyLoading}
+      dailyError={dailyError}
       mounted={mounted}
-      todaysFocus={todaysFocus}
     />
+  )}
 
-    <DailyRhythmCard report={report} />
-  </div>
-)}
-
-
-        {activeTab === "weekly" && (
-          <TabWeekly
-            weeklyInsights={weeklyInsights}
-            loading={weeklyLoading}
-            error={weeklyError}
-            mounted={mounted}
-          />
-        )}
-
-        {activeTab === "monthly" && (
-          <TabMonthly
-            monthlyInsights={monthlyInsights}
-            loading={monthlyLoading}
-            error={monthlyError}
-            mounted={mounted}
-          />
-        )}
-
-                {activeTab === "myths" && (
-          <TabMyths
-            myths={myths}
-            loading={mythsLoading}
-            error={mythsError}
-          />
-        )}
-
+  {/* ADVANCED = everything that overwhelms */}
+  {activeTab === "advanced" && (
+    <div className="space-y-6">
+      {/* Daily guide stays accessible but not “primary” */}
+      <div className="space-y-4">
+        <TabDailyGuide
+          report={report}
+          guide={guide}
+          guideError={guideError}
+          dailyHighlights={dailyHighlights}
+          dailyLoading={dailyLoading}
+          mounted={mounted}
+          todaysFocus={todaysFocus}
+        />
+        <DailyRhythmCard report={report} />
       </div>
+
+      <TabWeekly
+        weeklyInsights={weeklyInsights}
+        loading={weeklyLoading}
+        error={weeklyError}
+        mounted={mounted}
+      />
+
+      <TabMonthly
+        monthlyInsights={monthlyInsights}
+        loading={monthlyLoading}
+        error={monthlyError}
+        mounted={mounted}
+      />
+
+      <TabMyths myths={myths} loading={mythsLoading} error={mythsError} />
+    </div>
+  )}
+</div>
+
     </main>
   );
 }
