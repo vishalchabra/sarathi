@@ -100,18 +100,19 @@ export async function POST(req: Request) {
     const cacheBuster = Date.now(); // temp
     // Cache key: tie to birth details + engine version
     // IMPORTANT: bump this when astro engine changes so we don't serve stale charts
-    const baseKey = makeCacheKey({
+   const baseKey = makeCacheKey({
   name: body.name ?? "User",
   birthDateISO: body.birthDateISO,
   birthTime: body.birthTime,
   birthTz: body.birthTz,
   lat,
   lon,
-  version: "engine-v2b-asc-sidereal-1", // bump on engine changes
+  version: "engine-v2b-asc-sidereal-1",
   cacheBuster,
 });
 
 const cacheKey = `v2:${baseKey}`;
+
 
 
     let report: any;
