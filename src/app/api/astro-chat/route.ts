@@ -1508,9 +1508,48 @@ export async function POST(req: Request) {
       .join("|");
 
     const questionSignature = question.toLowerCase().trim();
+    const natText =
+  [
+    `USER_QUESTION:\n${question}`,
+    `\nTOPIC:\n${topic}`,
+    `\nFOLLOWUP_MODE:\n${followupMode}`,
+    `\nMOOD_HINT:\n${moodHint}`,
+    `\nDISTRESSED:\n${distressed ? "yes" : "no"}`,
+    distressSoothing ? `\nSOOTHING:\n${distressSoothing}` : "",
+    astroStressDriver ? `\nASTRO_STRESS_DRIVER:\n${astroStressDriver}` : "",
+    copingTip ? `\nCOPING_TIP:\n${copingTip}` : "",
+    history ? `\nHISTORY:\n${history}` : "",
+    `\nASTRO_FACTS_JSON:\n${JSON.stringify(astroFacts ?? {}, null, 2)}`,
+    `\nEVIDENCE_BULLETS_JSON:\n${JSON.stringify(evidenceBullets ?? [], null, 2)}`,
+    `\nSTYLE_GUIDE_JSON:\n${JSON.stringify(
+      {
+        vibe: "soft-direct, not guru, not corporate",
+        rules: [
+          "Answer the actual ask first (timing, safety, near-term behavior).",
+          "Normalize their feelings. Tell them they are not broken.",
+          "Offer one practical way to survive the phase they're in.",
+          "End with exactly one next choice, not a menu.",
+          "After the answer, add a short 'Why this (evidence):' section with 2–4 bullets, using ONLY the provided evidenceBullets verbatim (no guesses). If evidenceBullets is empty, skip the section.",
+          "If astroFacts.natalContext is present, weave in exactly one short, grounded sentence of natal flavour (no jargon, no textbook dump).",
+          "If astroFacts.dailyRhythm is present, keep the tone, focus and oneStep aligned with it instead of inventing a new direction.",
+        ],
+        avoid: [
+          "No dumping raw dasha / transit data unless user asked 'why does it feel like this'.",
+          "Don't sound like a horoscope blog.",
+          "Don't blame them or say 'be positive'.",
+        ],
+      },
+      null,
+      2
+    )}`,
+  ]
+    .filter(Boolean)
+    .join("\n");
 
         // payload for /api/naturalize
     const natPayload = {
+       text: natText,
+       input: natText,
       userQuestion: question,
       topic,
       history,
@@ -1554,6 +1593,7 @@ export async function POST(req: Request) {
 
     try {
       const naturalizeURL = safeInternalURL(req, "/api/naturalize");
+      console.log("[astro-chat] natText length:", natText.length);
       const naturalRes = await fetch(naturalizeURL, {
         method: "POST",
         headers: { "content-type": "application/json" },
