@@ -6,26 +6,19 @@ import { orchestrateQA, type Category, type Inputs } from "./orchestrator";
 
 export const runtime = "nodejs";
 
-/**
- * We accept multiple possible keys because different clients may send:
- * - query (ChatClient.tsx)
- * - text / input (older QA routes)
- * - question (legacy)
- */
 type QARequestBody = {
-  // common question fields
-  query?: string;
+  // common incoming shapes
   text?: string;
   input?: string;
+  query?: string;
   message?: string;
   question?: string;
 
-  // routing
   category?: Category;
 
-  // profile/time/place (both top-level and nested profile)
   dobISO?: string | null;
   tob?: string | null;
+
   place?: {
     name?: string;
     tz?: string;
@@ -35,12 +28,11 @@ type QARequestBody = {
 
   profile?: Inputs["profile"] | null;
 
-  // overrides
   mdadOverride?: Inputs["mdadOverride"];
   transitsOverride?: Inputs["transitsOverride"];
 
-  // allow extra keys from chat payload (style, spans, history, etc.)
-  [k: string]: unknown;
+  // anything else (style, spans, history, etc.)
+  [k: string]: any;
 };
 
 function okJson(data: any, status = 200) {
@@ -50,90 +42,52 @@ function okJson(data: any, status = 200) {
   });
 }
 
-function badJson(message: string, status = 400) {
-  return okJson({ ok: false, error: message }, status);
+function badJson(message: string, status = 400, extra?: any) {
+  return okJson({ ok: false, error: message, ...(extra ? { extra } : {}) }, status);
 }
 
-function inferCategory(q: string): Category {
-  const s = (q || "").toLowerCase();
-
-  // vehicle
-  if (
-    /\b(vehicle|car|bike|motorcycle|scooter|purchase a car|buy a car|sell my car|new car)\b/.test(
-      s
-    )
-  )
-    return "vehicle";
-
-  // property
-  if (
-    /\b(property|house|home|apartment|flat|villa|plot|land|real estate|rent|lease|mortgage)\b/.test(
-      s
-    )
-  )
-    return "property";
-
-  // relationships
-  if (
-    /\b(relationship|marriage|partner|wife|husband|love|breakup|divorce|compatibility|affair)\b/.test(
-      s
-    )
-  )
-    return "relationships";
-
-  // disputes/legal
-  if (
-    /\b(dispute|case|court|legal|lawsuit|complaint|fight|argument|settlement|police|contract issue)\b/.test(
-      s
-    )
-  )
-    return "disputes";
-
-  // job/business
-  if (
-    /\b(job|career|work|promotion|switch|resign|offer|interview|business|startup|client|sales|hiring)\b/.test(
-      s
-    )
-  )
-    return "job-business";
-
-  // default
-  return "transit";
+function pickQuestion(body: QARequestBody): string {
+  return String(
+    body?.text ??
+      body?.input ??
+      body?.query ??      // ✅ what ChatClient sends
+      body?.question ??
+      body?.message ??
+      ""
+  ).trim();
 }
 
 export async function POST(req: Request) {
   try {
-    const body = (await req.json()) as QARequestBody;
-
-    const question = String(
-      body.query ??
-        body.text ??
-        body.input ??
-        body.message ??
-        body.question ??
-        ""
-    ).trim();
-
-    if (!question) {
-      return badJson(
-        "Missing question. Send one of: query | text | input | message | question",
-        400
-      );
+    // Read raw once (helps debug when payload isn't what we expect)
+    const raw = await req.text();
+    let body: QARequestBody = {};
+    try {
+      body = (raw ? JSON.parse(raw) : {}) as QARequestBody;
+    } catch {
+      // If JSON parsing fails, show first 200 chars
+      return badJson("Invalid JSON body", 400, { rawPreview: raw.slice(0, 200) });
     }
 
-    const category: Category = body.category ?? inferCategory(question);
+    const q = pickQuestion(body);
+    if (!q) {
+      return badJson("Missing question. Send one of: query | text | input | question | message", 400, {
+        keys: Object.keys(body || {}),
+      });
+    }
+
+    // Category is optional (ChatClient often doesn't send it)
+    const category: Category = (body.category as Category) ?? ("transit" as Category);
 
     const input: Inputs = {
-      question,
+      question: q, // ✅ always populated now
       category,
-      dobISO: (body.dobISO ?? (body.profile as any)?.dobISO ?? null) as any,
-      tob: (body.tob ?? (body.profile as any)?.tob ?? null) as any,
-      place: (body.place ?? (body.profile as any)?.place ?? null) as any,
-      profile: (body.profile ?? null) as any,
-      mdadOverride: (body.mdadOverride ?? null) as any,
-      transitsOverride: (body.transitsOverride ?? null) as any,
-      // If orchestrator supports extra fields, it can read them from `profile` or ignore.
-      // We keep input minimal here to avoid type fights.
+      dobISO: body.dobISO ?? body.profile?.dobISO ?? null,
+      tob: body.tob ?? body.profile?.tob ?? null,
+      place: body.place ?? body.profile?.place ?? null,
+      profile: body.profile ?? null,
+      mdadOverride: body.mdadOverride ?? null,
+      transitsOverride: body.transitsOverride ?? null,
     };
 
     const result = await orchestrateQA(input);
