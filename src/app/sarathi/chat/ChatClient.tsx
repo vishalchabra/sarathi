@@ -629,6 +629,8 @@ export default function ChatClient() {
 
     const payload: any = {
       query,
+      text: query,
+      input: query,
       profile: mdad ? { ...baseProfile, mdad } : baseProfile,
       style: styleToSend,
       spans,
