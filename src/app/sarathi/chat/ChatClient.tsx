@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { TimingCards, NarrativeTiming, QARich } from "@/components/TimingCards";
 import React from "react";
+import { TimingCards, NarrativeTiming, QARich } from "@/components/TimingCards";
+
 /* ===================== Local types ===================== */
 type Topic =
   | "vehicle"
@@ -78,25 +79,7 @@ type QAResponse = {
   };
 
   remedies?: { items?: string[] } | string[];
-  smartPlan?: {
-    quarters?: Array<{
-      label: string;
-      focus?: string[];
-      checkpoints?: string[];
-      upskill?: { topic?: string; cadence?: string };
-    }>;
-    micro?: Array<{
-      fromISO: string;
-      toISO: string;
-      label: string;
-      action: "close" | "push" | "build" | "foundation";
-      why: string[];
-      do: string[];
-      score: number;
-    }>;
-    negotiationTips?: string[];
-    visibilityTips?: string[];
-  };
+  smartPlan?: any;
   meta?: { windowOrigin?: "engine" | "spans" | "synth"; version?: string };
   error?: string;
   debug?: any;
@@ -120,16 +103,6 @@ const Cap = (s?: string) =>
   s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : s;
 
 const idQueryPassThrough = (q: string) => q.trim();
-
-/** Remove any “You’re in … MD / … AD” sentence from a line of text. */
-function stripDashaSentence(text?: string): string {
-  if (!text) return "";
-  const idx = text.search(/You(?:’|')re in/i);
-  if (idx === -1) return text;
-  const kept = text.slice(0, idx).trim();
-  if (!kept) return text;
-  return kept.replace(/[ ,;:–-]*$/, "."); // trim trailing junk and end cleanly
-}
 
 function placeFromProfile(p?: Profile) {
   const pl = p?.place;
@@ -253,29 +226,28 @@ function buildHistory(msgs: Msg[], nextUser?: string) {
   return out;
 }
 
-/* =============== Prose renderer for chatty answers (ENHANCED) =============== */
+/* =============== Prose renderer (dark theme) =============== */
 function AssistantProse({ data }: { data: QAResponse }) {
   const c = data.copy || {};
   const hasQuarters = Array.isArray(c.quarters) && c.quarters.length > 0;
   const hasMicro = Array.isArray(c.micro) && c.micro.length > 0;
-
   const [showLong, setShowLong] = useState(false);
 
   return (
-    <div className="rounded-2xl bg-white/5 border border-white/10 p-3 text-sm leading-6">
-      {c.answer ? <p className="mb-2">{c.answer}</p> : null}
+    <div className="rounded-2xl border border-white/10 bg-slate-950/35 p-4 text-sm leading-6 text-slate-100">
+      {c.answer ? <p className="mb-3 whitespace-pre-wrap">{c.answer}</p> : null}
 
       {c.long ? (
-        <div className="mb-2">
+        <div className="mb-3">
           <button
             type="button"
             onClick={() => setShowLong((s) => !s)}
-            className="text-xs px-2 py-1 rounded-md border border-black/10 hover:bg-black/5"
+            className="text-xs rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 hover:bg-white/10"
           >
             {showLong ? "Hide full explanation" : "Show full explanation"}
           </button>
           {showLong ? (
-            <div className="mt-2 whitespace-pre-wrap text-sm leading-6">
+            <div className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-100/90">
               {c.long}
             </div>
           ) : null}
@@ -283,16 +255,16 @@ function AssistantProse({ data }: { data: QAResponse }) {
       ) : null}
 
       {c.how ? (
-        <div className="mt-2">
-          <div className="font-semibold mb-1">How to use this</div>
-          <pre className="whitespace-pre-wrap text-sm leading-6">{c.how}</pre>
+        <div className="mt-3">
+          <div className="font-semibold mb-1 text-slate-100">How to use this</div>
+          <pre className="whitespace-pre-wrap text-sm leading-6 text-slate-100/90">{c.how}</pre>
         </div>
       ) : null}
 
       {hasQuarters ? (
-        <div className="mt-3">
-          <div className="font-semibold mb-1">Quarterly plan</div>
-          <ul className="list-disc pl-5 space-y-1">
+        <div className="mt-4">
+          <div className="font-semibold mb-1 text-slate-100">Quarterly plan</div>
+          <ul className="list-disc pl-5 space-y-1 text-slate-100/90">
             {c.quarters!.map((q, i) => (
               <li key={i}>{q}</li>
             ))}
@@ -301,15 +273,15 @@ function AssistantProse({ data }: { data: QAResponse }) {
       ) : null}
 
       {hasMicro ? (
-        <div className="mt-3">
-          <div className="font-semibold mb-1">Action windows</div>
-          <ul className="list-disc pl-5 space-y-1">
+        <div className="mt-4">
+          <div className="font-semibold mb-1 text-slate-100">Action windows</div>
+          <ul className="list-disc pl-5 space-y-1 text-slate-100/90">
             {c.micro!.slice(0, 6).map((m, i) => (
               <li key={i}>
-                <span className="font-medium">
+                <span className="font-medium text-slate-100">
                   {m.fromISO} → {m.toISO}
                 </span>
-                : <em>{m.action}</em>
+                : <em className="text-slate-200/80">{m.action}</em>
                 {m.why?.length ? ` — ${m.why[0]}` : ""}
               </li>
             ))}
@@ -320,7 +292,7 @@ function AssistantProse({ data }: { data: QAResponse }) {
   );
 }
 
-/* =============== Normalizers to keep UI safe =============== */
+/* =============== Normalizers =============== */
 function normalizeWindows(wins: QAResponse["windows"]) {
   if (!Array.isArray(wins)) return [];
   return wins.map((w) => {
@@ -332,12 +304,6 @@ function normalizeWindows(wins: QAResponse["windows"]) {
 }
 
 /* ===================== Build MD/AD from local dasha cache ===================== */
-/**
- * Reads `life-report-dasha` and tries to construct:
- *  - mdad (Rahu MD / Saturn AD etc.)
- *  - nowLabel ("Rahu MD / Saturn AD")
- *  - spans (AD windows) for QARich
- */
 function buildMDADAndSpans(): {
   mdad?: MDAD;
   nowLabel?: string;
@@ -405,7 +371,6 @@ function buildMDADAndSpans(): {
     let curFrom: string | undefined;
     let curTo: string | undefined;
 
-    // Shape 1: explicit currentMD/currentAD
     const cMD = d.currentMD;
     const cAD = d.currentAD;
     if (cMD?.planet && cAD?.lord) {
@@ -422,7 +387,6 @@ function buildMDADAndSpans(): {
         cAD.endISO ?? cAD.toISO ?? cAD.end ?? cMD.endISO ?? cMD.toISO ?? cMD.end;
     }
 
-    // Shape 2: `current` object with md/ad
     if (!curMd || !curAd) {
       const c = d.current;
       if (c) {
@@ -450,7 +414,6 @@ function buildMDADAndSpans(): {
       }
     }
 
-    // Shape 3: derive from active span (if needed)
     let normalized = normalizedFull;
     if ((!curMd || !curAd) && normalized.length) {
       const best = normalized.find(
@@ -471,6 +434,7 @@ function buildMDADAndSpans(): {
     const currentIndex = normalized.findIndex(
       (r) => r.md && r.ad && Cap(r.md) === Cap(curMd!) && Cap(r.ad) === Cap(curAd!)
     );
+
     const nextADs =
       currentIndex >= 0
         ? normalized.slice(currentIndex + 1, currentIndex + 3).map((row) => ({
@@ -479,27 +443,18 @@ function buildMDADAndSpans(): {
             end: row.toISO || null,
           }))
         : [];
-            const safeNextADs =
-      (nextADs ?? []).map((ad) => ({
-        planet: ad.planet ?? "Unknown",
-        start: ad.start ?? null,
-        end: ad.end ?? null,
-      }));
+
+    const safeNextADs = (nextADs ?? []).map((ad) => ({
+      planet: ad.planet ?? "Unknown",
+      start: ad.start ?? null,
+      end: ad.end ?? null,
+    }));
 
     mdad = {
-      md: {
-        planet: (Cap(curMd || "Unknown") ?? "Unknown"),
-        start: curFrom ?? null,
-        end: curTo ?? null,
-      },
-      ad: {
-        planet: (Cap(curAd || "Unknown") ?? "Unknown"),
-        start: curFrom ?? null,
-        end: curTo ?? null,
-      },
+      md: { planet: Cap(curMd || "Unknown") ?? "Unknown", start: curFrom ?? null, end: curTo ?? null },
+      ad: { planet: Cap(curAd || "Unknown") ?? "Unknown", start: curFrom ?? null, end: curTo ?? null },
       nextADs: safeNextADs,
     };
-
 
     return { mdad, nowLabel, spans };
   } catch (e) {
@@ -519,14 +474,19 @@ export default function ChatClient() {
     {
       id: newId(),
       role: "assistant",
-      content:
-        "Hi, this is the Sarathi Chat. If you see this line, ChatClient.tsx is wired correctly.",
+      content: "Hi — Sārathi Chat is ready. Ask about career, money, relationships, health, or timing.",
     },
   ]);
 
   const [input, setInput] = useState("when will I change my job with increment");
   const [loading, setLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement | null>(null);
+
+  const hasProfile = useMemo(() => {
+    const hasBirth = !!profile?.dobISO && !!profile?.tob;
+    const hasPlace = !!(profile?.place?.tz) && Number.isFinite(profile?.place?.lat as any) && Number.isFinite(profile?.place?.lon as any);
+    return hasBirth && hasPlace;
+  }, [profile]);
 
   // Mount & restore
   useEffect(() => {
@@ -546,8 +506,7 @@ export default function ChatClient() {
       }
     } catch {}
 
-    // Prefer the new default profile (saved from Life Report),
-    // fall back to the older life-report-profile shape if needed.
+    // Profile load
     try {
       const rawDefault = localStorage.getItem(DEFAULT_PROFILE_KEY);
       if (rawDefault) {
@@ -574,7 +533,7 @@ export default function ChatClient() {
     } catch {}
 
     const onStorage = (e: StorageEvent) => {
-      if (e.key === LIFE_REPORT_KEY) {
+      if (e.key === LIFE_REPORT_KEY || e.key === DEFAULT_PROFILE_KEY) {
         try {
           setProfile(e.newValue ? JSON.parse(e.newValue) : {});
         } catch {
@@ -601,7 +560,7 @@ export default function ChatClient() {
 
   const canSend = useMemo(() => input.trim().length > 0 && !loading, [input, loading]);
 
-  /* ---- unified server call: birth + MD/AD from local dasha ---- */
+  /* ---- unified server call ---- */
   const askServer = async (query: string, prof: Profile) => {
     const place = placeFromProfile(prof) ?? effectivePlace(prof);
     const natalFromLR = readLifeReportNatal();
@@ -628,18 +587,15 @@ export default function ChatClient() {
       userIntent === "exact" ? "narrative" : userIntent === "when" ? "cards" : "qa";
 
     const payload: any = {
-  query,
-  text: query,
-  input: query,
-
-  profile: mdad ? { ...baseProfile, mdad } : baseProfile,
-  style: styleToSend,
-  spans,
-  dashaSpans: spans,
-  ...(DEBUG ? { history: buildHistory(messages, query), debug: true } : {}),
-};
-
-    console.log("[chat] QA payload to /api/qa", payload);
+      query,
+      text: query,
+      input: query,
+      profile: mdad ? { ...baseProfile, mdad } : baseProfile,
+      style: styleToSend,
+      spans,
+      dashaSpans: spans,
+      ...(DEBUG ? { history: buildHistory(messages, query), debug: true } : {}),
+    };
 
     let res: Response | undefined;
     let body: any = null;
@@ -652,10 +608,8 @@ export default function ChatClient() {
         next: { revalidate: 0 },
         body: JSON.stringify(payload),
       });
-
       try {
         body = await res.json();
-        console.log("[chat] QA raw response from /api/qa", body);
       } catch {
         body = null;
       }
@@ -665,12 +619,8 @@ export default function ChatClient() {
 
     const errText = String((body && body.error) || "");
     const effectiveNowLabel =
-      nowLabel ||
-      (body &&
-        ((body.extra && body.extra.nowLabel) ||
-          (body.now && body.now.label)));
+      nowLabel || (body && ((body.extra && body.extra.nowLabel) || (body.now && body.now.label)));
 
-    // If not OK, return a safe fallback
     if (!res?.ok || !body || body.ok === false) {
       const fallback: QAResponse = {
         ok: true,
@@ -695,7 +645,6 @@ export default function ChatClient() {
       return fallback;
     }
 
-    // Happy path: attach our nowLabel + spans override, normalize windows
     const withNow: QAResponse = {
       ...(body as QAResponse),
       extra: {
@@ -735,10 +684,7 @@ export default function ChatClient() {
       const idx2 = lower.indexOf("you're in");
       const cut = idx1 >= 0 ? idx1 : idx2;
       if (cut >= 0) out = out.slice(0, cut).trim();
-      out = out
-        .replace(/\b[a-z]+ md\s*\/\s*[a-z]+ ad\b/gi, "")
-        .replace(/\s{2,}/g, " ")
-        .trim();
+      out = out.replace(/\b[a-z]+ md\s*\/\s*[a-z]+ ad\b/gi, "").replace(/\s{2,}/g, " ").trim();
       return out;
     };
 
@@ -773,9 +719,7 @@ export default function ChatClient() {
           ...(safeData.copy?.answer
             ? { answer: stripMDAD(safeData.copy.answer) ?? safeData.copy.answer }
             : {}),
-          ...(safeData.copy?.how
-            ? { how: stripMDAD(safeData.copy.how) ?? safeData.copy.how }
-            : {}),
+          ...(safeData.copy?.how ? { how: stripMDAD(safeData.copy.how) ?? safeData.copy.how } : {}),
         } as any;
       }
 
@@ -789,8 +733,7 @@ export default function ChatClient() {
         {
           id: newId(),
           role: "assistant",
-          content:
-            "I couldn’t fetch a detailed answer right now. Please check birth details or try again.",
+          content: "I couldn’t fetch a detailed answer right now. Please check birth details or try again.",
           error: typeof e?.message === "string" ? e.message : "Request failed",
         },
       ]);
@@ -799,86 +742,108 @@ export default function ChatClient() {
     }
   }
 
-  if (!mounted) return <div className="p-6 text-sm text-gray-600">Loading chat…</div>;
+  if (!mounted) {
+    return (
+      <div className="min-h-[60vh] grid place-items-center text-sm text-slate-300 bg-slate-950">
+        Loading chat…
+      </div>
+    );
+  }
 
   return (
     <main className="mx-auto max-w-5xl p-4 h-[100dvh] flex flex-col gap-3 text-slate-100 bg-gradient-to-b from-slate-950 via-indigo-950/30 to-slate-950">
-      <header className="flex items-center gap-3 flex-wrap">
-        <h1 className="text-xl font-semibold tracking-tight">
-          Sarathi · Chat{" "}
-          {profile?.name ? <span className="text-gray-500">— for {profile.name}</span> : null}
-        </h1>
+      {/* Header */}
+      <header className="rounded-2xl border border-white/10 bg-slate-950/30 backdrop-blur-sm p-4">
+        <div className="flex items-center gap-3 flex-wrap">
+          <h1 className="text-lg md:text-xl font-semibold tracking-tight">
+            Sārathi · Chat{" "}
+            {profile?.name ? (
+              <span className="text-slate-300/70 text-sm font-normal">— {profile.name}</span>
+            ) : null}
+          </h1>
 
-        <div className="flex items-center gap-3 text-xs ml-auto">
-          <span className="text-gray-600">View:</span>
-          <label className="flex items-center gap-1">
-            <input
-              type="radio"
-              name="view"
-              checked={view === "qa"}
-              onChange={() => setView("qa")}
-              disabled={safeMode}
-            />
-            Q&amp;A
-          </label>
-          <label className="flex items-center gap-1">
-            <input
-              type="radio"
-              name="view"
-              checked={view === "cards"}
-              onChange={() => setView("cards")}
-              disabled={safeMode}
-            />
-            Cards
-          </label>
-          <label className="flex items-center gap-1">
-            <input
-              type="radio"
-              name="view"
-              checked={view === "narrative"}
-              onChange={() => setView("narrative")}
-              disabled={safeMode}
-            />
-            Narrative / Timeline
-          </label>
+          <div className="flex items-center gap-4 text-xs ml-auto flex-wrap">
+            <div className="flex items-center gap-2">
+              <span className="text-slate-300/60">View</span>
+              <label className="flex items-center gap-1.5 text-slate-100/90">
+                <input
+                  className="accent-indigo-400"
+                  type="radio"
+                  name="view"
+                  checked={view === "qa"}
+                  onChange={() => setView("qa")}
+                  disabled={safeMode}
+                />
+                Q&amp;A
+              </label>
+              <label className="flex items-center gap-1.5 text-slate-100/90">
+                <input
+                  className="accent-indigo-400"
+                  type="radio"
+                  name="view"
+                  checked={view === "cards"}
+                  onChange={() => setView("cards")}
+                  disabled={safeMode}
+                />
+                Cards
+              </label>
+              <label className="flex items-center gap-1.5 text-slate-100/90">
+                <input
+                  className="accent-indigo-400"
+                  type="radio"
+                  name="view"
+                  checked={view === "narrative"}
+                  onChange={() => setView("narrative")}
+                  disabled={safeMode}
+                />
+                Timeline
+              </label>
+            </div>
 
-          <span className="ml-4 text-gray-600">Chat mode:</span>
-          <label className="flex items-center gap-1">
-            <input
-              type="checkbox"
-              checked={chattyMode}
-              onChange={(e) => setChattyMode(e.target.checked)}
-            />
-            Conversational
-          </label>
-
-          {safeMode && (
-            <span className="rounded-md border border-black/10 px-2 py-0.5 text-xs bg-gray-50">
-              Safe mode
-            </span>
-          )}
+            <div className="flex items-center gap-2">
+              <span className="text-slate-300/60">Mode</span>
+              <label className="flex items-center gap-1.5 text-slate-100/90">
+                <input
+                  className="accent-indigo-400"
+                  type="checkbox"
+                  checked={chattyMode}
+                  onChange={(e) => setChattyMode(e.target.checked)}
+                />
+                Conversational
+              </label>
+              {safeMode && (
+                <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-slate-200/80">
+                  Safe
+                </span>
+              )}
+            </div>
+          </div>
         </div>
 
-        <div className="w-full flex items-center gap-2 text-xs">
+        {/* Profile + actions */}
+        <div className="mt-3 flex items-center gap-2 text-xs flex-wrap">
           <div
-            className={`rounded-full px-2 py-0.5 border ${
-              profile?.name
-                ? "bg-green-50 text-green-700 border-green-200"
-                : "bg-yellow-50 text-yellow-700 border-yellow-200"
-            }`}
+            className={
+              "rounded-full px-3 py-1 border " +
+              (hasProfile
+                ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-200"
+                : "border-amber-400/30 bg-amber-500/10 text-amber-200")
+            }
           >
-            {profile?.name
-              ? `Profile loaded (Life Report): ${profile.name}`
-              : "No profile found. Using default location for timing answers."}
+            {hasProfile
+              ? `Profile loaded${profile?.name ? `: ${profile.name}` : ""}`
+              : "No birth profile loaded — using default place for timing."}
           </div>
-          {!profile?.name && (
+
+          {!hasProfile && (
             <a
               href="/sarathi/life-report"
-              className="rounded-md border border-black/10 px-2 py-1 hover:bg-black/5"
+              className="rounded-full border border-white/10 bg-white/5 px-3 py-1 hover:bg-white/10 text-slate-100"
             >
-              Go to Life Report
+              Open Life Report
             </a>
           )}
+
           <button
             onClick={() => {
               setMessages([] as Msg[]);
@@ -886,16 +851,16 @@ export default function ChatClient() {
                 localStorage.removeItem("sarathi-chat");
               } catch {}
             }}
-            className="ml-auto rounded-md border border-black/10 px-2 py-1 hover:bg-black/5"
+            className="ml-auto rounded-full border border-white/10 bg-white/5 px-3 py-1 hover:bg-white/10 text-slate-100"
             title="Clear chat history"
           >
-            clear
+            Clear
           </button>
         </div>
       </header>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto rounded-2xl border border-white/10 bg-indigo-950/40 backdrop-blur-sm p-4 space-y-6">
+      <div className="flex-1 overflow-y-auto rounded-2xl border border-white/10 bg-indigo-950/35 backdrop-blur-sm p-4 space-y-6">
         {messages.map((msg, idx) => {
           const hasWindows = !!(msg.data && Array.isArray(msg.data.windows) && msg.data.windows.length);
           const hasNarrative = !!(msg.data && msg.data.copy && msg.data.copy.answer);
@@ -908,14 +873,8 @@ export default function ChatClient() {
 
           if (msg.role === "assistant" && msg.data && hasNarrative) {
             content = <AssistantProse data={msg.data} />;
-          } else if (
-            msg.role === "assistant" &&
-            msg.data &&
-            hasWindows &&
-            (intent === "when" || intent === "exact")
-          ) {
+          } else if (msg.role === "assistant" && msg.data && hasWindows && (intent === "when" || intent === "exact")) {
             const hideChartLens = Boolean(msg.data?.copy?.answer);
-
             const dataForCards = {
               ...msg.data,
               ...(hideChartLens ? { copy: { ...msg.data.copy, house: undefined } } : {}),
@@ -936,21 +895,19 @@ export default function ChatClient() {
                 <QARich data={dataForCards as any} question={prevUser} />
               );
           } else if (msg.role === "assistant" && msg.data && !hasNarrative) {
-            const now =
-              msg.data?.now?.label ||
-              msg.data?.extra?.nowLabel;
+            const now = msg.data?.now?.label || msg.data?.extra?.nowLabel;
             const wins = normalizeWindows(msg.data?.windows);
             content = (
-              <div className="rounded-2xl bg-white/5 border border-white/10 p-3 text-sm leading-6">
-                <p className="mb-2">
-                  I couldn’t fetch specific guidance for that request just now.
+              <div className="rounded-2xl border border-white/10 bg-slate-950/35 p-4 text-sm leading-6 text-slate-100">
+                <p className="mb-2 text-slate-100/90">
+                  I couldn’t fetch specific guidance right now.
                   {now ? ` You’re currently in **${now}**.` : ""} Here’s the big picture:
                 </p>
                 {wins.length ? (
-                  <ul className="list-disc pl-5 space-y-1">
+                  <ul className="list-disc pl-5 space-y-1 text-slate-100/90">
                     {wins.slice(0, 2).map((w: any, i: number) => (
                       <li key={i}>
-                        <span className="font-medium">
+                        <span className="font-medium text-slate-100">
                           {(w?.fromISO || w?.from) ?? "—"} → {(w?.toISO || w?.to) ?? "—"}
                         </span>
                         {w?.label ? ` — ${w.label}` : ""}
@@ -961,42 +918,42 @@ export default function ChatClient() {
                     ))}
                   </ul>
                 ) : (
-                  <p>Keep efforts steady week by week; warm referrals before screens.</p>
+                  <p className="text-slate-100/80">
+                    Keep efforts steady week by week; warm referrals before screens.
+                  </p>
                 )}
               </div>
             );
           } else if (msg.role === "assistant" && msg.data) {
             content = (
-              <div className="rounded-2xl bg-white/5 border border-white/5 px-3 py-2 text-sm">
+              <div className="rounded-2xl border border-white/10 bg-slate-950/35 px-4 py-3 text-sm text-slate-100">
                 {msg.data.bottomLine?.lead || "Here’s what I found."}
               </div>
             );
           }
 
           return (
-            <div
-              key={msg.id}
-              className={`flex gap-2 ${
-                msg.role === "user" ? "justify-end" : "justify-start"
-              }`}
-            >
-              <div className={`max-w-[85%] ${msg.role === "user" ? "text-right" : "text-left"}`}>
+            <div key={msg.id} className={`flex gap-2 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+              <div className={`max-w-[88%] ${msg.role === "user" ? "text-right" : "text-left"}`}>
                 {safeMode && msg.data ? (
-                  <pre className="max-w-[85%] overflow-auto rounded-2xl bg-white/5 border border-white/10 p-3 text-xs">
+                  <pre className="max-w-[88%] overflow-auto rounded-2xl bg-slate-950/60 border border-white/10 p-3 text-xs text-slate-100">
                     {JSON.stringify(msg.data, null, 2)}
                   </pre>
                 ) : msg.role === "assistant" && msg.data ? (
                   content
                 ) : msg.content ? (
                   <div
-                    className={`rounded-2xl px-3 py-2 text-sm ${
-                      msg.role === "user" ? "bg-black text-white" : "bg-white/5 border border-white/10"
-                    }`}
+                    className={
+                      "rounded-2xl px-4 py-2.5 text-sm " +
+                      (msg.role === "user"
+                        ? "bg-indigo-500/20 border border-indigo-300/20 text-slate-100"
+                        : "bg-slate-950/35 border border-white/10 text-slate-100")
+                    }
                   >
                     {msg.content}
                     {msg.error && (
-                      <div className="mt-1 text-xs opacity-80">
-                        <code>{msg.error}</code>
+                      <div className="mt-2 text-xs text-rose-200/90">
+                        <code className="break-words">{msg.error}</code>
                       </div>
                     )}
                   </div>
@@ -1005,15 +962,16 @@ export default function ChatClient() {
             </div>
           );
         })}
-        {loading && <div className="text-sm text-gray-500">…thinking</div>}
+
+        {loading && <div className="text-sm text-slate-300/70">Thinking…</div>}
         <div ref={bottomRef} />
       </div>
 
       {/* Input */}
       <div className="flex gap-2">
         <input
-          className="h-10 flex-1 rounded-md border border-black/5 bg-white px-3 text-sm outline-none focus:border-black/30"
-          placeholder="Type your question…"
+          className="h-11 flex-1 rounded-xl border border-white/10 bg-slate-950/40 px-4 text-sm text-slate-100 placeholder:text-slate-300/60 outline-none focus:border-indigo-300/40"
+          placeholder="Ask about career, money, relationships, health…"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => {
@@ -1023,7 +981,7 @@ export default function ChatClient() {
         <button
           onClick={() => send()}
           disabled={!canSend}
-          className="inline-flex items-center justify-center h-10 rounded-md px-3 text-sm font-medium bg-black text-white disabled:opacity-50"
+          className="inline-flex items-center justify-center h-11 rounded-xl px-4 text-sm font-semibold border border-white/10 bg-white/10 hover:bg-white/15 disabled:opacity-50 text-slate-100"
         >
           Send
         </button>
