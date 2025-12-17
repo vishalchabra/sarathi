@@ -11,10 +11,12 @@
 export type Category =
   | "vehicle"
   | "job"
+  | "job-business"
   | "property"
   | "relationships"
   | "disputes"
   | "transit";
+
 
 type Place = { name?: string; tz?: string; lat?: number; lon?: number };
 

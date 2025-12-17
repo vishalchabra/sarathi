@@ -628,15 +628,16 @@ export default function ChatClient() {
       userIntent === "exact" ? "narrative" : userIntent === "when" ? "cards" : "qa";
 
     const payload: any = {
-      query,
-      text: query,
-      input: query,
-      profile: mdad ? { ...baseProfile, mdad } : baseProfile,
-      style: styleToSend,
-      spans,
-      dashaSpans: spans,
-      ...(DEBUG ? { history: buildHistory(messages, query), debug: true } : {}),
-    };
+  query,
+  text: query,
+  input: query,
+
+  profile: mdad ? { ...baseProfile, mdad } : baseProfile,
+  style: styleToSend,
+  spans,
+  dashaSpans: spans,
+  ...(DEBUG ? { history: buildHistory(messages, query), debug: true } : {}),
+};
 
     console.log("[chat] QA payload to /api/qa", payload);
 
