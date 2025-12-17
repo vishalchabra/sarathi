@@ -4652,7 +4652,7 @@ setTimelineSummary(
 <motion.div variants={fadeUpSmall} className="space-y-4">
   <Accordion type="single" collapsible className="w-full">
     <AccordionItem value="placements-details">
-      <AccordionTrigger className="text-sm font-semibold">
+      <AccordionTrigger className="text-sm font-semibold text-slate-100 hover:text-white [&_svg]:text-slate-200 [&_svg]:opacity-80">
         Show detailed chart (planet placements)
       </AccordionTrigger>
 
