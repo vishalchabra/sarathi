@@ -56,20 +56,22 @@ export default function Page() {
           </Link>
 
           <nav className="hidden items-center gap-4 text-sm text-slate-300 sm:flex">
-            <Link href="/sarathi/life-report" className="hover:text-slate-50">
-              Life Report
-            </Link>
-            <Link href="/sarathi/life-guidance" className="hover:text-slate-50">
-              Guidance
-            </Link>
-            <Link href="/sarathi/chat" className="hover:text-slate-50">
-              Ask Sārathi
-            </Link>
-            <span className="mx-1 h-4 w-px bg-slate-800/80" />
-            <Link href="/about" className="hover:text-slate-50">
-              About
-            </Link>
-          </nav>
+  <Link href="/about" className="hover:text-slate-50">
+    About
+  </Link>
+  <Link href="/faqs" className="hover:text-slate-50">
+    FAQs
+  </Link>
+
+  <span className="mx-1 h-4 w-px bg-slate-800/80" />
+
+  <Link href="/sarathi/life-report" className="hover:text-slate-50">
+    Life Report
+  </Link>
+  <Link href="/sarathi/chat" className="hover:text-slate-50">
+    Ask Sārathi
+  </Link>
+</nav>
 
           <Link href="/sarathi/life-report">
             <Button
