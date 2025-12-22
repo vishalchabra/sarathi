@@ -37,6 +37,8 @@ import {
   AccordionContent,
 } from "@/components/ui/accordion";
 import Link from "next/link";
+import { saveBirthProfile } from "@/lib/birth-profile";
+
 const AYANAMSA_LAHIRI_APPROX = 23.85;
 
 
@@ -3299,18 +3301,26 @@ const todaysFocus = useMemo(
       if (Array.isArray(parsed)) {
         setProfiles(parsed);
       }
+      
     } catch (e) {
       console.warn("Could not load stored profiles", e);
     }
   }, []);
-
+   
     const handleSaveProfile = useCallback(() => {
   // basic validation
-  if (!dateISO || !time || !place?.lat || !place?.lon || !tz) {
+  if (
+  !dateISO ||
+  !time ||
+  !tz ||
+  typeof place?.lat !== "number" ||
+  typeof place?.lon !== "number"
+) {
+
     alert("Fill birth date, time & place before saving a profile.");
     return;
   }
-
+  
   const trimmedName = (name || "").trim() || "Default";
   const profileId = `${trimmedName} — ${dateISO}`;
 
@@ -3342,6 +3352,19 @@ const todaysFocus = useMemo(
   } catch (e) {
     console.warn("[life-report] failed to persist profiles", e);
   }
+    // Also set the ACTIVE profile for the whole app (Chat, Daily Guide, etc.)
+  saveBirthProfile({
+    name: trimmedName,
+    dobISO: dateISO,
+    tob: time,
+    place: {
+      name: place?.name || "",
+      tz: tz,
+      lat: Number(place.lat),
+      lon: Number(place.lon),
+    },
+  });
+
 
   // auto-select the newly saved profile
   setSelectedProfileId(profileId);
@@ -4652,7 +4675,7 @@ setTimelineSummary(
 <motion.div variants={fadeUpSmall} className="space-y-4">
   <Accordion type="single" collapsible className="w-full">
     <AccordionItem value="placements-details">
-      <AccordionTrigger className="text-sm font-semibold text-slate-100 hover:text-white [&_svg]:text-slate-200 [&_svg]:opacity-80">
+      <AccordionTrigger className="text-sm font-semibold text-slate-100 hover:text-white [&_svg]:text-slate-200 [&_svg]:opacity-80">pn
         Show detailed chart (planet placements)
       </AccordionTrigger>
 

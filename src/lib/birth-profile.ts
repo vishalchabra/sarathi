@@ -1,9 +1,10 @@
 // src/lib/birth-profile.ts
 export type BirthProfile = {
+  name?: string;
   dobISO?: string;
-  tob?: string; // "HH:mm" 24h
-  venusHouse?: number; // 1..12 (optional)
-  fourthLord?: string; // optional
+  tob?: string;
+  venusHouse?: number;
+  fourthLord?: string;
   place?: { name: string; lat: number; lon: number; tz: string };
 };
 

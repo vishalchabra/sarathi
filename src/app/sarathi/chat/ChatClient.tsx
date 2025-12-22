@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import React from "react";
 import { TimingCards, NarrativeTiming, QARich } from "@/components/TimingCards";
+import { loadBirthProfile } from "@/lib/birth-profile";
+
 
 /* ===================== Local types ===================== */
 type Topic =
@@ -462,12 +464,79 @@ function buildMDADAndSpans(): {
     return { mdad, nowLabel, spans };
   }
 }
+function SarathiAnswerCard({
+  title,
+  nowLabel,
+  answer,
+  how,
+  whyBullets,
+  confidenceText,
+  detailNote,
+}: {
+  title?: string;
+  nowLabel?: string;
+  answer?: string;
+  how?: string;
+  whyBullets?: string[];
+  confidenceText?: string;
+  detailNote?: string;
+}) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-slate-950/35 p-4 text-sm leading-6 text-slate-100">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <div className="text-xs text-slate-300/70">Sārathi’s Guidance</div>
+          {title ? (
+            <div className="mt-1 text-sm font-semibold text-slate-100">{title}</div>
+          ) : null}
+          {nowLabel ? (
+            <div className="mt-1 text-xs text-slate-300/70">Current timing: {nowLabel}</div>
+          ) : null}
+        </div>
+        {confidenceText ? (
+          <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-200/90">
+            {confidenceText}
+          </div>
+        ) : null}
+      </div>
+
+      {answer ? <p className="mt-3 whitespace-pre-wrap">{answer}</p> : null}
+
+      {(how || (whyBullets && whyBullets.length)) ? (
+        <div className="mt-4 grid gap-3 md:grid-cols-2">
+          {how ? (
+            <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+              <div className="text-xs font-semibold text-slate-100">What to do now</div>
+              <div className="mt-1 whitespace-pre-wrap text-xs text-slate-100/90">{how}</div>
+            </div>
+          ) : null}
+
+          {whyBullets && whyBullets.length ? (
+            <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+              <div className="text-xs font-semibold text-slate-100">Why this works</div>
+              <ul className="mt-1 list-disc pl-5 space-y-1 text-xs text-slate-100/90">
+                {whyBullets.slice(0, 3).map((w, i) => (
+                  <li key={i}>{w}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      {detailNote ? (
+        <div className="mt-3 text-xs text-slate-300/70">{detailNote}</div>
+      ) : null}
+    </div>
+  );
+}
 
 /* ===================== Component ===================== */
 export default function ChatClient() {
   const [mounted, setMounted] = useState(false);
   const [safeMode, setSafeMode] = useState(false);
   const [view, setView] = useState<"cards" | "narrative" | "qa">("qa");
+  const [showDetails, setShowDetails] = useState(false);
   const [chattyMode, setChattyMode] = useState(true);
   const [profile, setProfile] = useState<Profile>({});
   const [messages, setMessages] = useState<Msg[]>([
@@ -506,41 +575,71 @@ export default function ChatClient() {
       }
     } catch {}
 
-    // Profile load
+        // Profile load (AUTHORITATIVE ORDER)
     try {
-      const rawDefault = localStorage.getItem(DEFAULT_PROFILE_KEY);
-      if (rawDefault) {
-        const p = JSON.parse(rawDefault);
-        const mapped: Profile = {
-          name: p.name,
-          dobISO: p.birthDateISO,
-          tob: p.birthTime,
-          place:
-            p.birthTz != null
-              ? {
-                  name: p.placeName,
-                  tz: p.birthTz,
-                  lat: Number(p.lat),
-                  lon: Number(p.lon),
-                }
-              : undefined,
-        };
-        setProfile(mapped);
+      // 1) Prefer ACTIVE profile saved by Life Report
+      const active = loadBirthProfile();
+      if (active) {
+        setProfile({
+          name: active.name,
+          dobISO: active.dobISO,
+          tob: active.tob,
+          place: active.place,
+        });
       } else {
-        const rawLR = localStorage.getItem(LIFE_REPORT_KEY);
-        if (rawLR) setProfile(JSON.parse(rawLR));
+        // 2) Fallback: old chat default profile
+        const rawDefault = localStorage.getItem(DEFAULT_PROFILE_KEY);
+        if (rawDefault) {
+          const p = JSON.parse(rawDefault);
+          setProfile({
+            name: p.name,
+            dobISO: p.birthDateISO,
+            tob: p.birthTime,
+            place:
+              p.birthTz != null
+                ? {
+                    name: p.placeName,
+                    tz: p.birthTz,
+                    lat: Number(p.lat),
+                    lon: Number(p.lon),
+                  }
+                : undefined,
+          });
+        } else {
+          // 3) Last fallback: legacy life report profile
+          const rawLR = localStorage.getItem(LIFE_REPORT_KEY);
+          if (rawLR) setProfile(JSON.parse(rawLR));
+        }
       }
-    } catch {}
+    } catch {
+      setProfile({});
+    }
 
     const onStorage = (e: StorageEvent) => {
-      if (e.key === LIFE_REPORT_KEY || e.key === DEFAULT_PROFILE_KEY) {
+      // If active profile changes anywhere, re-load it
+      if (
+        e.key === "sarathi.birthProfile.v1" ||
+        e.key === DEFAULT_PROFILE_KEY ||
+        e.key === LIFE_REPORT_KEY
+      ) {
         try {
-          setProfile(e.newValue ? JSON.parse(e.newValue) : {});
+          const active = loadBirthProfile();
+          if (active) {
+            setProfile({
+              name: active.name,
+              dobISO: active.dobISO,
+              tob: active.tob,
+              place: active.place,
+            });
+          } else {
+            setProfile({});
+          }
         } catch {
           setProfile({});
         }
       }
     };
+
     window.addEventListener("storage", onStorage);
     return () => window.removeEventListener("storage", onStorage);
   }, []);
@@ -771,7 +870,7 @@ export default function ChatClient() {
                   type="radio"
                   name="view"
                   checked={view === "qa"}
-                  onChange={() => setView("qa")}
+                  onChange={() => { setView("qa"); setShowDetails(true); }}
                   disabled={safeMode}
                 />
                 Q&amp;A
@@ -782,7 +881,7 @@ export default function ChatClient() {
                   type="radio"
                   name="view"
                   checked={view === "cards"}
-                  onChange={() => setView("cards")}
+                  onChange={() => { setView("cards"); setShowDetails(true); }}
                   disabled={safeMode}
                 />
                 Cards
@@ -793,12 +892,19 @@ export default function ChatClient() {
                   type="radio"
                   name="view"
                   checked={view === "narrative"}
-                  onChange={() => setView("narrative")}
+                  onChange={() => { setView("narrative"); setShowDetails(true); }}
                   disabled={safeMode}
                 />
                 Timeline
               </label>
             </div>
+           <button
+  type="button"
+  onClick={() => setShowDetails((s) => !s)}
+  className="rounded-full border border-white/10 bg-white/5 px-3 py-1 hover:bg-white/10 text-slate-100"
+>
+  {showDetails ? "Hide details" : "Show details"}
+</button>
 
             <div className="flex items-center gap-2">
               <span className="text-slate-300/60">Mode</span>
@@ -846,7 +952,14 @@ export default function ChatClient() {
 
           <button
             onClick={() => {
-              setMessages([] as Msg[]);
+              setMessages([
+  {
+    id: newId(),
+    role: "assistant",
+    content: "Hi — Sārathi Chat is ready. Ask about career, money, relationships, health, or timing.",
+  },
+]);
+
               try {
                 localStorage.removeItem("sarathi-chat");
               } catch {}
@@ -869,68 +982,69 @@ export default function ChatClient() {
             [...messages].slice(0, idx).reverse().find((m) => m.role === "user")?.content || "";
           const intent = intentFromQuery(prevUser);
 
-          let content: React.ReactElement | null = null;
+         let content: React.ReactElement | null = null;
 
-          if (msg.role === "assistant" && msg.data && hasNarrative) {
-            content = <AssistantProse data={msg.data} />;
-          } else if (msg.role === "assistant" && msg.data && hasWindows && (intent === "when" || intent === "exact")) {
-            const hideChartLens = Boolean(msg.data?.copy?.answer);
-            const dataForCards = {
-              ...msg.data,
-              ...(hideChartLens ? { copy: { ...msg.data.copy, house: undefined } } : {}),
-              windows: normalizeWindows(msg.data.windows),
-              bottomLine:
-                msg.data.bottomLine ?? {
-                  lead: (msg.data as any).answer ?? "Here are your best windows.",
-                  nuance: "",
-                },
-            };
+if (msg.role === "assistant" && msg.data) {
+  const d = msg.data;
 
-            content =
-              view === "cards" ? (
-                <TimingCards data={dataForCards as any} />
-              ) : view === "narrative" ? (
-                <NarrativeTiming data={dataForCards as any} />
-              ) : (
-                <QARich data={dataForCards as any} question={prevUser} />
-              );
-          } else if (msg.role === "assistant" && msg.data && !hasNarrative) {
-            const now = msg.data?.now?.label || msg.data?.extra?.nowLabel;
-            const wins = normalizeWindows(msg.data?.windows);
-            content = (
-              <div className="rounded-2xl border border-white/10 bg-slate-950/35 p-4 text-sm leading-6 text-slate-100">
-                <p className="mb-2 text-slate-100/90">
-                  I couldn’t fetch specific guidance right now.
-                  {now ? ` You’re currently in **${now}**.` : ""} Here’s the big picture:
-                </p>
-                {wins.length ? (
-                  <ul className="list-disc pl-5 space-y-1 text-slate-100/90">
-                    {wins.slice(0, 2).map((w: any, i: number) => (
-                      <li key={i}>
-                        <span className="font-medium text-slate-100">
-                          {(w?.fromISO || w?.from) ?? "—"} → {(w?.toISO || w?.to) ?? "—"}
-                        </span>
-                        {w?.label ? ` — ${w.label}` : ""}
-                        {w?.notes
-                          ? ` — ${typeof w.notes === "string" ? w.notes : w.notes.join("; ")}`
-                          : ""}
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-slate-100/80">
-                    Keep efforts steady week by week; warm referrals before screens.
-                  </p>
-                )}
-              </div>
-            );
-          } else if (msg.role === "assistant" && msg.data) {
-            content = (
-              <div className="rounded-2xl border border-white/10 bg-slate-950/35 px-4 py-3 text-sm text-slate-100">
-                {msg.data.bottomLine?.lead || "Here’s what I found."}
-              </div>
-            );
-          }
+  const now = d?.now?.label || d?.extra?.nowLabel;
+
+  const answer =
+    d?.copy?.answer ||
+    d?.bottomLine?.lead ||
+    d?.copy?.long ||
+    "Here’s what I found.";
+
+  const how =
+    d?.copy?.how ||
+    (Array.isArray(d?.checklist) ? d.checklist.slice(0, 3).join("\n") : "");
+
+  const whyBullets: string[] =
+    Array.isArray(d?.windows) && d.windows.length
+      ? (d.windows[0]?.why || []).slice(0, 3)
+      : Array.isArray(d?.guidance)
+      ? d.guidance.slice(0, 3)
+      : [];
+
+  const title = d?.title || (d?.topic ? Cap(String(d.topic)) : undefined);
+
+  const detailNote = hasProfile
+    ? "Tip: switch view (Q&A / Cards / Timeline) above if you want deeper timing details."
+    : "For precise timing windows, open Life Report once and save your birth profile.";
+
+  // show one compact Sarathi answer card
+  content = (
+    <div className="space-y-3">
+      <SarathiAnswerCard
+        title={title}
+        nowLabel={now}
+        answer={answer}
+        how={how}
+        whyBullets={whyBullets}
+        confidenceText={hasProfile ? "Personalized" : "General"}
+        detailNote={detailNote}
+      />
+
+      {/* Optional deep view stays available */}
+      {showDetails && hasWindows ? (
+        view === "cards" ? (
+          <TimingCards data={d as any} />
+        ) : view === "narrative" ? (
+          <NarrativeTiming data={d as any} />
+        ) : (
+          <QARich data={d as any} question={prevUser} />
+        )
+      ) : null}
+    </div>
+  );
+} else if (msg.role === "assistant" && msg.content) {
+  // keep plain assistant text messages as a simple bubble
+  content = (
+    <div className="rounded-2xl border border-white/10 bg-slate-950/35 px-4 py-3 text-sm text-slate-100">
+      {msg.content}
+    </div>
+  );
+}
 
           return (
             <div key={msg.id} className={`flex gap-2 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
