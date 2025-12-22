@@ -27,12 +27,8 @@ export default function Home() {
   <Link href="/about" className="hover:text-slate-50">
     About
   </Link>
-  <Link href="/about#my-story" className="hover:text-slate-50">
-    My Story
-  </Link>
-  <Link href="/about#why-sarathi" className="hover:text-slate-50">
-    Why Sārathi
-  </Link>
+  
+ 
   <Link href="/faqs" className="hover:text-slate-50">
     FAQs
   </Link>
