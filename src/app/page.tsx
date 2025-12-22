@@ -24,28 +24,26 @@ export default function Home() {
 
           {/* NAV: About → My Story → Why → FAQs → Life Report → Ask Sārathi */}
           <nav className="hidden items-center gap-4 text-sm text-slate-300 sm:flex">
-  <Link href="#about" className="hover:text-slate-50">
+  <Link href="/about" className="hover:text-slate-50">
     About
   </Link>
-  <Link href="#my-story" className="hover:text-slate-50">
+  <Link href="/about#my-story" className="hover:text-slate-50">
     My Story
   </Link>
-  <Link href="#why-sarathi" className="hover:text-slate-50">
+  <Link href="/about#why-sarathi" className="hover:text-slate-50">
     Why Sārathi
   </Link>
-  <Link href="#faqs" className="hover:text-slate-50">
+  <Link href="/faqs" className="hover:text-slate-50">
     FAQs
   </Link>
 
   <span className="mx-1 h-4 w-px bg-slate-800/80" />
 
-  <Link href="/sarathi/life-report" className="hover:text-slate-50">
-    Life Report
-  </Link>
   <Link href="/sarathi/chat" className="hover:text-slate-50">
     Ask Sārathi
   </Link>
 </nav>
+
 
 
 

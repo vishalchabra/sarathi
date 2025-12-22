@@ -36,10 +36,7 @@ export default function AboutPage() {
 
   <span className="mx-1 h-4 w-px bg-slate-800/80" />
 
-  <Link href="/sarathi/life-report" className="hover:text-slate-50">
-    Life Report
-  </Link>
-  <Link href="/sarathi/chat" className="hover:text-slate-50">
+    <Link href="/sarathi/chat" className="hover:text-slate-50">
     Ask Sārathi
   </Link>
 </nav>
