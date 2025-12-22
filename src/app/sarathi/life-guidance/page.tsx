@@ -1,18 +1,50 @@
+// FILE: src/app/sarathi/life-guidance/page.tsx
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { useEffect, useMemo, useRef, useState } from "react";
 import TopNav from "../TopNav";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Clock, Download, Printer, Sparkles } from "lucide-react";
 
-type Place = { name: string; tz: string; lat: number; lon: number };
+import { Download, Printer, Search } from "lucide-react";
+
+// IMPORTANT: this is the same storage used across the app
+import { loadBirthProfile, saveBirthProfile } from "@/lib/birth-profile";
+
+type Place = { name?: string; tz: string; lat: number; lon: number };
+
+type GeoSuggestion = {
+  name?: string;
+  tz?: string;
+  lat?: number;
+  lon?: number;
+};
+
 type Report = any;
 
-const LS_KEY = "sarathi_profile_v1";
+function toHHMM(input: string) {
+  // Accept "11:35 PM" -> "23:35" as a friendly normalization.
+  // If already HH:MM, keep it.
+  const s = (input || "").trim();
+  if (!s) return "";
+  if (/^\d{2}:\d{2}$/.test(s)) return s;
+
+  // Try to parse "h:mm AM/PM"
+  const m = s.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+  if (!m) return s;
+  let hh = Number(m[1]);
+  const mm = Number(m[2]);
+  const ap = (m[3] || "").toUpperCase();
+  if (ap === "PM" && hh !== 12) hh += 12;
+  if (ap === "AM" && hh === 12) hh = 0;
+  return `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
+}
 
 export default function LifeGuidancePage() {
+  // Birth fields
   const [dobISO, setDobISO] = useState("");
   const [tob, setTob] = useState("");
   const [place, setPlace] = useState<Place>({
@@ -22,84 +54,192 @@ export default function LifeGuidancePage() {
     lon: 0,
   });
 
+  // City search UI
+  const [placeQuery, setPlaceQuery] = useState("");
+  const [suggestions, setSuggestions] = useState<GeoSuggestion[]>([]);
+  const [placePicked, setPlacePicked] = useState(false);
+  const [placeSearching, setPlaceSearching] = useState(false);
+
+  // Report state
   const [report, setReport] = useState<Report | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [previewKey, setPreviewKey] = useState(0);
 
+  // To avoid race conditions for search
+  const searchAbortRef = useRef<AbortController | null>(null);
+
+  // 1) On first load: prefer the ACTIVE profile saved by Life Report
   useEffect(() => {
     try {
-      const saved = localStorage.getItem(LS_KEY);
-      if (saved) {
-        const p = JSON.parse(saved);
-        setDobISO(p.dobISO ?? "");
-        setTob(p.tob ?? "");
-        setPlace((old) => ({ ...old, ...(p.place ?? {}) }));
+      const active = loadBirthProfile();
+      if (active?.dobISO) setDobISO(active.dobISO);
+      if (active?.tob) setTob(active.tob);
+
+      if (active?.place?.tz && Number.isFinite(active.place.lat) && Number.isFinite(active.place.lon)) {
+        setPlace({
+          name: active.place.name ?? "",
+          tz: active.place.tz,
+          lat: active.place.lat,
+          lon: active.place.lon,
+        });
+        setPlaceQuery(active.place.name ?? "");
+        setPlacePicked(true);
       }
     } catch {
       // ignore
     }
   }, []);
 
-  function saveProfile() {
+  // 2) Search places (simple + robust parsing)
+  async function searchPlaces(q: string) {
+    const query = (q || "").trim();
+    if (query.length < 2) {
+      setSuggestions([]);
+      return;
+    }
+
     try {
-      localStorage.setItem(LS_KEY, JSON.stringify({ dobISO, tob, place }));
-    } catch {
-      // ignore
+      setPlaceSearching(true);
+      searchAbortRef.current?.abort();
+      const ac = new AbortController();
+      searchAbortRef.current = ac;
+
+      // NOTE: your repo already has /api/geo (you grep’d it). We’ll try query-based search.
+      // If your /api/geo currently only supports reverse-geo, we’ll still fail gracefully.
+      const res = await fetch(`/api/geo?q=${encodeURIComponent(query)}`, {
+        method: "GET",
+        signal: ac.signal,
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      // Accept multiple possible shapes, because geo endpoints vary:
+      const list: GeoSuggestion[] =
+        (Array.isArray((data as any)?.results) && (data as any).results) ||
+        (Array.isArray((data as any)?.places) && (data as any).places) ||
+        (Array.isArray((data as any)?.items) && (data as any).items) ||
+        [];
+
+      setSuggestions(list.slice(0, 8));
+    } catch (e: any) {
+      if (e?.name === "AbortError") return;
+      setSuggestions([]);
+    } finally {
+      setPlaceSearching(false);
     }
   }
 
-  function fillSample() {
-    setDobISO("1984-01-21");
-    setTob("23:35");
-    setPlace({
-      name: "Saharanpur",
-      tz: "Asia/Kolkata",
-      lat: 29.986,
-      lon: 77.504,
+  function pickSuggestion(s: GeoSuggestion) {
+    const next: Place = {
+      name: s?.name || placeQuery || "",
+      tz: (s?.tz as string) || place.tz || "Asia/Kolkata",
+      lat: typeof s?.lat === "number" ? s.lat : 0,
+      lon: typeof s?.lon === "number" ? s.lon : 0,
+    };
+
+    setPlace(next);
+    setPlaceQuery(next.name || "");
+    setSuggestions([]);
+    setPlacePicked(Boolean(next.name && Number.isFinite(next.lat) && Number.isFinite(next.lon) && next.tz));
+    setError(null);
+
+    // Save as ACTIVE profile so everything else (Chat, Life Report) stays in sync
+    saveBirthProfile({
+      dobISO,
+      tob: toHHMM(tob),
+      place: next,
     });
   }
 
   function useMyLocation() {
     if (!navigator.geolocation) {
-      setError("Geolocation not supported");
+      setError("Geolocation not supported on this device/browser.");
       return;
     }
     setError(null);
+
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setPlace((old) => ({
-          ...old,
-          lat: pos.coords.latitude,
-          lon: pos.coords.longitude,
-        }));
+      async (pos) => {
+        const lat = pos.coords.latitude;
+        const lon = pos.coords.longitude;
+
+        // We already have /api/geo and your code comments say it does reverse geocode.
+        // Try to reverse to a place name + tz.
+        try {
+          const res = await fetch(`/api/geo?lat=${lat}&lon=${lon}`, { method: "GET" });
+          const data = await res.json().catch(() => ({}));
+          const name =
+            (data as any)?.name ||
+            (data as any)?.place?.name ||
+            "My location";
+          const tz =
+            (data as any)?.tz ||
+            (data as any)?.place?.tz ||
+            place.tz ||
+            "Asia/Kolkata";
+
+          const next: Place = { name, tz, lat, lon };
+          setPlace(next);
+          setPlaceQuery(name);
+          setPlacePicked(true);
+
+          saveBirthProfile({ dobISO, tob: toHHMM(tob), place: next });
+        } catch {
+          // fallback: set lat/lon only
+          const next: Place = { ...place, lat, lon };
+          setPlace(next);
+          setPlacePicked(true);
+          saveBirthProfile({ dobISO, tob: toHHMM(tob), place: next });
+        }
       },
       (e) => setError(e?.message ?? "Location permission denied"),
       { enableHighAccuracy: true, timeout: 10000 }
     );
   }
 
+  // IMPORTANT: Generate must match API schema used by /api/life-report
   async function generate() {
     setLoading(true);
     setError(null);
     setReport(null);
 
     try {
-      saveProfile();
-      setPreviewKey((k) => k + 1);
+      const d = (dobISO || "").trim();
+      const t = toHHMM(tob);
+
+      if (!d) throw new Error("Please enter your birth date (YYYY-MM-DD).");
+      if (!t) throw new Error("Please enter your birth time (HH:MM).");
+      if (!place?.tz) throw new Error("Please select a birth timezone.");
+      if (!placePicked) throw new Error("Pick a birth place from the dropdown (so lat/lon is saved).");
+
+      // Keep ACTIVE profile updated
+      saveBirthProfile({
+        dobISO: d,
+        tob: t,
+        place,
+      });
 
       const res = await fetch("/api/life-report", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ birth: { dobISO, tob, place } }),
+
+        // ✅ This matches your api route expectation (birthDateISO/birthTime/birthTz/birthLat/birthLon)
+        body: JSON.stringify({
+          birthDateISO: d,
+          birthTime: t,
+          birthTz: place.tz,
+          birthLat: place.lat,
+          birthLon: place.lon,
+          placeName: place.name ?? "",
+        }),
       });
 
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data?.error || res.statusText);
+      if (!res.ok) throw new Error((data as any)?.error || (data as any)?.message || res.statusText);
 
-      setReport(data.report ?? data);
+      setReport((data as any).report ?? data);
     } catch (e: any) {
-      setError(e?.message ?? "Failed to generate");
+      setError(e?.message ?? "Failed to generate guidance.");
     } finally {
       setLoading(false);
     }
@@ -111,21 +251,17 @@ export default function LifeGuidancePage() {
         import("html2canvas"),
         import("jspdf"),
       ]);
-
       const node = document.getElementById("guidancePrint");
       if (!node) return window.print();
 
       const canvas = await html2canvas(node, { scale: 2, useCORS: true });
       const imgData = canvas.toDataURL("image/png");
-
       const pdf = new jsPDF({ orientation: "p", unit: "pt", format: "a4" });
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
-
       const ratio = Math.min(pageWidth / canvas.width, pageHeight / canvas.height);
       const w = canvas.width * ratio;
       const h = canvas.height * ratio;
-
       pdf.addImage(imgData, "PNG", (pageWidth - w) / 2, 20, w, h);
       pdf.save("Sarathi-Life-Guidance.pdf");
     } catch {
@@ -137,225 +273,229 @@ export default function LifeGuidancePage() {
     window.print();
   }
 
-  const canRender = useMemo(() => {
+  const canGenerate = useMemo(() => {
     return Boolean(
       dobISO &&
         tob &&
-        place.tz &&
+        place?.tz &&
+        placePicked &&
         Number.isFinite(place.lat) &&
-        Number.isFinite(place.lon) &&
-        Math.abs(place.lat) <= 90 &&
-        Math.abs(place.lon) <= 180
+        Number.isFinite(place.lon)
     );
-  }, [dobISO, tob, place]);
+  }, [dobISO, tob, place, placePicked]);
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-50">
       <TopNav />
 
-      <div className="mx-auto max-w-6xl p-6 space-y-6">
-        {/* Header */}
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div>
-            <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-indigo-500/20 border border-indigo-400/40">
-                <Sparkles className="h-4 w-4 text-indigo-300" />
+      <main className="mx-auto max-w-6xl px-4 pb-16 pt-8">
+        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-2xl border border-indigo-400/30 bg-indigo-500/10" />
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-xl font-semibold text-slate-100">Life Guidance</h1>
+                <Badge className="bg-white/5 text-slate-200 border border-white/10">
+                  Print-friendly
+                </Badge>
               </div>
-              <h1 className="text-xl font-semibold text-slate-100">Life Guidance</h1>
-              <Badge className="bg-white/5 border border-white/10 text-slate-200 text-[11px]">
-                Print-friendly
-              </Badge>
+              <p className="mt-1 text-sm text-slate-300/80">
+                A clean summary you can read, print, and use for decisions.
+              </p>
             </div>
-            <p className="mt-2 text-sm text-slate-300/90">
-              A clean summary you can read, print, and use for decisions.
-            </p>
           </div>
 
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Button
+              onClick={printPage}
               variant="outline"
               className="rounded-xl border-white/10 bg-white/5 hover:bg-white/10"
-              onClick={printPage}
             >
-              <Printer className="h-4 w-4 mr-2" />
+              <Printer className="mr-2 h-4 w-4" />
               Print
             </Button>
 
             <Button
+              onClick={downloadPDF}
               variant="outline"
               className="rounded-xl border-white/10 bg-white/5 hover:bg-white/10"
-              onClick={downloadPDF}
             >
-              <Download className="h-4 w-4 mr-2" />
+              <Download className="mr-2 h-4 w-4" />
               Download PDF
             </Button>
           </div>
         </div>
 
-        {/* Input card */}
-        <Card className="border-white/10 bg-white/5 backdrop-blur-sm rounded-3xl">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-semibold text-slate-100">
-              Enter birth details
-            </CardTitle>
-            <p className="text-xs text-slate-300/80">
-              Needed for accurate dasha + timing.
-            </p>
-          </CardHeader>
+        <div className="grid gap-6">
+          {/* Birth details */}
+          <Card className="rounded-3xl border border-white/10 bg-white/5 backdrop-blur">
+            <CardHeader>
+              <CardTitle className="text-slate-100">Enter birth details</CardTitle>
+              <p className="text-sm text-slate-300/80">
+                Needed for accurate dasha + timing. Best experience: pick city from dropdown so lat/lon is correct.
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              <div className="grid gap-4 md:grid-cols-3">
+                <div>
+                  <div className="mb-1 text-xs text-slate-300/80">Birth date (YYYY-MM-DD)</div>
+                  <input
+                    value={dobISO}
+                    onChange={(e) => setDobISO(e.target.value)}
+                    placeholder="1984-01-21"
+                    className="w-full rounded-xl border border-white/10 bg-slate-950/40 px-3 py-2 text-sm text-slate-100 outline-none focus:border-indigo-400/50"
+                  />
+                </div>
 
-          <CardContent className="grid gap-4 md:grid-cols-3">
-            <div>
-              <div className="text-xs text-slate-300/80 mb-1">Birth date</div>
-              <input
-                value={dobISO}
-                onChange={(e) => setDobISO(e.target.value)}
-                placeholder="YYYY-MM-DD"
-                className="w-full h-10 rounded-xl border border-white/10 bg-slate-950/40 px-3 text-sm text-slate-100 outline-none focus:border-indigo-300/40"
-              />
-            </div>
+                <div>
+                  <div className="mb-1 text-xs text-slate-300/80">Birth time (HH:MM)</div>
+                  <input
+                    value={tob}
+                    onChange={(e) => setTob(e.target.value)}
+                    placeholder="23:35"
+                    className="w-full rounded-xl border border-white/10 bg-slate-950/40 px-3 py-2 text-sm text-slate-100 outline-none focus:border-indigo-400/50"
+                  />
+                </div>
 
-            <div>
-              <div className="text-xs text-slate-300/80 mb-1">Birth time</div>
-              <input
-                value={tob}
-                onChange={(e) => setTob(e.target.value)}
-                placeholder="HH:mm (24h)"
-                className="w-full h-10 rounded-xl border border-white/10 bg-slate-950/40 px-3 text-sm text-slate-100 outline-none focus:border-indigo-300/40"
-              />
-            </div>
-
-            <div>
-              <div className="text-xs text-slate-300/80 mb-1">Time zone</div>
-              <input
-                value={place.tz}
-                onChange={(e) => setPlace((p) => ({ ...p, tz: e.target.value }))}
-                placeholder="Asia/Kolkata"
-                className="w-full h-10 rounded-xl border border-white/10 bg-slate-950/40 px-3 text-sm text-slate-100 outline-none focus:border-indigo-300/40"
-              />
-            </div>
-
-            <div className="md:col-span-3 grid gap-3 md:grid-cols-4">
-              <div className="md:col-span-2">
-                <div className="text-xs text-slate-300/80 mb-1">Place name</div>
-                <input
-                  value={place.name}
-                  onChange={(e) => setPlace((p) => ({ ...p, name: e.target.value }))}
-                  placeholder="City"
-                  className="w-full h-10 rounded-xl border border-white/10 bg-slate-950/40 px-3 text-sm text-slate-100 outline-none focus:border-indigo-300/40"
-                />
+                <div>
+                  <div className="mb-1 text-xs text-slate-300/80">Time zone (IANA)</div>
+                  <input
+                    value={place.tz}
+                    onChange={(e) => {
+                      const tz = e.target.value;
+                      setPlace((p) => ({ ...p, tz }));
+                      setPlacePicked(false);
+                    }}
+                    placeholder="Asia/Kolkata"
+                    className="w-full rounded-xl border border-white/10 bg-slate-950/40 px-3 py-2 text-sm text-slate-100 outline-none focus:border-indigo-400/50"
+                  />
+                </div>
               </div>
 
-              <div>
-                <div className="text-xs text-slate-300/80 mb-1">Lat</div>
-                <input
-                  value={String(place.lat)}
-                  onChange={(e) =>
-                    setPlace((p) => ({ ...p, lat: Number(e.target.value) }))
-                  }
-                  placeholder="29.98"
-                  className="w-full h-10 rounded-xl border border-white/10 bg-slate-950/40 px-3 text-sm text-slate-100 outline-none focus:border-indigo-300/40"
-                />
+              {/* Place search */}
+              <div className="relative">
+                <div className="mb-1 text-xs text-slate-300/80">Birth place (search and pick)</div>
+
+                <div className="flex flex-col gap-2 md:flex-row md:items-center">
+                  <div className="relative flex-1">
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                    <input
+                      value={placeQuery}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setPlaceQuery(v);
+                        setPlacePicked(false);
+                        searchPlaces(v);
+                      }}
+                      placeholder="Start typing city… (e.g., Saharanpur)"
+                      className="w-full rounded-xl border border-white/10 bg-slate-950/40 pl-10 pr-3 py-2 text-sm text-slate-100 outline-none focus:border-indigo-400/50"
+                    />
+                  </div>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={useMyLocation}
+                    className="rounded-xl border-white/10 bg-white/5 hover:bg-white/10"
+                  >
+                    Use my location
+                  </Button>
+
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      // Save active profile even before generating
+                      saveBirthProfile({ dobISO, tob: toHHMM(tob), place });
+                      generate();
+                    }}
+                    disabled={loading || !canGenerate}
+                    className="rounded-xl bg-indigo-500 hover:bg-indigo-400"
+                  >
+                    {loading ? "Generating…" : "Generate guidance"}
+                  </Button>
+                </div>
+
+                {/* Suggestion dropdown */}
+                {suggestions.length > 0 && (
+                  <div className="mt-2 overflow-hidden rounded-2xl border border-white/10 bg-slate-950/80 backdrop-blur">
+                    {suggestions.map((s, idx) => {
+                      const label = s?.name ?? "Unknown place";
+                      const meta = `${s?.tz ?? "tz?"} · ${typeof s?.lat === "number" ? s.lat.toFixed(3) : "?"}, ${
+                        typeof s?.lon === "number" ? s.lon.toFixed(3) : "?"
+                      }`;
+                      return (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => pickSuggestion(s)}
+                          className="w-full px-4 py-3 text-left hover:bg-white/5"
+                        >
+                          <div className="text-sm text-slate-100">{label}</div>
+                          <div className="text-xs text-slate-300/70">{meta}</div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {placeSearching && (
+                  <div className="mt-2 text-xs text-slate-300/70">Searching…</div>
+                )}
+
+                {placePicked && (
+                  <div className="mt-2 text-xs text-emerald-300/80">
+                    Place selected: <span className="text-slate-200">{place.name}</span> ({place.tz}) ·{" "}
+                    {place.lat.toFixed(3)}, {place.lon.toFixed(3)}
+                  </div>
+                )}
               </div>
 
-              <div>
-                <div className="text-xs text-slate-300/80 mb-1">Lon</div>
-                <input
-                  value={String(place.lon)}
-                  onChange={(e) =>
-                    setPlace((p) => ({ ...p, lon: Number(e.target.value) }))
-                  }
-                  placeholder="77.50"
-                  className="w-full h-10 rounded-xl border border-white/10 bg-slate-950/40 px-3 text-sm text-slate-100 outline-none focus:border-indigo-300/40"
-                />
-              </div>
-            </div>
-
-            <div className="md:col-span-3 flex flex-wrap items-center gap-2">
-              <Button
-                variant="outline"
-                className="rounded-xl border-white/10 bg-white/5 hover:bg-white/10"
-                onClick={fillSample}
-              >
-                Fill sample
-              </Button>
-
-              <Button
-                variant="outline"
-                className="rounded-xl border-white/10 bg-white/5 hover:bg-white/10"
-                onClick={useMyLocation}
-              >
-                Use my location
-              </Button>
-
-              <Button
-                className="rounded-xl bg-indigo-500 hover:bg-indigo-400"
-                onClick={generate}
-                disabled={!canRender || loading}
-              >
-                <Clock className="h-4 w-4 mr-2" />
-                {loading ? "Generating…" : "Generate guidance"}
-              </Button>
-
-              {!canRender && (
-                <span className="text-xs text-slate-300/70">
-                  Enter DOB + TOB + valid lat/lon to generate.
-                </span>
+              {error && (
+                <div className="rounded-2xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
+                  {error}
+                </div>
               )}
-            </div>
 
-            {error && (
-              <div className="md:col-span-3 rounded-2xl border border-rose-400/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
-                {error}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+              {!placePicked && (
+                <div className="text-xs text-slate-300/70">
+                  Tip: If you already generated Life Report once, your profile is saved. If not, you can{" "}
+                  <Link className="text-indigo-300 hover:text-indigo-200 underline underline-offset-4" href="/sarathi/life-report">
+                    open Life Report
+                  </Link>{" "}
+                  and save your birth profile there.
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
-        {/* Output */}
-        {!report ? (
-          <Card className="border-white/10 bg-white/5 backdrop-blur-sm rounded-3xl">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold text-slate-100">
-                Guidance preview
-              </CardTitle>
-              <p className="text-xs text-slate-300/80">
+          {/* Preview */}
+          <Card className="rounded-3xl border border-white/10 bg-white/5 backdrop-blur">
+            <CardHeader>
+              <CardTitle className="text-slate-100">Guidance preview</CardTitle>
+              <p className="text-sm text-slate-300/80">
                 Generate once to see your print-friendly summary here.
               </p>
             </CardHeader>
+
             <CardContent>
-              <div className="rounded-2xl border border-white/10 bg-slate-950/35 p-6 text-sm text-slate-200/80">
-                This page will show:
-                <ul className="mt-3 list-disc pl-5 space-y-1 text-slate-200/80">
-                  <li>Your current MD/AD phase</li>
-                  <li>Next 30–90 day focus (career, money, relationships)</li>
-                  <li>Do / Don’t guidance you can act on</li>
-                  <li>A clean format you can print or save</li>
-                </ul>
+              <div
+                id="guidancePrint"
+                className="rounded-2xl border border-white/10 bg-slate-950/35 p-6 text-sm text-slate-200/90"
+              >
+                {!report ? (
+                  <div className="text-slate-300/70">
+                    This page will show your key timelines, dasha context, and a clean “do/don’t” summary once generated.
+                  </div>
+                ) : (
+                  <pre className="whitespace-pre-wrap break-words text-xs text-slate-200/80">
+                    {JSON.stringify(report, null, 2)}
+                  </pre>
+                )}
               </div>
             </CardContent>
           </Card>
-        ) : (
-          <Card
-            id="guidancePrint"
-            className="border-white/10 bg-white/5 backdrop-blur-sm rounded-3xl"
-          >
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold text-slate-100">
-                Your guidance
-              </CardTitle>
-              <p className="text-xs text-slate-300/80">
-                Generated from your birth details. (We’ll refine the layout next.)
-              </p>
-            </CardHeader>
-
-            <CardContent>
-              <pre className="max-h-[520px] overflow-auto rounded-2xl border border-white/10 bg-slate-950/35 p-4 text-xs text-slate-100">
-                {JSON.stringify(report, null, 2)}
-              </pre>
-            </CardContent>
-          </Card>
-        )}
-      </div>
+        </div>
+      </main>
     </div>
   );
 }

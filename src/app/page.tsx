@@ -216,9 +216,10 @@ export default function Home() {
 
         {/* Start with one of these */}
         <section className="space-y-4">
-          <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-400">
-            Start with one of these
-          </h2>
+          <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-200/80">
+  Start with one of these
+</h2>
+
           <div className="grid gap-4 md:grid-cols-3">
             <Card className="border-slate-800 bg-slate-900/70">
               <CardHeader className="pb-2">
