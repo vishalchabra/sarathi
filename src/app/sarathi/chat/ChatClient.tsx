@@ -547,7 +547,7 @@ export default function ChatClient() {
     },
   ]);
 
-  const [input, setInput] = useState("when will I change my job with increment");
+  const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement | null>(null);
 
@@ -568,12 +568,17 @@ export default function ChatClient() {
     } catch {}
 
     try {
-      const raw = localStorage.getItem("sarathi-chat");
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed)) setMessages(parsed);
-      }
-    } catch {}
+  const qs = new URLSearchParams(window.location.search);
+  const resume = qs.get("resume") === "1";
+
+  if (resume) {
+    const raw = localStorage.getItem("sarathi-chat");
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length) setMessages(parsed);
+    }
+  }
+} catch {}
 
         // Profile load (AUTHORITATIVE ORDER)
     try {
