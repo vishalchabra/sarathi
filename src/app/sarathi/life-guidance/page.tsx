@@ -116,28 +116,33 @@ export default function LifeGuidancePage() {
   }
 
   function pickSuggestion(s: GeoSuggestion) {
-    const next = {
-  ...place,
-  name: place?.name ?? "",
-  tz: place?.tz ?? "Asia/Kolkata",
-  lat: Number(place?.lat ?? 0),
-  lon: Number(place?.lon ?? 0),
-};
+  const next = {
+    name: s?.name ?? "",
+    tz: s?.tz ?? "Asia/Kolkata",
+    lat: typeof s?.lat === "number" ? s.lat : Number(s?.lat ?? 0),
+    lon: typeof s?.lon === "number" ? s.lon : Number(s?.lon ?? 0),
+  };
 
+  setPlace(next);
+  setPlaceQuery(next.name || "");
+  setSuggestions([]);
+  setPlacePicked(
+    Boolean(
+      next.name &&
+        Number.isFinite(next.lat) &&
+        Number.isFinite(next.lon) &&
+        next.tz
+    )
+  );
+  setError(null);
 
-    setPlace(next);
-    setPlaceQuery(next.name || "");
-    setSuggestions([]);
-    setPlacePicked(Boolean(next.name && Number.isFinite(next.lat) && Number.isFinite(next.lon) && next.tz));
-    setError(null);
-
-    // Save as ACTIVE profile so everything else (Chat, Life Report) stays in sync
-    saveBirthProfile({
-      dobISO,
-      tob: toHHMM(tob),
-      place: next,
-    });
-  }
+  // Save as ACTIVE profile so everything else (Chat, Life Report) stays in sync
+  saveBirthProfile({
+    dobISO,
+    tob: toHHMM(tob),
+    place: next,
+  });
+}
 
   function useMyLocation() {
     if (!navigator.geolocation) {
@@ -271,6 +276,11 @@ export default function LifeGuidancePage() {
         Number.isFinite(place.lon)
     );
   }, [dobISO, tob, place, placePicked]);
+function pickPlace(next: Place) {
+  setPlace(next);
+  setPlaceQuery(next.name ?? "");
+  setPlacePicked(true);
+}
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-50">
@@ -328,21 +338,24 @@ export default function LifeGuidancePage() {
                 <div>
                   <div className="mb-1 text-xs text-slate-300/80">Birth date (YYYY-MM-DD)</div>
                   <input
-                    value={dobISO}
-                    onChange={(e) => setDobISO(e.target.value)}
-                    placeholder="1984-01-21"
-                    className="w-full rounded-xl border border-white/10 bg-slate-950/40 px-3 py-2 text-sm text-slate-100 outline-none focus:border-indigo-400/50"
-                  />
+  type="date"
+  value={dobISO}
+  onChange={(e) => setDobISO(e.target.value)}
+  className="w-full rounded-xl border border-white/10 bg-slate-950/40 px-3 py-2 text-sm text-slate-100 outline-none focus:border-indigo-400/50"
+/>
+
                 </div>
 
                 <div>
                   <div className="mb-1 text-xs text-slate-300/80">Birth time (HH:MM)</div>
                   <input
-                    value={tob}
-                    onChange={(e) => setTob(e.target.value)}
-                    placeholder="23:35"
-                    className="w-full rounded-xl border border-white/10 bg-slate-950/40 px-3 py-2 text-sm text-slate-100 outline-none focus:border-indigo-400/50"
-                  />
+  type="time"
+  step={60}
+  value={tob}
+  onChange={(e) => setTob(e.target.value)}
+  className="w-full rounded-xl border border-white/10 bg-slate-950/40 px-3 py-2 text-sm text-slate-100 outline-none focus:border-indigo-400/50"
+/>
+
                 </div>
 
                 <div>
@@ -359,7 +372,7 @@ export default function LifeGuidancePage() {
                   />
                 </div>
               </div>
-
+             
               {/* Place search */}
               <div className="relative">
                 <div className="mb-1 text-xs text-slate-300/80">Birth place (search and pick)</div>
@@ -402,7 +415,7 @@ export default function LifeGuidancePage() {
                     {loading ? "Generating…" : "Generate guidance"}
                   </Button>
                 </div>
-
+              
                 {/* Suggestion dropdown */}
                 {suggestions.length > 0 && (
                   <div className="mt-2 overflow-hidden rounded-2xl border border-white/10 bg-slate-950/80 backdrop-blur">
@@ -413,11 +426,15 @@ export default function LifeGuidancePage() {
                       }`;
                       return (
                         <button
-                          key={idx}
-                          type="button"
-                          onClick={() => pickSuggestion(s)}
-                          className="w-full px-4 py-3 text-left hover:bg-white/5"
-                        >
+  key={idx}
+  type="button"
+  onMouseDown={(e) => {
+    e.preventDefault(); // IMPORTANT: prevents blur clearing input before click
+    pickSuggestion(s);
+  }}
+  className="w-full px-4 py-3 text-left hover:bg-white/5"
+>
+
                           <div className="text-sm text-slate-100">{label}</div>
                           <div className="text-xs text-slate-300/70">{meta}</div>
                         </button>
