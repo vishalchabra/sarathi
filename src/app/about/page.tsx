@@ -21,26 +21,31 @@ export default function AboutPage() {
           </Link>
 
           <nav className="hidden items-center gap-4 text-sm text-slate-300 sm:flex">
+            <Link href="/about" className="hover:text-slate-50">
+              About
+            </Link>
+            <Link href="/about#my-story" className="hover:text-slate-50">
+              My Story
+            </Link>
+            <Link href="/about#why-sarathi" className="hover:text-slate-50">
+              Why Sārathi
+            </Link>
+            <Link href="/faqs" className="hover:text-slate-50">
+              FAQs
+            </Link>
+
+            <span className="mx-1 h-4 w-px bg-slate-800/80" />
+
             <Link href="/sarathi/life-report" className="hover:text-slate-50">
               Life Report
-            </Link>
-            <Link href="/sarathi/life-guidance" className="hover:text-slate-50">
-              Guidance
             </Link>
             <Link href="/sarathi/chat" className="hover:text-slate-50">
               Ask Sārathi
             </Link>
-            <span className="mx-1 h-4 w-px bg-slate-800/80" />
-            <Link href="/faqs" className="hover:text-slate-50">
-              FAQs
-            </Link>
           </nav>
 
           <Link href="/sarathi/life-report">
-            <Button
-              size="sm"
-              className="rounded-xl bg-indigo-500 px-4 text-xs font-medium shadow-sm hover:bg-indigo-400"
-            >
+            <Button className="rounded-xl bg-indigo-500 px-4 text-xs font-medium shadow-sm hover:bg-indigo-400">
               Get your Life Report
             </Button>
           </Link>
@@ -61,8 +66,12 @@ export default function AboutPage() {
 
           <CardContent className="pt-6">
             <div className="grid gap-8 md:grid-cols-2">
-              <div className="rounded-2xl border border-white/10 bg-slate-950/40 p-6">
-                <h3 className="text-lg font-semibold text-slate-50">My Story</h3>
+              {/* My Story */}
+              <section
+                id="my-story"
+                className="scroll-mt-24 rounded-2xl border border-white/10 bg-slate-950/40 p-6"
+              >
+                <h2 className="text-lg font-semibold text-slate-50">My Story</h2>
 
                 <p className="mt-2 text-sm leading-6 text-slate-200/80">
                   Sārathi was born from a difficult phase in my own life — a time when I was searching for
@@ -89,10 +98,14 @@ export default function AboutPage() {
                 </p>
 
                 <div className="mt-4 text-xs text-slate-300/70">— Founder, Sārathi</div>
-              </div>
+              </section>
 
-              <div className="rounded-2xl border border-white/10 bg-slate-950/40 p-6">
-                <h3 className="text-lg font-semibold text-slate-50">Why Sārathi</h3>
+              {/* Why Sarathi */}
+              <section
+                id="why-sarathi"
+                className="scroll-mt-24 rounded-2xl border border-white/10 bg-slate-950/40 p-6"
+              >
+                <h2 className="text-lg font-semibold text-slate-50">Why Sārathi</h2>
                 <ul className="mt-3 space-y-3 text-sm text-slate-200/80">
                   <li className="flex gap-2">
                     <span className="mt-1 h-2 w-2 rounded-full bg-indigo-300/80" />
@@ -119,10 +132,11 @@ export default function AboutPage() {
                     </span>
                   </li>
                 </ul>
-              </div>
+              </section>
             </div>
 
-            <div className="mt-8 rounded-2xl border border-white/10 bg-slate-950/35 p-6">
+            {/* What Sarathi will never do */}
+            <section className="mt-8 rounded-2xl border border-white/10 bg-slate-950/35 p-6">
               <h3 className="text-lg font-semibold text-slate-50">
                 What Sārathi will never do
               </h3>
@@ -157,16 +171,8 @@ export default function AboutPage() {
                   </span>
                 </li>
               </ul>
-            </div>
 
-            <div className="mt-8 rounded-2xl border border-white/10 bg-slate-950/35 p-6">
-              <h3 className="text-lg font-semibold text-slate-50">Our promise</h3>
-              <p className="mt-2 text-sm leading-6 text-slate-200/80">
-                Sārathi is here to help you move through life with steadiness. Not by predicting your life for you,
-                but by giving you timing, clarity, and a simple plan — so you can act with confidence.
-              </p>
-
-              <div className="mt-5 flex flex-wrap items-center gap-3">
+              <div className="mt-6 flex flex-wrap items-center gap-3">
                 <Link href="/sarathi/life-report">
                   <Button className="rounded-xl bg-indigo-500 px-5 text-sm font-medium shadow-sm hover:bg-indigo-400">
                     Start with my Life Report
@@ -180,14 +186,13 @@ export default function AboutPage() {
                     Ask Sārathi in chat
                   </Button>
                 </Link>
+                <Link href="/" className="text-xs text-slate-300/70 hover:text-slate-200">
+                  ← Back to Home
+                </Link>
               </div>
-            </div>
+            </section>
           </CardContent>
         </Card>
-
-        <div className="mt-8 text-xs text-slate-400">
-          <Link href="/" className="hover:text-slate-200">← Back to Home</Link>
-        </div>
       </main>
     </div>
   );
