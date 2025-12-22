@@ -24,10 +24,16 @@ export default function Home() {
 
           {/* NAV: About → My Story → Why → FAQs → Life Report → Ask Sārathi */}
           <nav className="hidden items-center gap-4 text-sm text-slate-300 sm:flex">
-  <Link href="/about" className="hover:text-slate-50">
+  <Link href="#about" className="hover:text-slate-50">
     About
   </Link>
-  <Link href="/faqs" className="hover:text-slate-50">
+  <Link href="#my-story" className="hover:text-slate-50">
+    My Story
+  </Link>
+  <Link href="#why-sarathi" className="hover:text-slate-50">
+    Why Sārathi
+  </Link>
+  <Link href="#faqs" className="hover:text-slate-50">
     FAQs
   </Link>
 
@@ -40,6 +46,7 @@ export default function Home() {
     Ask Sārathi
   </Link>
 </nav>
+
 
 
           <div className="flex items-center gap-2">
@@ -80,23 +87,26 @@ export default function Home() {
             </p>
 
             <div className="flex flex-wrap items-center gap-3">
-              <Link href="/sarathi/life-report">
-                <Button className="rounded-xl bg-indigo-500 px-5 text-sm font-medium shadow-sm hover:bg-indigo-400">
-                  Generate my Life Report
-                </Button>
-              </Link>
-              <Link href="/sarathi/chat">
-                <Button
-                  variant="outline"
-                  className="rounded-xl border-slate-700 bg-slate-900/60 text-xs text-slate-100 hover:bg-slate-800"
-                >
-                  Ask a question in chat
-                </Button>
-              </Link>
-              <span className="text-[11px] text-slate-400">
-                Built for depth, not quick horoscopes.
-              </span>
-            </div>
+  <Link href="/sarathi/chat">
+    <Button className="rounded-xl bg-indigo-500 px-5 text-sm font-medium shadow-sm hover:bg-indigo-400">
+      Ask a question in chat
+    </Button>
+  </Link>
+
+  <Link href="#about">
+    <Button
+      variant="outline"
+      className="rounded-xl border-slate-700 bg-slate-900/60 text-xs text-slate-100 hover:bg-slate-800"
+    >
+      Explore Sārathi
+    </Button>
+  </Link>
+
+  <span className="text-[11px] text-slate-400">
+    Built for depth, not quick horoscopes.
+  </span>
+</div>
+
 
             {/* Quick links (keeps home short, but still lets users reach story) */}
             <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-300/80">

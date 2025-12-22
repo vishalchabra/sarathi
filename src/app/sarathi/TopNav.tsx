@@ -21,7 +21,7 @@ export default function TopNav() {
             Sārathi
           </span>
         </Link>
-        <span className="ml-3 text-[10px] text-rose-300">TOPNAV_V2</span>
+        
         <span className="rounded-full border border-indigo-400/20 bg-indigo-500/10 px-2 py-0.5 text-[10px] font-medium text-indigo-200">
           Beta
         </span>
