@@ -266,7 +266,9 @@ saveBirthProfile({
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error((data as any)?.error || (data as any)?.message || res.statusText);
 
-      setReport(data);
+      const normalized = (data as any)?.report ?? data;
+setReport(normalized);
+
     } catch (e: any) {
       setError(e?.message ?? "Failed to generate guidance.");
     } finally {
@@ -561,41 +563,35 @@ function pickPlace(next: Place) {
     </div>
   </div>
 
-  {/* Current timing */}
-  <div className="rounded-2xl border border-white/10 bg-slate-950/35 p-4">
-    <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-      Current timing
-    </div>
-
-    <div className="mt-2 text-sm text-slate-100">
-      MD/AD:{" "}
-      <span className="text-indigo-200">
-        {(report as any)?.activePeriods?.md?.planet ??
-          (report as any)?.mdad?.md?.planet ??
-          "—"}
-        {" / "}
-        {(report as any)?.activePeriods?.ad?.planet ??
-          (report as any)?.mdad?.ad?.planet ??
-          "—"}
-      </span>
-    </div>
+ {/* Current timing */}
+<div className="rounded-2xl border border-white/10 bg-slate-950/35 p-4">
+  <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+    Current timing
   </div>
 
-  {/* Guidance summary (placeholder until we wire real summary text) */}
-  <div className="rounded-2xl border border-white/10 bg-slate-950/35 p-4">
-    <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-      Guidance summary
-    </div>
+  {(() => {
+    const ap = (report as any)?.activePeriods;
+    const md =
+      ap?.mahadasha?.lord ??
+      ap?.mahadasha?.planet ??
+      (report as any)?.mdad?.md?.planet ??
+      "—";
+    const ad =
+      ap?.antardasha?.lord ??
+      ap?.antardasha?.planet ??
+      (report as any)?.mdad?.ad?.planet ??
+      "—";
 
-    <div className="mt-2 leading-6">
-      This page is meant to be a print-friendly 1–2 page summary (key themes,
-      do/don’t, and timing highlights) pulled from your Life Report.
-      <span className="text-slate-300/70">
-        {" "}
-        Next step: we’ll show the report’s summary text here instead of raw data.
-      </span>
-    </div>
-  </div>
+    return (
+      <div className="mt-2 text-sm text-slate-100">
+        MD/AD:{" "}
+        <span className="text-indigo-200">
+          {md} / {ad}
+        </span>
+      </div>
+    );
+  })()}
+</div>
 </div>
 
                 )}
