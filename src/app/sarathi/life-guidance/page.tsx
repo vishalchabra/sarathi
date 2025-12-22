@@ -71,25 +71,10 @@ export default function LifeGuidancePage() {
 
   // 1) On first load: prefer the ACTIVE profile saved by Life Report
   useEffect(() => {
-    try {
-      const active = loadBirthProfile();
-      if (active?.dobISO) setDobISO(active.dobISO);
-      if (active?.tob) setTob(active.tob);
+  // Do NOT auto-prefill on Life Guidance.
+  // If user wants, they can click "Load saved profile" (we'll add a button later).
+}, []);
 
-      if (active?.place?.tz && Number.isFinite(active.place.lat) && Number.isFinite(active.place.lon)) {
-        setPlace({
-          name: active.place.name ?? "",
-          tz: active.place.tz,
-          lat: active.place.lat,
-          lon: active.place.lon,
-        });
-        setPlaceQuery(active.place.name ?? "");
-        setPlacePicked(true);
-      }
-    } catch {
-      // ignore
-    }
-  }, []);
 
   // 2) Search places (simple + robust parsing)
   async function searchPlaces(q: string) {
@@ -490,9 +475,66 @@ export default function LifeGuidancePage() {
                     This page will show your key timelines, dasha context, and a clean “do/don’t” summary once generated.
                   </div>
                 ) : (
-                  <pre className="whitespace-pre-wrap break-words text-xs text-slate-200/80">
-                    {JSON.stringify(report, null, 2)}
-                  </pre>
+                  <div className="space-y-4 text-sm text-slate-200/80">
+  {/* Core birth signature */}
+  <div className="rounded-2xl border border-white/10 bg-slate-950/35 p-4">
+    <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+      Core birth signature
+    </div>
+
+    <div className="mt-2 text-sm text-slate-100">
+      Asc:{" "}
+      <span className="text-indigo-200">
+        {report?.ascSign ?? report?.core?.ascSign ?? "—"}
+      </span>{" "}
+      · Moon:{" "}
+      <span className="text-indigo-200">
+        {report?.moonSign ?? report?.core?.moonSign ?? "—"}
+      </span>{" "}
+      · Sun:{" "}
+      <span className="text-indigo-200">
+        {report?.sunSign ?? report?.core?.sunSign ?? "—"}
+      </span>
+    </div>
+  </div>
+
+  {/* Current timing */}
+  <div className="rounded-2xl border border-white/10 bg-slate-950/35 p-4">
+    <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+      Current timing
+    </div>
+
+    <div className="mt-2 text-sm text-slate-100">
+      MD/AD:{" "}
+      <span className="text-indigo-200">
+        {(report as any)?.activePeriods?.md?.planet ??
+          (report as any)?.mdad?.md?.planet ??
+          "—"}
+        {" / "}
+        {(report as any)?.activePeriods?.ad?.planet ??
+          (report as any)?.mdad?.ad?.planet ??
+          "—"}
+      </span>
+    </div>
+  </div>
+
+  {/* Guidance summary (placeholder until we wire real summary text) */}
+  <div className="rounded-2xl border border-white/10 bg-slate-950/35 p-4">
+    <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+      Guidance summary
+    </div>
+
+    <div className="mt-2 leading-6">
+      This page is meant to be a print-friendly 1–2 page summary (key themes,
+      do/don’t, and timing highlights) pulled from your Life Report.
+      <span className="text-slate-300/70">
+        {" "}
+        Next step: we’ll show the report’s summary text here instead of raw data.
+      </span>
+    </div>
+  </div>
+</div>
+
                 )}
               </div>
             </CardContent>
