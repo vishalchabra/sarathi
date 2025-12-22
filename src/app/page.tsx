@@ -222,7 +222,7 @@ export default function Home() {
           <div className="grid gap-4 md:grid-cols-3">
             <Card className="border-slate-800 bg-slate-900/70">
               <CardHeader className="pb-2">
-                <CardTitle className="flex items-center gap-2 text-sm">
+                <CardTitle className="flex items-center gap-2 text-sm text-slate-100">
                   <Clock className="h-4 w-4 text-indigo-300" />
                   Life Report
                 </CardTitle>
@@ -245,7 +245,7 @@ export default function Home() {
 
             <Card className="border-slate-800 bg-slate-900/70">
               <CardHeader className="pb-2">
-                <CardTitle className="flex items-center gap-2 text-sm">
+                <CardTitle className="flex items-center gap-2 text-sm text-slate-100">
                   <Star className="h-4 w-4 text-emerald-300" />
                   Guidance
                 </CardTitle>
@@ -269,7 +269,7 @@ export default function Home() {
 
             <Card className="border-slate-800 bg-slate-900/70">
               <CardHeader className="pb-2">
-                <CardTitle className="flex items-center gap-2 text-sm">
+                <CardTitle className="flex items-center gap-2 text-sm text-slate-100">
                   <MessageCircle className="h-4 w-4 text-sky-300" />
                   Ask Sārathi
                 </CardTitle>
