@@ -14,7 +14,7 @@ import { Download, Printer, Search } from "lucide-react";
 // IMPORTANT: this is the same storage used across the app
 import { loadBirthProfile, saveBirthProfile } from "@/lib/birth-profile";
 
-type Place = { name: string; tz: string; lat: number; lon: number };
+type Place = { name?: string; tz: string; lat: number; lon: number };
 
 
 type GeoSuggestion = {
@@ -116,7 +116,7 @@ export default function LifeGuidancePage() {
   }
 
   function pickSuggestion(s: GeoSuggestion) {
-  const next = {
+  const next: Place = {
     name: s?.name ?? "",
     tz: s?.tz ?? "Asia/Kolkata",
     lat: typeof s?.lat === "number" ? s.lat : Number(s?.lat ?? 0),
@@ -136,13 +136,19 @@ export default function LifeGuidancePage() {
   );
   setError(null);
 
-  // Save as ACTIVE profile so everything else (Chat, Life Report) stays in sync
+  // Save as ACTIVE profile so Chat/Life Report stay in sync
   saveBirthProfile({
-    dobISO,
-    tob: toHHMM(tob),
-    place: next,
-  });
+  dobISO: (dobISO || "").trim(),
+  tob: toHHMM(tob),
+  place: {
+    name: next.name ?? "",
+    tz: next.tz,
+    lat: next.lat,
+    lon: next.lon,
+  },
+});
 }
+
 
   function useMyLocation() {
     if (!navigator.geolocation) {
@@ -176,13 +182,33 @@ export default function LifeGuidancePage() {
           setPlaceQuery(name);
           setPlacePicked(true);
 
-          saveBirthProfile({ dobISO, tob: toHHMM(tob), place: next });
+          saveBirthProfile({
+  dobISO: (dobISO || "").trim(),
+  tob: toHHMM(tob),
+  place: {
+    name: next.name ?? "",
+    tz: next.tz ?? "Asia/Kolkata",
+    lat: Number(next.lat ?? 0),
+    lon: Number(next.lon ?? 0),
+  },
+});
+
         } catch {
           // fallback: set lat/lon only
           const next: Place = { ...place, lat, lon };
           setPlace(next);
           setPlacePicked(true);
-          saveBirthProfile({ dobISO, tob: toHHMM(tob), place: next });
+          saveBirthProfile({
+  dobISO: (dobISO || "").trim(),
+  tob: toHHMM(tob),
+  place: {
+    name: next.name ?? "",
+    tz: next.tz ?? "Asia/Kolkata",
+    lat: Number(next.lat ?? 0),
+    lon: Number(next.lon ?? 0),
+  },
+});
+
         }
       },
       (e) => setError(e?.message ?? "Location permission denied"),
@@ -206,11 +232,20 @@ export default function LifeGuidancePage() {
       if (!placePicked) throw new Error("Pick a birth place from the dropdown (so lat/lon is saved).");
 
       // Keep ACTIVE profile updated
-      saveBirthProfile({
-        dobISO: d,
-        tob: t,
-        place,
-      });
+      const normalizedPlace = {
+  ...place,
+  name: place?.name ?? "",
+  tz: place?.tz ?? "Asia/Kolkata",
+  lat: Number(place?.lat ?? 0),
+  lon: Number(place?.lon ?? 0),
+};
+
+saveBirthProfile({
+  dobISO: d,
+  tob: t,
+  place: normalizedPlace,
+});
+
 
       const res = await fetch("/api/life-report", {
         method: "POST",
@@ -218,13 +253,14 @@ export default function LifeGuidancePage() {
 
         // ✅ This matches your api route expectation (birthDateISO/birthTime/birthTz/birthLat/birthLon)
         body: JSON.stringify({
-          birthDateISO: d,
-          birthTime: t,
-          birthTz: place.tz,
-          birthLat: place.lat,
-          birthLon: place.lon,
-          placeName: place.name ?? "",
-        }),
+  birthDateISO: d,
+  birthTime: t,
+  birthTz: normalizedPlace.tz,
+  birthLat: normalizedPlace.lat,
+  birthLon: normalizedPlace.lon,
+  placeName: normalizedPlace.name,
+}),
+
       });
 
       const data = await res.json().catch(() => ({}));
@@ -406,7 +442,17 @@ function pickPlace(next: Place) {
                     type="button"
                     onClick={() => {
                       // Save active profile even before generating
-                      saveBirthProfile({ dobISO, tob: toHHMM(tob), place });
+                      saveBirthProfile({
+  dobISO: (dobISO || "").trim(),
+  tob: toHHMM(tob),
+  place: {
+    name: place?.name ?? "",
+    tz: place?.tz ?? "Asia/Kolkata",
+    lat: Number(place?.lat ?? 0),
+    lon: Number(place?.lon ?? 0),
+  },
+});
+
                       generate();
                     }}
                     disabled={loading || !canGenerate}
