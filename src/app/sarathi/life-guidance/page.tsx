@@ -14,7 +14,8 @@ import { Download, Printer, Search } from "lucide-react";
 // IMPORTANT: this is the same storage used across the app
 import { loadBirthProfile, saveBirthProfile } from "@/lib/birth-profile";
 
-type Place = { name?: string; tz: string; lat: number; lon: number };
+type Place = { name: string; tz: string; lat: number; lon: number };
+
 
 type GeoSuggestion = {
   name?: string;
@@ -130,12 +131,14 @@ export default function LifeGuidancePage() {
   }
 
   function pickSuggestion(s: GeoSuggestion) {
-    const next: Place = {
-      name: s?.name || placeQuery || "",
-      tz: (s?.tz as string) || place.tz || "Asia/Kolkata",
-      lat: typeof s?.lat === "number" ? s.lat : 0,
-      lon: typeof s?.lon === "number" ? s.lon : 0,
-    };
+    const next = {
+  ...place,
+  name: place?.name ?? "",
+  tz: place?.tz ?? "Asia/Kolkata",
+  lat: Number(place?.lat ?? 0),
+  lon: Number(place?.lon ?? 0),
+};
+
 
     setPlace(next);
     setPlaceQuery(next.name || "");
