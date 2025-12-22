@@ -230,7 +230,7 @@ export default function LifeGuidancePage() {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error((data as any)?.error || (data as any)?.message || res.statusText);
 
-      setReport((data as any).report ?? data);
+      setReport(data);
     } catch (e: any) {
       setError(e?.message ?? "Failed to generate guidance.");
     } finally {
