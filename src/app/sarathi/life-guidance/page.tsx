@@ -188,6 +188,7 @@ export default function LifeGuidancePage() {
       const tryUrl = async (url: string) => {
         const res = await fetch(url, { method: "GET", signal: ac.signal });
         const data = await res.json().catch(() => ({}));
+        console.log("life-guidance /api/life-report response:", data);
         const list: GeoSuggestion[] =
           (Array.isArray((data as any)?.results) && (data as any).results) ||
           (Array.isArray((data as any)?.places) && (data as any).places) ||
@@ -307,8 +308,35 @@ export default function LifeGuidancePage() {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error((data as any)?.error || (data as any)?.message || res.statusText);
 
-      const normalized = (data as any)?.report ?? data;
-      setReport(normalized);
+      const payload: any = data;
+
+// Unwrap common response shapes safely
+let r: any =
+  payload?.report ??
+  payload?.data?.report ??
+  payload?.result?.report ??
+  payload?.result ??
+  payload;
+
+// Handle double-wrapped shape: { report: { report: {...}, aiSummary } }
+if (r?.report && !r?.ascSign && !r?.core?.ascSign) {
+  // keep wrapper fields like aiSummary if present
+  const wrapper = r;
+  r = r.report;
+
+  // carry down aiSummary if it's outside the inner report
+  if (!r.aiSummary && typeof wrapper.aiSummary === "string") {
+    r.aiSummary = wrapper.aiSummary;
+  }
+}
+
+// Also handle shape: { report: {...}, aiSummary: "..." } where we picked inner report
+if (!r?.aiSummary && typeof payload?.aiSummary === "string") {
+  r.aiSummary = payload.aiSummary;
+}
+
+setReport(r);
+
     } catch (e: any) {
       setError(e?.message ?? "Failed to generate guidance.");
     } finally {
