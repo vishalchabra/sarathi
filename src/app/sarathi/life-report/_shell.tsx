@@ -4675,8 +4675,8 @@ setTimelineSummary(
 <motion.div variants={fadeUpSmall} className="space-y-4">
   <Accordion type="single" collapsible className="w-full">
     <AccordionItem value="placements-details">
-      <AccordionTrigger className="text-sm font-semibold text-slate-100 hover:text-white [&_svg]:text-slate-200 [&_svg]:opacity-80">pn
-        Show detailed chart (planet placements)
+      <AccordionTrigger className="text-sm font-semibold text-slate-100 hover:text-white [&_svg]:text-slate-200 [&_svg]:opacity-80">
+      Show detailed chart (planet placements)
       </AccordionTrigger>
 
       <AccordionContent>
@@ -5120,7 +5120,6 @@ const TabTimeline: React.FC<TabTimelineProps> = memo(
 
                         {report.lifeMilestones.length > 6 && (
                           <p className="text-xs text-slate-200/60">
-                            Showing 6 key phases. (We can add a “Show all” button later if you want.)
                           </p>
                         )}
                       </div>
