@@ -597,7 +597,14 @@ setReport(r);
                   <div className="text-slate-300/70">
                     This page will show your key timelines, dasha context, and a clean “do/don’t” summary once generated.
                   </div>
-                ) : (
+                ) : (() => {
+  const r: any =
+    (report as any)?.report?.report ??
+    (report as any)?.report ??
+    report;
+
+  return (
+
                   <div className="space-y-4 text-sm text-slate-200/80">
                     {/* Core birth signature */}
                     <div className="rounded-2xl border border-white/10 bg-slate-950/35 p-4">
@@ -666,8 +673,9 @@ setReport(r);
                         )}
                       </div>
                     </div>
-                  </div>
-                )}
+                     </div>
+                  );
+                })()}
               </div>
             </CardContent>
           </Card>
