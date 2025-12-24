@@ -539,6 +539,18 @@ export default function LifeGuidancePage() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-50">
       <TopNav />
+     <style jsx global>{`
+  @media print {
+    .no-print { display: none !important; }
+    .print-only { display: block !important; }
+    .screen-only { display: none !important; }
+    body { background: white !important; }
+  }
+  @media screen {
+    .print-only { display: none !important; }
+    .screen-only { display: block !important; }
+  }
+`}</style>
 
       <main className="mx-auto max-w-6xl px-4 pb-16 pt-8">
         <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -557,7 +569,7 @@ export default function LifeGuidancePage() {
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 no-print">
             <Button
               onClick={loadSavedProfile}
               variant="outline"
@@ -788,9 +800,11 @@ export default function LifeGuidancePage() {
                       "—";
 
                     return (
+                      
                       <div className="space-y-4 text-sm text-slate-200/80">
+                        <div className="screen-only">
                         <Tabs defaultValue="overview" className="w-full">
-                          <TabsList className="w-full justify-start gap-2 rounded-2xl border border-white/10 bg-slate-950/40 p-1">
+                          <TabsList className="w-full justify-start gap-2 rounded-2xl border border-white/10 bg-slate-950/40 p-1 sticky top-2 z-10 backdrop-blur">
                             <TabsTrigger value="overview" className="rounded-xl">
                               Overview
                             </TabsTrigger>
@@ -883,7 +897,7 @@ export default function LifeGuidancePage() {
                               )}
                             </div>
                           </TabsContent>
-
+                          
                           {/* PLAN */}
                           <TabsContent value="plan" className="mt-4 space-y-4">
                             <div className="rounded-2xl border border-white/10 bg-slate-950/35 p-4">
@@ -965,7 +979,84 @@ export default function LifeGuidancePage() {
                           </TabsContent>
                         </Tabs>
                       </div>
+                      </div>
                     );
+                    <div className="print-only space-y-4">
+  {/* Overview */}
+  <div className="rounded-2xl border border-slate-300 p-4 text-slate-900">
+    <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-600">
+      Core birth signature
+    </div>
+    <div className="mt-2 text-sm">
+      Asc: <span className="font-semibold">{r?.ascSign ?? r?.core?.ascSign ?? "—"}</span> ·
+      Moon: <span className="font-semibold">{r?.moonSign ?? r?.core?.moonSign ?? "—"}</span> ·
+      Sun: <span className="font-semibold">{r?.sunSign ?? r?.core?.sunSign ?? "—"}</span>
+    </div>
+  </div>
+
+  <div className="rounded-2xl border border-slate-300 p-4 text-slate-900">
+    <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-600">
+      Guidance summary
+    </div>
+    <div className="mt-2">
+      {renderSarathiText(String((r as any)?.aiSummary ?? (report as any)?.aiSummary ?? ""))}
+    </div>
+  </div>
+
+  {/* Plan */}
+  <div className="rounded-2xl border border-slate-300 p-4 text-slate-900">
+    <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-600">
+      Non-negotiables
+    </div>
+    {renderBullets((aiObj as any)?.nonNegotiables)}
+  </div>
+
+  <div className="rounded-2xl border border-slate-300 p-4 text-slate-900">
+    <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-600">
+      Now (7 days)
+    </div>
+    {renderBullets((aiObj as any)?.now)}
+  </div>
+
+  <div className="rounded-2xl border border-slate-300 p-4 text-slate-900">
+    <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-600">
+      Next 30–60 days
+    </div>
+    {renderBullets((aiObj as any)?.next30)}
+  </div>
+
+  {/* Do / Don't */}
+  <div className="rounded-2xl border border-slate-300 p-4 text-slate-900">
+    <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-600">Do</div>
+    {renderBullets((aiObj as any)?.do)}
+  </div>
+
+  <div className="rounded-2xl border border-slate-300 p-4 text-slate-900">
+    <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-600">Don’t</div>
+    {renderBullets((aiObj as any)?.dont)}
+  </div>
+
+  {/* Remedies */}
+  <div className="rounded-2xl border border-slate-300 p-4 text-slate-900">
+    <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-600">Daily (≤10 min)</div>
+    {renderBullets((aiObj as any)?.remedies?.daily)}
+  </div>
+
+  <div className="rounded-2xl border border-slate-300 p-4 text-slate-900">
+    <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-600">Short-term (7–14 days)</div>
+    {renderBullets((aiObj as any)?.remedies?.shortTerm)}
+  </div>
+
+  <div className="rounded-2xl border border-slate-300 p-4 text-slate-900">
+    <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-600">Long-term (40–90 days)</div>
+    {renderBullets((aiObj as any)?.remedies?.longTerm)}
+  </div>
+
+  <div className="rounded-2xl border border-slate-300 p-4 text-slate-900">
+    <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-600">Optional</div>
+    {renderBullets((aiObj as any)?.remedies?.optional)}
+  </div>
+</div>
                   })()}
               </div>
             </CardContent>
