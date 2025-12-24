@@ -2,12 +2,13 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import TopNav from "../TopNav";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import { Download, Printer, Search } from "lucide-react";
 
@@ -15,6 +16,15 @@ import { Download, Printer, Search } from "lucide-react";
 import { loadBirthProfile, saveBirthProfile } from "@/lib/birth-profile";
 
 type Place = { name?: string; tz: string; lat: number; lon: number };
+type GeoSuggestion = {
+  name?: string;
+  tz?: string;
+  lat?: number | string;
+  lon?: number | string;
+};
+type Report = any;
+
+/* ----------------------------- small UI helpers ---------------------------- */
 function renderBullets(arr: any) {
   if (!Array.isArray(arr) || arr.length === 0) return null;
   return (
@@ -29,25 +39,34 @@ function renderBullets(arr: any) {
   );
 }
 
-function renderSarathiText(raw: string) {
-  const raw0 = (raw ?? "").trim();
-  if (!raw0) return null;
-
-  const raw1 = raw0
+function stripJsonFences(raw: string) {
+  return (raw ?? "")
+    .trim()
     .replace(/^```json\s*/i, "")
     .replace(/^```\s*/i, "")
     .replace(/```$/i, "")
     .trim();
+}
 
-  let obj: any = null;
+function safeParseJson(raw: string) {
+  const s = stripJsonFences(raw);
+  if (!s) return { ok: true as const, obj: {} as any, raw: "" };
   try {
-    obj = JSON.parse(raw1);
+    return { ok: true as const, obj: JSON.parse(s), raw: s };
   } catch {
-    return <p className="whitespace-pre-wrap">{raw1}</p>;
+    return { ok: false as const, obj: null as any, raw: s };
   }
+}
 
-  /* ---------- Helper components ---------- */
-  
+/**
+ * FULL renderer (all sections). Use in paid experience when you want everything in one flow.
+ * We will NOT use this in Overview tab (to avoid “everything in one block”).
+ */
+function renderSarathiText(raw: string) {
+  const parsed = safeParseJson(raw);
+  if (!parsed.ok) return <p className="whitespace-pre-wrap">{parsed.raw}</p>;
+  const obj: any = parsed.obj ?? {};
+
   const Section = ({
     title,
     children,
@@ -56,7 +75,7 @@ function renderSarathiText(raw: string) {
     children: React.ReactNode;
   }) => (
     <div className="space-y-2">
-      <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+      <div className="text-[11px] font-medium tracking-wide text-slate-300/80">
         {title}
       </div>
       {children}
@@ -64,53 +83,47 @@ function renderSarathiText(raw: string) {
   );
 
   const Bullets = ({ items }: { items?: any[] }) =>
-    items?.length ? (
-      <ul className="list-disc pl-5 space-y-2">
+    Array.isArray(items) && items.length ? (
+      <ul className="mt-2 space-y-2 text-sm text-slate-100/90">
         {items.map((b, i) => (
-          <li key={i}>{String(b)}</li>
+          <li key={i} className="flex gap-2">
+            <span className="mt-[6px] h-1.5 w-1.5 shrink-0 rounded-full bg-indigo-300/80" />
+            <span>{String(b)}</span>
+          </li>
         ))}
       </ul>
     ) : null;
 
-  /* ---------- Structured Life Guidance ---------- */
   return (
     <div className="space-y-6">
-      {/* Life Posture */}
       {obj.posture && (
-        <div className="rounded-2xl border border-white/10 bg-slate-950/40 p-4 text-sm text-slate-100 leading-relaxed">
+        <div className="rounded-2xl border border-white/10 bg-slate-950/40 p-4 text-sm leading-relaxed text-slate-100">
           {String(obj.posture)}
         </div>
       )}
 
-     {/* Deep Personal Insight */}
-{obj.deepInsight && (
-  <div className="rounded-2xl border border-indigo-400/30 bg-indigo-500/10 p-5 shadow-[0_0_40px_rgba(99,102,241,0.10)]">
-    <div className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-indigo-300">
-      One thing to understand about yourself right now
-    </div>
+      {obj.deepInsight && (
+        <div className="rounded-2xl border border-indigo-400/30 bg-indigo-500/10 p-5 shadow-[0_0_40px_rgba(99,102,241,0.10)]">
+          <div className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-indigo-300">
+            One thing to understand about yourself right now
+          </div>
+          <div className="text-sm leading-relaxed text-slate-100/95">
+            {String(obj.deepInsight)}
+          </div>
+          {obj.evidence && (
+            <div className="mt-2 text-xs text-indigo-200/80">
+              {String(obj.evidence)}
+            </div>
+          )}
+        </div>
+      )}
 
-    <div className="text-sm leading-relaxed text-slate-100/95">
-      {String(obj.deepInsight)}
-    </div>
-
-    {obj.evidence && (
-      <div className="mt-2 text-xs text-indigo-200/80">
-        {String(obj.evidence)}
-      </div>
-    )}
-  </div>
-)}
-
-
-     
-      {/* Non-Negotiables */}
-      {obj.nonNegotiables?.length && (
+      {Array.isArray(obj.nonNegotiables) && obj.nonNegotiables.length > 0 && (
         <Section title="Non-negotiables for this phase">
           <Bullets items={obj.nonNegotiables} />
         </Section>
       )}
 
-      {/* Decision Guidance */}
       <Section title="Now (7 days)">
         <Bullets items={obj.now} />
       </Section>
@@ -127,7 +140,6 @@ function renderSarathiText(raw: string) {
         <Bullets items={obj.dont} />
       </Section>
 
-      {/* Discipline Plan */}
       {obj.remedies && (
         <Section title="Discipline plan for this phase">
           <div className="space-y-4">
@@ -157,11 +169,19 @@ function renderSarathiText(raw: string) {
                 <Bullets items={obj.remedies.longTerm} />
               </div>
             )}
+
+            {obj.remedies.optional && (
+              <div>
+                <div className="mb-1 text-xs font-semibold text-slate-300">
+                  Optional
+                </div>
+                <Bullets items={obj.remedies.optional} />
+              </div>
+            )}
           </div>
         </Section>
       )}
 
-      {/* Closing */}
       {obj.closing && (
         <p className="italic text-slate-300/80">{String(obj.closing)}</p>
       )}
@@ -169,15 +189,45 @@ function renderSarathiText(raw: string) {
   );
 }
 
-type GeoSuggestion = {
-  name?: string;
-  tz?: string;
-  lat?: number | string;
-  lon?: number | string;
-};
+/**
+ * SHORT renderer (only posture + deep insight). Use in Overview tab.
+ * This fixes your “everything appears as one block” issue.
+ */
+function renderSarathiSummary(raw: string) {
+  const parsed = safeParseJson(raw);
+  if (!parsed.ok) return <p className="whitespace-pre-wrap">{parsed.raw}</p>;
+  const obj: any = parsed.obj ?? {};
 
-type Report = any;
+  return (
+    <div className="space-y-4">
+      {obj.posture && (
+        <div className="rounded-2xl border border-white/10 bg-slate-950/40 p-4 text-sm leading-relaxed text-slate-100">
+          {String(obj.posture)}
+        </div>
+      )}
 
+      {obj.deepInsight && (
+        <div className="rounded-2xl border border-indigo-400/30 bg-indigo-500/10 p-5 shadow-[0_0_40px_rgba(99,102,241,0.10)]">
+          <div className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-indigo-300">
+            One thing to understand about yourself right now
+          </div>
+
+          <div className="text-sm leading-relaxed text-slate-100/95">
+            {String(obj.deepInsight)}
+          </div>
+
+          {obj.evidence && (
+            <div className="mt-2 text-xs text-indigo-200/80">
+              {String(obj.evidence)}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ----------------------------- misc utilities ----------------------------- */
 function toHHMM(input: string) {
   // Accept "11:35 PM" -> "23:35" as a friendly normalization.
   // If already HH:MM, keep it.
@@ -205,6 +255,7 @@ function normalizePlace(p: Partial<Place> | null | undefined): Place {
   };
 }
 
+/* --------------------------------- Page ---------------------------------- */
 export default function LifeGuidancePage() {
   // Birth fields
   const [dobISO, setDobISO] = useState("");
@@ -229,10 +280,11 @@ export default function LifeGuidancePage() {
 
   // To avoid race conditions for search
   const searchAbortRef = useRef<AbortController | null>(null);
+
   const isPaid = true; // TODO: replace with real subscription check later
-  // 1) On first load: do NOT auto-prefill (as you wanted)
+
   useEffect(() => {
-    // Intentionally blank.
+    // Intentionally blank (no auto-prefill)
   }, []);
 
   function setPicked(next: Place) {
@@ -244,7 +296,11 @@ export default function LifeGuidancePage() {
     setPlacePicked(ok);
   }
 
-  function persistActiveProfile(nextPlace: Place, nextDobISO?: string, nextTob?: string) {
+  function persistActiveProfile(
+    nextPlace: Place,
+    nextDobISO?: string,
+    nextTob?: string
+  ) {
     saveBirthProfile({
       dobISO: (nextDobISO ?? dobISO ?? "").trim(),
       tob: toHHMM(nextTob ?? tob ?? ""),
@@ -257,11 +313,12 @@ export default function LifeGuidancePage() {
     });
   }
 
-  // Optional (and fixes unused import): manual load saved profile
   function loadSavedProfile() {
     const p: any = loadBirthProfile?.();
     if (!p) {
-      setError("No saved birth profile found yet. Generate Life Report once to save it.");
+      setError(
+        "No saved birth profile found yet. Generate Life Report once to save it."
+      );
       return;
     }
     setError(null);
@@ -275,7 +332,6 @@ export default function LifeGuidancePage() {
     setPicked(nextPlace);
   }
 
-  // 2) Search places (simple + robust parsing)
   async function searchPlaces(q: string) {
     const query = (q || "").trim();
     if (query.length < 2) {
@@ -292,7 +348,6 @@ export default function LifeGuidancePage() {
       const tryUrl = async (url: string) => {
         const res = await fetch(url, { method: "GET", signal: ac.signal });
         const data = await res.json().catch(() => ({}));
-        console.log("life-guidance /api/life-report response:", data);
         const list: GeoSuggestion[] =
           (Array.isArray((data as any)?.results) && (data as any).results) ||
           (Array.isArray((data as any)?.places) && (data as any).places) ||
@@ -301,7 +356,6 @@ export default function LifeGuidancePage() {
         return list;
       };
 
-      // Try `q=` then fallback to `query=`
       let list = await tryUrl(`/api/geo?q=${encodeURIComponent(query)}`);
       if (!list.length) {
         list = await tryUrl(`/api/geo?query=${encodeURIComponent(query)}`);
@@ -330,7 +384,6 @@ export default function LifeGuidancePage() {
     setPicked(next);
     setError(null);
 
-    // Save as ACTIVE profile so Chat/Life Report stay in sync
     persistActiveProfile(next);
   }
 
@@ -347,11 +400,17 @@ export default function LifeGuidancePage() {
         const lon = pos.coords.longitude;
 
         try {
-          // reverse to a place name + tz (best effort)
-          const res = await fetch(`/api/geo?lat=${lat}&lon=${lon}`, { method: "GET" });
+          const res = await fetch(`/api/geo?lat=${lat}&lon=${lon}`, {
+            method: "GET",
+          });
           const data = await res.json().catch(() => ({}));
-          const name = (data as any)?.name || (data as any)?.place?.name || "My location";
-          const tz = (data as any)?.tz || (data as any)?.place?.tz || place.tz || "Asia/Kolkata";
+          const name =
+            (data as any)?.name || (data as any)?.place?.name || "My location";
+          const tz =
+            (data as any)?.tz ||
+            (data as any)?.place?.tz ||
+            place.tz ||
+            "Asia/Kolkata";
 
           const next: Place = { name, tz, lat, lon };
           setPlace(next);
@@ -361,7 +420,6 @@ export default function LifeGuidancePage() {
 
           persistActiveProfile(next);
         } catch {
-          // fallback: set lat/lon only
           const next: Place = { ...place, lat, lon };
           setPlace(next);
           setSuggestions([]);
@@ -375,76 +433,69 @@ export default function LifeGuidancePage() {
     );
   }
 
-  // IMPORTANT: Generate must match API schema used by /api/life-report
-  // IMPORTANT: Generate must match API schema used by /api/life-report
-async function generate() {
-  setLoading(true);
-  setError(null);
-  setReport(null);
+  async function generate() {
+    setLoading(true);
+    setError(null);
+    setReport(null);
 
-  try {
-    const d = (dobISO || "").trim();
-    const t = toHHMM(tob);
+    try {
+      const d = (dobISO || "").trim();
+      const t = toHHMM(tob);
 
-    if (!d) throw new Error("Please enter your birth date.");
-    if (!t) throw new Error("Please enter your birth time.");
-    if (!placePicked) throw new Error("Please select a place from dropdown.");
+      if (!d) throw new Error("Please enter your birth date.");
+      if (!t) throw new Error("Please enter your birth time.");
+      if (!placePicked) throw new Error("Please select a place from dropdown.");
 
-    const normalizedPlace = {
-      name: place.name ?? "",
-      tz: place.tz ?? "Asia/Kolkata",
-      lat: Number(place.lat),
-      lon: Number(place.lon),
-    };
+      const normalizedPlace = {
+        name: place.name ?? "",
+        tz: place.tz ?? "Asia/Kolkata",
+        lat: Number(place.lat),
+        lon: Number(place.lon),
+      };
 
-    // Save active profile
-    saveBirthProfile({
-      dobISO: d,
-      tob: t,
-      place: normalizedPlace,
-    });
+      saveBirthProfile({
+        dobISO: d,
+        tob: t,
+        place: normalizedPlace,
+      });
 
-    const res = await fetch("/api/life-report", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        birthDateISO: d,
-        birthTime: t,
-        birthTz: normalizedPlace.tz,
-        birthLat: normalizedPlace.lat,
-        birthLon: normalizedPlace.lon,
-        placeName: normalizedPlace.name,
-      }),
-    });
+      const res = await fetch("/api/life-report", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          birthDateISO: d,
+          birthTime: t,
+          birthTz: normalizedPlace.tz,
+          birthLat: normalizedPlace.lat,
+          birthLon: normalizedPlace.lon,
+          placeName: normalizedPlace.name,
+        }),
+      });
 
-    const data = await res.json().catch(() => ({}));
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error((data as any)?.message || (data as any)?.error || "Life report failed");
+      }
 
-    if (!res.ok) {
-      throw new Error((data as any)?.error || "Life report failed");
+      const reportData =
+        (data as any)?.report ??
+        (data as any)?.result?.report ??
+        (data as any)?.result ??
+        data;
+
+      const aiSummary =
+        (data as any)?.aiSummary ??
+        (data as any)?.result?.aiSummary ??
+        (reportData as any)?.aiSummary ??
+        "";
+
+      setReport({ ...(reportData as any), aiSummary });
+    } catch (e: any) {
+      setError(e?.message || "Failed to generate guidance.");
+    } finally {
+      setLoading(false);
     }
-
-    // Unwrap safely
-    const reportData =
-      (data as any)?.report ??
-      (data as any)?.result?.report ??
-      (data as any)?.result ??
-      data;
-
-    // Pull aiSummary from wrapper (or from report if already present)
-    const aiSummary =
-      (data as any)?.aiSummary ??
-      (data as any)?.result?.aiSummary ??
-      (reportData as any)?.aiSummary ??
-      "";
-
-    setReport({ ...(reportData as any), aiSummary });
-  } catch (e: any) {
-    setError(e?.message || "Failed to generate guidance.");
-  } finally {
-    setLoading(false);
   }
-}
-
 
   async function downloadPDF() {
     try {
@@ -626,8 +677,10 @@ async function generate() {
                   <div className="mt-2 overflow-hidden rounded-2xl border border-white/10 bg-slate-950/80 backdrop-blur">
                     {suggestions.map((s, idx) => {
                       const label = s?.name ?? "Unknown place";
-                      const latN = typeof s?.lat === "number" ? s.lat : Number(s?.lat ?? NaN);
-                      const lonN = typeof s?.lon === "number" ? s.lon : Number(s?.lon ?? NaN);
+                      const latN =
+                        typeof s?.lat === "number" ? s.lat : Number(s?.lat ?? NaN);
+                      const lonN =
+                        typeof s?.lon === "number" ? s.lon : Number(s?.lon ?? NaN);
                       const meta = `${s?.tz ?? "tz?"} · ${
                         Number.isFinite(latN) ? latN.toFixed(3) : "?"
                       }, ${Number.isFinite(lonN) ? lonN.toFixed(3) : "?"}`;
@@ -637,7 +690,7 @@ async function generate() {
                           key={idx}
                           type="button"
                           onMouseDown={(e) => {
-                            e.preventDefault(); // prevents blur clearing input before click
+                            e.preventDefault();
                             pickSuggestion(s);
                           }}
                           className="w-full px-4 py-3 text-left hover:bg-white/5"
@@ -650,12 +703,15 @@ async function generate() {
                   </div>
                 )}
 
-                {placeSearching && <div className="mt-2 text-xs text-slate-300/70">Searching…</div>}
+                {placeSearching && (
+                  <div className="mt-2 text-xs text-slate-300/70">Searching…</div>
+                )}
 
                 {placePicked && (
                   <div className="mt-2 text-xs text-emerald-300/80">
-                    Place selected: <span className="text-slate-200">{place.name}</span> ({place.tz}) ·{" "}
-                    {Number(place.lat).toFixed(3)}, {Number(place.lon).toFixed(3)}
+                    Place selected: <span className="text-slate-200">{place.name}</span>{" "}
+                    ({place.tz}) · {Number(place.lat).toFixed(3)},{" "}
+                    {Number(place.lon).toFixed(3)}
                   </div>
                 )}
               </div>
@@ -700,135 +756,217 @@ async function generate() {
                     This page will show your key timelines, dasha context, and a clean “do/don’t” summary once generated.
                   </div>
                 ) : (() => {
- const r: any = report;
+                    const r: any = report;
 
-  
-  return (
+                    // Always derive signs reliably (fixes "Moon/Sun gone")
+                    const getPlanetSign = (name: string) =>
+                      (r?.planets || []).find(
+                        (p: any) => (p?.name || "").toLowerCase() === name
+                      )?.sign;
 
+                    const ascSign =
+                      r?.core?.ascSign ?? r?.ascSign ?? getPlanetSign("asc") ?? "—";
+                    const moonSign =
+                      r?.core?.moonSign ?? r?.moonSign ?? getPlanetSign("moon") ?? "—";
+                    const sunSign =
+                      r?.core?.sunSign ?? r?.sunSign ?? getPlanetSign("sun") ?? "—";
 
-                  <div className="space-y-4 text-sm text-slate-200/80">
-                    {/* Core birth signature */}
-                    <div className="rounded-2xl border border-white/10 bg-slate-950/35 p-4">
-                      <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-                        Core birth signature
+                    const aiRaw = String(r?.aiSummary ?? "");
+                    const parsed = safeParseJson(aiRaw);
+                    const aiObj: any = parsed.ok ? parsed.obj : {};
+
+                    const ap = r?.activePeriods ?? null;
+                    const md =
+                      ap?.mahadasha?.lord ??
+                      ap?.mahadasha?.planet ??
+                      r?.mdad?.md?.planet ??
+                      "—";
+                    const ad =
+                      ap?.antardasha?.subLord ??
+                      ap?.antardasha?.lord ??
+                      ap?.antardasha?.planet ??
+                      "—";
+
+                    return (
+                      <div className="space-y-4 text-sm text-slate-200/80">
+                        <Tabs defaultValue="overview" className="w-full">
+                          <TabsList className="w-full justify-start gap-2 rounded-2xl border border-white/10 bg-slate-950/40 p-1">
+                            <TabsTrigger value="overview" className="rounded-xl">
+                              Overview
+                            </TabsTrigger>
+                            <TabsTrigger value="plan" className="rounded-xl">
+                              Plan
+                            </TabsTrigger>
+                            <TabsTrigger value="do" className="rounded-xl">
+                              Do / Don’t
+                            </TabsTrigger>
+                            <TabsTrigger value="remedies" className="rounded-xl">
+                              Remedies
+                            </TabsTrigger>
+                          </TabsList>
+
+                          {/* OVERVIEW */}
+                          <TabsContent value="overview" className="mt-4 space-y-4">
+                            {/* Core birth signature */}
+                            <div className="rounded-2xl border border-white/10 bg-slate-950/35 p-4">
+                              <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                                Core birth signature
+                              </div>
+                              <div className="mt-2 text-sm text-slate-100">
+                                Asc: <span className="text-indigo-200">{ascSign}</span> ·
+                                Moon: <span className="text-indigo-200"> {moonSign}</span> ·
+                                Sun: <span className="text-indigo-200"> {sunSign}</span>
+                              </div>
+                            </div>
+
+                            {/* Current timing */}
+                            <div className="rounded-2xl border border-white/10 bg-slate-950/35 p-4">
+                              <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                                Current timing
+                              </div>
+                              <div className="mt-2 text-sm text-slate-100">
+                                MD/AD: <span className="text-indigo-200">{md} / {ad}</span>
+                              </div>
+                              <div className="mt-2 text-xs text-slate-300/70">
+                                Guidance cycle: valid for your current phase (approx. 30–45 days).
+                              </div>
+                            </div>
+
+                            {/* Guidance principle */}
+                            <div className="rounded-2xl border border-white/10 bg-slate-950/30 px-4 py-3">
+                              <div className="text-[11px] font-medium tracking-wide text-slate-300/60">
+                                Guidance principle
+                              </div>
+                              <p className="mt-1 text-[12px] leading-relaxed text-slate-200/75">
+                                This guidance is designed for decisions, discipline, and inner stability — not predictions.
+                              </p>
+                            </div>
+
+                            {/* Guidance summary (short) */}
+                            <div className="rounded-2xl border border-white/10 bg-slate-950/35 p-4">
+                              <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                                Guidance summary
+                              </div>
+
+                              {isPaid ? (
+                                <div className="mt-3 text-slate-200/90">
+                                  {renderSarathiSummary(aiRaw)}
+                                </div>
+                              ) : (
+                                <div className="mt-3 text-slate-200/90 relative">
+                                  <div className="blur-sm pointer-events-none select-none">
+                                    {renderSarathiSummary(aiRaw)}
+                                  </div>
+
+                                  <div className="absolute inset-0 flex items-center justify-center">
+                                    <div className="rounded-2xl border border-indigo-400/30 bg-slate-950/80 px-4 py-3 text-center backdrop-blur">
+                                      <div className="text-sm font-semibold text-slate-100">
+                                        Unlock your Guidance Briefing
+                                      </div>
+                                      <div className="mt-1 text-xs text-slate-300">
+                                        Deep insight + non-negotiables + discipline plan for your current life phase.
+                                      </div>
+                                      <div className="mt-3 flex items-center justify-center gap-2">
+                                        <Button className="rounded-xl bg-indigo-500 hover:bg-indigo-400">
+                                          Unlock Life Guidance
+                                        </Button>
+                                        <Button
+                                          variant="outline"
+                                          className="rounded-xl border-white/10 bg-white/5 hover:bg-white/10"
+                                        >
+                                          See plans
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </TabsContent>
+
+                          {/* PLAN */}
+                          <TabsContent value="plan" className="mt-4 space-y-4">
+                            <div className="rounded-2xl border border-white/10 bg-slate-950/35 p-4">
+                              <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                                Non-negotiables
+                              </div>
+                              {renderBullets(aiObj?.nonNegotiables)}
+                            </div>
+
+                            <div className="rounded-2xl border border-white/10 bg-slate-950/35 p-4">
+                              <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                                Now (7 days)
+                              </div>
+                              {renderBullets(aiObj?.now)}
+                            </div>
+
+                            <div className="rounded-2xl border border-white/10 bg-slate-950/35 p-4">
+                              <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                                Next 30–60 days
+                              </div>
+                              {renderBullets(aiObj?.next30)}
+                            </div>
+                          </TabsContent>
+
+                          {/* DO / DON'T */}
+                          <TabsContent value="do" className="mt-4 space-y-4">
+                            <div className="grid gap-4 md:grid-cols-2">
+                              <div className="rounded-2xl border border-white/10 bg-slate-950/35 p-4">
+                                <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                                  Do
+                                </div>
+                                {renderBullets(aiObj?.do)}
+                              </div>
+
+                              <div className="rounded-2xl border border-white/10 bg-slate-950/35 p-4">
+                                <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                                  Don’t
+                                </div>
+                                {renderBullets(aiObj?.dont)}
+                              </div>
+                            </div>
+                          </TabsContent>
+
+                          {/* REMEDIES */}
+                          <TabsContent value="remedies" className="mt-4 space-y-4">
+                            <div className="rounded-2xl border border-white/10 bg-slate-950/35 p-4">
+                              <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                                Daily (≤10 min)
+                              </div>
+                              {renderBullets(aiObj?.remedies?.daily)}
+                            </div>
+
+                            <div className="rounded-2xl border border-white/10 bg-slate-950/35 p-4">
+                              <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                                Short-term (7–14 days)
+                              </div>
+                              {renderBullets(aiObj?.remedies?.shortTerm)}
+                            </div>
+
+                            <div className="rounded-2xl border border-white/10 bg-slate-950/35 p-4">
+                              <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                                Long-term (40–90 days)
+                              </div>
+                              {renderBullets(aiObj?.remedies?.longTerm)}
+                            </div>
+
+                            <div className="rounded-2xl border border-white/10 bg-slate-950/35 p-4">
+                              <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                                Optional
+                              </div>
+                              {renderBullets(aiObj?.remedies?.optional)}
+                            </div>
+
+                            {!parsed.ok && (
+                              <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-xs text-amber-200">
+                                Note: AI output was not valid JSON, so tabs may show limited content.
+                              </div>
+                            )}
+                          </TabsContent>
+                        </Tabs>
                       </div>
-
-                      <div className="mt-2 text-sm text-slate-100">
-                        Asc:{" "}
-                        <span className="text-indigo-200">
-                         {r?.ascSign ??
-  r?.core?.ascSign ??
-  (r?.planets || []).find((p: any) => (p?.name || "").toLowerCase() === "asc")?.sign ??
-  "—"}
-
-                        </span>{" "}
-                        · Moon:{" "}
-                        <span className="text-indigo-200">
-                          {r?.moonSign ??
-  r?.core?.moonSign ??
-  (r?.planets || []).find((p: any) => (p?.name || "").toLowerCase() === "moon")?.sign ??
-  "—"}
-
-                        </span>{" "}
-                        · Sun:{" "}
-                        <span className="text-indigo-200">
-                          {r?.sunSign ??
-  r?.core?.sunSign ??
-  (r?.planets || []).find((p: any) => (p?.name || "").toLowerCase() === "sun")?.sign ??
-  "—"}
-
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Current timing */}
-                    <div className="rounded-2xl border border-white/10 bg-slate-950/35 p-4">
-                      <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-                        Current timing
-                      </div>
-
-                      {(() => {
-                        const ap = (report as any)?.activePeriods;
-                        const md =
-                          ap?.mahadasha?.lord ??
-                          ap?.mahadasha?.planet ??
-                          (report as any)?.mdad?.md?.planet ??
-                          "—";
-                        const ad =
-  ap?.antardasha?.subLord ??
-  ap?.antardasha?.lord ??
-  ap?.antardasha?.planet ??
-  "—";
-
-
-
-                        return (
-                          <div className="mt-2 text-sm text-slate-100">
-                            MD/AD: <span className="text-indigo-200">{md} / {ad}</span>
-                          </div>
-                        );
-                      })()}
-                    </div>
-                   <div className="mt-1 text-xs text-slate-300/70">
-  Guidance cycle: valid for your current phase (approx. 30–45 days).
-</div>
-
-                    {/* Guidance summary */}
-<div className="rounded-2xl border border-white/10 bg-slate-950/35 p-4">
-  <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-    Guidance summary
-  </div>
-
-  {(() => {
-    const aiRaw = String(report?.aiSummary ?? "");
-
-    // PAID
-    if (isPaid) {
-      return <div className="mt-2 text-slate-200/90">{renderSarathiText(aiRaw)}</div>;
-    }
-
-    // FREE (blur + overlay)
-    return (
-      <div className="mt-2 text-slate-200/90 relative">
-        <div className="blur-sm pointer-events-none select-none">
-          {renderSarathiText(aiRaw)}
-        </div>
-
-        {/* Overlay */}
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="rounded-2xl border border-indigo-400/30 bg-slate-950/80 px-4 py-3 text-center backdrop-blur">
-            <div className="text-sm font-semibold text-slate-100">
-              Unlock your Guidance Briefing
-            </div>
-
-            <div className="mt-1 text-xs text-slate-300">
-              Deep insight + non-negotiables + discipline plan for your current life phase.
-            </div>
-
-            <div className="mt-3 flex items-center justify-center gap-2">
-              <Button className="rounded-xl bg-indigo-500 hover:bg-indigo-400">
-                Unlock Life Guidance
-              </Button>
-              <Button
-                variant="outline"
-                className="rounded-xl border-white/10 bg-white/5 hover:bg-white/10"
-              >
-                See plans
-              </Button>
-            </div>
-
-            <div className="mt-2 text-[11px] text-slate-400">
-              Designed for clarity, decisions, and discipline — not predictions.
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  })()}
-</div>
-                     </div>
-                  );
-                })()}
+                    );
+                  })()}
               </div>
             </CardContent>
           </Card>
