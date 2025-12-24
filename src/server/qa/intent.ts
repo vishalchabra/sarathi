@@ -35,10 +35,11 @@ export function detectIntent(q: string): Intent {
   if (/(property|flat|apartment|house|home|land|plot|real ?estate|rent|lease|mortgage|possession|registration|handover)/.test(s)) {
     return "property";
   }
-  // Job / Career
-  if (/(job|career|offer|interview|promotion|raise|hike|switch|change role|join|resign|layoff|hiring|notice period|onsite)/.test(s)) {
-    return "job";
-  }
+ // Job / career
+if (/(job|career|switch|change\s*job|role|promotion|resign|notice|interview|offer|work|office|boss|manager)/.test(s)) {
+  return "job";
+}
+
   // Wealth / Investing
   if (/(wealth|invest|investment|stock|share|mutual fund|sip|dca|portfolio|money|crypto|gold|etf|options)/.test(s)) {
     return "wealth";

@@ -23,6 +23,17 @@ type GeoSuggestion = {
   lon?: number | string;
 };
 type Report = any;
+const PLANET_BEEJ_MANTRA: Record<string, string> = {
+  Sun: "Om Hram Hreem Hroum Sah Suryaya Namah",
+  Moon: "Om Shram Shreem Shroum Sah Chandraya Namah",
+  Mars: "Om Kram Kreem Kroum Sah Bhaumaya Namah",
+  Mercury: "Om Bram Breem Broum Sah Budhaya Namah",
+  Jupiter: "Om Gram Greem Groum Sah Gurave Namah",
+  Venus: "Om Dram Dreem Droum Sah Shukraya Namah",
+  Saturn: "Om Pram Preem Proum Sah Shanaishcharaya Namah",
+  Rahu: "Om Bhram Bhreem Bhroum Sah Rahave Namah",
+  Ketu: "Om Sram Sreem Sroum Sah Ketave Namah",
+};
 
 /* ----------------------------- small UI helpers ---------------------------- */
 function renderBullets(arr: any) {
@@ -798,6 +809,8 @@ export default function LifeGuidancePage() {
                       ap?.antardasha?.lord ??
                       ap?.antardasha?.planet ??
                       "—";
+                    const planet = String(aiObj?.remedyPlanet ?? aiObj?.activePlanet ?? "").trim();
+const mantra = PLANET_BEEJ_MANTRA[planet] ?? null;
 
                     return (
                       
@@ -970,14 +983,24 @@ export default function LifeGuidancePage() {
                               </div>
                               {renderBullets(aiObj?.remedies?.optional)}
                             </div>
-
+                           
                             {!parsed.ok && (
                               <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-xs text-amber-200">
                                 Note: AI output was not valid JSON, so tabs may show limited content.
                               </div>
                             )}
+                            
                           </TabsContent>
                         </Tabs>
+                        
+                        <div className="flex justify-end">
+  <Button asChild className="rounded-xl bg-indigo-500 hover:bg-indigo-400">
+    <Link href="/sarathi/chat?ref=life-guidance">
+      Want deeper personalization? Go to Chat →
+    </Link>
+  </Button>
+</div>
+
                       </div>
                       </div>
                     );

@@ -1458,7 +1458,7 @@ export async function POST(req: Request) {
       });
     }
 
-    const topic = detectTopic(question);
+    const topic = body.topic ?? "general";
     const moodHint = inferMood(question);
     const distressed = detectDistress(question);
     const distressSoothing = distressed ? reassureUser(topic) : "";
