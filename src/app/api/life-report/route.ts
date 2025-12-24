@@ -10,7 +10,7 @@ import type { NotificationContext } from "@/server/notifications/types";
 import type { CoreSignals } from "@/server/guides/types";
 import { buildDailyGuideFromCore } from "@/server/guides/daily-core";
 import { todayISOForNotificationTz } from "@/server/notifications/today";
-
+import { openai, GPT_MODEL } from "@/lib/ai";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -18,6 +18,20 @@ export const revalidate = 0;
 /* -------------------------------------------------------
    Enrich with MD / AD / PD
 ------------------------------------------------------- */
+function fixWeirdEncoding(s: string) {
+  return String(s)
+    .replace(/\u00a0/g, " ")
+    .replace(/â€™/g, "’")
+    .replace(/â€œ|â€/g, '"')
+    .replace(/â€”/g, "—")
+    .replace(/â€“/g, "–")
+    .replace(/â€˜/g, "‘")
+    .replace(/â€¢/g, "•")
+    .replace(/â€¦/g, "…")
+    .replace(/âˆ’/g, "-")
+    .replace(/â€\s?/g, "");
+}
+
 function enrichWithActivePeriods(report: any) {
   if (!report) return report;
 
@@ -86,6 +100,117 @@ function enrichWithActivePeriods(report: any) {
     activePeriods,
   };
 }
+async function buildLifeGuidanceSummary(enriched: any) {
+  try {
+    const asc = enriched?.core?.ascSign ?? enriched?.ascSign ?? "Unknown";
+    const moon = enriched?.moonSign ?? enriched?.core?.moonSign ?? "Unknown";
+    const sun = enriched?.sunSign ?? enriched?.core?.sunSign ?? "Unknown";
+
+    const md = enriched?.activePeriods?.mahadasha?.lord ?? "Unknown";
+    const ad =
+      enriched?.activePeriods?.antardasha?.subLord ??
+      enriched?.activePeriods?.antardasha?.lord ??
+      "Unknown";
+
+    const today = enriched?.panchangToday ?? enriched?.panchang ?? {};
+    const daily = enriched?.dailyGuide ?? {};
+
+const prompt = `
+You are Sārathi — the charioteer guiding how a person should LIVE during this phase of life.
+
+You are not predicting events.
+You are identifying patterns, risks, and the right way to respond.
+
+Write a LIFE GUIDANCE BRIEF that feels unmistakably personal.
+
+Return STRICT JSON ONLY in this exact structure (no extra keys, no markdown):
+
+{
+  "headline": "6–10 words, specific to THIS phase (not generic)",
+  "posture": "2–3 sentences: the inner posture + the core lesson of the current MD/AD",
+  "deepInsight": "2–3 sentences: a specific blind-spot/pattern + the cost + the correction",
+  "evidence": "1 short line quoting the most specific astro signals used (MD/AD + 1–2 chart facts)",
+
+  "nonNegotiables": [
+    "5 bullets. Each must be measurable and realistic for the next 14 days. Not generic motivation."
+  ],
+
+  "now": [
+    "3 bullets for next 7 days: actions + what to avoid. Must reflect current timing (MD/AD)."
+  ],
+
+  "next30": [
+    "3 bullets for next 30–60 days: focus areas + how to win. Must be coherent with the same timing."
+  ],
+
+  "do": [
+    "3 bullets: what to lean into (practical, specific)."
+  ],
+
+  "dont": [
+    "3 bullets: what to avoid (behavioral and practical)."
+  ],
+
+  "remedies": {
+    "daily": [
+      "3 bullets: simple daily remedies (mantra/charity/discipline/breathwork) with <=10 min each"
+    ],
+    "shortTerm": [
+      "3 bullets: for 7–14 days (fasting/light food, routine change, declutter, digital discipline etc.)"
+    ],
+    "longTerm": [
+      "3 bullets: for 40–90 days (habit/system changes)."
+    ],
+    "optional": [
+      "2 bullets: OPTIONAL colour / fasting day / donation type. Must not be risky."
+    ]
+  },
+
+  "closing": "1 calm line that feels personal, not generic"
+}
+
+Hard rules:
+- Use ONLY the facts you are given. Do not invent birth facts or events.
+- Make it precise enough that it feels written for one person.
+- No fear language, no fatalism. Actionable guidance only.
+- If you cannot support a claim from facts, keep it general and say 'may' or 'likely'.
+
+USER CONTEXT (DO NOT REPEAT VERBATIM):
+- Core nature: Asc ${asc}, Moon ${moon}, Sun ${sun}
+- Current life phase: ${md}/${ad}
+- Major life themes: ${JSON.stringify(
+  (enriched?.dashaTimeline ??
+    enriched?.lifeMilestones ??
+    []).slice(0, 6)
+)}
+- Current emotional & practical signals: ${JSON.stringify({
+  emotional: daily?.emotionalWeather?.summary ?? null,
+  money: daily?.moneyTip?.summary ?? null,
+  food: daily?.food?.headline ?? null,
+})}
+
+Remember:
+You are speaking to one person, not an audience.
+Make it precise enough that it could only apply to them.
+`;
+
+
+    const completion = await openai.chat.completions.create({
+  model: GPT_MODEL,
+  messages: [
+    { role: "system", content: "You output only valid JSON." },
+    { role: "user", content: prompt },
+  ],
+  temperature: 0.5,
+});
+
+const raw = fixWeirdEncoding(completion.choices?.[0]?.message?.content ?? "");
+return raw;
+
+  } catch {
+    return "";
+  }
+}
 
 /* -------------------------------------------------------
    Route
@@ -95,13 +220,24 @@ export async function POST(req: Request) {
     const body = await req.json();
 
     // Defensive coercion (avoid "string" lat/lon bugs)
-    const lat = typeof body.lat === "string" ? Number(body.lat) : body.lat;
-    const lon = typeof body.lon === "string" ? Number(body.lon) : body.lon;
-    const cacheBuster = Date.now(); // temp
+    // Accept BOTH schemas:
+// - old: { lat, lon, name }
+// - new: { birthLat, birthLon, placeName }
+const rawLat = body.birthLat ?? body.lat;
+const rawLon = body.birthLon ?? body.lon;
+
+const lat = typeof rawLat === "string" ? Number(rawLat) : Number(rawLat);
+const lon = typeof rawLon === "string" ? Number(rawLon) : Number(rawLon);
+
+if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+  throw new Error("Invalid latitude/longitude. Please pick a place from dropdown.");
+}
+
+    const cacheBuster = 0;
     // Cache key: tie to birth details + engine version
     // IMPORTANT: bump this when astro engine changes so we don't serve stale charts
    const baseKey = makeCacheKey({
-  name: body.name ?? "User",
+  name: body.name ?? body.placeName ?? "User",
   birthDateISO: body.birthDateISO,
   birthTime: body.birthTime,
   birthTz: body.birthTz,
@@ -121,7 +257,7 @@ const cacheKey = `v2:${baseKey}`;
     // ✅ DEV: always rebuild so fixes show immediately
     if (process.env.NODE_ENV !== "production") {
       report = await buildLifeReport({
-        name: body.name,
+        name: body.name ?? body.placeName,
         birthDateISO: body.birthDateISO,
         birthTime: body.birthTime,
         birthTz: body.birthTz,
@@ -137,7 +273,7 @@ const cacheKey = `v2:${baseKey}`;
         cacheFlag = "hit";
       } else {
         report = await buildLifeReport({
-          name: body.name,
+          name: body.name ?? body.placeName,
           birthDateISO: body.birthDateISO,
           birthTime: body.birthTime,
           birthTz: body.birthTz,
@@ -191,7 +327,7 @@ const cacheKey = `v2:${baseKey}`;
       ...enriched,
       dailyGuide,
     };
-
+const aiSummary = await buildLifeGuidanceSummary(enrichedWithDaily);
     // ---------- Notifications ----------
     const notificationTz = body.notificationTz || body.birthTz || "Asia/Dubai";
     const todayISO = todayISOForNotificationTz(notificationTz);
@@ -234,6 +370,7 @@ const cacheKey = `v2:${baseKey}`;
 
     return NextResponse.json({
       ...enrichedWithDaily,
+      aiSummary,
       notificationFacts,
       previewNotifications,
       _cache: cacheFlag,

@@ -15,6 +15,19 @@ import { Download, Printer, Search } from "lucide-react";
 import { loadBirthProfile, saveBirthProfile } from "@/lib/birth-profile";
 
 type Place = { name?: string; tz: string; lat: number; lon: number };
+function renderBullets(arr: any) {
+  if (!Array.isArray(arr) || arr.length === 0) return null;
+  return (
+    <ul className="mt-2 space-y-2 text-sm text-slate-100/90">
+      {arr.map((x, i) => (
+        <li key={i} className="flex gap-2">
+          <span className="mt-[6px] h-1.5 w-1.5 shrink-0 rounded-full bg-indigo-300/80" />
+          <span>{String(x)}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 function renderSarathiText(raw: string) {
   const raw0 = (raw ?? "").trim();
@@ -26,43 +39,134 @@ function renderSarathiText(raw: string) {
     .replace(/```$/i, "")
     .trim();
 
-  const tryParse = (s: string) => {
-    try {
-      return JSON.parse(s);
-    } catch {
-      return null;
-    }
-  };
-
-  let obj: any = tryParse(raw1);
-  if (typeof obj === "string") {
-    const obj2 = tryParse(obj);
-    if (obj2) obj = obj2;
+  let obj: any = null;
+  try {
+    obj = JSON.parse(raw1);
+  } catch {
+    return <p className="whitespace-pre-wrap">{raw1}</p>;
   }
 
-  const bullets =
-    obj && Array.isArray(obj.text)
-      ? (obj.text as string[])
-      : obj && typeof obj.text === "string"
-        ? [obj.text]
-        : null;
-
-  const closing = obj && typeof obj.closing === "string" ? obj.closing : "";
-
-  if (bullets && bullets.length) {
-    return (
-      <div className="space-y-3">
-        <ul className="list-disc space-y-2 pl-5">
-          {bullets.map((b, i) => (
-            <li key={i}>{String(b)}</li>
-          ))}
-        </ul>
-        {closing ? <p className="text-slate-300/80 italic">{closing}</p> : null}
+  /* ---------- Helper components ---------- */
+  
+  const Section = ({
+    title,
+    children,
+  }: {
+    title: string;
+    children: React.ReactNode;
+  }) => (
+    <div className="space-y-2">
+      <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+        {title}
       </div>
-    );
-  }
+      {children}
+    </div>
+  );
 
-  return <p className="whitespace-pre-wrap">{raw1}</p>;
+  const Bullets = ({ items }: { items?: any[] }) =>
+    items?.length ? (
+      <ul className="list-disc pl-5 space-y-2">
+        {items.map((b, i) => (
+          <li key={i}>{String(b)}</li>
+        ))}
+      </ul>
+    ) : null;
+
+  /* ---------- Structured Life Guidance ---------- */
+  return (
+    <div className="space-y-6">
+      {/* Life Posture */}
+      {obj.posture && (
+        <div className="rounded-2xl border border-white/10 bg-slate-950/40 p-4 text-sm text-slate-100 leading-relaxed">
+          {String(obj.posture)}
+        </div>
+      )}
+
+     {/* Deep Personal Insight */}
+{obj.deepInsight && (
+  <div className="rounded-2xl border border-indigo-400/30 bg-indigo-500/10 p-5 shadow-[0_0_40px_rgba(99,102,241,0.10)]">
+    <div className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-indigo-300">
+      One thing to understand about yourself right now
+    </div>
+
+    <div className="text-sm leading-relaxed text-slate-100/95">
+      {String(obj.deepInsight)}
+    </div>
+
+    {obj.evidence && (
+      <div className="mt-2 text-xs text-indigo-200/80">
+        {String(obj.evidence)}
+      </div>
+    )}
+  </div>
+)}
+
+
+     
+      {/* Non-Negotiables */}
+      {obj.nonNegotiables?.length && (
+        <Section title="Non-negotiables for this phase">
+          <Bullets items={obj.nonNegotiables} />
+        </Section>
+      )}
+
+      {/* Decision Guidance */}
+      <Section title="Now (7 days)">
+        <Bullets items={obj.now} />
+      </Section>
+
+      <Section title="Near phase (30–60 days)">
+        <Bullets items={obj.next30} />
+      </Section>
+
+      <Section title="Do">
+        <Bullets items={obj.do} />
+      </Section>
+
+      <Section title="Don’t">
+        <Bullets items={obj.dont} />
+      </Section>
+
+      {/* Discipline Plan */}
+      {obj.remedies && (
+        <Section title="Discipline plan for this phase">
+          <div className="space-y-4">
+            {obj.remedies.daily && (
+              <div>
+                <div className="mb-1 text-xs font-semibold text-slate-300">
+                  Daily discipline
+                </div>
+                <Bullets items={obj.remedies.daily} />
+              </div>
+            )}
+
+            {obj.remedies.shortTerm && (
+              <div>
+                <div className="mb-1 text-xs font-semibold text-slate-300">
+                  Supportive discipline
+                </div>
+                <Bullets items={obj.remedies.shortTerm} />
+              </div>
+            )}
+
+            {obj.remedies.longTerm && (
+              <div>
+                <div className="mb-1 text-xs font-semibold text-slate-300">
+                  Corrective discipline
+                </div>
+                <Bullets items={obj.remedies.longTerm} />
+              </div>
+            )}
+          </div>
+        </Section>
+      )}
+
+      {/* Closing */}
+      {obj.closing && (
+        <p className="italic text-slate-300/80">{String(obj.closing)}</p>
+      )}
+    </div>
+  );
 }
 
 type GeoSuggestion = {
@@ -125,7 +229,7 @@ export default function LifeGuidancePage() {
 
   // To avoid race conditions for search
   const searchAbortRef = useRef<AbortController | null>(null);
-
+  const isPaid = true; // TODO: replace with real subscription check later
   // 1) On first load: do NOT auto-prefill (as you wanted)
   useEffect(() => {
     // Intentionally blank.
@@ -272,77 +376,75 @@ export default function LifeGuidancePage() {
   }
 
   // IMPORTANT: Generate must match API schema used by /api/life-report
-  async function generate() {
-    setLoading(true);
-    setError(null);
-    setReport(null);
+  // IMPORTANT: Generate must match API schema used by /api/life-report
+async function generate() {
+  setLoading(true);
+  setError(null);
+  setReport(null);
 
-    try {
-      const d = (dobISO || "").trim();
-      const t = toHHMM(tob);
+  try {
+    const d = (dobISO || "").trim();
+    const t = toHHMM(tob);
 
-      if (!d) throw new Error("Please enter your birth date (YYYY-MM-DD).");
-      if (!t) throw new Error("Please enter your birth time (HH:MM).");
-      if (!place?.tz) throw new Error("Please select a birth timezone.");
-      if (!placePicked) throw new Error("Pick a birth place from the dropdown (so lat/lon is saved).");
+    if (!d) throw new Error("Please enter your birth date.");
+    if (!t) throw new Error("Please enter your birth time.");
+    if (!placePicked) throw new Error("Please select a place from dropdown.");
 
-      const normalizedPlace = normalizePlace(place);
+    const normalizedPlace = {
+      name: place.name ?? "",
+      tz: place.tz ?? "Asia/Kolkata",
+      lat: Number(place.lat),
+      lon: Number(place.lon),
+    };
 
-      // Keep ACTIVE profile updated
-      persistActiveProfile(normalizedPlace, d, t);
+    // Save active profile
+    saveBirthProfile({
+      dobISO: d,
+      tob: t,
+      place: normalizedPlace,
+    });
 
-      const res = await fetch("/api/life-report", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        // ✅ matches your api route expectation (birthDateISO/birthTime/birthTz/birthLat/birthLon)
-        body: JSON.stringify({
-          birthDateISO: d,
-          birthTime: t,
-          birthTz: normalizedPlace.tz,
-          birthLat: normalizedPlace.lat,
-          birthLon: normalizedPlace.lon,
-          placeName: normalizedPlace.name,
-        }),
-      });
+    const res = await fetch("/api/life-report", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        birthDateISO: d,
+        birthTime: t,
+        birthTz: normalizedPlace.tz,
+        birthLat: normalizedPlace.lat,
+        birthLon: normalizedPlace.lon,
+        placeName: normalizedPlace.name,
+      }),
+    });
 
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error((data as any)?.error || (data as any)?.message || res.statusText);
+    const data = await res.json().catch(() => ({}));
 
-      const payload: any = data;
-
-// Unwrap common response shapes safely
-let r: any =
-  payload?.report ??
-  payload?.data?.report ??
-  payload?.result?.report ??
-  payload?.result ??
-  payload;
-
-// Handle double-wrapped shape: { report: { report: {...}, aiSummary } }
-if (r?.report && !r?.ascSign && !r?.core?.ascSign) {
-  // keep wrapper fields like aiSummary if present
-  const wrapper = r;
-  r = r.report;
-
-  // carry down aiSummary if it's outside the inner report
-  if (!r.aiSummary && typeof wrapper.aiSummary === "string") {
-    r.aiSummary = wrapper.aiSummary;
-  }
-}
-
-// Also handle shape: { report: {...}, aiSummary: "..." } where we picked inner report
-if (!r?.aiSummary && typeof payload?.aiSummary === "string") {
-  r.aiSummary = payload.aiSummary;
-}
-
-setReport(r);
-
-    } catch (e: any) {
-      setError(e?.message ?? "Failed to generate guidance.");
-    } finally {
-      setLoading(false);
+    if (!res.ok) {
+      throw new Error((data as any)?.error || "Life report failed");
     }
+
+    // Unwrap safely
+    const reportData =
+      (data as any)?.report ??
+      (data as any)?.result?.report ??
+      (data as any)?.result ??
+      data;
+
+    // Pull aiSummary from wrapper (or from report if already present)
+    const aiSummary =
+      (data as any)?.aiSummary ??
+      (data as any)?.result?.aiSummary ??
+      (reportData as any)?.aiSummary ??
+      "";
+
+    setReport({ ...(reportData as any), aiSummary });
+  } catch (e: any) {
+    setError(e?.message || "Failed to generate guidance.");
+  } finally {
+    setLoading(false);
   }
+}
+
 
   async function downloadPDF() {
     try {
@@ -598,12 +700,11 @@ setReport(r);
                     This page will show your key timelines, dasha context, and a clean “do/don’t” summary once generated.
                   </div>
                 ) : (() => {
-  const r: any =
-    (report as any)?.report?.report ??
-    (report as any)?.report ??
-    report;
+ const r: any = report;
 
+  
   return (
+
 
                   <div className="space-y-4 text-sm text-slate-200/80">
                     {/* Core birth signature */}
@@ -615,15 +716,27 @@ setReport(r);
                       <div className="mt-2 text-sm text-slate-100">
                         Asc:{" "}
                         <span className="text-indigo-200">
-                          {report?.ascSign ?? report?.core?.ascSign ?? "—"}
+                         {r?.ascSign ??
+  r?.core?.ascSign ??
+  (r?.planets || []).find((p: any) => (p?.name || "").toLowerCase() === "asc")?.sign ??
+  "—"}
+
                         </span>{" "}
                         · Moon:{" "}
                         <span className="text-indigo-200">
-                          {report?.moonSign ?? report?.core?.moonSign ?? "—"}
+                          {r?.moonSign ??
+  r?.core?.moonSign ??
+  (r?.planets || []).find((p: any) => (p?.name || "").toLowerCase() === "moon")?.sign ??
+  "—"}
+
                         </span>{" "}
                         · Sun:{" "}
                         <span className="text-indigo-200">
-                          {report?.sunSign ?? report?.core?.sunSign ?? "—"}
+                          {r?.sunSign ??
+  r?.core?.sunSign ??
+  (r?.planets || []).find((p: any) => (p?.name || "").toLowerCase() === "sun")?.sign ??
+  "—"}
+
                         </span>
                       </div>
                     </div>
@@ -642,10 +755,12 @@ setReport(r);
                           (report as any)?.mdad?.md?.planet ??
                           "—";
                         const ad =
-                          ap?.antardasha?.lord ??
-                          ap?.antardasha?.planet ??
-                          (report as any)?.mdad?.ad?.planet ??
-                          "—";
+  ap?.antardasha?.subLord ??
+  ap?.antardasha?.lord ??
+  ap?.antardasha?.planet ??
+  "—";
+
+
 
                         return (
                           <div className="mt-2 text-sm text-slate-100">
@@ -654,25 +769,63 @@ setReport(r);
                         );
                       })()}
                     </div>
+                   <div className="mt-1 text-xs text-slate-300/70">
+  Guidance cycle: valid for your current phase (approx. 30–45 days).
+</div>
 
                     {/* Guidance summary */}
-                    <div className="rounded-2xl border border-white/10 bg-slate-950/35 p-4">
-                      <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-                        Guidance summary
-                      </div>
+<div className="rounded-2xl border border-white/10 bg-slate-950/35 p-4">
+  <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+    Guidance summary
+  </div>
 
-                      <div className="mt-2 leading-6 text-slate-200/90">
-                        {renderSarathiText(
-                          (report as any)?.aiSummary ||
-                            (report as any)?.timelineSummary ||
-                            (report as any)?.transitSummary ||
-                            (report as any)?.dashaTransitSummary ||
-                            ""
-                        ) || (
-                          <span className="text-slate-300/70">Generate once to see your summary here.</span>
-                        )}
-                      </div>
-                    </div>
+  {(() => {
+    const aiRaw = String(report?.aiSummary ?? "");
+
+    // PAID
+    if (isPaid) {
+      return <div className="mt-2 text-slate-200/90">{renderSarathiText(aiRaw)}</div>;
+    }
+
+    // FREE (blur + overlay)
+    return (
+      <div className="mt-2 text-slate-200/90 relative">
+        <div className="blur-sm pointer-events-none select-none">
+          {renderSarathiText(aiRaw)}
+        </div>
+
+        {/* Overlay */}
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="rounded-2xl border border-indigo-400/30 bg-slate-950/80 px-4 py-3 text-center backdrop-blur">
+            <div className="text-sm font-semibold text-slate-100">
+              Unlock your Guidance Briefing
+            </div>
+
+            <div className="mt-1 text-xs text-slate-300">
+              Deep insight + non-negotiables + discipline plan for your current life phase.
+            </div>
+
+            <div className="mt-3 flex items-center justify-center gap-2">
+              <Button className="rounded-xl bg-indigo-500 hover:bg-indigo-400">
+                Unlock Life Guidance
+              </Button>
+              <Button
+                variant="outline"
+                className="rounded-xl border-white/10 bg-white/5 hover:bg-white/10"
+              >
+                See plans
+              </Button>
+            </div>
+
+            <div className="mt-2 text-[11px] text-slate-400">
+              Designed for clarity, decisions, and discipline — not predictions.
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  })()}
+</div>
                      </div>
                   );
                 })()}
