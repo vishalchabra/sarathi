@@ -196,7 +196,7 @@ function LockingCityAutocomplete({
       {q && (
         <button
           type="button"
-          className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground"
+          className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-slate-300/80"
           onMouseDown={(e) => e.preventDefault()}
           onClick={clearAll}
           aria-label="Clear"
@@ -212,10 +212,10 @@ function LockingCityAutocomplete({
           className="absolute z-20 mt-1 w-full rounded-md border bg-popover text-popover-foreground shadow"
         >
           {loading && (
-            <div className="px-3 py-2 text-sm text-muted-foreground">Searching…</div>
+            <div className="px-3 py-2 text-sm text-slate-300/80">Searching…</div>
           )}
           {!loading && !items.length && (
-            <div className="px-3 py-2 text-sm text-muted-foreground">No results</div>
+            <div className="px-3 py-2 text-sm text-slate-300/80">No results</div>
           )}
           {!loading &&
             items.map((it, i) => (
@@ -227,7 +227,7 @@ function LockingCityAutocomplete({
                 onClick={() => commit(it)}
               >
                 {it.name}
-                <span className="ml-2 text-xs text-muted-foreground">
+                <span className="ml-2 text-xs text-slate-300/80">
                   {it.lat.toFixed(2)}, {it.lon.toFixed(2)}
                 </span>
               </button>
@@ -2210,13 +2210,13 @@ function DashaBar({
     <div className="rounded-xl border border-muted-foreground/20 p-3 bg-muted/40">
       <div className="flex items-center justify-between text-xs mb-1">
         <div className="font-semibold">{label}</div>
-        <div className="text-muted-foreground">
+        <div className="text-slate-300/80">
           {new Date(start).toLocaleDateString()} →{" "}
           {new Date(end).toLocaleDateString()}
         </div>
       </div>
       {subtitle && (
-        <div className="text-xs text-muted-foreground mb-2">{subtitle}</div>
+        <div className="text-xs text-slate-300/80 mb-2">{subtitle}</div>
       )}
       <div className="h-2 w-full rounded bg-muted overflow-hidden">
         <div
@@ -2224,7 +2224,7 @@ function DashaBar({
           style={{ width: `${pct.toFixed(1)}%` }}
         />
       </div>
-      <div className="text-[11px] text-muted-foreground mt-1">
+      <div className="text-[11px] text-slate-300/80 mt-1">
         {pct.toFixed(1)}% complete
       </div>
     </div>
@@ -2376,10 +2376,10 @@ const TabTransits: React.FC<TabTransitsProps> = memo(
           (mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2")
         }
       >
-        <Card className="rounded-2xl border border-white/10 bg-indigo-950/60 backdrop-blur-sm shadow-xl">
+        <Card className="rounded-2xl border border-white/10 bg-indigo-950/35 backdrop-blur-md shadow-xl">
           <CardHeader>
             <CardTitle className="text-lg font-semibold !text-slate-100">
-              Today &amp; next few days
+              Today &amp; next few days 
             </CardTitle>
           </CardHeader>
 
@@ -2471,13 +2471,13 @@ const TabMonthly: React.FC<TabMonthlyProps> = memo(
       (mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2")
     }
   >
-    <Card className="rounded-2xl border border-white/10 bg-indigo-950/40 backdrop-blur-sm shadow-xl">
+    <Card className="rounded-2xl border border-white/10 bg-indigo-950/35 backdrop-blur-md shadow-xl">
       <CardHeader>
         <CardTitle className="text-lg font-semibold text-slate-100">Next 12 months</CardTitle>
       </CardHeader>
       <CardContent className="text-sm space-y-3 text-slate-100">
         {loading && (
-          <div className="text-muted-foreground">
+          <div className="text-slate-300/80">
             Building your 12-month overview…
           </div>
         )}
@@ -2487,7 +2487,7 @@ const TabMonthly: React.FC<TabMonthlyProps> = memo(
         )}
 
         {!loading && !error && !hasData && (
-          <div className="text-muted-foreground">
+          <div className="text-slate-300/80">
             12-month overview will appear here once transits are available.
           </div>
         )}
@@ -2502,7 +2502,7 @@ const TabMonthly: React.FC<TabMonthlyProps> = memo(
 
             {transitText && (
               <details className="mt-3">
-                <summary className="cursor-pointer text-xs text-muted-foreground">
+                <summary className="cursor-pointer text-xs text-slate-300/80">
                   Show technical transit details
                 </summary>
                 <pre className="mt-2 text-[11px] whitespace-pre-wrap leading-relaxed">
@@ -2549,7 +2549,8 @@ const TabWeekly: React.FC<TabWeeklyProps> = memo(
           (mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2")
         }
       >
-        <Card className="rounded-2xl shadow-xl">
+        <Card className="rounded-2xl border border-white/10 bg-slate-950/15 p-3">
+
           <CardHeader>
             <CardTitle className="text-xl font-semibold">
               Weekly guidance (next 8 weeks)
@@ -2557,7 +2558,7 @@ const TabWeekly: React.FC<TabWeeklyProps> = memo(
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
             {loading && (
-              <div className="text-muted-foreground">
+              <div className="text-slate-300/80">
                 Building your weekly guidance...
               </div>
             )}
@@ -2567,7 +2568,7 @@ const TabWeekly: React.FC<TabWeeklyProps> = memo(
             )}
 
             {!loading && !error && weeklyInsights.length === 0 && (
-              <div className="text-muted-foreground">
+              <div className="text-slate-300/80">
                 Weekly guidance will appear here once transits are available.
               </div>
             )}
@@ -3406,7 +3407,7 @@ const todaysFocus = useMemo(
           <div className="font-medium">
             {pl.name}
             {pl.sign ? (
-              <span className="ml-2 text-xs text-muted-foreground">
+              <span className="ml-2 text-xs text-slate-300/80">
                 in {pl.sign}
               </span>
             ) : null}
@@ -3433,7 +3434,7 @@ const todaysFocus = useMemo(
           </div>
         </div>
 
-        <div className="mt-1 text-[11px] text-muted-foreground">
+        <div className="mt-1 text-[11px] text-slate-300/80">
           {retro ? "Retrograde • " : ""}
           {pl.nakshatra ? `Nakshatra: ${pl.nakshatra}` : " "}
         </div>
@@ -4483,7 +4484,7 @@ setTimelineSummary(
               Fill details and generate.
             </CardTitle>
           </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">
+          <CardContent className="text-sm text-slate-300/80">
             Tab will populate after generation.
           </CardContent>
         </Card>
@@ -4538,7 +4539,7 @@ setTimelineSummary(
       >
                 {/* Core signature */}
         <motion.div variants={fadeUp}>
-          <Card className="rounded-2xl shadow-xl">
+          <Card className="rounded-2xl border border-white/10 bg-indigo-950/35 backdrop-blur-md shadow-xl">
             <CardHeader>
               <CardTitle className="text-xl font-semibold flex flex-wrap gap-2 items-baseline">
                 Core birth signature
@@ -4561,7 +4562,7 @@ setTimelineSummary(
               {/* Key signs (plain-English) */}
 <div className="mt-3 grid gap-3 sm:grid-cols-2">
   <div className="rounded-xl border border-border/60 bg-muted/40 px-3 py-2">
-    <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+    <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-300/80">
       Moon sign
     </div>
     <div className="mt-1 text-sm font-semibold">
@@ -4581,13 +4582,13 @@ return `${moon?.sign ?? "—"}${moonNak ? ` (${moonNak})` : ""}`;
 
     })()}
 </div>
-    <div className="mt-1 text-xs text-muted-foreground">
+    <div className="mt-1 text-xs text-slate-300/80">
       Your emotional style — what you need to feel steady and safe.
     </div>
   </div>
 
   <div className="rounded-xl border border-border/60 bg-muted/40 px-3 py-2">
-    <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+    <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-300/80">
       Sun sign
     </div>
     <div className="mt-1 text-sm font-semibold">
@@ -4600,7 +4601,7 @@ return `${moon?.sign ?? "—"}${moonNak ? ` (${moonNak})` : ""}`;
     })()}
 </div>
 
-    <div className="mt-1 text-xs text-muted-foreground">
+    <div className="mt-1 text-xs text-slate-300/80">
       Your life direction — what you’re here to build and become.
     </div>
   </div>
@@ -4611,7 +4612,7 @@ return `${moon?.sign ?? "—"}${moonNak ? ` (${moonNak})` : ""}`;
             <CardContent className="grid md:grid-cols-2 gap-4 text-sm">
               {/* Birth data */}
               <div className="space-y-1">
-                <div className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
+                <div className="text-xs font-semibold uppercase text-slate-300/80 tracking-wide">
                   Birth Data
                 </div>
                 <div>
@@ -4619,7 +4620,7 @@ return `${moon?.sign ?? "—"}${moonNak ? ` (${moonNak})` : ""}`;
                 </div>
                 {typeof report.birthLat === "number" &&
                   typeof report.birthLon === "number" && (
-                    <div className="text-xs text-muted-foreground">
+                    <div className="text-xs text-slate-300/80">
                       {report.birthLat.toFixed(3)}, {report.birthLon.toFixed(3)}
                     </div>
                   )}
@@ -4672,7 +4673,7 @@ return `${moon?.sign ?? "—"}${moonNak ? ` (${moonNak})` : ""}`;
 
                 return (
                   <div className="space-y-1">
-                    <div className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
+                    <div className="text-xs font-semibold uppercase text-slate-300/80 tracking-wide">
                       Panchang Snapshot
                     </div>
 
@@ -4684,7 +4685,7 @@ return `${moon?.sign ?? "—"}${moonNak ? ` (${moonNak})` : ""}`;
                       <span className="font-medium">Tithi:</span>{" "}
                       {report.panchang?.tithiName ?? "—"}{" "}
                       {report.panchang?.meanings?.tithi && (
-                        <span className="text-xs text-muted-foreground">
+                        <span className="text-xs text-slate-300/80">
                           — {report.panchang.meanings.tithi}
                         </span>
                       )}
@@ -4693,7 +4694,7 @@ return `${moon?.sign ?? "—"}${moonNak ? ` (${moonNak})` : ""}`;
                     <div>
                       <span className="font-medium">Yoga:</span> {yogaName}{" "}
                       {report.panchang?.meanings?.yoga && (
-                        <span className="text-xs text-muted-foreground">
+                        <span className="text-xs text-slate-300/80">
                           — {report.panchang.meanings.yoga}
                         </span>
                       )}
@@ -4703,7 +4704,7 @@ return `${moon?.sign ?? "—"}${moonNak ? ` (${moonNak})` : ""}`;
                       <span className="font-medium">Karana:</span>{" "}
                       {karanaName}{" "}
                       {report.panchang?.meanings?.karana && (
-                        <span className="text-xs text-muted-foreground">
+                        <span className="text-xs text-slate-300/80">
                           — {report.panchang.meanings.karana}
                         </span>
                       )}
@@ -4719,55 +4720,199 @@ return `${moon?.sign ?? "—"}${moonNak ? ` (${moonNak})` : ""}`;
             </CardContent>
           </Card>
         </motion.div>
-        {/* Wheel + placements (collapsed by default) */}
+        {/* Life themes (user-friendly) */}
 <motion.div variants={fadeUpSmall} className="space-y-4">
-  <Accordion type="single" collapsible className="w-full">
-    <AccordionItem value="placements-details">
-      <AccordionTrigger className="text-sm font-semibold text-slate-100 hover:text-white [&_svg]:text-slate-200 [&_svg]:opacity-80">
-      Show detailed chart (planet placements)
-      </AccordionTrigger>
+  <Card className="rounded-2xl border border-white/10 bg-indigo-950/35 backdrop-blur-md shadow-xl">
+    <CardHeader className="pb-3">
+      <CardTitle className="text-lg font-semibold text-slate-50">Your life themes</CardTitle>
+      <div className="text-sm text-slate-300/80">
+        A simple, practical view of what your chart emphasizes — no astrology knowledge needed.
+      </div>
+    </CardHeader>
 
-      <AccordionContent>
-        {report.planets?.length ? (
-          <Card className="rounded-2xl shadow-xl">
-            <CardHeader>
-              <CardTitle className="text-xl font-semibold flex items-center justify-between">
-                Planet placements
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-5 text-sm">
-              <div className="text-xs grid grid-cols-1 md:grid-cols-2 gap-3">
-                {(report.planets ?? [])
-                  .filter((p) => p?.name && p.name.toLowerCase() !== "ascendant")
-                  .slice()
-                  .sort(
-                    (a, b) =>
-                      PLANET_ORDER.indexOf(a.name) - PLANET_ORDER.indexOf(b.name)
-                  )
-                  .map((pl, idx) => renderPlacement(pl as any, idx))}
-              </div>
-            </CardContent>
-          </Card>
-        ) : (
-          <Card className="rounded-2xl shadow-inner border-dashed border-2 border-muted-foreground/20">
-            <CardHeader>
-              <CardTitle className="text-lg font-medium">
-                No planet table available.
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="text-sm text-muted-foreground">
-              Generate again to see planet placements.
-            </CardContent>
-          </Card>
-        )}
-      </AccordionContent>
-    </AccordionItem>
-  </Accordion>
+    <CardContent className="grid gap-3 md:grid-cols-2">
+      {(() => {
+        const pls = (report.planets ?? []) as any[];
+
+        const findP = (name: string) =>
+          pls.find((p) => String(p?.name ?? "").toLowerCase() === name);
+
+        const moon = findP("moon");
+        const sun = findP("sun");
+        const merc = findP("mercury");
+        const ven = findP("venus");
+        const mars = findP("mars");
+        const jup = findP("jupiter");
+        const sat = findP("saturn");
+        const rahu = findP("rahu");
+        const ketu = findP("ketu");
+
+        const fmt = (p: any) => {
+  if (!p) return "—";
+  const sign = p.sign ? String(p.sign) : "";
+  // Themes should be simple: no houses here
+  return `${String(p.name)}${sign ? ` in ${sign}` : ""}`;
+};
+
+
+        const themeCard = (title: string, line1: string, line2: string) => (
+          <div className="rounded-2xl border border-white/10 bg-indigo-950/20 p-4">
+
+            <div className="text-sm font-semibold">{title}</div>
+            <div className="mt-2 text-sm text-foreground">{line1}</div>
+            <div className="mt-1 text-xs text-slate-300/80">{line2}</div>
+          </div>
+        );
+
+        return (
+          <>
+            {themeCard(
+              "Mind & emotions",
+              moon ? fmt(moon) : `Moon sign: ${report.moonSign ?? "—"}`,
+              "How you process feelings, handle stress, and regain balance."
+            )}
+
+            {themeCard(
+              "Identity & direction",
+              sun ? fmt(sun) : `Sun sign: ${report.sunSign ?? "—"}`,
+              "What drives you — confidence, purpose, and long-term direction."
+            )}
+
+            {themeCard(
+              "Work & discipline",
+              sat ? fmt(sat) : "Saturn emphasis: —",
+              "How you build stability: routines, responsibility, and patience."
+            )}
+
+            {themeCard(
+              "Relationships & values",
+              ven || mars ? `${fmt(ven)}${ven && mars ? " · " : ""}${fmt(mars)}` : "Venus/Mars: —",
+              "How you bond, love, set boundaries, and handle conflict."
+            )}
+
+            {themeCard(
+              "Growth & learning",
+              jup ? fmt(jup) : "Jupiter emphasis: —",
+              "Where luck grows: guidance, mentors, faith, and expansion."
+            )}
+
+            {(rahu || ketu) &&
+              themeCard(
+                "Life lessons",
+                `${fmt(rahu)}${rahu && ketu ? " · " : ""}${fmt(ketu)}`,
+                "What life pushes you to master — growth edges and detachment points."
+              )}
+          </>
+        );
+      })()}
+    </CardContent>
+  </Card>
+
+  <div className="text-xs text-slate-300/80">
+    Want the technical chart view? Open the section below.
+  </div>
 </motion.div>
-      </motion.div>
+{/* What to focus on now */}
+<motion.div variants={fadeUpSmall}>
+  <Card className="rounded-2xl border border-white/10 bg-indigo-950/35 backdrop-blur-md shadow-xl">
+    <CardHeader className="pb-3">
+      <CardTitle className="text-base font-semibold">What to focus on now</CardTitle>
+      <div className="text-sm text-slate-300/80">
+        A simple direction for the next few weeks — practical, not predictive.
+      </div>
+    </CardHeader>
+
+    <CardContent className="space-y-3 text-sm">
+      {(() => {
+        const pls = (report.planets ?? []) as any[];
+        const findP = (name: string) =>
+          pls.find((p) => String(p?.name ?? "").toLowerCase() === name);
+
+        const moon = findP("moon");
+        const sun = findP("sun");
+        const sat = findP("saturn");
+
+        const moonSign = moon?.sign ?? report.moonSign ?? "—";
+        const sunSign = sun?.sign ?? report.sunSign ?? "—";
+
+        const focusLines: string[] = [];
+
+        // Simple, safe guidance rules (no “you are impatient” type judgments)
+        focusLines.push(`Stabilize your mind first (Moon in ${moonSign}) — choose fewer priorities and finish what you start.`);
+        focusLines.push(`Take one long-term step daily (Sun in ${sunSign}) — consistency beats intensity.`);
+        if (sat) focusLines.push(`Protect your routine (Saturn influence) — sleep, discipline, and boundaries are your superpower right now.`);
+
+        return (
+          <ul className="list-disc pl-5 space-y-2 text-foreground/90">
+            {focusLines.map((t, i) => (
+              <li key={i}>{t}</li>
+            ))}
+          </ul>
+        );
+      })()}
+
+      <div className="pt-2 text-xs text-slate-300/80">
+        Want this customized to your current dasha + transits? Use <span className="font-medium">Ask Sārathi</span>.
+      </div>
+    </CardContent>
+  </Card>
+</motion.div>
+
+{/* Wheel + placements (collapsed by default) */}
+<div className="mt-10 border-t border-white/10 pt-6 bg-[linear-gradient(to_bottom,rgba(255,255,255,0.02),transparent_35%)]">
+  <motion.div variants={fadeUpSmall} className="space-y-4">
+    <Accordion type="single" collapsible className="w-full">
+      <AccordionItem value="placements-details">
+        <AccordionTrigger className="text-sm font-semibold text-slate-100 hover:text-white [&_svg]:text-slate-200 [&_svg]:opacity-80">
+          Advanced astrology (planets, houses & interpretations)
+        </AccordionTrigger>
+
+        <AccordionContent>
+          <div className="mb-3 text-xs text-slate-300/80">
+            For advanced users: technical chart details like planet positions, houses, and deeper interpretations.
+          </div>
+
+          {report.planets?.length ? (
+            <Card className="rounded-2xl border border-white/10 bg-indigo-950/35 backdrop-blur-md shadow-xl">
+              <CardHeader>
+                <CardTitle className="text-xl font-semibold flex items-center justify-between">
+                  Planet placements
+                </CardTitle>
+              </CardHeader>
+
+              <CardContent className="space-y-5 text-sm">
+                <div className="text-xs grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {(report.planets ?? [])
+                    .filter((p) => p?.name && p.name.toLowerCase() !== "ascendant")
+                    .slice()
+                    .sort(
+                      (a, b) =>
+                        PLANET_ORDER.indexOf(a.name) - PLANET_ORDER.indexOf(b.name)
+                    )
+                    .map((pl, idx) => renderPlacement(pl as any, idx))}
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card className="rounded-2xl shadow-inner border-dashed border-2 border-muted-foreground/20">
+              <CardHeader>
+                <CardTitle className="text-lg font-medium">
+                  No planet table available.
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="text-sm text-slate-300/80">
+                Generate again to see planet placements.
+              </CardContent>
+            </Card>
+          )}
+        </AccordionContent>
+      </AccordionItem>
+    </Accordion>
+  </motion.div>
+</div>
+</motion.div>
     );
   })();
-
   /* ---------------- Tab 2: Personality ---------------- */
 
   type TabPersonalityProps = {
@@ -4794,74 +4939,90 @@ return `${moon?.sign ?? "—"}${moonNak ? ` (${moonNak})` : ""}`;
           animate="show"
         >
           {aiSummary && (
-            <motion.div variants={fadeUpSmall}>
-              <Card className="rounded-2xl border border-white/10 bg-indigo-950/60 backdrop-blur-sm shadow-lg shadow-[0_0_40px_rgba(99,102,241,0.12)]">
-                <CardHeader>
-                  <CardTitle className="text-sm font-semibold text-indigo-100">
-                    Sārathi’s Perspective
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="text-sm leading-relaxed space-y-3 text-indigo-50/90">
-  {(() => {
-    const raw0 = (aiSummary ?? "").trim();
-    if (!raw0) return null;
-   
-    // Strip markdown fences if present
-    const raw1 = raw0
-      .replace(/^```json\s*/i, "")
-      .replace(/^```\s*/i, "")
-      .replace(/```$/i, "")
-      .trim();
+  <motion.div variants={fadeUpSmall} className="space-y-2">
+    <Accordion type="single" collapsible className="w-full">
+      <AccordionItem value="sarathi-perspective">
+        <AccordionTrigger className="text-sm font-semibold text-slate-100 hover:text-white [&_svg]:text-slate-200 [&_svg]:opacity-80">
+          Sārathi’s Perspective (advanced)
+        </AccordionTrigger>
 
-    // Try parse JSON; also handle double-encoded JSON
-    const tryParse = (s: string) => {
-      try {
-        return JSON.parse(s);
-      } catch {
-        return null;
-      }
-    };
+        <AccordionContent>
+          <div className="mb-3 text-xs text-slate-300/80">
+            A deeper, more technical interpretation. If you prefer simple guidance, you can skip this.
+          </div>
 
-    let obj: any = tryParse(raw1);
-    if (typeof obj === "string") {
-      const obj2 = tryParse(obj);
-      if (obj2) obj = obj2;
-    }
+          <Card className="rounded-2xl border border-white/10 bg-indigo-950/35 backdrop-blur-md shadow-xl">
 
-    // If it is { text: [...], closing: "..." } render nicely
-    const bullets =
-  obj && Array.isArray(obj.text)
-    ? (obj.text as string[])
-    : obj && typeof obj.text === "string"
-      ? [obj.text]
-      : null;
 
-    const closing =
-      obj && typeof obj.closing === "string" ? (obj.closing as string) : "";
+            <CardHeader>
+              <CardTitle className="text-sm font-semibold text-slate-100">
+                Sārathi’s Perspective
+              </CardTitle>
+            </CardHeader>
 
-    if (bullets && bullets.length) {
-      return (
-        <>
-          <ul className="list-disc pl-5 space-y-2 text-indigo-50/90">
-            {bullets.map((b, i) => (
-              <li key={i}>{String(b)}</li>
-            ))}
-          </ul>
-          {closing ? (
-            <p className="text-indigo-200/70 italic">{closing}</p>
-          ) : null}
-        </>
-      );
-    }
+            <CardContent className="text-sm leading-relaxed space-y-3 text-slate-100/85">
+              {(() => {
+                const raw0 = (aiSummary ?? "").trim();
+                if (!raw0) return null;
 
-    // If it is plain text, show it normally
-    return <p className="whitespace-pre-wrap">{raw1}</p>;
-  })()}
-</CardContent>
+                // Strip markdown fences if present
+                const raw1 = raw0
+                  .replace(/^```json\s*/i, "")
+                  .replace(/^```\s*/i, "")
+                  .replace(/```$/i, "")
+                  .trim();
 
-              </Card>
-            </motion.div>
-          )}
+                // Try parse JSON; also handle double-encoded JSON
+                const tryParse = (s: string) => {
+                  try {
+                    return JSON.parse(s);
+                  } catch {
+                    return null;
+                  }
+                };
+
+                let obj: any = tryParse(raw1);
+                if (typeof obj === "string") {
+                  const obj2 = tryParse(obj);
+                  if (obj2) obj = obj2;
+                }
+
+                // If it is { text: [...], closing: "..." } render nicely
+                const bullets =
+                  obj && Array.isArray(obj.text)
+                    ? (obj.text as string[])
+                    : obj && typeof obj.text === "string"
+                      ? [obj.text]
+                      : null;
+
+                const closing =
+                  obj && typeof obj.closing === "string" ? (obj.closing as string) : "";
+
+                if (bullets && bullets.length) {
+                  return (
+                    <>
+                      <ul className="list-disc pl-5 space-y-2 text-indigo-50/90">
+                        {bullets.map((b, i) => (
+                          <li key={i}>{String(b)}</li>
+                        ))}
+                      </ul>
+                      {closing ? (
+                        <p className="text-indigo-200/70 italic">{closing}</p>
+                      ) : null}
+                    </>
+                  );
+                }
+
+                // If it is plain text, show it normally
+                return <p className="whitespace-pre-wrap">{raw1}</p>;
+              })()}
+            </CardContent>
+          </Card>
+        </AccordionContent>
+      </AccordionItem>
+    </Accordion>
+  </motion.div>
+)}
 
           <motion.div
             variants={fadeUpSmall}
@@ -4870,7 +5031,8 @@ return `${moon?.sign ?? "—"}${moonNak ? ` (${moonNak})` : ""}`;
             {cards.map((card, idx) => (
               <Card
                 key={idx}
-                className="rounded-2xl border border-muted-foreground/15 bg-card/80 shadow-sm"
+                className="rounded-2xl border border-white/10 bg-slate-950/15 p-3"
+
               >
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-semibold">
@@ -4929,7 +5091,7 @@ const TabTimeline: React.FC<TabTimelineProps> = memo(
       >
         {/* 1) Current dasha progress (simple, always visible) */}
         {ap && (
-          <Card className="rounded-2xl border border-white/10 bg-indigo-950/40 backdrop-blur-sm shadow-xl">
+          <Card className="rounded-2xl border border-white/10 bg-indigo-950/35 backdrop-blur-md shadow-xl">
             <CardHeader className="pb-2">
               <CardTitle className="text-lg font-semibold text-slate-100">
                 Current Dasha Progress
@@ -5015,7 +5177,7 @@ const TabTimeline: React.FC<TabTimelineProps> = memo(
 
   return (
     <AccordionItem value="life-overview">
-      <AccordionTrigger className="text-xs font-medium text-muted-foreground">
+      <AccordionTrigger className="text-xs font-medium text-slate-300/80">
         Life Story Overview
       </AccordionTrigger>
 
@@ -5496,7 +5658,7 @@ window.localStorage.removeItem("sarathi.lifeReportCache.v2");
               placeholder="City, Country (e.g., Saharanpur)"
             />
             {place && (
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-slate-300/80">
                 lat {place.lat?.toFixed(3)}, lon {place.lon?.toFixed(3)} ({tz})
               </p>
             )}
@@ -5508,12 +5670,12 @@ window.localStorage.removeItem("sarathi.lifeReportCache.v2");
 <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
   {/* Left: profile selector + save */}
   <div className="flex flex-wrap items-center gap-2 text-xs">
-    <span className="font-semibold uppercase tracking-wide text-muted-foreground">
+    <span className="font-semibold uppercase tracking-wide text-slate-300/80">
       Profiles:
     </span>
 
     <select
-      className="rounded-md border bg-background px-2 py-1 text-xs text-muted-foreground"
+      className="rounded-md border bg-background px-2 py-1 text-xs text-slate-300/80"
       value={selectedProfileId}
       onChange={(e) => handleSelectProfile(e.target.value)}
     >
