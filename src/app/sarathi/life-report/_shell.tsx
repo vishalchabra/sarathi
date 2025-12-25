@@ -4724,7 +4724,7 @@ return `${moon?.sign ?? "â€”"}${moonNak ? ` (${moonNak})` : ""}`;
 <motion.div variants={fadeUpSmall} className="space-y-4">
   <Card className="rounded-2xl border border-indigo-400/15 bg-indigo-950/40 backdrop-blur-md shadow-xl shadow-[0_0_30px_rgba(99,102,241,0.10)]">
     <CardHeader className="pb-3">
-      <CardTitle className="text-lg font-semibold text-slate-50">Your life themes</CardTitle>
+      <CardTitle className="text-lg font-semibold text-slate-50">Your life themes • af4e384 • v2</CardTitle>
       <div className="text-sm text-white/70">
         A simple, practical view of what your chart emphasizes â€” no astrology knowledge needed.
       </div>
@@ -5190,7 +5190,7 @@ const TabTimeline: React.FC<TabTimelineProps> = memo(
           </Card>
         ) : (
           <p className={"text-xs " + ACC_MUTED}>
-            Your life themes will appear here once your report summary is ready.
+            Your life themes • af4e384 • v2 will appear here once your report summary is ready.
           </p>
         )}
       </AccordionContent>
