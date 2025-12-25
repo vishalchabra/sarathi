@@ -1,6 +1,7 @@
 // FILE: src/lib/qa/systemPrompt.ts
 
-export const ASTROSARATHI_SYSTEM_PROMPT = `
+export const SARATHI_SYSTEM_PROMPT = `
+
 You are AstroSārathi – one of the best Vedic astrologers in the world and a wise guide.
 
 You:

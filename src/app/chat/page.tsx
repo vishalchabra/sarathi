@@ -30,6 +30,19 @@ type LifeReportLike = {
 };
 
 type Message = { role: "user" | "assistant"; text: string };
+function inferTopic(q: string) {
+  const s = (q || "").toLowerCase();
+
+  if (/(job|career|switch|change\s*job|job\s*change|promotion|resign|notice|interview|offer|role|boss|manager|work)/.test(s)) return "job";
+  if (/(money|wealth|income|salary|bonus|debt|loan|invest|investment|stock|profit|business)/.test(s)) return "wealth";
+  if (/(relationship|love|partner|marriage|husband|wife|breakup|affair|compatibility)/.test(s)) return "relationships";
+  if (/(health|sick|ill|disease|doctor|hospital|injury|stress|anxiety|sleep)/.test(s)) return "health";
+  if (/(property|house|home|flat|rent|buy\s*house|sell\s*house|real\s*estate|land)/.test(s)) return "property";
+  if (/(car|vehicle|bike|scooter|automobile|buy\s*car|new\s*car|upgrade|registration)/.test(s)) return "vehicle";
+  if (/(dispute|court|case|legal|lawsuit|police|fight|conflict)/.test(s)) return "disputes";
+
+  return "general";
+}
 
 export default function AstroChatPage() {
   const [report, setReport] = useState<LifeReportLike | null>(null);
@@ -346,52 +359,43 @@ export default function AstroChatPage() {
   const canSend = useMemo(() => q.trim().length > 0 && !loading, [q, loading]);
 
   async function send() {
-    if (!canSend) return;
-    const question = q.trim();
-    setMessages((m) => [...m, { role: "user", text: question }]);
-    setQ("");
-    setLoading(true);
-    try {
-       console.log("[astro-chat] report payload →", report);
-       function inferTopic(q: string) {
-  const s = (q || "").toLowerCase();
+  if (!canSend) return;
 
-  if (/(job|career|switch|change job|promotion|resign|notice|interview|offer|role|boss|manager|work)/.test(s)) return "job";
-  if (/(money|wealth|income|salary|bonus|debt|loan|invest|investment|stock|profit|business)/.test(s)) return "wealth";
-  if (/(relationship|love|partner|marriage|husband|wife|breakup|affair|compatibility)/.test(s)) return "relationships";
-  if (/(health|sick|ill|disease|doctor|hospital|injury|stress|anxiety|sleep)/.test(s)) return "health";
-  if (/(property|house|home|flat|rent|buy house|sell house|real estate|land)/.test(s)) return "property";
-  if (/(car|vehicle|bike|scooter|automobile|buy car|new car|upgrade|registration)/.test(s)) return "vehicle";
-  if (/(dispute|court|case|legal|lawsuit|police|fight|conflict)/.test(s)) return "disputes";
+  const question = q.trim();
+  const topic = inferTopic(question);
 
-  return "general";
+  setMessages((m) => [...m, { role: "user", text: question }]);
+  setQ("");
+  setLoading(true);
+
+  try {
+    console.log("[CHAT SEND]", { question, topic, hasReport: !!report });
+
+    const res = await fetch("/api/astro-chat", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        message: question,
+        topic,
+        report, // send the lite report context you built from cache
+      }),
+    });
+
+    const json = await res.json();
+    const answer = json?.answer || json?.error || "…";
+
+    setMessages((m) => [...m, { role: "assistant", text: String(answer) }]);
+  } catch (e: any) {
+    setMessages((m) => [
+      ...m,
+      { role: "assistant", text: `⚠️ Network error: ${e?.message || e}` },
+    ]);
+  } finally {
+    setLoading(false);
+    inputRef.current?.focus();
+  }
 }
 
-      const res = await fetch("/api/astro-chat", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        const topic = inferTopic(message);
-
-body: JSON.stringify({
-  message,
-  topic,
-  profile,
-}),
-
-      });
-      const json = await res.json();
-      const answer = json?.answer || json?.error || "…";
-      setMessages((m) => [...m, { role: "assistant", text: String(answer) }]);
-    } catch (e: any) {
-      setMessages((m) => [
-        ...m,
-        { role: "assistant", text: `⚠️ Network error: ${e?.message || e}` },
-      ]);
-    } finally {
-      setLoading(false);
-      inputRef.current?.focus();
-    }
-  }
 
   function onEnter(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === "Enter" && !e.shiftKey) {

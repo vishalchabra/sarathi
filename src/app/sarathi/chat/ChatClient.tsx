@@ -691,21 +691,38 @@ export default function ChatClient() {
       userIntent === "exact" ? "narrative" : userIntent === "when" ? "cards" : "qa";
 
     const payload: any = {
-      query,
-      text: query,
-      input: query,
-      profile: mdad ? { ...baseProfile, mdad } : baseProfile,
-      style: styleToSend,
-      spans,
-      dashaSpans: spans,
-      ...(DEBUG ? { history: buildHistory(messages, query), debug: true } : {}),
-    };
+  question: query,
+  // pass birth in the format astro-chat expects
+  birth: prof?.dobISO
+    ? {
+        name: prof?.name,
+        dateISO: prof.dobISO,
+        time: prof.tob ?? "00:00",
+        tz: place.tz,
+        lat: place.lat,
+        lon: place.lon,
+      }
+    : null,
+
+  // If you have a Life Report cached in localStorage, pass it through as reportData
+  reportData: (() => {
+    try {
+      const raw = localStorage.getItem("sarathi.lifeReportCache.v2") 
+        || localStorage.getItem("life-report-cache.v2")
+        || localStorage.getItem("life-report"); // keep fallback
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  })(),
+};
+
 
     let res: Response | undefined;
     let body: any = null;
 
     try {
-      res = await fetch("/api/qa?v=qa-route-2025-10-18b", {
+      res = await fetch("/api/astro-chat", {
         method: "POST",
         headers: { "content-type": "application/json" },
         cache: "no-store",

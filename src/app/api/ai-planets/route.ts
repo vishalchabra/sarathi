@@ -4,7 +4,7 @@ export const runtime = "nodejs";
 import "server-only";
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
-import { ASTROSARATHI_SYSTEM_PROMPT } from "@/lib/qa/systemPrompt";
+import { SARATHI_SYSTEM_PROMPT } from "@/lib/qa/systemPrompt";
 
 // --- OpenAI client: safe even if OPENAI_API_KEY is missing ---
 const apiKey = process.env.OPENAI_API_KEY;
@@ -365,7 +365,7 @@ export async function POST(req: Request) {
     let ai: any | null = null;
     try {
             const system = `
-${ASTROSARATHI_SYSTEM_PROMPT}
+${SARATHI_SYSTEM_PROMPT}
 
 You are now generating *planet-wise* insights for a single chart.
 
@@ -423,7 +423,7 @@ Return STRICT JSON only:
       const completion = await client.chat.completions.create({
         model: GPT_MODEL,
         temperature: 0.6,
-        max_tokens: 2000,
+        max_tokens: 900,
         messages: [
           { role: "system", content: system },
           {

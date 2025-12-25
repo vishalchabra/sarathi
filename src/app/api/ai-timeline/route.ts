@@ -4,7 +4,7 @@ export const runtime = "nodejs";
 import "server-only";
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
-import { ASTROSARATHI_SYSTEM_PROMPT } from "@/lib/qa/systemPrompt";
+import { SARATHI_SYSTEM_PROMPT } from "@/lib/qa/systemPrompt";
 
 /* ---------------- OpenAI setup (lazy) ---------------- */
 
@@ -28,7 +28,7 @@ function getOpenAIClient(): OpenAI {
 /* ---------------- System prompt for timeline ---------------- */
 
 const TIMELINE_SYSTEM_PROMPT = `
-${ASTROSARATHI_SYSTEM_PROMPT}
+${SARATHI_SYSTEM_PROMPT}
 
 Now you are writing a **3-part life timeline** based mainly on Vimshottari Mahadasha milestones.
 

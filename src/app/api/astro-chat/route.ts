@@ -9,7 +9,7 @@ export const runtime = "nodejs";
 
 import "server-only";
 import { NextResponse } from "next/server";
-import { ASTROSARATHI_SYSTEM_PROMPT } from "@/lib/qa/systemPrompt";
+import { SARATHI_SYSTEM_PROMPT } from "@/lib/qa/systemPrompt";
 /* --------------------------------------------------
    Types
 -------------------------------------------------- */
@@ -92,12 +92,20 @@ type DailyRhythm = {
 
 
 type AstroChatRequest = {
+  // frontend may send either "question" or "message"
   question?: string;
+  message?: string;
+
+  // frontend may send topic, but we can also infer it
+  topic?: string;
+
   birth?: BirthData | null;
+
   // frontend may send either "report" or "reportData"
   report?: LifeReportLike | null;
   reportData?: LifeReportLike | null;
 };
+
 
 /* --------------------------------------------------
    Util
@@ -236,8 +244,7 @@ function inferMood(q: string): string {
     l.includes("raise") || l.includes("money") ||
     l.includes("when do i get a new job") || l.includes("when will i get a new job")
   ) {
-    return "the user sounds ambitious and impatient and wants timing they can act on";
-  }
+    return "the user wants clear timing and practical next steps";  }
 
   if (
     l.includes("relationship") || l.includes("love") || l.includes("marriage") ||
@@ -1443,10 +1450,11 @@ export async function POST(req: Request) {
   try {
     const body = (await req.json()) as AstroChatRequest;
 
-    const question = (body.question || "").trim();
+    const question = String(body.question ?? body.message ?? "").trim();
     const report = body.report ?? body.reportData ?? null;
 
     if (!question) return badJson("No question provided", 400);
+    // Use client topic if provided, otherwise infer from question
 
     // 🔹 Food Engine: handle food/diet questions directly, without GPT
     if (isFoodQuestion(question)) {
@@ -1458,7 +1466,7 @@ export async function POST(req: Request) {
       });
     }
 
-    const topic = body.topic ?? "general";
+   const topic = detectTopic(question);
     const moodHint = inferMood(question);
     const distressed = detectDistress(question);
     const distressSoothing = distressed ? reassureUser(topic) : "";
@@ -1525,8 +1533,9 @@ export async function POST(req: Request) {
       {
         vibe: "soft-direct, not guru, not corporate",
         rules: [
+          "If the user asks 'when' (job/career timing), respond in 4 lines: (1) Best window range, (2) Strength score, (3) 2 actions, (4) one risk to avoid. No emotional commentary.",
           "Answer the actual ask first (timing, safety, near-term behavior).",
-          "Normalize their feelings. Tell them they are not broken.",
+          "Be calm and human, but do NOT psychoanalyze the user. Only add reassurance if DISTRESSED=yes.",
           "Offer one practical way to survive the phase they're in.",
           "End with exactly one next choice, not a menu.",
           "After the answer, add a short 'Why this (evidence):' section with 2–4 bullets, using ONLY the provided evidenceBullets verbatim (no guesses). If evidenceBullets is empty, skip the section.",
@@ -1572,8 +1581,9 @@ export async function POST(req: Request) {
             styleGuide: {
         vibe: "soft-direct, not guru, not corporate",
         rules: [
+          "If the user asks 'when' (job/career timing), respond in 4 lines: (1) Best window range, (2) Strength score, (3) 2 actions, (4) one risk to avoid. No emotional commentary.",
           "Answer the actual ask first (timing, safety, near-term behavior).",
-          "Normalize their feelings. Tell them they are not broken.",
+          "Be calm and human, but do NOT psychoanalyze the user. Only add reassurance if DISTRESSED=yes.",
           "Offer one practical way to survive the phase they're in.",
           "End with exactly one next choice, not a menu.",
           "After the answer, add a short 'Why this (evidence):' section with 2–4 bullets, using ONLY the provided evidenceBullets verbatim (no guesses). If evidenceBullets is empty, skip the section.",

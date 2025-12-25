@@ -6,7 +6,7 @@ export const revalidate = 0;
 import "server-only";
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
-import { ASTROSARATHI_SYSTEM_PROMPT } from "@/lib/qa/systemPrompt";
+import { SARATHI_SYSTEM_PROMPT } from "@/lib/qa/systemPrompt";
 
 /* ---------------- OpenAI setup (lazy) ---------------- */
 
@@ -83,7 +83,7 @@ ${JSON.stringify(report, null, 2)}
       temperature: 0.7,
       max_tokens: 450,
       messages: [
-        { role: "system", content: ASTROSARATHI_SYSTEM_PROMPT },
+        { role: "system", content: SARATHI_SYSTEM_PROMPT },
         { role: "user", content: userPrompt },
       ],
     });

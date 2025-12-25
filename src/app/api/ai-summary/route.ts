@@ -3,7 +3,7 @@ export const runtime = "nodejs";
 import "server-only";
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
-import { ASTROSARATHI_SYSTEM_PROMPT } from "@/lib/qa/systemPrompt";
+import { SARATHI_SYSTEM_PROMPT } from "@/lib/qa/systemPrompt";
 /* ---------------- OpenAI setup (lazy) ---------------- */
 
 const GPT_MODEL = process.env.OPENAI_MODEL || "gpt-4.1-mini";
@@ -539,7 +539,7 @@ export async function POST(req: Request) {
       );
 
     const system = `
-${ASTROSARATHI_SYSTEM_PROMPT}
+${SARATHI_SYSTEM_PROMPT}
 
 You are now writing a concise **life summary** for this chart.
 
@@ -559,7 +559,7 @@ You are now writing a concise **life summary** for this chart.
         temperature: 0.2,
         max_tokens: 600,
         messages: [
-          { role: "system", content: ASTROSARATHI_SYSTEM_PROMPT },
+          { role: "system", content: SARATHI_SYSTEM_PROMPT },
           { role: "user", content: `FACTS:\n${facts.join("\n")}` },
         ],
       });
