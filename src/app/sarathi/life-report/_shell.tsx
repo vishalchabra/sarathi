@@ -196,7 +196,7 @@ function LockingCityAutocomplete({
       {q && (
         <button
           type="button"
-          className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-white/70"
+          className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-slate-200/80"
           onMouseDown={(e) => e.preventDefault()}
           onClick={clearAll}
           aria-label="Clear"
@@ -212,10 +212,10 @@ function LockingCityAutocomplete({
           className="absolute z-20 mt-1 w-full rounded-md border bg-popover text-popover-foreground shadow"
         >
           {loading && (
-            <div className="px-3 py-2 text-sm text-white/70">Searching…</div>
+            <div className="px-3 py-2 text-sm text-slate-200/80">Searching…</div>
           )}
           {!loading && !items.length && (
-            <div className="px-3 py-2 text-sm text-white/70">No results</div>
+            <div className="px-3 py-2 text-sm text-slate-200/80">No results</div>
           )}
           {!loading &&
             items.map((it, i) => (
@@ -227,7 +227,7 @@ function LockingCityAutocomplete({
                 onClick={() => commit(it)}
               >
                 {it.name}
-                <span className="ml-2 text-xs text-white/70">
+                <span className="ml-2 text-xs text-slate-200/80">
                   {it.lat.toFixed(2)}, {it.lon.toFixed(2)}
                 </span>
               </button>
@@ -2182,7 +2182,7 @@ function toneColor(flag?: "caution" | "opportunity" | "mixed") {
     case "caution":
       return "bg-red-500/10 text-red-100 border border-red-400/25";
     default:
-      return "bg-white/5 text-white/70 border border-white/15";
+      return "bg-white/5 text-slate-200/80 border border-white/15";
   }
 }
 
@@ -2210,13 +2210,13 @@ function DashaBar({
     <div className="rounded-xl border border-muted-foreground/20 p-3 bg-muted/40">
       <div className="flex items-center justify-between text-xs mb-1">
         <div className="font-semibold">{label}</div>
-        <div className="text-white/70">
+        <div className="text-slate-200/80">
           {new Date(start).toLocaleDateString()} →{" "}
           {new Date(end).toLocaleDateString()}
         </div>
       </div>
       {subtitle && (
-        <div className="text-xs text-white/70 mb-2">{subtitle}</div>
+        <div className="text-xs text-slate-200/80 mb-2">{subtitle}</div>
       )}
       <div className="h-2 w-full rounded bg-muted overflow-hidden">
         <div
@@ -2224,7 +2224,7 @@ function DashaBar({
           style={{ width: `${pct.toFixed(1)}%` }}
         />
       </div>
-      <div className="text-[11px] text-white/70 mt-1">
+      <div className="text-[11px] text-slate-200/80 mt-1">
         {pct.toFixed(1)}% complete
       </div>
     </div>
@@ -2414,12 +2414,12 @@ const TabTransits: React.FC<TabTransitsProps> = memo(
             )}
             {/* 2) Next 12 months */}
 <div className="space-y-2">
-  <p className="text-xs font-semibold uppercase tracking-wide text-white/60">
+  <p className="text-xs font-semibold uppercase tracking-wide text-slate-300/70">
     Next 12 months
   </p>
 
   {loading && (
-    <p className="text-xs text-white/60">Building your 12-month overview…</p>
+    <p className="text-xs text-slate-300/70">Building your 12-month overview…</p>
   )}
 
   {!loading && !error && (transitSummary || "").trim() ? (
@@ -2429,7 +2429,7 @@ const TabTransits: React.FC<TabTransitsProps> = memo(
   ) : null}
 
   {!loading && !error && !(transitSummary || "").trim() && (
-    <p className="text-xs text-white/60">
+    <p className="text-xs text-slate-300/70">
       12-month overview will appear here once transits are available.
     </p>
   )}
@@ -2477,7 +2477,7 @@ const TabMonthly: React.FC<TabMonthlyProps> = memo(
       </CardHeader>
       <CardContent className="text-sm space-y-3 text-slate-100">
         {loading && (
-          <div className="text-white/70">
+          <div className="text-slate-200/80">
             Building your 12-month overview…
           </div>
         )}
@@ -2487,7 +2487,7 @@ const TabMonthly: React.FC<TabMonthlyProps> = memo(
         )}
 
         {!loading && !error && !hasData && (
-          <div className="text-white/70">
+          <div className="text-slate-200/80">
             12-month overview will appear here once transits are available.
           </div>
         )}
@@ -2502,7 +2502,7 @@ const TabMonthly: React.FC<TabMonthlyProps> = memo(
 
             {transitText && (
               <details className="mt-3">
-                <summary className="cursor-pointer text-xs text-white/70">
+                <summary className="cursor-pointer text-xs text-slate-200/80">
                   Show technical transit details
                 </summary>
                 <pre className="mt-2 text-[11px] whitespace-pre-wrap leading-relaxed">
@@ -2558,7 +2558,7 @@ const TabWeekly: React.FC<TabWeeklyProps> = memo(
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
             {loading && (
-              <div className="text-white/70">
+              <div className="text-slate-200/80">
                 Building your weekly guidance...
               </div>
             )}
@@ -2568,7 +2568,7 @@ const TabWeekly: React.FC<TabWeeklyProps> = memo(
             )}
 
             {!loading && !error && weeklyInsights.length === 0 && (
-              <div className="text-white/70">
+              <div className="text-slate-200/80">
                 Weekly guidance will appear here once transits are available.
               </div>
             )}
@@ -2907,7 +2907,7 @@ const TabDailyGuide: React.FC<{
         <div className="md:col-span-2 rounded-2xl border border-white/15 bg-indigo-950/40 p-4 backdrop-blur-md shadow-xl shadow-[0_0_30px_rgba(99,102,241,0.10)]">
           <div className="flex items-center justify-between gap-2">
             <div>
-              <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+              <div className="text-xs font-semibold uppercase tracking-wide text-slate-300/70">
                 Sārathi Snapshot · {todayLabel}
               </div>
               <h3 className="mt-1 text-lg font-semibold">
@@ -2917,14 +2917,14 @@ const TabDailyGuide: React.FC<{
             </div>
           </div>
 
-          <p className="mt-3 text-sm text-white/70 leading-relaxed">
+          <p className="mt-3 text-sm text-slate-200/80 leading-relaxed">
             {emotional?.summary ||
               "You don’t have to solve everything today. Focus on doing a few things slowly and well, instead of chasing ten things at once."}
           </p>
 
           {/* “Your next step” CTA */}
           <div className="mt-4 rounded-xl bg-white/5 px-3 py-3 text-sm">
-            <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+            <div className="text-xs font-semibold uppercase tracking-wide text-slate-300/70">
               Your next step today
             </div>
             <p className="mt-1 text-slate-100">
@@ -2940,24 +2940,24 @@ const TabDailyGuide: React.FC<{
             Today’s Focus · Dasha
           </div>
           <div className="mt-1 text-sm font-semibold">{focusArea}</div>
-          <p className="mt-1 text-xs text-white/70">{focusHeadline}</p>
-          <p className="mt-2 text-xs text-white/70">{focusSummary}</p>
+          <p className="mt-1 text-xs text-slate-200/80">{focusHeadline}</p>
+          <p className="mt-2 text-xs text-slate-200/80">{focusSummary}</p>
 
           <div className="mt-3 grid gap-2 text-xs">
             <div>
               <div className="font-semibold text-slate-100">Do</div>
-              <p className="text-white/70">{focusDo}</p>
+              <p className="text-slate-200/80">{focusDo}</p>
             </div>
             <div>
               <div className="font-semibold text-slate-100">Avoid</div>
-              <p className="text-white/70">{focusAvoid}</p>
+              <p className="text-slate-200/80">{focusAvoid}</p>
             </div>
           </div>
         </div>
       </div>
 
       {/* Panchang mini bar */}
-      <div className="grid gap-3 rounded-2xl border border-white/15 bg-indigo-950/40 backdrop-blur-md p-4 text-xs text-white/70 md:grid-cols-4">
+      <div className="grid gap-3 rounded-2xl border border-white/15 bg-indigo-950/40 backdrop-blur-md p-4 text-xs text-slate-200/80 md:grid-cols-4">
         <div>
           <div className="font-semibold text-slate-100">Tithi</div>
           <div>{tithiName || "—"}</div>
@@ -3407,7 +3407,7 @@ const todaysFocus = useMemo(
           <div className="font-medium">
             {pl.name}
             {pl.sign ? (
-              <span className="ml-2 text-xs text-white/70">
+              <span className="ml-2 text-xs text-slate-200/80">
                 in {pl.sign}
               </span>
             ) : null}
@@ -3426,7 +3426,7 @@ const todaysFocus = useMemo(
                 : d.weight === 1
                 ? "bg-teal-100 text-teal-800"
                 : d.weight === 0
-                ? "bg-slate-100 text-white/70"
+                ? "bg-slate-100 text-slate-200/80"
                 : "bg-red-100 text-red-800")
             }
           >
@@ -3434,7 +3434,7 @@ const todaysFocus = useMemo(
           </div>
         </div>
 
-        <div className="mt-1 text-[11px] text-white/70">
+        <div className="mt-1 text-[11px] text-slate-200/80">
           {retro ? "Retrograde • " : ""}
           {pl.nakshatra ? `Nakshatra: ${pl.nakshatra}` : " "}
         </div>
@@ -4484,7 +4484,7 @@ setTimelineSummary(
               Fill details and generate.
             </CardTitle>
           </CardHeader>
-          <CardContent className="text-sm text-white/70">
+          <CardContent className="text-sm text-slate-200/80">
             Tab will populate after generation.
           </CardContent>
         </Card>
@@ -4562,7 +4562,7 @@ setTimelineSummary(
               {/* Key signs (plain-English) */}
 <div className="mt-3 grid gap-3 sm:grid-cols-2">
   <div className="rounded-xl border border-border/60 bg-muted/40 px-3 py-2">
-    <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/70">
+    <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-200/80">
       Moon sign
     </div>
     <div className="mt-1 text-sm font-semibold">
@@ -4582,13 +4582,13 @@ return `${moon?.sign ?? "—"}${moonNak ? ` (${moonNak})` : ""}`;
 
     })()}
 </div>
-    <div className="mt-1 text-xs text-white/70">
+    <div className="mt-1 text-xs text-slate-200/80">
       Your emotional style — what you need to feel steady and safe.
     </div>
   </div>
 
   <div className="rounded-xl border border-border/60 bg-muted/40 px-3 py-2">
-    <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/70">
+    <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-200/80">
       Sun sign
     </div>
     <div className="mt-1 text-sm font-semibold">
@@ -4601,7 +4601,7 @@ return `${moon?.sign ?? "—"}${moonNak ? ` (${moonNak})` : ""}`;
     })()}
 </div>
 
-    <div className="mt-1 text-xs text-white/70">
+    <div className="mt-1 text-xs text-slate-200/80">
       Your life direction — what you’re here to build and become.
     </div>
   </div>
@@ -4612,7 +4612,7 @@ return `${moon?.sign ?? "—"}${moonNak ? ` (${moonNak})` : ""}`;
             <CardContent className="grid md:grid-cols-2 gap-4 text-sm">
               {/* Birth data */}
               <div className="space-y-1">
-                <div className="text-xs font-semibold uppercase text-white/70 tracking-wide">
+                <div className="text-xs font-semibold uppercase text-slate-200/80 tracking-wide">
                   Birth Data
                 </div>
                 <div>
@@ -4620,7 +4620,7 @@ return `${moon?.sign ?? "—"}${moonNak ? ` (${moonNak})` : ""}`;
                 </div>
                 {typeof report.birthLat === "number" &&
                   typeof report.birthLon === "number" && (
-                    <div className="text-xs text-white/70">
+                    <div className="text-xs text-slate-200/80">
                       {report.birthLat.toFixed(3)}, {report.birthLon.toFixed(3)}
                     </div>
                   )}
@@ -4673,7 +4673,7 @@ return `${moon?.sign ?? "—"}${moonNak ? ` (${moonNak})` : ""}`;
 
                 return (
                   <div className="space-y-1">
-                    <div className="text-xs font-semibold uppercase text-white/70 tracking-wide">
+                    <div className="text-xs font-semibold uppercase text-slate-200/80 tracking-wide">
                       Panchang Snapshot
                     </div>
 
@@ -4685,7 +4685,7 @@ return `${moon?.sign ?? "—"}${moonNak ? ` (${moonNak})` : ""}`;
                       <span className="font-medium">Tithi:</span>{" "}
                       {report.panchang?.tithiName ?? "—"}{" "}
                       {report.panchang?.meanings?.tithi && (
-                        <span className="text-xs text-white/70">
+                        <span className="text-xs text-slate-200/80">
                           — {report.panchang.meanings.tithi}
                         </span>
                       )}
@@ -4694,7 +4694,7 @@ return `${moon?.sign ?? "—"}${moonNak ? ` (${moonNak})` : ""}`;
                     <div>
                       <span className="font-medium">Yoga:</span> {yogaName}{" "}
                       {report.panchang?.meanings?.yoga && (
-                        <span className="text-xs text-white/70">
+                        <span className="text-xs text-slate-200/80">
                           — {report.panchang.meanings.yoga}
                         </span>
                       )}
@@ -4704,7 +4704,7 @@ return `${moon?.sign ?? "—"}${moonNak ? ` (${moonNak})` : ""}`;
                       <span className="font-medium">Karana:</span>{" "}
                       {karanaName}{" "}
                       {report.panchang?.meanings?.karana && (
-                        <span className="text-xs text-white/70">
+                        <span className="text-xs text-slate-200/80">
                           — {report.panchang.meanings.karana}
                         </span>
                       )}
@@ -4725,7 +4725,7 @@ return `${moon?.sign ?? "—"}${moonNak ? ` (${moonNak})` : ""}`;
   <Card className="rounded-2xl border border-indigo-400/15 bg-indigo-950/40 backdrop-blur-md shadow-xl shadow-[0_0_30px_rgba(99,102,241,0.10)]">
     <CardHeader className="pb-3">
       <CardTitle className="text-lg font-semibold text-slate-50">Your life themes � af4e384 � v2</CardTitle>
-      <div className="text-sm text-white/70">
+      <div className="text-sm text-slate-200/80">
         A simple, practical view of what your chart emphasizes — no astrology knowledge needed.
       </div>
     </CardHeader>
@@ -4760,7 +4760,7 @@ return `${moon?.sign ?? "—"}${moonNak ? ` (${moonNak})` : ""}`;
 
             <div className="text-sm font-semibold">{title}</div>
             <div className="mt-2 text-sm text-white/90">{line1}</div>
-            <div className="mt-1 text-xs text-white/70">{line2}</div>
+            <div className="mt-1 text-xs text-slate-200/80">{line2}</div>
           </div>
         );
 
@@ -4808,7 +4808,7 @@ return `${moon?.sign ?? "—"}${moonNak ? ` (${moonNak})` : ""}`;
     </CardContent>
   </Card>
 
-  <div className="text-xs text-white/70">
+  <div className="text-xs text-slate-200/80">
     Want the technical chart view? Open the section below.
   </div>
 </motion.div>
@@ -4817,7 +4817,7 @@ return `${moon?.sign ?? "—"}${moonNak ? ` (${moonNak})` : ""}`;
   <Card className="rounded-2xl border border-indigo-400/15 bg-indigo-950/40 backdrop-blur-md shadow-xl shadow-[0_0_30px_rgba(99,102,241,0.10)]">
     <CardHeader className="pb-3">
       <CardTitle className="text-base font-semibold text-slate-50">What to focus on now</CardTitle>
-      <div className="text-sm text-white/70">
+      <div className="text-sm text-slate-200/80">
         A simple direction for the next few weeks — practical, not predictive.
       </div>
     </CardHeader>
@@ -4843,7 +4843,7 @@ return `${moon?.sign ?? "—"}${moonNak ? ` (${moonNak})` : ""}`;
         if (sat) focusLines.push(`Protect your routine (Saturn influence) — sleep, discipline, and boundaries are your superpower right now.`);
 
         return (
-          <ul className="list-disc pl-5 space-y-2 text-white/90/90">
+          <ul className="list-disc pl-5 space-y-2 text-white/90">
             {focusLines.map((t, i) => (
               <li key={i}>{t}</li>
             ))}
@@ -4851,7 +4851,7 @@ return `${moon?.sign ?? "—"}${moonNak ? ` (${moonNak})` : ""}`;
         );
       })()}
 
-      <div className="pt-2 text-xs text-white/70">
+      <div className="pt-2 text-xs text-slate-200/80">
         Want this customized to your current dasha + transits? Use <span className="font-medium">Ask Sārathi</span>.
       </div>
     </CardContent>
@@ -4868,7 +4868,7 @@ return `${moon?.sign ?? "—"}${moonNak ? ` (${moonNak})` : ""}`;
         </AccordionTrigger>
 
         <AccordionContent>
-          <div className="mb-3 text-xs text-white/70">
+          <div className="mb-3 text-xs text-slate-200/80">
             For advanced users: technical chart details like planet positions, houses, and deeper interpretations.
           </div>
 
@@ -4900,7 +4900,7 @@ return `${moon?.sign ?? "—"}${moonNak ? ` (${moonNak})` : ""}`;
                   No planet table available.
                 </CardTitle>
               </CardHeader>
-              <CardContent className="text-sm text-white/70">
+              <CardContent className="text-sm text-slate-200/80">
                 Generate again to see planet placements.
               </CardContent>
             </Card>
@@ -4947,7 +4947,7 @@ return `${moon?.sign ?? "—"}${moonNak ? ` (${moonNak})` : ""}`;
         </AccordionTrigger>
 
         <AccordionContent>
-          <div className="mb-3 text-xs text-white/70">
+          <div className="mb-3 text-xs text-slate-200/80">
             A deeper, more technical interpretation. If you prefer simple guidance, you can skip this.
           </div>
 
@@ -4960,7 +4960,7 @@ return `${moon?.sign ?? "—"}${moonNak ? ` (${moonNak})` : ""}`;
               </CardTitle>
             </CardHeader>
 
-            <CardContent className="text-sm leading-relaxed space-y-3 text-slate-100/85">
+            <CardContent className="text-sm leading-relaxed space-y-3 text-slate-100">
               {(() => {
                 const raw0 = (aiSummary ?? "").trim();
                 if (!raw0) return null;
@@ -5001,13 +5001,13 @@ return `${moon?.sign ?? "—"}${moonNak ? ` (${moonNak})` : ""}`;
                 if (bullets && bullets.length) {
                   return (
                     <>
-                      <ul className="list-disc pl-5 space-y-2 text-indigo-50/90">
+                      <ul className="list-disc pl-5 space-y-2 text-slate-100">
                         {bullets.map((b, i) => (
                           <li key={i}>{String(b)}</li>
                         ))}
                       </ul>
                       {closing ? (
-                        <p className="text-indigo-200/70 italic">{closing}</p>
+                        <p className="text-slate-300/70 italic">{closing}</p>
                       ) : null}
                     </>
                   );
@@ -5079,7 +5079,7 @@ const TabTimeline: React.FC<TabTimelineProps> = memo(
 
     const sectionTrigger =
       "text-sm font-semibold text-slate-100 hover:text-slate-50";
-    const subNote = "text-xs text-slate-200/70";
+    const subNote = "text-xs text-slate-300/80";
     const divider = "border-white/15";
 
     return (
@@ -5177,7 +5177,7 @@ const TabTimeline: React.FC<TabTimelineProps> = memo(
 
   return (
     <AccordionItem value="life-overview">
-      <AccordionTrigger className="text-xs font-medium text-white/70">
+      <AccordionTrigger className="text-xs font-medium text-slate-200/80">
         Life Story Overview
       </AccordionTrigger>
 
@@ -5233,10 +5233,10 @@ const TabTimeline: React.FC<TabTimelineProps> = memo(
                             }
                           >
                             <div className="space-y-0.5">
-                              <div className="text-[11px] font-semibold uppercase tracking-wide text-white/60">
+                              <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-300/70">
                                 {row.planet} Mahadasha
                               </div>
-                              <div className="text-[13px] text-white/70">
+                              <div className="text-[13px] text-slate-200/80">
                                 {row.startISO} → {row.endISO}
                               </div>
                             </div>
@@ -5285,17 +5285,17 @@ const TabTimeline: React.FC<TabTimelineProps> = memo(
                             <div className="rounded-xl border border-white/15 bg-slate-950/40 p-3 text-sm leading-relaxed text-slate-100">
                               <div className="flex flex-wrap items-start justify-between gap-2">
                                 <div className="space-y-1">
-                                  <div className="text-xs font-semibold uppercase text-white/60 tracking-wide">
+                                  <div className="text-xs font-semibold uppercase text-slate-300/70 tracking-wide">
                                     {m.label}
                                   </div>
 
-                                  <div className="text-[11px] text-slate-200/70">
+                                  <div className="text-[11px] text-slate-300/80">
                                     {m.approxAgeRange} (
                                     {new Date(m.periodStart).getFullYear()}–{new Date(m.periodEnd).getFullYear()})
                                   </div>
 
                                   {m.drivers && (
-                                    <div className="text-[11px] text-slate-200/60">
+                                    <div className="text-[11px] text-slate-300/70">
                                       {m.drivers}
                                     </div>
                                   )}
@@ -5321,7 +5321,7 @@ const TabTimeline: React.FC<TabTimelineProps> = memo(
                                     <p key={i2}>{t}</p>
                                   ))
                                 ) : (
-                                  <p className="text-slate-200/60">(No notes.)</p>
+                                  <p className="text-slate-300/70">(No notes.)</p>
                                 )}
                               </div>
                             </div>
@@ -5329,7 +5329,7 @@ const TabTimeline: React.FC<TabTimelineProps> = memo(
                         ))}
 
                         {report.lifeMilestones.length > 6 && (
-                          <p className="text-xs text-slate-200/60">
+                          <p className="text-xs text-slate-300/70">
                           </p>
                         )}
                       </div>
@@ -5658,7 +5658,7 @@ window.localStorage.removeItem("sarathi.lifeReportCache.v2");
               placeholder="City, Country (e.g., Saharanpur)"
             />
             {place && (
-              <p className="text-xs text-white/70">
+              <p className="text-xs text-slate-200/80">
                 lat {place.lat?.toFixed(3)}, lon {place.lon?.toFixed(3)} ({tz})
               </p>
             )}
@@ -5670,12 +5670,12 @@ window.localStorage.removeItem("sarathi.lifeReportCache.v2");
 <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
   {/* Left: profile selector + save */}
   <div className="flex flex-wrap items-center gap-2 text-xs">
-    <span className="font-semibold uppercase tracking-wide text-white/70">
+    <span className="font-semibold uppercase tracking-wide text-slate-200/80">
       Profiles:
     </span>
 
     <select
-      className="rounded-md border bg-background px-2 py-1 text-xs text-white/70"
+      className="rounded-md border bg-background px-2 py-1 text-xs text-slate-200/80"
       value={selectedProfileId}
       onChange={(e) => handleSelectProfile(e.target.value)}
     >
