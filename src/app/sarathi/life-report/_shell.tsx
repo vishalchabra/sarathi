@@ -4558,6 +4558,54 @@ setTimelineSummary(
                   </Badge>
                 )}
               </CardTitle>
+              {/* Key signs (plain-English) */}
+<div className="mt-3 grid gap-3 sm:grid-cols-2">
+  <div className="rounded-xl border border-border/60 bg-muted/40 px-3 py-2">
+    <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+      Moon sign
+    </div>
+    <div className="mt-1 text-sm font-semibold">
+  {report.moonSign ??
+    (() => {
+      const moon = (report.planets || []).find(
+        (p) => (p.name || "").toLowerCase() === "moon"
+      );
+      const moonNak =
+  (report as any).panchangToday?.moonNakshatraName ??
+  (report as any).panchangToday?.nakshatraName ??
+  (report as any).panchangToday?.nakshatra?.name ??
+  report.panchang?.moonNakshatraName ??
+  "";
+
+return `${moon?.sign ?? "—"}${moonNak ? ` (${moonNak})` : ""}`;
+
+    })()}
+</div>
+    <div className="mt-1 text-xs text-muted-foreground">
+      Your emotional style — what you need to feel steady and safe.
+    </div>
+  </div>
+
+  <div className="rounded-xl border border-border/60 bg-muted/40 px-3 py-2">
+    <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+      Sun sign
+    </div>
+    <div className="mt-1 text-sm font-semibold">
+  {report.sunSign ??
+    (() => {
+      const sun = (report.planets || []).find(
+        (p) => (p.name || "").toLowerCase() === "sun"
+      );
+      return sun?.sign ?? "—";
+    })()}
+</div>
+
+    <div className="mt-1 text-xs text-muted-foreground">
+      Your life direction — what you’re here to build and become.
+    </div>
+  </div>
+</div>
+
             </CardHeader>
 
             <CardContent className="grid md:grid-cols-2 gap-4 text-sm">
