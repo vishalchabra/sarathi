@@ -2163,7 +2163,7 @@ const ACC_CARD =
   "rounded-2xl border border-white/15 bg-indigo-950/60 backdrop-blur-sm shadow-lg shadow-[0_0_40px_rgba(99,102,241,0.10)]";
 
 const ACC_TEXT = "text-slate-100";
-const ACC_MUTED = "text-slate-300/80";
+const ACC_MUTED = "text-white/60";
 
 const staggerContainer: any = {
   hidden: {},
@@ -2178,11 +2178,11 @@ const staggerContainer: any = {
 function toneColor(flag?: "caution" | "opportunity" | "mixed") {
   switch (flag) {
     case "opportunity":
-      return "bg-emerald-500/10 text-emerald-100 border border-emerald-400/25";
+      return "bg-emerald-50 text-emerald-700 border border-emerald-200";
     case "caution":
-      return "bg-red-500/10 text-red-100 border border-red-400/25";
+      return "bg-red-50 text-red-700 border border-red-200";
     default:
-      return "bg-white/5 text-white/70 border border-white/15";
+      return "bg-slate-50 text-slate-600 border border-slate-200";
   }
 }
 
@@ -2376,7 +2376,7 @@ const TabTransits: React.FC<TabTransitsProps> = memo(
           (mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2")
         }
       >
-        <Card className="rounded-2xl border border-indigo-400/15 bg-indigo-950/40 backdrop-blur-md shadow-xl shadow-[0_0_30px_rgba(99,102,241,0.10)]">
+        <Card className="rounded-2xl border border-indigo-400/15 bg-indigo-950/30 backdrop-blur-md shadow-xl shadow-[0_0_60px_rgba(99,102,241,0.12)]">
           <CardHeader>
             <CardTitle className="text-lg font-semibold !text-slate-100">
               Today &amp; next few days 
@@ -2471,7 +2471,7 @@ const TabMonthly: React.FC<TabMonthlyProps> = memo(
       (mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2")
     }
   >
-    <Card className="rounded-2xl border border-indigo-400/15 bg-indigo-950/40 backdrop-blur-md shadow-xl shadow-[0_0_30px_rgba(99,102,241,0.10)]">
+    <Card className="rounded-2xl border border-indigo-400/15 bg-indigo-950/30 backdrop-blur-md shadow-xl shadow-[0_0_60px_rgba(99,102,241,0.12)]">
       <CardHeader>
         <CardTitle className="text-lg font-semibold text-slate-100">Next 12 months</CardTitle>
       </CardHeader>
@@ -2549,7 +2549,7 @@ const TabWeekly: React.FC<TabWeeklyProps> = memo(
           (mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2")
         }
       >
-        <Card className="rounded-2xl border border-white/15 bg-indigo-950/45 p-3">
+        <Card className="rounded-2xl border border-white/15 bg-indigo-950/35 p-3">
 
           <CardHeader>
             <CardTitle className="text-xl font-semibold">
@@ -2879,12 +2879,12 @@ const TabDailyGuide: React.FC<{
 
   const moneyToneClass = (() => {
     if (moneyTone === "opportunity")
-      return "bg-emerald-500/10 border-emerald-400/25 text-emerald-100";
+      return "bg-emerald-50 border-emerald-200 text-emerald-800";
     if (moneyTone === "caution")
-      return "bg-red-500/10 border-red-400/25 text-red-100";
+      return "bg-red-50 border-red-200 text-red-800";
     if (moneyTone === "mixed")
-      return "bg-amber-500/10 border-amber-400/25 text-amber-100";
-    return "bg-white/5 border-white/15 text-slate-100";
+      return "bg-amber-50 border-amber-200 text-amber-800";
+    return "bg-slate-50 border-slate-200 text-slate-700";
   })();
 
   const todayLabel: string =
@@ -2896,7 +2896,7 @@ const TabDailyGuide: React.FC<{
     <div className="space-y-5">
       {/* Error from /daily-guide API */}
       {guideError && (
-        <div className="rounded-md border border-red-400/25 bg-red-500/10 px-3 py-2 text-sm text-red-200">
+        <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
           {guideError}
         </div>
       )}
@@ -2904,10 +2904,10 @@ const TabDailyGuide: React.FC<{
       {/* Top row: Sārathi Snapshot + Today's Focus + Panchang mini card */}
       <div className="grid gap-4 md:grid-cols-3">
         {/* Sārathi Snapshot */}
-        <div className="md:col-span-2 rounded-2xl border border-white/15 bg-indigo-950/40 p-4 backdrop-blur-md shadow-xl shadow-[0_0_30px_rgba(99,102,241,0.10)]">
+        <div className="md:col-span-2 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <div className="flex items-center justify-between gap-2">
             <div>
-              <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+              <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                 Sārathi Snapshot · {todayLabel}
               </div>
               <h3 className="mt-1 text-lg font-semibold">
@@ -2917,17 +2917,17 @@ const TabDailyGuide: React.FC<{
             </div>
           </div>
 
-          <p className="mt-3 text-sm text-white/70 leading-relaxed">
+          <p className="mt-3 text-sm text-slate-700 leading-relaxed">
             {emotional?.summary ||
               "You don’t have to solve everything today. Focus on doing a few things slowly and well, instead of chasing ten things at once."}
           </p>
 
           {/* “Your next step” CTA */}
-          <div className="mt-4 rounded-xl bg-white/5 px-3 py-3 text-sm">
-            <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+          <div className="mt-4 rounded-xl bg-slate-50 px-3 py-3 text-sm">
+            <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
               Your next step today
             </div>
-            <p className="mt-1 text-slate-100">
+            <p className="mt-1 text-slate-800">
               {emotional?.nextStep ||
                 "Choose one small action you can complete in the next 30–60 minutes. Do it with full attention, then allow yourself a short conscious break."}
             </p>
@@ -2935,43 +2935,43 @@ const TabDailyGuide: React.FC<{
         </div>
 
         {/* Today’s Focus (MD/AD) */}
-        <div className="rounded-2xl border border-indigo-200 bg-indigo-50/70 p-4 text-sm text-slate-100">
+        <div className="rounded-2xl border border-indigo-200 bg-indigo-50/70 p-4 text-sm text-slate-900">
           <div className="text-xs font-semibold uppercase tracking-wide text-indigo-600">
             Today’s Focus · Dasha
           </div>
           <div className="mt-1 text-sm font-semibold">{focusArea}</div>
-          <p className="mt-1 text-xs text-white/70">{focusHeadline}</p>
-          <p className="mt-2 text-xs text-white/70">{focusSummary}</p>
+          <p className="mt-1 text-xs text-slate-700">{focusHeadline}</p>
+          <p className="mt-2 text-xs text-slate-700">{focusSummary}</p>
 
           <div className="mt-3 grid gap-2 text-xs">
             <div>
-              <div className="font-semibold text-slate-100">Do</div>
-              <p className="text-white/70">{focusDo}</p>
+              <div className="font-semibold text-slate-900">Do</div>
+              <p className="text-slate-700">{focusDo}</p>
             </div>
             <div>
-              <div className="font-semibold text-slate-100">Avoid</div>
-              <p className="text-white/70">{focusAvoid}</p>
+              <div className="font-semibold text-slate-900">Avoid</div>
+              <p className="text-slate-700">{focusAvoid}</p>
             </div>
           </div>
         </div>
       </div>
 
       {/* Panchang mini bar */}
-      <div className="grid gap-3 rounded-2xl border border-white/15 bg-indigo-950/40 backdrop-blur-md p-4 text-xs text-white/70 md:grid-cols-4">
+      <div className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-xs text-slate-700 md:grid-cols-4">
         <div>
-          <div className="font-semibold text-slate-100">Tithi</div>
+          <div className="font-semibold text-slate-900">Tithi</div>
           <div>{tithiName || "—"}</div>
         </div>
         <div>
-          <div className="font-semibold text-slate-100">Nakshatra</div>
+          <div className="font-semibold text-slate-900">Nakshatra</div>
           <div>{nakshatraName || "—"}</div>
         </div>
         <div>
-          <div className="font-semibold text-slate-100">Sunrise</div>
+          <div className="font-semibold text-slate-900">Sunrise</div>
           <div>{sunrise || "—"}</div>
         </div>
         <div>
-          <div className="font-semibold text-slate-100">Sunset</div>
+          <div className="font-semibold text-slate-900">Sunset</div>
           <div>{sunset || "—"}</div>
         </div>
       </div>
@@ -2979,14 +2979,14 @@ const TabDailyGuide: React.FC<{
       {/* Middle row: Food · Fasting · Money */}
       <div className="grid gap-4 md:grid-cols-3">
         {/* Food card */}
-        <div className="rounded-2xl border border-emerald-400/25 bg-emerald-500/10 p-4 text-sm text-slate-100">
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4 text-sm text-slate-900">
           <div className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
             Food · Body
           </div>
           <h3 className="mt-1 text-sm font-semibold">
             {food?.headline || "Keep food light and sattvic where possible."}
           </h3>
-          <p className="mt-1 text-xs text-slate-100">
+          <p className="mt-1 text-xs text-slate-800">
             {food?.summary ||
               "Favour simple, clean meals that don’t weigh you down. Avoid heavy or very late-night eating if you can."}
           </p>
@@ -3000,19 +3000,19 @@ const TabDailyGuide: React.FC<{
         </div>
 
         {/* Fasting card */}
-        <div className="rounded-2xl border border-amber-400/25 bg-amber-500/10 p-4 text-sm text-slate-100">
+        <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-4 text-sm text-slate-900">
           <div className="text-xs font-semibold uppercase tracking-wide text-amber-700">
             Fasting · Reset
           </div>
           <h3 className="mt-1 text-sm font-semibold">
             {fasting?.headline || "Use simple discipline over extreme fasting."}
           </h3>
-          <p className="mt-1 text-xs text-slate-100">
+          <p className="mt-1 text-xs text-slate-800">
             {fasting?.summary ||
               "If you’re fasting, keep it gentle and hydrated. If not, you can still “fast” from noise, screens, or negativity."}
           </p>
           {fasting?.isGoodDay != null && (
-            <div className="mt-2 inline-flex rounded-full bg-white/10 px-2 py-1 text-[11px] font-medium text-amber-200">
+            <div className="mt-2 inline-flex rounded-full bg-white/70 px-2 py-1 text-[11px] font-medium text-amber-800">
               {fasting.isGoodDay ? "Supportive day for fasting" : "Not a strong day for full fasting — choose lightness instead."}
             </div>
           )}
@@ -3426,7 +3426,7 @@ const todaysFocus = useMemo(
                 : d.weight === 1
                 ? "bg-teal-100 text-teal-800"
                 : d.weight === 0
-                ? "bg-slate-100 text-white/70"
+                ? "bg-slate-100 text-slate-700"
                 : "bg-red-100 text-red-800")
             }
           >
@@ -4463,7 +4463,7 @@ setTimelineSummary(
     return (
       <>
         {engineUnavailable && (
-          <div className="mb-4 rounded-md border border-amber-400/25 bg-amber-500/10 p-3 text-xs text-amber-200">
+          <div className="mb-4 rounded-md border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900">
             <div className="font-semibold">
               Life Report engine not enabled yet
             </div>
@@ -4539,7 +4539,7 @@ setTimelineSummary(
       >
                 {/* Core signature */}
         <motion.div variants={fadeUp}>
-          <Card className="rounded-2xl border border-indigo-400/15 bg-indigo-950/40 backdrop-blur-md shadow-xl shadow-[0_0_30px_rgba(99,102,241,0.10)]">
+          <Card className="rounded-2xl border border-indigo-400/15 bg-indigo-950/30 backdrop-blur-md shadow-xl shadow-[0_0_60px_rgba(99,102,241,0.12)]">
             <CardHeader>
               <CardTitle className="text-xl font-semibold flex flex-wrap gap-2 items-baseline">
                 Core birth signature
@@ -4722,7 +4722,7 @@ return `${moon?.sign ?? "—"}${moonNak ? ` (${moonNak})` : ""}`;
         </motion.div>
         {/* Life themes (user-friendly) */}
 <motion.div variants={fadeUpSmall} className="space-y-4">
-  <Card className="rounded-2xl border border-indigo-400/15 bg-indigo-950/40 backdrop-blur-md shadow-xl shadow-[0_0_30px_rgba(99,102,241,0.10)]">
+  <Card className="rounded-2xl border border-indigo-400/15 bg-indigo-950/30 backdrop-blur-md shadow-xl shadow-[0_0_60px_rgba(99,102,241,0.12)]">
     <CardHeader className="pb-3">
       <CardTitle className="text-lg font-semibold text-slate-50">Your life themes</CardTitle>
       <div className="text-sm text-white/70">
@@ -4756,7 +4756,7 @@ return `${moon?.sign ?? "—"}${moonNak ? ` (${moonNak})` : ""}`;
 
 
         const themeCard = (title: string, line1: string, line2: string) => (
-          <div className="rounded-2xl border border-white/15 bg-indigo-950/40 p-4">
+          <div className="rounded-2xl border border-white/15 bg-indigo-950/30 p-4">
 
             <div className="text-sm font-semibold">{title}</div>
             <div className="mt-2 text-sm text-white/90">{line1}</div>
@@ -4814,7 +4814,7 @@ return `${moon?.sign ?? "—"}${moonNak ? ` (${moonNak})` : ""}`;
 </motion.div>
 {/* What to focus on now */}
 <motion.div variants={fadeUpSmall}>
-  <Card className="rounded-2xl border border-indigo-400/15 bg-indigo-950/40 backdrop-blur-md shadow-xl shadow-[0_0_30px_rgba(99,102,241,0.10)]">
+  <Card className="rounded-2xl border border-indigo-400/15 bg-indigo-950/30 backdrop-blur-md shadow-xl shadow-[0_0_60px_rgba(99,102,241,0.12)]">
     <CardHeader className="pb-3">
       <CardTitle className="text-base font-semibold text-slate-50">What to focus on now</CardTitle>
       <div className="text-sm text-white/70">
@@ -4873,7 +4873,7 @@ return `${moon?.sign ?? "—"}${moonNak ? ` (${moonNak})` : ""}`;
           </div>
 
           {report.planets?.length ? (
-            <Card className="rounded-2xl border border-indigo-400/15 bg-indigo-950/40 backdrop-blur-md shadow-xl shadow-[0_0_30px_rgba(99,102,241,0.10)]">
+            <Card className="rounded-2xl border border-indigo-400/15 bg-indigo-950/30 backdrop-blur-md shadow-xl shadow-[0_0_60px_rgba(99,102,241,0.12)]">
               <CardHeader>
                 <CardTitle className="text-xl font-semibold flex items-center justify-between">
                   Planet placements
@@ -4951,7 +4951,7 @@ return `${moon?.sign ?? "—"}${moonNak ? ` (${moonNak})` : ""}`;
             A deeper, more technical interpretation. If you prefer simple guidance, you can skip this.
           </div>
 
-          <Card className="rounded-2xl border border-indigo-400/15 bg-indigo-950/40 backdrop-blur-md shadow-xl shadow-[0_0_30px_rgba(99,102,241,0.10)]">
+          <Card className="rounded-2xl border border-indigo-400/15 bg-indigo-950/30 backdrop-blur-md shadow-xl shadow-[0_0_60px_rgba(99,102,241,0.12)]">
 
 
             <CardHeader>
@@ -5031,7 +5031,7 @@ return `${moon?.sign ?? "—"}${moonNak ? ` (${moonNak})` : ""}`;
             {cards.map((card, idx) => (
               <Card
                 key={idx}
-                className="rounded-2xl border border-white/15 bg-indigo-950/45 p-3"
+                className="rounded-2xl border border-white/15 bg-indigo-950/35 p-3"
 
               >
                 <CardHeader className="pb-2">
@@ -5091,7 +5091,7 @@ const TabTimeline: React.FC<TabTimelineProps> = memo(
       >
         {/* 1) Current dasha progress (simple, always visible) */}
         {ap && (
-          <Card className="rounded-2xl border border-indigo-400/15 bg-indigo-950/40 backdrop-blur-md shadow-xl shadow-[0_0_30px_rgba(99,102,241,0.10)]">
+          <Card className="rounded-2xl border border-indigo-400/15 bg-indigo-950/30 backdrop-blur-md shadow-xl shadow-[0_0_60px_rgba(99,102,241,0.12)]">
             <CardHeader className="pb-2">
               <CardTitle className="text-lg font-semibold text-slate-100">
                 Current Dasha Progress
@@ -5137,7 +5137,7 @@ const TabTimeline: React.FC<TabTimelineProps> = memo(
           {/* A) Year-ahead insight */}
           <AccordionItem
             value="year-ahead"
-            className={"rounded-2xl border " + divider + " bg-indigo-950/40"}
+            className={"rounded-2xl border " + divider + " bg-indigo-950/30"}
           >
             <AccordionTrigger className={sectionTrigger}>
               Dasha × Transits — Year Ahead Insight
@@ -5202,7 +5202,7 @@ const TabTimeline: React.FC<TabTimelineProps> = memo(
           {Array.isArray(report.dashaTimeline) && report.dashaTimeline.length > 0 && (
             <AccordionItem
               value="timeline"
-              className={"rounded-2xl border " + divider + " bg-indigo-950/40"}
+              className={"rounded-2xl border " + divider + " bg-indigo-950/30"}
             >
               <AccordionTrigger className={sectionTrigger}>
                 Vimshottari Mahadasha Timeline
@@ -5260,7 +5260,7 @@ const TabTimeline: React.FC<TabTimelineProps> = memo(
           {Array.isArray(report.lifeMilestones) && report.lifeMilestones.length > 0 && (
             <AccordionItem
               value="life-story"
-              className={"rounded-2xl border " + divider + " bg-indigo-950/40"}
+              className={"rounded-2xl border " + divider + " bg-indigo-950/30"}
             >
               <AccordionTrigger className={sectionTrigger}>
                 Life Story — Key Phases
@@ -5352,7 +5352,7 @@ const TabTimeline: React.FC<TabTimelineProps> = memo(
     const exp = expectedTzForPlaceName(place.name);
     if (exp && tz !== exp) {
       return (
-        <div className="mt-2 text-xs rounded-md bg-amber-500/10 text-amber-200 border border-amber-400/25 p-2">
+        <div className="mt-2 text-xs rounded-md bg-amber-50 text-amber-900 border border-amber-200 p-2">
           Time zone mismatch: this place typically uses{" "}
           <span className="font-medium">{exp}</span>, but the field says{" "}
           <span className="font-mono">{tz}</span>. Panchang (tithi/yoga/karana)
