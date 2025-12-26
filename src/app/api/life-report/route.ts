@@ -21,15 +21,15 @@ export const revalidate = 0;
 function fixWeirdEncoding(s: string) {
   return String(s)
     .replace(/\u00a0/g, " ")
-    .replace(/â€™/g, "’")
-    .replace(/â€œ|â€/g, '"')
-    .replace(/â€”/g, "—")
-    .replace(/â€“/g, "–")
-    .replace(/â€˜/g, "‘")
-    .replace(/â€¢/g, "•")
-    .replace(/â€¦/g, "…")
-    .replace(/âˆ’/g, "-")
-    .replace(/â€\s?/g, "");
+    .replace(/‚¬„¢/g, "€™")
+    .replace(/‚¬Å“|‚¬Â/g, '"')
+    .replace(/‚¬€/g, "€”")
+    .replace(/‚¬€œ/g, "€“")
+    .replace(/‚¬Ëœ/g, "€˜")
+    .replace(/‚¬Â¢/g, "€¢")
+    .replace(/‚¬Â¦/g, "€¦")
+    .replace(/Ë†€™/g, "-")
+    .replace(/‚¬\s?/g, "");
 }
 
 function enrichWithActivePeriods(report: any) {
@@ -116,7 +116,7 @@ async function buildLifeGuidanceSummary(enriched: any) {
     const daily = enriched?.dailyGuide ?? {};
 
 const prompt = `
-You are Sārathi — the charioteer guiding how a person should LIVE during this phase of life.
+You are SÄrathi €” the charioteer guiding how a person should LIVE during this phase of life.
 
 You are not predicting events.
 You are identifying patterns, risks, and the right way to respond.
@@ -126,10 +126,10 @@ Write a LIFE GUIDANCE BRIEF that feels unmistakably personal.
 Return STRICT JSON ONLY in this exact structure (no extra keys, no markdown):
 
 {
-  "headline": "6–10 words, specific to THIS phase (not generic)",
-  "posture": "2–3 sentences: the inner posture + the core lesson of the current MD/AD",
-  "deepInsight": "2–3 sentences: a specific blind-spot/pattern + the cost + the correction",
-  "evidence": "1 short line quoting the most specific astro signals used (MD/AD + 1–2 chart facts)",
+  "headline": "6€“10 words, specific to THIS phase (not generic)",
+  "posture": "2€“3 sentences: the inner posture + the core lesson of the current MD/AD",
+  "deepInsight": "2€“3 sentences: a specific blind-spot/pattern + the cost + the correction",
+  "evidence": "1 short line quoting the most specific astro signals used (MD/AD + 1€“2 chart facts)",
 
   "nonNegotiables": [
     "5 bullets. Each must be measurable and realistic for the next 14 days. Not generic motivation."
@@ -140,7 +140,7 @@ Return STRICT JSON ONLY in this exact structure (no extra keys, no markdown):
   ],
 
   "next30": [
-    "3 bullets for next 30–60 days: focus areas + how to win. Must be coherent with the same timing."
+    "3 bullets for next 30€“60 days: focus areas + how to win. Must be coherent with the same timing."
   ],
 
   "do": [
@@ -156,10 +156,10 @@ Return STRICT JSON ONLY in this exact structure (no extra keys, no markdown):
       "3 bullets: simple daily remedies (mantra/charity/discipline/breathwork) with <=10 min each"
     ],
     "shortTerm": [
-      "3 bullets: for 7–14 days (fasting/light food, routine change, declutter, digital discipline etc.)"
+      "3 bullets: for 7€“14 days (fasting/light food, routine change, declutter, digital discipline etc.)"
     ],
     "longTerm": [
-      "3 bullets: for 40–90 days (habit/system changes)."
+      "3 bullets: for 40€“90 days (habit/system changes)."
     ],
     "optional": [
       "2 bullets: OPTIONAL colour / fasting day / donation type. Must not be risky."
@@ -254,19 +254,19 @@ const cacheKey = `v2:${baseKey}`;
     let report: any;
     let cacheFlag: "hit" | "miss" | "miss-dev" = "miss";
 
-    // ✅ DEV: always rebuild so fixes show immediately
+    // œ… DEV: always rebuild so fixes show immediately
     if (process.env.NODE_ENV !== "production") {
       report = await buildLifeReport({
         name: body.name ?? body.placeName,
         birthDateISO: body.birthDateISO,
         birthTime: body.birthTime,
         birthTz: body.birthTz,
-        lat, // ✅ use coerced values
-        lon, // ✅ use coerced values
+        lat, // œ… use coerced values
+        lon, // œ… use coerced values
       });
       cacheFlag = "miss-dev";
     } else {
-      // ✅ PROD: use cache
+      // œ… PROD: use cache
       const cached = await cacheGet<any>(cacheKey);
       if (cached) {
         report = cached;
@@ -277,8 +277,8 @@ const cacheKey = `v2:${baseKey}`;
           birthDateISO: body.birthDateISO,
           birthTime: body.birthTime,
           birthTz: body.birthTz,
-          lat, // ✅ use coerced values
-          lon, // ✅ use coerced values
+          lat, // œ… use coerced values
+          lon, // œ… use coerced values
         });
         await cacheSet(cacheKey, report, 60 * 60); // 1 hour
         cacheFlag = "miss";
@@ -294,13 +294,13 @@ const cacheKey = `v2:${baseKey}`;
     // ---------- Build CoreSignals for Daily Guide ----------
     const core: CoreSignals = {
       birth: {
-        dateISO: body.birthDateISO, // ✅ keep birth date as birth date
+        dateISO: body.birthDateISO, // œ… keep birth date as birth date
         time: body.birthTime,
         tz: body.birthTz,
         lat,
         lon,
       },
-      lagnaSign, // ✅ put at top-level (more consistent with rest of engine)
+      lagnaSign, // œ… put at top-level (more consistent with rest of engine)
       dashaStack: [],
       transits: [],
       moonToday: {

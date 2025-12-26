@@ -42,7 +42,7 @@ import { saveBirthProfile } from "@/lib/birth-profile";
 const AYANAMSA_LAHIRI_APPROX = 23.85;
 
 
-/* ---------------- Locking city autocomplete (simplified â€“ always typeable) ---------------- */
+/* ---------------- Locking city autocomplete (simplified – always typeable) ---------------- */
 
 
 const cityCache = new Map<string, Array<{ name: string; lat: number; lon: number }>>();
@@ -52,7 +52,7 @@ type PlaceLite = { name: string; lat: number; lon: number; tz?: string };
 function LockingCityAutocomplete({
   value,
   onSelect,
-  placeholder = "Start typing a cityâ€¦",
+  placeholder = "Start typing a city…",
 }: {
   value: { name: string; lat: number; lon: number } | null;
   onSelect: (p: { name: string; lat: number; lon: number } | null) => void;
@@ -196,13 +196,13 @@ function LockingCityAutocomplete({
       {q && (
         <button
           type="button"
-          className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-slate-200/80"
+          className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-white/70"
           onMouseDown={(e) => e.preventDefault()}
           onClick={clearAll}
           aria-label="Clear"
           title="Clear"
         >
-          Ã—
+          ×
         </button>
       )}
 
@@ -212,10 +212,10 @@ function LockingCityAutocomplete({
           className="absolute z-20 mt-1 w-full rounded-md border bg-popover text-popover-foreground shadow"
         >
           {loading && (
-            <div className="px-3 py-2 text-sm text-slate-200/80">Searchingâ€¦</div>
+            <div className="px-3 py-2 text-sm text-white/70">Searching…</div>
           )}
           {!loading && !items.length && (
-            <div className="px-3 py-2 text-sm text-slate-200/80">No results</div>
+            <div className="px-3 py-2 text-sm text-white/70">No results</div>
           )}
           {!loading &&
             items.map((it, i) => (
@@ -227,7 +227,7 @@ function LockingCityAutocomplete({
                 onClick={() => commit(it)}
               >
                 {it.name}
-                <span className="ml-2 text-xs text-slate-200/80">
+                <span className="ml-2 text-xs text-white/70">
                   {it.lat.toFixed(2)}, {it.lon.toFixed(2)}
                 </span>
               </button>
@@ -256,7 +256,7 @@ type PanchangInfo = {
 
   meta?: Record<string, any>;
 
-  // ðŸ•’ Timings
+  // 🕒 Timings
   sunrise?: string | null;
   sunriseISO?: string | null;
   sunset?: string | null;
@@ -266,7 +266,7 @@ type PanchangInfo = {
   moonset?: string | null;
   moonsetISO?: string | null;
 
-  // ðŸ•‘ Kaal windows (weâ€™ll still show â€œâ€” â€“ â€”â€ until backend sends structured ranges)
+  // 🕑 Kaal windows (we’ll still show “— – —” until backend sends structured ranges)
   rahuKaal?: any;
   gulikaKaal?: any;
   abhijit?: any;
@@ -433,7 +433,7 @@ function signIndexFromName(s?: string | null) {
   return i;
 }
 
-/** Light, date-aware Lahiri ayanÄá¹Å›a (deg). Base ~23.856Â° at 2000 CE, +50.29â€³/yr. */
+/** Light, date-aware Lahiri ayanāṁśa (deg). Base ~23.856° at 2000 CE, +50.29″/yr. */
 function lahiriAyanamsaDegrees(date: Date) {
   const year = date.getUTCFullYear();
   const base = 23.856; // around J2000
@@ -441,7 +441,7 @@ function lahiriAyanamsaDegrees(date: Date) {
   return base + (year - 2000) * perYear;
 }
 
-/** Convert tropical ecliptic longitude â†’ sidereal (Lahiri). */
+/** Convert tropical ecliptic longitude → sidereal (Lahiri). */
 function toSidereal(tropicalDeg: number, at: Date) {
   const ay = lahiriAyanamsaDegrees(at);
   return mod360(tropicalDeg - ay);
@@ -522,7 +522,7 @@ function toNum(x: any): number | undefined {
   return Number.isFinite(n) ? (n as number) : undefined;
 }
 
-// --- Yoga / Karana from sidereal âŠ™ & â˜¾ ---
+// --- Yoga / Karana from sidereal ⊙ & ☾ ---
 
 const KARANA_MOVABLE = [
   "Bava",
@@ -539,7 +539,7 @@ function norm360(x: number) {
   return ((x % 360) + 360) % 360;
 }
 
-/** Yoga = floor( (Sun + Moon) / 13Â°20' ) over 27 parts (sidereal) */
+/** Yoga = floor( (Sun + Moon) / 13°20' ) over 27 parts (sidereal) */
 function computeYogaName(
   sunSidDeg?: number,
   moonSidDeg?: number
@@ -550,7 +550,7 @@ function computeYogaName(
   return YOGAS_27[idx];
 }
 
-/** Karana: K = floor( (Moon - Sun) / 6Â° ) over 60 parts; mapping per canonical rules */
+/** Karana: K = floor( (Moon - Sun) / 6° ) over 60 parts; mapping per canonical rules */
 function computeKaranaName(
   sunSidDeg?: number,
   moonSidDeg?: number
@@ -560,7 +560,7 @@ function computeKaranaName(
   const K = Math.floor(D / 6); // 0..59
 
   // Fixed (sthira) karanas at specific K values:
-  // 57 â†’ Shakuni, 58 â†’ Chatushpada, 59 â†’ Naga, 0 â†’ Kimstughna
+  // 57 → Shakuni, 58 → Chatushpada, 59 → Naga, 0 → Kimstughna
   if (K === 57) return "Shakuni";
   if (K === 58) return "Chatushpada";
   if (K === 59) return "Naga";
@@ -900,7 +900,7 @@ function parsePersonality(raw: unknown): { bullets: string[]; closing: string } 
     // ignore
   }
 
-  // plain text fallback â†’ split into lines if it looks list-y
+  // plain text fallback → split into lines if it looks list-y
   const lines = str
     .split("\n")
     .map((x) => x.trim())
@@ -953,12 +953,12 @@ function fmtRangeLabel(start: Date, end: Date): string {
     }).format(start);
     const d1 = start.getUTCDate();
     const d2 = end.getUTCDate();
-    // e.g. "Nov 20â€“26"
-    return `${month} ${d1}â€“${d2}`;
+    // e.g. "Nov 20–26"
+    return `${month} ${d1}–${d2}`;
   }
 
-  // Different months or years, e.g. "Nov 30 â€“ Dec 6"
-  return `${fmt.format(start)} â€“ ${fmt.format(end)}`;
+  // Different months or years, e.g. "Nov 30 – Dec 6"
+  return `${fmt.format(start)} – ${fmt.format(end)}`;
 }
 
 type WeeklyInsight = { label: string; text: string };
@@ -1055,7 +1055,7 @@ function buildWeeklyFromTransits(
       const strongest = active[0];
       const planet = strongest.planet;
       const target = strongest.target || "a key natal point";
-      extra = ` A noticeable influence from ${planet} ${target} is active in the background â€” stay conscious, go slow and avoid big reactions.`;
+      extra = ` A noticeable influence from ${planet} ${target} is active in the background — stay conscious, go slow and avoid big reactions.`;
     }
 
     out.push({
@@ -1249,7 +1249,7 @@ function houseFocusFromMoon(h?: number): string {
     case 1:
       return "your own mood, body, confidence and how you show up";
     default:
-      return "your overall mood and the dayâ€™s emotional flow";
+      return "your overall mood and the day’s emotional flow";
   }
 }
 function shortCategoryLabel(
@@ -1317,7 +1317,7 @@ function buildDailyFromMoonAndTransits(
       (m as any)?.moonNakshatra ??
       "this nakshatra";
 
-    // ðŸ”¹ This was missing â€“ define relHouse safely from any of the fields
+    // 🔹 This was missing – define relHouse safely from any of the fields
     const relHouse =
       typeof (m as any)?.relativeHouseFromMoon === "number"
         ? (m as any).relativeHouseFromMoon
@@ -1620,12 +1620,12 @@ const guessSiderealDegFrom = (pl: PlanetRow): number | undefined => {
 
   const signIdx = signIndexFromName(pl?.sign);
 
-  // Case: raw is 0â€“30 = within sign, use sign index to build 0â€“360
+  // Case: raw is 0–30 = within sign, use sign index to build 0–360
   if (raw >= 0 && raw < 30 && signIdx >= 0) {
     return wrap360(signIdx * 30 + raw);
   }
 
-  // Case: raw looks already 0â€“360 sidereal and matches sign
+  // Case: raw looks already 0–360 sidereal and matches sign
   if (signIdx >= 0 && signIndexFromDeg(raw) === signIdx) {
     return wrap360(raw);
   }
@@ -1636,7 +1636,7 @@ const guessSiderealDegFrom = (pl: PlanetRow): number | undefined => {
     return sidGuess;
   }
 
-  // If we can't be clever, still return the guess â€” better than nothing
+  // If we can't be clever, still return the guess — better than nothing
   return sidGuess;
 };
 
@@ -1677,7 +1677,7 @@ const OWN: Record<string, string[]> = {
 };
 
 function dignity(planet: string, sign?: string) {
-  if (!sign) return { tag: "â€”", weight: 0 };
+  if (!sign) return { tag: "—", weight: 0 };
   if (EXALT[planet] === sign) return { tag: "Exalted", weight: +2 };
   if ((OWN[planet] || []).includes(sign)) return { tag: "Own sign", weight: +1 };
   if (DEBIL[planet] === sign) return { tag: "Debilitated", weight: -2 };
@@ -1795,7 +1795,7 @@ function nakTheme(name?: string | null) {
   return map[name] ?? null;
 }
 
-/* ---- zodiac helpers for House â†’ Sign legend ---- */
+/* ---- zodiac helpers for House → Sign legend ---- */
 
 function wrapIndex(i: number) {
   return ((i % 12) + 12) % 12;
@@ -1926,8 +1926,8 @@ function PlanetWheelSVG({
           return (
             <g key={`${h}-${p.name}-${idx}`}>
               <title>{`${p.name}${
-                p.sign ? ` â€¢ ${p.sign}` : ""
-              }${p.house ? ` â€¢ House ${p.house}` : ""}`}</title>
+                p.sign ? ` • ${p.sign}` : ""
+              }${p.house ? ` • House ${p.house}` : ""}`}</title>
               <circle cx={x} cy={y} r={8} fill="currentColor" fillOpacity="0.1" />
               <circle
                 cx={x}
@@ -1995,8 +1995,8 @@ function normalizePlanets(anyList: any[]): PlanetRow[] {
         toNum(p?.deg);
 
       const row: PlanetRow = {
-        name: name || "â€”",
-        sign: sign || "â€”",
+        name: name || "—",
+        sign: sign || "—",
         house: typeof house === "number" ? house : undefined,
         nakshatra,
         note: p?.note ?? p?.dignity ?? p?.status ?? p?.strength,
@@ -2071,19 +2071,19 @@ function buildPersonality(
   if (asc) {
     const d = describeTarget("Ascendant", ascNakshatra ?? asc.nakshatra);
     out.push({
-      headline: `Ascendant â€¢ ${asc.sign}${
-        asc.house ? ` â€¢ House ${asc.house}` : ""
-      }${ascNakshatra ? ` â€¢ ${ascNakshatra}` : ""}`,
+      headline: `Ascendant • ${asc.sign}${
+        asc.house ? ` • House ${asc.house}` : ""
+      }${ascNakshatra ? ` • ${ascNakshatra}` : ""}`,
       bullets: [
         d.theme
           ? `Core vibe: ${d.theme}.`
           : `Core vibe shaped by ${asc.nakshatra || "asc. nakshatra"}.`,
         d.friendly.length
           ? `Supported by: ${d.friendly.join(", ")}.`
-          : "Supported by: â€”",
+          : "Supported by: —",
         d.enemy.length
           ? `Pressures from: ${d.enemy.join(", ")}.`
-          : "Pressures from: â€”",
+          : "Pressures from: —",
       ],
     });
   }
@@ -2091,9 +2091,9 @@ function buildPersonality(
   if (moon) {
     const d = describeTarget("Moon", moonNakshatra ?? moon.nakshatra);
     out.push({
-      headline: `Moon â€¢ ${moon.sign}${
-        moon.house ? ` â€¢ House ${moon.house}` : ""
-      }${moonNakshatra ? ` â€¢ ${moonNakshatra}` : ""}`,
+      headline: `Moon • ${moon.sign}${
+        moon.house ? ` • House ${moon.house}` : ""
+      }${moonNakshatra ? ` • ${moonNakshatra}` : ""}`,
       bullets: [
         d.theme
           ? `Emotional style: ${d.theme}.`
@@ -2114,9 +2114,9 @@ function buildPersonality(
     if (!p) continue;
     const d = describeTarget(k, p.nakshatra);
     out.push({
-      headline: `${k} â€¢ ${p.sign}${
-        p.house ? ` â€¢ House ${p.house}` : ""
-      }${p.nakshatra ? ` â€¢ ${p.nakshatra}` : ""}`,
+      headline: `${k} • ${p.sign}${
+        p.house ? ` • House ${p.house}` : ""
+      }${p.nakshatra ? ` • ${p.nakshatra}` : ""}`,
       bullets: [
         d.theme
           ? `Expression: ${d.theme}.`
@@ -2182,7 +2182,7 @@ function toneColor(flag?: "caution" | "opportunity" | "mixed") {
     case "caution":
       return "bg-red-500/10 text-red-100 border border-red-400/25";
     default:
-      return "bg-white/5 text-slate-200/80 border border-white/15";
+      return "bg-white/5 text-white/70 border border-white/15";
   }
 }
 
@@ -2210,13 +2210,13 @@ function DashaBar({
     <div className="rounded-xl border border-muted-foreground/20 p-3 bg-muted/40">
       <div className="flex items-center justify-between text-xs mb-1">
         <div className="font-semibold">{label}</div>
-        <div className="text-slate-200/80">
-          {new Date(start).toLocaleDateString()} â†’{" "}
+        <div className="text-white/70">
+          {new Date(start).toLocaleDateString()} →{" "}
           {new Date(end).toLocaleDateString()}
         </div>
       </div>
       {subtitle && (
-        <div className="text-xs text-slate-200/80 mb-2">{subtitle}</div>
+        <div className="text-xs text-white/70 mb-2">{subtitle}</div>
       )}
       <div className="h-2 w-full rounded bg-muted overflow-hidden">
         <div
@@ -2224,7 +2224,7 @@ function DashaBar({
           style={{ width: `${pct.toFixed(1)}%` }}
         />
       </div>
-      <div className="text-[11px] text-slate-200/80 mt-1">
+      <div className="text-[11px] text-white/70 mt-1">
         {pct.toFixed(1)}% complete
       </div>
     </div>
@@ -2294,7 +2294,7 @@ function renderAiTextBlocks(raw: string) {
       continue;
     }
 
-    const b = line.match(/^[-â€¢]\s+(.*)$/);
+    const b = line.match(/^[-•]\s+(.*)$/);
     if (b) {
       flushPara();
       bullets.push(b[1].trim());
@@ -2385,7 +2385,7 @@ const TabTransits: React.FC<TabTransitsProps> = memo(
 
           <CardContent className="text-sm">
             {dailyLoadingProp && (
-              <div className="text-xs text-slate-300">Loading next few daysâ€¦</div>
+              <div className="text-xs text-slate-300">Loading next few days…</div>
             )}
 
             {!loading && !error && Array.isArray(dailyHighlights) && dailyHighlights.length > 0 && (
@@ -2414,12 +2414,12 @@ const TabTransits: React.FC<TabTransitsProps> = memo(
             )}
             {/* 2) Next 12 months */}
 <div className="space-y-2">
-  <p className="text-xs font-semibold uppercase tracking-wide text-slate-300/70">
+  <p className="text-xs font-semibold uppercase tracking-wide text-white/60">
     Next 12 months
   </p>
 
   {loading && (
-    <p className="text-xs text-slate-300/70">Building your 12-month overviewâ€¦</p>
+    <p className="text-xs text-white/60">Building your 12-month overview…</p>
   )}
 
   {!loading && !error && (transitSummary || "").trim() ? (
@@ -2429,7 +2429,7 @@ const TabTransits: React.FC<TabTransitsProps> = memo(
   ) : null}
 
   {!loading && !error && !(transitSummary || "").trim() && (
-    <p className="text-xs text-slate-300/70">
+    <p className="text-xs text-white/60">
       12-month overview will appear here once transits are available.
     </p>
   )}
@@ -2452,7 +2452,7 @@ const TabMonthly: React.FC<TabMonthlyProps> = memo(
     const overview = hasData ? monthlyInsights[0] : null;
     const rest = hasData ? monthlyInsights.slice(1) : [];
 
-    // Try to split overview into â€œoverview textâ€ vs â€œraw transit listâ€
+    // Try to split overview into “overview text” vs “raw transit list”
     const overviewText = overview?.text ?? "";
     let mainNarrative = overviewText;
     let transitText = "";
@@ -2477,8 +2477,8 @@ const TabMonthly: React.FC<TabMonthlyProps> = memo(
       </CardHeader>
       <CardContent className="text-sm space-y-3 text-slate-100">
         {loading && (
-          <div className="text-slate-200/80">
-            Building your 12-month overviewâ€¦
+          <div className="text-white/70">
+            Building your 12-month overview…
           </div>
         )}
 
@@ -2487,7 +2487,7 @@ const TabMonthly: React.FC<TabMonthlyProps> = memo(
         )}
 
         {!loading && !error && !hasData && (
-          <div className="text-slate-200/80">
+          <div className="text-white/70">
             12-month overview will appear here once transits are available.
           </div>
         )}
@@ -2502,7 +2502,7 @@ const TabMonthly: React.FC<TabMonthlyProps> = memo(
 
             {transitText && (
               <details className="mt-3">
-                <summary className="cursor-pointer text-xs text-slate-200/80">
+                <summary className="cursor-pointer text-xs text-white/70">
                   Show technical transit details
                 </summary>
                 <pre className="mt-2 text-[11px] whitespace-pre-wrap leading-relaxed">
@@ -2558,7 +2558,7 @@ const TabWeekly: React.FC<TabWeeklyProps> = memo(
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
             {loading && (
-              <div className="text-slate-200/80">
+              <div className="text-white/70">
                 Building your weekly guidance...
               </div>
             )}
@@ -2568,7 +2568,7 @@ const TabWeekly: React.FC<TabWeeklyProps> = memo(
             )}
 
             {!loading && !error && weeklyInsights.length === 0 && (
-              <div className="text-slate-200/80">
+              <div className="text-white/70">
                 Weekly guidance will appear here once transits are available.
               </div>
             )}
@@ -2603,7 +2603,7 @@ const TabWeekly: React.FC<TabWeeklyProps> = memo(
 type TodaysFocusProfile = {
   area: string;     // e.g. "Career & long-term direction"
   headline: string; // short title
-  summary: string;  // 1â€“2 sentence explanation
+  summary: string;  // 1–2 sentence explanation
   do: string;       // one clear "Do"
   avoid: string;    // one clear "Avoid"
 };
@@ -2656,13 +2656,13 @@ function buildTodaysFocusV2(opts: {
 
   const finalCat: Cat = dashaFlavour ?? cat;
 
-  // 3) Map category â†’ text
+  // 3) Map category → text
   if (finalCat === "career") {
     return {
       area: "Career & long-term direction",
       headline: "Day favours focused, practical steps for your work path.",
       summary:
-        "Good day to organise, plan or execute 1â€“2 meaningful actions that move your career or responsibilities forward.",
+        "Good day to organise, plan or execute 1–2 meaningful actions that move your career or responsibilities forward.",
       do: "Choose one clear work-related action (planning, mail, call, or execution) and complete it fully.",
       avoid:
         "Starting ten different tasks at once or making dramatic career decisions out of impatience.",
@@ -2701,7 +2701,7 @@ function buildTodaysFocusV2(opts: {
         "Use this energy to observe emotions, release old baggage and make space for a cleaner inner story.",
       do: "Spend a little time journaling, meditating or consciously closing one lingering emotional loop.",
       avoid:
-        "Digging too deep into old pain without breaks or taking irreversible decisions purely from todayâ€™s mood.",
+        "Digging too deep into old pain without breaks or taking irreversible decisions purely from today’s mood.",
     };
   }
 
@@ -2713,7 +2713,7 @@ function buildTodaysFocusV2(opts: {
       "Good for keeping things steady: a bit of work, a bit of connection, and some time for your own body and mind.",
     do: "Write 3 small tasks (work, relationships, self) and complete just one from each bucket if possible.",
     avoid:
-      "Letting the day scatter into endless scrolling and reacting to othersâ€™ priorities only.",
+      "Letting the day scatter into endless scrolling and reacting to others’ priorities only.",
   };
 }
 type MoneyTip = {
@@ -2722,7 +2722,7 @@ type MoneyTip = {
   summary?: string;
   tilt?: string;            // e.g. "caution", "opportunity", etc.
   drivers?: string[];       // e.g. ["Saturn transit", "Rahu AD"]
-  windowLabel?: string;     // e.g. "Janâ€“Mar 2026" or "Next 30 days"
+  windowLabel?: string;     // e.g. "Jan–Mar 2026" or "Next 30 days"
   do?: string[];            // action recommendations
   avoid?: string[];         // what to avoid
 };
@@ -2816,7 +2816,7 @@ const TabDailyGuide: React.FC<{
     rAny.panchang?.moonNakshatraName ||
     null;
 
-  // Times â€“ we only keep sunrise / sunset (you asked to drop moonrise/moonset globally anyway)
+  // Times – we only keep sunrise / sunset (you asked to drop moonrise/moonset globally anyway)
   const sunriseRaw =
     pt?.sunriseISO ||
     pt?.sunrise ||
@@ -2836,7 +2836,7 @@ const TabDailyGuide: React.FC<{
   const formatTime = (raw: any): string | null => {
     if (!raw) return null;
     if (typeof raw === "string") {
-      // ISO: 2025-12-12T07:03:00+05:30 â†’ 07:03
+      // ISO: 2025-12-12T07:03:00+05:30 → 07:03
       if (raw.includes("T") && raw.length >= 16) {
         return raw.slice(11, 16);
       }
@@ -2901,14 +2901,14 @@ const TabDailyGuide: React.FC<{
         </div>
       )}
 
-      {/* Top row: SÄrathi Snapshot + Today's Focus + Panchang mini card */}
+      {/* Top row: Sārathi Snapshot + Today's Focus + Panchang mini card */}
       <div className="grid gap-4 md:grid-cols-3">
-        {/* SÄrathi Snapshot */}
+        {/* Sārathi Snapshot */}
         <div className="md:col-span-2 rounded-2xl border border-white/15 bg-indigo-950/40 p-4 backdrop-blur-md shadow-xl shadow-[0_0_30px_rgba(99,102,241,0.10)]">
           <div className="flex items-center justify-between gap-2">
             <div>
-              <div className="text-xs font-semibold uppercase tracking-wide text-slate-300/70">
-                SÄrathi Snapshot Â· {todayLabel}
+              <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+                Sārathi Snapshot · {todayLabel}
               </div>
               <h3 className="mt-1 text-lg font-semibold">
                 {emotional?.headline ||
@@ -2917,78 +2917,78 @@ const TabDailyGuide: React.FC<{
             </div>
           </div>
 
-          <p className="mt-3 text-sm text-slate-200/80 leading-relaxed">
+          <p className="mt-3 text-sm text-white/70 leading-relaxed">
             {emotional?.summary ||
-              "You donâ€™t have to solve everything today. Focus on doing a few things slowly and well, instead of chasing ten things at once."}
+              "You don’t have to solve everything today. Focus on doing a few things slowly and well, instead of chasing ten things at once."}
           </p>
 
-          {/* â€œYour next stepâ€ CTA */}
+          {/* “Your next step” CTA */}
           <div className="mt-4 rounded-xl bg-white/5 px-3 py-3 text-sm">
-            <div className="text-xs font-semibold uppercase tracking-wide text-slate-300/70">
+            <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
               Your next step today
             </div>
             <p className="mt-1 text-slate-100">
               {emotional?.nextStep ||
-                "Choose one small action you can complete in the next 30â€“60 minutes. Do it with full attention, then allow yourself a short conscious break."}
+                "Choose one small action you can complete in the next 30–60 minutes. Do it with full attention, then allow yourself a short conscious break."}
             </p>
           </div>
         </div>
 
-        {/* Todayâ€™s Focus (MD/AD) */}
+        {/* Today’s Focus (MD/AD) */}
         <div className="rounded-2xl border border-indigo-200 bg-indigo-50/70 p-4 text-sm text-slate-100">
           <div className="text-xs font-semibold uppercase tracking-wide text-indigo-600">
-            Todayâ€™s Focus Â· Dasha
+            Today’s Focus · Dasha
           </div>
           <div className="mt-1 text-sm font-semibold">{focusArea}</div>
-          <p className="mt-1 text-xs text-slate-200/80">{focusHeadline}</p>
-          <p className="mt-2 text-xs text-slate-200/80">{focusSummary}</p>
+          <p className="mt-1 text-xs text-white/70">{focusHeadline}</p>
+          <p className="mt-2 text-xs text-white/70">{focusSummary}</p>
 
           <div className="mt-3 grid gap-2 text-xs">
             <div>
               <div className="font-semibold text-slate-100">Do</div>
-              <p className="text-slate-200/80">{focusDo}</p>
+              <p className="text-white/70">{focusDo}</p>
             </div>
             <div>
               <div className="font-semibold text-slate-100">Avoid</div>
-              <p className="text-slate-200/80">{focusAvoid}</p>
+              <p className="text-white/70">{focusAvoid}</p>
             </div>
           </div>
         </div>
       </div>
 
       {/* Panchang mini bar */}
-      <div className="grid gap-3 rounded-2xl border border-white/15 bg-indigo-950/40 backdrop-blur-md p-4 text-xs text-slate-200/80 md:grid-cols-4">
+      <div className="grid gap-3 rounded-2xl border border-white/15 bg-indigo-950/40 backdrop-blur-md p-4 text-xs text-white/70 md:grid-cols-4">
         <div>
           <div className="font-semibold text-slate-100">Tithi</div>
-          <div>{tithiName || "â€”"}</div>
+          <div>{tithiName || "—"}</div>
         </div>
         <div>
           <div className="font-semibold text-slate-100">Nakshatra</div>
-          <div>{nakshatraName || "â€”"}</div>
+          <div>{nakshatraName || "—"}</div>
         </div>
         <div>
           <div className="font-semibold text-slate-100">Sunrise</div>
-          <div>{sunrise || "â€”"}</div>
+          <div>{sunrise || "—"}</div>
         </div>
         <div>
           <div className="font-semibold text-slate-100">Sunset</div>
-          <div>{sunset || "â€”"}</div>
+          <div>{sunset || "—"}</div>
         </div>
       </div>
 
-      {/* Middle row: Food Â· Fasting Â· Money */}
+      {/* Middle row: Food · Fasting · Money */}
       <div className="grid gap-4 md:grid-cols-3">
         {/* Food card */}
         <div className="rounded-2xl border border-emerald-400/25 bg-emerald-500/10 p-4 text-sm text-slate-100">
           <div className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
-            Food Â· Body
+            Food · Body
           </div>
           <h3 className="mt-1 text-sm font-semibold">
             {food?.headline || "Keep food light and sattvic where possible."}
           </h3>
           <p className="mt-1 text-xs text-slate-100">
             {food?.summary ||
-              "Favour simple, clean meals that donâ€™t weigh you down. Avoid heavy or very late-night eating if you can."}
+              "Favour simple, clean meals that don’t weigh you down. Avoid heavy or very late-night eating if you can."}
           </p>
           {Array.isArray(food?.suggestions) && food.suggestions.length > 0 && (
             <ul className="mt-2 list-disc pl-4 text-xs">
@@ -3002,18 +3002,18 @@ const TabDailyGuide: React.FC<{
         {/* Fasting card */}
         <div className="rounded-2xl border border-amber-400/25 bg-amber-500/10 p-4 text-sm text-slate-100">
           <div className="text-xs font-semibold uppercase tracking-wide text-amber-700">
-            Fasting Â· Reset
+            Fasting · Reset
           </div>
           <h3 className="mt-1 text-sm font-semibold">
             {fasting?.headline || "Use simple discipline over extreme fasting."}
           </h3>
           <p className="mt-1 text-xs text-slate-100">
             {fasting?.summary ||
-              "If youâ€™re fasting, keep it gentle and hydrated. If not, you can still â€œfastâ€ from noise, screens, or negativity."}
+              "If you’re fasting, keep it gentle and hydrated. If not, you can still “fast” from noise, screens, or negativity."}
           </p>
           {fasting?.isGoodDay != null && (
             <div className="mt-2 inline-flex rounded-full bg-white/10 px-2 py-1 text-[11px] font-medium text-amber-200">
-              {fasting.isGoodDay ? "Supportive day for fasting" : "Not a strong day for full fasting â€” choose lightness instead."}
+              {fasting.isGoodDay ? "Supportive day for fasting" : "Not a strong day for full fasting — choose lightness instead."}
             </div>
           )}
         </div>
@@ -3023,7 +3023,7 @@ const TabDailyGuide: React.FC<{
           className={`rounded-2xl border p-4 text-sm ${moneyToneClass}`}
         >
           <div className="text-xs font-semibold uppercase tracking-wide">
-            Money Â· Day Tilt
+            Money · Day Tilt
           </div>
           <h3 className="mt-1 text-sm font-semibold">
             {money?.headline ||
@@ -3031,11 +3031,11 @@ const TabDailyGuide: React.FC<{
                 ? "Day leans mildly favourable for money decisions."
                 : moneyTone === "caution"
                 ? "Go slow with big money moves today."
-                : "Neutral day â€” keep it steady.")}
+                : "Neutral day — keep it steady.")}
           </h3>
           <p className="mt-1 text-xs">
             {money?.summary ||
-              "Treat money decisions as part of the long game. Avoid panic moves just because of todayâ€™s mood."}
+              "Treat money decisions as part of the long game. Avoid panic moves just because of today’s mood."}
           </p>
 
           {Array.isArray(money?.do) && money.do.length > 0 && (
@@ -3323,7 +3323,7 @@ const todaysFocus = useMemo(
   }
   
   const trimmedName = (name || "").trim() || "Default";
-  const profileId = `${trimmedName} â€” ${dateISO}`;
+  const profileId = `${trimmedName} — ${dateISO}`;
 
   // Shape that Life Report / SavedProfile uses
   const savedProfile: SavedProfile = {
@@ -3407,7 +3407,7 @@ const todaysFocus = useMemo(
           <div className="font-medium">
             {pl.name}
             {pl.sign ? (
-              <span className="ml-2 text-xs text-slate-200/80">
+              <span className="ml-2 text-xs text-white/70">
                 in {pl.sign}
               </span>
             ) : null}
@@ -3426,7 +3426,7 @@ const todaysFocus = useMemo(
                 : d.weight === 1
                 ? "bg-teal-100 text-teal-800"
                 : d.weight === 0
-                ? "bg-slate-100 text-slate-200/80"
+                ? "bg-slate-100 text-white/70"
                 : "bg-red-100 text-red-800")
             }
           >
@@ -3434,8 +3434,8 @@ const todaysFocus = useMemo(
           </div>
         </div>
 
-        <div className="mt-1 text-[11px] text-slate-200/80">
-          {retro ? "Retrograde â€¢ " : ""}
+        <div className="mt-1 text-[11px] text-white/70">
+          {retro ? "Retrograde • " : ""}
           {pl.nakshatra ? `Nakshatra: ${pl.nakshatra}` : " "}
         </div>
       </div>
@@ -3582,7 +3582,7 @@ if (!t) {
     // fall back to text below
   }
   
-  // ðŸ”´ Special case: our life-report API says swisseph / engine is unavailable
+  // 🔴 Special case: our life-report API says swisseph / engine is unavailable
   if (json?.error === "astro_engine_unavailable") {
     const msg =
       json?.message ||
@@ -3606,7 +3606,7 @@ const data = (await res.json()) as LifeReportAPI;
 console.log("[AI SUMMARY RAW FROM API]", (data as any)?.aiSummary);
 
 
-// âœ… STEP 2: call /api/ai-personality using the REAL life-report payload
+// ✅ STEP 2: call /api/ai-personality using the REAL life-report payload
 try {
     const pRes = await fetch("/api/ai-personality", {
     method: "POST",
@@ -3646,7 +3646,7 @@ try {
   setAiSummary(`(DEBUG) ai-personality crashed: ${e?.message ?? String(e)}`);
 }
 
-    // ðŸ”¹ Notifications from API â†’ state (all 3 buckets)
+    // 🔹 Notifications from API → state (all 3 buckets)
     const anyData = data as any;
     const preview = anyData.previewNotifications ?? null;
     if (preview && typeof preview === "object") {
@@ -3804,7 +3804,7 @@ setTimeout(async () => {
   try {
     if (!next || !Array.isArray(next.planets) || next.planets.length === 0) return;
 
-    // âœ… bump version to invalidate old cached generic text
+    // ✅ bump version to invalidate old cached generic text
     const cacheKey =
       `sarathi:ai-personality:v3:${next.birthDateISO}:${next.birthTime}:${next.birthTz}:${next.ascSign}:${next.moonSign}:${next.sunSign}`;
 
@@ -3855,7 +3855,7 @@ setTimeout(async () => {
     const aiJson = await aiRes.json().catch(() => ({} as any));
 
     if (aiRes.ok && aiJson?.text) {
-      // âœ… store in the exact shape your renderer expects: { text: string[], closing: string }
+      // ✅ store in the exact shape your renderer expects: { text: string[], closing: string }
       const payload = {
         text: aiJson.text,
         closing: aiJson.closing ?? "",
@@ -4032,13 +4032,13 @@ if (Array.isArray(next.dashaTimeline) && next.dashaTimeline.length > 0) {
 
         const todayISO = new Date().toISOString().slice(0, 10);
 
-        // 5) Daily highlights â€“ Moon + strongest transit, with Marsâ€“Ketu special handling
+        // 5) Daily highlights – Moon + strongest transit, with Mars–Ketu special handling
         try {
           setDailyLoading(true);
           setDailyError(null);
           setDailyHighlights([]);
 
-          // Moon + transits â†’ structured facts
+          // Moon + transits → structured facts
           const dailyFacts = buildDailyFacts(
             dailyMoon as any,
             hitList,
@@ -4062,11 +4062,11 @@ const describeNakshatraFocus = (nak: string): string => {
   const n = nak.toLowerCase();
 
   if (n.includes("ardra")) {
-    return "This Ardra Moon highlights emotional intensity, catharsis and the need to process whatâ€™s been building beneath the surface.";
+    return "This Ardra Moon highlights emotional intensity, catharsis and the need to process what’s been building beneath the surface.";
   }
 
   if (n.includes("punarvasu")) {
-    return "This Punarvasu Moon supports renewal and reset energy â€” returning to what matters and starting again with a lighter touch.";
+    return "This Punarvasu Moon supports renewal and reset energy — returning to what matters and starting again with a lighter touch.";
   }
 
   if (n.includes("pushya")) {
@@ -4163,22 +4163,22 @@ const highlights: DailyHighlightLocal[] = safeDailyFacts.map((f, idx) => {
 
     if (isMarsKetuFact(f)) {
       if (idx === 0) {
-        // Only the FIRST day gets the full Marsâ€“Ketu emphasis
+        // Only the FIRST day gets the full Mars–Ketu emphasis
         transitHook =
-          " This Marsâ€“Ketu phase is loud today; use any spikes in emotion or urgency as a reminder to slow down and choose one grounded action.";
+          " This Mars–Ketu phase is loud today; use any spikes in emotion or urgency as a reminder to slow down and choose one grounded action.";
       } else {
         // Other days: rotate a few softer background wordings
         const mkVariants = [
-          " In the background, the Marsâ€“Ketu thread keeps humming; if you feel rushed or irritable, pause and come back to small, deliberate steps.",
-          " Marsâ€“Ketu is still active in the background today; notice any urge to overreact and turn it into one small, conscious adjustment instead.",
-          " This Marsâ€“Ketu backdrop continues quietly; protect your energy by choosing one or two clear priorities rather than scattering yourself.",
+          " In the background, the Mars–Ketu thread keeps humming; if you feel rushed or irritable, pause and come back to small, deliberate steps.",
+          " Mars–Ketu is still active in the background today; notice any urge to overreact and turn it into one small, conscious adjustment instead.",
+          " This Mars–Ketu backdrop continues quietly; protect your energy by choosing one or two clear priorities rather than scattering yourself.",
         ];
         transitHook = mkVariants[idx % mkVariants.length];
       }
     } else {
-      // Generic strong-transit wording for non Marsâ€“Ketu days
+      // Generic strong-transit wording for non Mars–Ketu days
       transitHook =
-        ` A noticeable transit from ${planet} to ${target} is active â€” ` +
+        ` A noticeable transit from ${planet} to ${target} is active — ` +
         `treat it as a nudge for small, conscious adjustments rather than big, impulsive moves.`;
     }
   }
@@ -4232,7 +4232,7 @@ setDailyError(null);
           console.error("ai-transits error", err);
         }
 
-        // 2) Dasha Ã— Transits fusion
+        // 2) Dasha × Transits fusion
         try {
           const fusionRes = await fetch("/api/ai-dasha-transits", {
             method: "POST",
@@ -4484,7 +4484,7 @@ setTimelineSummary(
               Fill details and generate.
             </CardTitle>
           </CardHeader>
-          <CardContent className="text-sm text-slate-200/80">
+          <CardContent className="text-sm text-white/70">
             Tab will populate after generation.
           </CardContent>
         </Card>
@@ -4562,7 +4562,7 @@ setTimelineSummary(
               {/* Key signs (plain-English) */}
 <div className="mt-3 grid gap-3 sm:grid-cols-2">
   <div className="rounded-xl border border-border/60 bg-muted/40 px-3 py-2">
-    <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-200/80">
+    <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/70">
       Moon sign
     </div>
     <div className="mt-1 text-sm font-semibold">
@@ -4578,17 +4578,17 @@ setTimelineSummary(
   report.panchang?.moonNakshatraName ??
   "";
 
-return `${moon?.sign ?? "â€”"}${moonNak ? ` (${moonNak})` : ""}`;
+return `${moon?.sign ?? "—"}${moonNak ? ` (${moonNak})` : ""}`;
 
     })()}
 </div>
-    <div className="mt-1 text-xs text-slate-200/80">
-      Your emotional style â€” what you need to feel steady and safe.
+    <div className="mt-1 text-xs text-white/70">
+      Your emotional style — what you need to feel steady and safe.
     </div>
   </div>
 
   <div className="rounded-xl border border-border/60 bg-muted/40 px-3 py-2">
-    <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-200/80">
+    <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/70">
       Sun sign
     </div>
     <div className="mt-1 text-sm font-semibold">
@@ -4597,12 +4597,12 @@ return `${moon?.sign ?? "â€”"}${moonNak ? ` (${moonNak})` : ""}`;
       const sun = (report.planets || []).find(
         (p) => (p.name || "").toLowerCase() === "sun"
       );
-      return sun?.sign ?? "â€”";
+      return sun?.sign ?? "—";
     })()}
 </div>
 
-    <div className="mt-1 text-xs text-slate-200/80">
-      Your life direction â€” what youâ€™re here to build and become.
+    <div className="mt-1 text-xs text-white/70">
+      Your life direction — what you’re here to build and become.
     </div>
   </div>
 </div>
@@ -4612,7 +4612,7 @@ return `${moon?.sign ?? "â€”"}${moonNak ? ` (${moonNak})` : ""}`;
             <CardContent className="grid md:grid-cols-2 gap-4 text-sm">
               {/* Birth data */}
               <div className="space-y-1">
-                <div className="text-xs font-semibold uppercase text-slate-200/80 tracking-wide">
+                <div className="text-xs font-semibold uppercase text-white/70 tracking-wide">
                   Birth Data
                 </div>
                 <div>
@@ -4620,7 +4620,7 @@ return `${moon?.sign ?? "â€”"}${moonNak ? ` (${moonNak})` : ""}`;
                 </div>
                 {typeof report.birthLat === "number" &&
                   typeof report.birthLon === "number" && (
-                    <div className="text-xs text-slate-200/80">
+                    <div className="text-xs text-white/70">
                       {report.birthLat.toFixed(3)}, {report.birthLon.toFixed(3)}
                     </div>
                   )}
@@ -4644,7 +4644,7 @@ return `${moon?.sign ?? "â€”"}${moonNak ? ` (${moonNak})` : ""}`;
                 const weekday =
                   weekdayFromISODate(report.birthDateISO) ??
                   report.panchang?.weekday ??
-                  "â€”";
+                  "—";
 
                 const part = 360 / 27;
                 const yogaName =
@@ -4654,12 +4654,12 @@ return `${moon?.sign ?? "â€”"}${moonNak ? ` (${moonNak})` : ""}`;
                           (norm360(sunSid + moonSid) + 1e-8) / part
                         ) % 27
                       ]
-                    : report.panchang?.yogaName ?? "â€”";
+                    : report.panchang?.yogaName ?? "—";
 
                 const karanaName =
                   sunSid !== undefined && moonSid !== undefined
-                    ? computeKaranaName(sunSid, moonSid) ?? "â€”"
-                    : report.panchang?.karanaName ?? "â€”";
+                    ? computeKaranaName(sunSid, moonSid) ?? "—"
+                    : report.panchang?.karanaName ?? "—";
 
                 const moonNak =
   (report as any).panchangToday?.moonNakshatraName ??
@@ -4673,7 +4673,7 @@ return `${moon?.sign ?? "â€”"}${moonNak ? ` (${moonNak})` : ""}`;
 
                 return (
                   <div className="space-y-1">
-                    <div className="text-xs font-semibold uppercase text-slate-200/80 tracking-wide">
+                    <div className="text-xs font-semibold uppercase text-white/70 tracking-wide">
                       Panchang Snapshot
                     </div>
 
@@ -4683,10 +4683,10 @@ return `${moon?.sign ?? "â€”"}${moonNak ? ` (${moonNak})` : ""}`;
 
                     <div>
                       <span className="font-medium">Tithi:</span>{" "}
-                      {report.panchang?.tithiName ?? "â€”"}{" "}
+                      {report.panchang?.tithiName ?? "—"}{" "}
                       {report.panchang?.meanings?.tithi && (
-                        <span className="text-xs text-slate-200/80">
-                          â€” {report.panchang.meanings.tithi}
+                        <span className="text-xs text-white/70">
+                          — {report.panchang.meanings.tithi}
                         </span>
                       )}
                     </div>
@@ -4694,8 +4694,8 @@ return `${moon?.sign ?? "â€”"}${moonNak ? ` (${moonNak})` : ""}`;
                     <div>
                       <span className="font-medium">Yoga:</span> {yogaName}{" "}
                       {report.panchang?.meanings?.yoga && (
-                        <span className="text-xs text-slate-200/80">
-                          â€” {report.panchang.meanings.yoga}
+                        <span className="text-xs text-white/70">
+                          — {report.panchang.meanings.yoga}
                         </span>
                       )}
                     </div>
@@ -4704,8 +4704,8 @@ return `${moon?.sign ?? "â€”"}${moonNak ? ` (${moonNak})` : ""}`;
                       <span className="font-medium">Karana:</span>{" "}
                       {karanaName}{" "}
                       {report.panchang?.meanings?.karana && (
-                        <span className="text-xs text-slate-200/80">
-                          â€” {report.panchang.meanings.karana}
+                        <span className="text-xs text-white/70">
+                          — {report.panchang.meanings.karana}
                         </span>
                       )}
                     </div>
@@ -4724,9 +4724,9 @@ return `${moon?.sign ?? "â€”"}${moonNak ? ` (${moonNak})` : ""}`;
 <motion.div variants={fadeUpSmall} className="space-y-4">
   <Card className="rounded-2xl border border-indigo-400/15 bg-indigo-950/40 backdrop-blur-md shadow-xl shadow-[0_0_30px_rgba(99,102,241,0.10)]">
     <CardHeader className="pb-3">
-      <CardTitle className="text-lg font-semibold text-slate-50">Your life themes • af4e384 • v2</CardTitle>
-      <div className="text-sm text-slate-200/80">
-        A simple, practical view of what your chart emphasizes â€” no astrology knowledge needed.
+      <CardTitle className="text-lg font-semibold text-slate-50">Your life themes</CardTitle>
+      <div className="text-sm text-white/70">
+        A simple, practical view of what your chart emphasizes — no astrology knowledge needed.
       </div>
     </CardHeader>
 
@@ -4748,7 +4748,7 @@ return `${moon?.sign ?? "â€”"}${moonNak ? ` (${moonNak})` : ""}`;
         const ketu = findP("ketu");
 
         const fmt = (p: any) => {
-  if (!p) return "â€”";
+  if (!p) return "—";
   const sign = p.sign ? String(p.sign) : "";
   // Themes should be simple: no houses here
   return `${String(p.name)}${sign ? ` in ${sign}` : ""}`;
@@ -4760,7 +4760,7 @@ return `${moon?.sign ?? "â€”"}${moonNak ? ` (${moonNak})` : ""}`;
 
             <div className="text-sm font-semibold">{title}</div>
             <div className="mt-2 text-sm text-white/90">{line1}</div>
-            <div className="mt-1 text-xs text-slate-200/80">{line2}</div>
+            <div className="mt-1 text-xs text-white/70">{line2}</div>
           </div>
         );
 
@@ -4768,39 +4768,39 @@ return `${moon?.sign ?? "â€”"}${moonNak ? ` (${moonNak})` : ""}`;
           <>
             {themeCard(
               "Mind & emotions",
-              moon ? fmt(moon) : `Moon sign: ${report.moonSign ?? "â€”"}`,
+              moon ? fmt(moon) : `Moon sign: ${report.moonSign ?? "—"}`,
               "How you process feelings, handle stress, and regain balance."
             )}
 
             {themeCard(
               "Identity & direction",
-              sun ? fmt(sun) : `Sun sign: ${report.sunSign ?? "â€”"}`,
-              "What drives you â€” confidence, purpose, and long-term direction."
+              sun ? fmt(sun) : `Sun sign: ${report.sunSign ?? "—"}`,
+              "What drives you — confidence, purpose, and long-term direction."
             )}
 
             {themeCard(
               "Work & discipline",
-              sat ? fmt(sat) : "Saturn emphasis: â€”",
+              sat ? fmt(sat) : "Saturn emphasis: —",
               "How you build stability: routines, responsibility, and patience."
             )}
 
             {themeCard(
               "Relationships & values",
-              ven || mars ? `${fmt(ven)}${ven && mars ? " Â· " : ""}${fmt(mars)}` : "Venus/Mars: â€”",
+              ven || mars ? `${fmt(ven)}${ven && mars ? " · " : ""}${fmt(mars)}` : "Venus/Mars: —",
               "How you bond, love, set boundaries, and handle conflict."
             )}
 
             {themeCard(
               "Growth & learning",
-              jup ? fmt(jup) : "Jupiter emphasis: â€”",
+              jup ? fmt(jup) : "Jupiter emphasis: —",
               "Where luck grows: guidance, mentors, faith, and expansion."
             )}
 
             {(rahu || ketu) &&
               themeCard(
                 "Life lessons",
-                `${fmt(rahu)}${rahu && ketu ? " Â· " : ""}${fmt(ketu)}`,
-                "What life pushes you to master â€” growth edges and detachment points."
+                `${fmt(rahu)}${rahu && ketu ? " · " : ""}${fmt(ketu)}`,
+                "What life pushes you to master — growth edges and detachment points."
               )}
           </>
         );
@@ -4808,7 +4808,7 @@ return `${moon?.sign ?? "â€”"}${moonNak ? ` (${moonNak})` : ""}`;
     </CardContent>
   </Card>
 
-  <div className="text-xs text-slate-200/80">
+  <div className="text-xs text-white/70">
     Want the technical chart view? Open the section below.
   </div>
 </motion.div>
@@ -4817,8 +4817,8 @@ return `${moon?.sign ?? "â€”"}${moonNak ? ` (${moonNak})` : ""}`;
   <Card className="rounded-2xl border border-indigo-400/15 bg-indigo-950/40 backdrop-blur-md shadow-xl shadow-[0_0_30px_rgba(99,102,241,0.10)]">
     <CardHeader className="pb-3">
       <CardTitle className="text-base font-semibold text-slate-50">What to focus on now</CardTitle>
-      <div className="text-sm text-slate-200/80">
-        A simple direction for the next few weeks â€” practical, not predictive.
+      <div className="text-sm text-white/70">
+        A simple direction for the next few weeks — practical, not predictive.
       </div>
     </CardHeader>
 
@@ -4832,18 +4832,18 @@ return `${moon?.sign ?? "â€”"}${moonNak ? ` (${moonNak})` : ""}`;
         const sun = findP("sun");
         const sat = findP("saturn");
 
-        const moonSign = moon?.sign ?? report.moonSign ?? "â€”";
-        const sunSign = sun?.sign ?? report.sunSign ?? "â€”";
+        const moonSign = moon?.sign ?? report.moonSign ?? "—";
+        const sunSign = sun?.sign ?? report.sunSign ?? "—";
 
         const focusLines: string[] = [];
 
-        // Simple, safe guidance rules (no â€œyou are impatientâ€ type judgments)
-        focusLines.push(`Stabilize your mind first (Moon in ${moonSign}) â€” choose fewer priorities and finish what you start.`);
-        focusLines.push(`Take one long-term step daily (Sun in ${sunSign}) â€” consistency beats intensity.`);
-        if (sat) focusLines.push(`Protect your routine (Saturn influence) â€” sleep, discipline, and boundaries are your superpower right now.`);
+        // Simple, safe guidance rules (no “you are impatient” type judgments)
+        focusLines.push(`Stabilize your mind first (Moon in ${moonSign}) — choose fewer priorities and finish what you start.`);
+        focusLines.push(`Take one long-term step daily (Sun in ${sunSign}) — consistency beats intensity.`);
+        if (sat) focusLines.push(`Protect your routine (Saturn influence) — sleep, discipline, and boundaries are your superpower right now.`);
 
         return (
-          <ul className="list-disc pl-5 space-y-2 text-white/90">
+          <ul className="list-disc pl-5 space-y-2 text-white/90/90">
             {focusLines.map((t, i) => (
               <li key={i}>{t}</li>
             ))}
@@ -4851,8 +4851,9 @@ return `${moon?.sign ?? "â€”"}${moonNak ? ` (${moonNak})` : ""}`;
         );
       })()}
 
-      <div className="pt-2 text-xs text-slate-200/80">
-        Want this customized to your current dasha + transits? Use <span className="font-medium">Ask SÄrathi</span>.
+      <div className="pt-2 text-xs text-white/70">
+        Want this customized to your current dasha + transits? Use{" "}
+<span className="font-medium">{"Ask Sārathi"}</span>.
       </div>
     </CardContent>
   </Card>
@@ -4868,7 +4869,7 @@ return `${moon?.sign ?? "â€”"}${moonNak ? ` (${moonNak})` : ""}`;
         </AccordionTrigger>
 
         <AccordionContent>
-          <div className="mb-3 text-xs text-slate-200/80">
+          <div className="mb-3 text-xs text-white/70">
             For advanced users: technical chart details like planet positions, houses, and deeper interpretations.
           </div>
 
@@ -4900,7 +4901,7 @@ return `${moon?.sign ?? "â€”"}${moonNak ? ` (${moonNak})` : ""}`;
                   No planet table available.
                 </CardTitle>
               </CardHeader>
-              <CardContent className="text-sm text-slate-200/80">
+              <CardContent className="text-sm text-white/70">
                 Generate again to see planet placements.
               </CardContent>
             </Card>
@@ -4943,11 +4944,11 @@ return `${moon?.sign ?? "â€”"}${moonNak ? ` (${moonNak})` : ""}`;
     <Accordion type="single" collapsible className="w-full">
       <AccordionItem value="sarathi-perspective">
         <AccordionTrigger className="text-sm font-semibold text-slate-100 hover:text-white [&_svg]:text-slate-200 [&_svg]:opacity-80">
-          SÄrathiâ€™s Perspective (advanced)
+          Sārathi's Perspective (advanced)
         </AccordionTrigger>
 
         <AccordionContent>
-          <div className="mb-3 text-xs text-slate-200/80">
+          <div className="mb-3 text-xs text-white/70">
             A deeper, more technical interpretation. If you prefer simple guidance, you can skip this.
           </div>
 
@@ -4956,11 +4957,11 @@ return `${moon?.sign ?? "â€”"}${moonNak ? ` (${moonNak})` : ""}`;
 
             <CardHeader>
               <CardTitle className="text-sm font-semibold text-slate-100">
-                SÄrathiâ€™s Perspective
+                Sārathi’s Perspective
               </CardTitle>
             </CardHeader>
 
-            <CardContent className="text-sm leading-relaxed space-y-3 text-slate-100">
+            <CardContent className="text-sm leading-relaxed space-y-3 text-slate-100/85">
               {(() => {
                 const raw0 = (aiSummary ?? "").trim();
                 if (!raw0) return null;
@@ -5001,13 +5002,13 @@ return `${moon?.sign ?? "â€”"}${moonNak ? ` (${moonNak})` : ""}`;
                 if (bullets && bullets.length) {
                   return (
                     <>
-                      <ul className="list-disc pl-5 space-y-2 text-slate-100">
+                      <ul className="list-disc pl-5 space-y-2 text-indigo-50/90">
                         {bullets.map((b, i) => (
                           <li key={i}>{String(b)}</li>
                         ))}
                       </ul>
                       {closing ? (
-                        <p className="text-slate-300/70 italic">{closing}</p>
+                        <p className="text-indigo-200/70 italic">{closing}</p>
                       ) : null}
                     </>
                   );
@@ -5079,7 +5080,7 @@ const TabTimeline: React.FC<TabTimelineProps> = memo(
 
     const sectionTrigger =
       "text-sm font-semibold text-slate-100 hover:text-slate-50";
-    const subNote = "text-xs text-slate-300/80";
+    const subNote = "text-xs text-slate-200/70";
     const divider = "border-white/15";
 
     return (
@@ -5097,14 +5098,14 @@ const TabTimeline: React.FC<TabTimelineProps> = memo(
                 Current Dasha Progress
               </CardTitle>
               <p className={subNote}>
-                Where you are right now in the dasha cycle (big â†’ medium â†’ short).
+                Where you are right now in the dasha cycle (big → medium → short).
               </p>
             </CardHeader>
 
             <CardContent className="space-y-3">
               {ap.mahadasha && (
                 <DashaBar
-                  label={`Mahadasha â€” ${ap.mahadasha.lord}`}
+                  label={`Mahadasha — ${ap.mahadasha.lord}`}
                   start={ap.mahadasha.start}
                   end={ap.mahadasha.end}
                   subtitle={ap.mahadasha.summary}
@@ -5113,7 +5114,7 @@ const TabTimeline: React.FC<TabTimelineProps> = memo(
 
               {ap.antardasha && (
                 <DashaBar
-                  label={`Antardasha â€” ${ap.antardasha.subLord} (in ${ap.antardasha.mahaLord})`}
+                  label={`Antardasha — ${ap.antardasha.subLord} (in ${ap.antardasha.mahaLord})`}
                   start={ap.antardasha.start}
                   end={ap.antardasha.end}
                   subtitle={ap.antardasha.summary}
@@ -5122,7 +5123,7 @@ const TabTimeline: React.FC<TabTimelineProps> = memo(
 
               {ap.pratyantardasha && (
                 <DashaBar
-                  label={`Pratyantardasha â€” ${ap.pratyantardasha.lord}`}
+                  label={`Pratyantardasha — ${ap.pratyantardasha.lord}`}
                   start={ap.pratyantardasha.start}
                   end={ap.pratyantardasha.end}
                   subtitle={ap.pratyantardasha.summary}
@@ -5140,12 +5141,12 @@ const TabTimeline: React.FC<TabTimelineProps> = memo(
             className={"rounded-2xl border " + divider + " bg-indigo-950/40"}
           >
             <AccordionTrigger className={sectionTrigger}>
-              Dasha Ã— Transits â€” Year Ahead Insight
+              Dasha × Transits — Year Ahead Insight
             </AccordionTrigger>
 
             <AccordionContent className="pt-2">
               <p className={subNote}>
-                A simple â€œwhat to expectâ€ story for the coming year, based on your running
+                A simple “what to expect” story for the coming year, based on your running
                 dasha + major transits.
               </p>
 
@@ -5177,7 +5178,7 @@ const TabTimeline: React.FC<TabTimelineProps> = memo(
 
   return (
     <AccordionItem value="life-overview">
-      <AccordionTrigger className="text-xs font-medium text-slate-200/80">
+      <AccordionTrigger className="text-xs font-medium text-white/70">
         Life Story Overview
       </AccordionTrigger>
 
@@ -5190,7 +5191,7 @@ const TabTimeline: React.FC<TabTimelineProps> = memo(
           </Card>
         ) : (
           <p className={"text-xs " + ACC_MUTED}>
-            Your life themes • af4e384 • v2 will appear here once your report summary is ready.
+            Your life themes will appear here once your report summary is ready.
           </p>
         )}
       </AccordionContent>
@@ -5233,11 +5234,11 @@ const TabTimeline: React.FC<TabTimelineProps> = memo(
                             }
                           >
                             <div className="space-y-0.5">
-                              <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-300/70">
+                              <div className="text-[11px] font-semibold uppercase tracking-wide text-white/60">
                                 {row.planet} Mahadasha
                               </div>
-                              <div className="text-[13px] text-slate-200/80">
-                                {row.startISO} â†’ {row.endISO}
+                              <div className="text-[13px] text-white/70">
+                                {row.startISO} → {row.endISO}
                               </div>
                             </div>
 
@@ -5263,12 +5264,12 @@ const TabTimeline: React.FC<TabTimelineProps> = memo(
               className={"rounded-2xl border " + divider + " bg-indigo-950/40"}
             >
               <AccordionTrigger className={sectionTrigger}>
-                Life Story â€” Key Phases
+                Life Story — Key Phases
               </AccordionTrigger>
 
               <AccordionContent className="pt-2">
                 <p className={subNote}>
-                  The most important turning points. Kept short so itâ€™s easy to digest.
+                  The most important turning points. Kept short so it’s easy to digest.
                 </p>
 
                 <div className="mt-3">
@@ -5285,17 +5286,17 @@ const TabTimeline: React.FC<TabTimelineProps> = memo(
                             <div className="rounded-xl border border-white/15 bg-slate-950/40 p-3 text-sm leading-relaxed text-slate-100">
                               <div className="flex flex-wrap items-start justify-between gap-2">
                                 <div className="space-y-1">
-                                  <div className="text-xs font-semibold uppercase text-slate-300/70 tracking-wide">
+                                  <div className="text-xs font-semibold uppercase text-white/60 tracking-wide">
                                     {m.label}
                                   </div>
 
-                                  <div className="text-[11px] text-slate-300/80">
+                                  <div className="text-[11px] text-slate-200/70">
                                     {m.approxAgeRange} (
-                                    {new Date(m.periodStart).getFullYear()}â€“{new Date(m.periodEnd).getFullYear()})
+                                    {new Date(m.periodStart).getFullYear()}–{new Date(m.periodEnd).getFullYear()})
                                   </div>
 
                                   {m.drivers && (
-                                    <div className="text-[11px] text-slate-300/70">
+                                    <div className="text-[11px] text-slate-200/60">
                                       {m.drivers}
                                     </div>
                                   )}
@@ -5321,7 +5322,7 @@ const TabTimeline: React.FC<TabTimelineProps> = memo(
                                     <p key={i2}>{t}</p>
                                   ))
                                 ) : (
-                                  <p className="text-slate-300/70">(No notes.)</p>
+                                  <p className="text-slate-200/60">(No notes.)</p>
                                 )}
                               </div>
                             </div>
@@ -5329,7 +5330,7 @@ const TabTimeline: React.FC<TabTimelineProps> = memo(
                         ))}
 
                         {report.lifeMilestones.length > 6 && (
-                          <p className="text-xs text-slate-300/70">
+                          <p className="text-xs text-slate-200/60">
                           </p>
                         )}
                       </div>
@@ -5584,7 +5585,7 @@ useEffect(() => {
     };
 
     
-    // âœ… NO HIDING: disable chat cache while we debug houses/asc
+    // ✅ NO HIDING: disable chat cache while we debug houses/asc
 window.localStorage.removeItem("sarathi.lifeReportCache.v2");
 // console.log("[life-report] chat cache disabled");
 
@@ -5597,7 +5598,7 @@ window.localStorage.removeItem("sarathi.lifeReportCache.v2");
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-8 md:py-12">
-      <Card className="mb-6 shadow-xl rounded-2xl">
+      <Card className="rounded-2xl border border-white/15 bg-indigo-950/40 backdrop-blur-md shadow-xl shadow-[0_0_30px_rgba(99,102,241,0.10)]">
         <CardHeader>
           <CardTitle className="text-xl font-semibold">
             Your birth details
@@ -5658,7 +5659,7 @@ window.localStorage.removeItem("sarathi.lifeReportCache.v2");
               placeholder="City, Country (e.g., Saharanpur)"
             />
             {place && (
-              <p className="text-xs text-slate-200/80">
+              <p className="text-xs text-white/70">
                 lat {place.lat?.toFixed(3)}, lon {place.lon?.toFixed(3)} ({tz})
               </p>
             )}
@@ -5670,19 +5671,19 @@ window.localStorage.removeItem("sarathi.lifeReportCache.v2");
 <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
   {/* Left: profile selector + save */}
   <div className="flex flex-wrap items-center gap-2 text-xs">
-    <span className="font-semibold uppercase tracking-wide text-slate-200/80">
+    <span className="font-semibold uppercase tracking-wide text-white/70">
       Profiles:
     </span>
 
     <select
-      className="rounded-md border bg-background px-2 py-1 text-xs text-slate-200/80"
+      className="rounded-md border bg-background px-2 py-1 text-xs text-white/70"
       value={selectedProfileId}
       onChange={(e) => handleSelectProfile(e.target.value)}
     >
       <option value="">(None selected)</option>
       {profiles.map((p) => (
         <option key={p.id} value={p.id}>
-          {p.label} â€” {p.birthDateISO}
+          {p.label} — {p.birthDateISO}
         </option>
       ))}
     </select>
@@ -5710,7 +5711,7 @@ window.localStorage.removeItem("sarathi.lifeReportCache.v2");
         </CardContent>
       </Card>
 
-      {/* Tabs + Ask SÄrathi chat entry */}
+      {/* Tabs + Ask Sārathi chat entry */}
       <div className="mt-2 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <Tabs
           value={activeTab}
@@ -5730,9 +5731,11 @@ window.localStorage.removeItem("sarathi.lifeReportCache.v2");
             type="button"
             variant="outline"
             size="sm"
-            className="w-full md:w-auto"
+            className="w-full md:w-auto text-white hover:text-white border-white/20 hover:bg-white/10"
+
+
           >
-           Ask SÄrathi
+           Ask Sārathi
           </Button>
         </Link>
       </div>
@@ -5776,7 +5779,7 @@ window.localStorage.removeItem("sarathi.lifeReportCache.v2");
   {/* ADVANCED = everything that overwhelms */}
   {activeTab === "advanced" && (
     <div className="space-y-6">
-      {/* Daily guide stays accessible but not â€œprimaryâ€ */}
+      {/* Daily guide stays accessible but not “primary” */}
       <div className="space-y-4">
         <TabDailyGuide
           report={report}
