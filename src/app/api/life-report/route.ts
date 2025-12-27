@@ -40,7 +40,6 @@ function deepCleanStrings<T>(value: T): T {
   }
   return value;
 }
-
 function fixWeirdEncoding(input: string) {
   const s = String(input ?? "");
 
@@ -60,18 +59,13 @@ function fixWeirdEncoding(input: string) {
     // 3) Drop stray Â and NBSP
     .replace(/\u00C2/g, "")
     .replace(/\u00A0/g, " ")
-// --- Normalize " ? " separators (these are NOT real questions) ---
-// Convert "word ? word" → "word — word"
-.replace(/\s\?\s/g, " — ")
 
-// Convert repeated separators (if any)
-.replace(/\s—\s—\s/g, " — ")
-// Fix common broken apostrophes from copy/paste
-.replace(/(\w)\?(\w)/g, "$1'$2")
+    // 4) Fix separators and broken apostrophes
+    .replace(/\s\?\s/g, " — ")          // " ? " divider -> em dash
+    .replace(/(\w)\?(\w)/g, "$1'$2")    // you?re -> you're
 
-    // 4) LAST resort: remove lone question marks that come from corruption.
-    //    (Conservative: only remove question marks that are surrounded by spaces)
-    .replace(/\s\?\s/g, " ");
+    // 5) Collapse accidental doubles
+    .replace(/\s—\s—\s/g, " — ");
 }
 
 
@@ -247,7 +241,7 @@ Make it precise enough that it could only apply to them.
 });
 
 const raw = fixWeirdEncoding(completion.choices?.[0]?.message?.content ?? "");
-return raw;
+return normalizeWeirdText(raw);
 
   } catch {
     return "";
@@ -409,7 +403,7 @@ const aiSummary = await buildLifeGuidanceSummary(enrichedWithDaily);
       midday: pickNotificationsForMoment(middayCtx, { maxPerBatch: 2 }),
       evening: pickNotificationsForMoment(eveningCtx, { maxPerBatch: 2 }),
     };
-   
+ 
         const payload = {
       ...enrichedWithDaily,
       aiSummary,
