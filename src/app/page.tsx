@@ -22,7 +22,7 @@ export default function Home() {
             </div>
           </Link>
 
-          {/* NAV: About → My Story → Why → FAQs → Life Report → Ask Sārathi */}
+          {/* NAV: About ? ? My Story ? ? Why ? ? FAQs ? ? Life Report ? ? Ask Sārathi */}
           <nav className="hidden items-center gap-4 text-sm text-slate-300 sm:flex">
   <Link href="/about" className="hover:text-slate-50">
     About
@@ -45,7 +45,7 @@ export default function Home() {
 
           <div className="flex items-center gap-2">
             <Badge className="hidden bg-emerald-500/15 text-[11px] font-normal text-emerald-300 border border-emerald-400/30 sm:inline-flex">
-              Early access · Private beta
+              Early access ? Private beta
             </Badge>
             <Link href="/sarathi/life-report">
               <Button
@@ -65,16 +65,16 @@ export default function Home() {
         <section className="grid gap-8 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] md:items-center">
           <div className="space-y-5">
             <Badge className="bg-indigo-500/15 text-[11px] font-normal text-indigo-200 border border-indigo-400/40">
-              Vedic astrology · Purpose · Practical guidance
+              Vedic astrology ? Purpose ? Practical guidance
             </Badge>
 
             <h1 className="text-balance text-3xl font-semibold tracking-tight sm:text-4xl md:text-5xl">
-              Clarity for life’s decisions —
+              Clarity for life?s decisions ??
               <span className="text-indigo-300"> in your browser.</span>
             </h1>
 
             <p className="max-w-xl text-sm leading-relaxed text-slate-300 sm:text-[15px]">
-              Sārathi reads your chart, dashas and transits with depth—then
+              Sārathi reads your chart, dashas and transits with depth??then
               translates them into calm, practical guidance for career, money,
               relationships and inner growth. No fear. No fatalism. Just honest
               direction.
@@ -150,7 +150,7 @@ export default function Home() {
                   </div>
                   <p className="text-[11px] text-slate-400">
                     Your ascendant, moons, dashas and key patterns explained in
-                    plain English—without cookbook copy-paste.
+                    plain English??without cookbook copy-paste.
                   </p>
                 </div>
               </div>
@@ -179,8 +179,8 @@ export default function Home() {
                     A calm, non-fatalistic view
                   </div>
                   <p className="text-[11px] text-slate-400">
-                    No “you are doomed” predictions. Just windows, tendencies
-                    and choices—so you stay in the driver’s seat.
+                    No ?you are doomed?? predictions. Just windows, tendencies
+                    and choices??so you stay in the driver?s seat.
                   </p>
                 </div>
               </div>
@@ -196,7 +196,7 @@ export default function Home() {
                 A simple way to use astrology (without anxiety)
               </div>
               <p className="mt-1 text-sm text-slate-200/80 leading-6">
-                Observe the phase you’re in → understand the theme → take one clear step.
+                Observe the phase you?re in ? ? understand the theme ? ? take one clear step.
               </p>
             </div>
 
@@ -298,7 +298,7 @@ export default function Home() {
         <footer className="mt-4 border-t border-slate-800/70 pt-8 text-xs text-slate-400">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div className="text-slate-400">
-              © {new Date().getFullYear()} Sārathi. All rights reserved.
+              ?? {new Date().getFullYear()} Sārathi. All rights reserved.
             </div>
             <div className="flex flex-wrap gap-4">
               <Link href="/about" className="hover:text-slate-200">

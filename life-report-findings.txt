@@ -1,0 +1,714 @@
+﻿
+  src\app\sarathi\life-report\_shell.tsx:296:type ActivePeriods = {
+> src\app\sarathi\life-report\_shell.tsx:297:  mahadasha?: { lord: string; start: string; end: string; 
+summary?: string };
+> src\app\sarathi\life-report\_shell.tsx:298:  antardasha?: {
+  src\app\sarathi\life-report\_shell.tsx:299:    mahaLord: string;
+  src\app\sarathi\life-report\_shell.tsx:300:    subLord: string;
+  src\app\sarathi\life-report\_shell.tsx:301:    start: string;
+  src\app\sarathi\life-report\_shell.tsx:302:    end: string;
+  src\app\sarathi\life-report\_shell.tsx:304:  };
+> src\app\sarathi\life-report\_shell.tsx:305:  pratyantardasha?: {
+  src\app\sarathi\life-report\_shell.tsx:306:    mahaLord: string;
+  src\app\sarathi\life-report\_shell.tsx:307:    antarLord: string;
+  src\app\sarathi\life-report\_shell.tsx:308:    lord: string;
+  src\app\sarathi\life-report\_shell.tsx:309:    start: string;
+  src\app\sarathi\life-report\_shell.tsx:337:  panchang?: PanchangInfo;
+> src\app\sarathi\life-report\_shell.tsx:338:  placements?: any[];
+  src\app\sarathi\life-report\_shell.tsx:339:  planets?: any[];
+> src\app\sarathi\life-report\_shell.tsx:340:  aspects?: AspectRow[];
+> src\app\sarathi\life-report\_shell.tsx:341:  dashaTimeline?: any[];
+  src\app\sarathi\life-report\_shell.tsx:342:  activePeriods?: ActivePeriods;
+  src\app\sarathi\life-report\_shell.tsx:343:  lifeMilestones?: LifeMilestone[];
+  src\app\sarathi\life-report\_shell.tsx:344:  
+  src\app\sarathi\life-report\_shell.tsx:345:    foodToday?: {
+  src\app\sarathi\life-report\_shell.tsx:384:  planets: PlanetRow[];
+> src\app\sarathi\life-report\_shell.tsx:385:  aspects: AspectRow[];
+  src\app\sarathi\life-report\_shell.tsx:386:  activePeriods?: ActivePeriods;
+  src\app\sarathi\life-report\_shell.tsx:387:  lifeMilestones?: LifeMilestone[];
+> src\app\sarathi\life-report\_shell.tsx:388:  dashaTimeline?: any[];
+  src\app\sarathi\life-report\_shell.tsx:389:};
+  src\app\sarathi\life-report\_shell.tsx:390:
+  src\app\sarathi\life-report\_shell.tsx:391:const PLANET_ORDER = [
+  src\app\sarathi\life-report\_shell.tsx:392:  "Sun",
+  src\app\sarathi\life-report\_shell.tsx:2015:}
+> src\app\sarathi\life-report\_shell.tsx:2016:function pickAspects(r: any): AspectRow[] {
+> src\app\sarathi\life-report\_shell.tsx:2017:  const a = r?.aspects ?? r?.raw?.aspects ?? r?.aspectList 
+?? r?.aspectsMap;
+  src\app\sarathi\life-report\_shell.tsx:2018:  return Array.isArray(a) ? (a as AspectRow[]) : [];
+  src\app\sarathi\life-report\_shell.tsx:2019:}
+  src\app\sarathi\life-report\_shell.tsx:2020:function pickPlanets(r: any): PlanetRow[] {
+  src\app\sarathi\life-report\_shell.tsx:2021:  const rawPlanetsAny =
+  src\app\sarathi\life-report\_shell.tsx:2024:    r?.chart?.planets ??
+> src\app\sarathi\life-report\_shell.tsx:2025:    r?.placements ??
+> src\app\sarathi\life-report\_shell.tsx:2026:    r?.raw?.placements ??
+  src\app\sarathi\life-report\_shell.tsx:2027:    [];
+  src\app\sarathi\life-report\_shell.tsx:2028:  return Array.isArray(rawPlanetsAny) ? 
+normalizePlanets(rawPlanetsAny) : [];
+  src\app\sarathi\life-report\_shell.tsx:2029:}
+  src\app\sarathi\life-report\_shell.tsx:2030:
+  src\app\sarathi\life-report\_shell.tsx:2034:  planets: PlanetRow[],
+> src\app\sarathi\life-report\_shell.tsx:2035:  aspects: AspectRow[],
+  src\app\sarathi\life-report\_shell.tsx:2036:  ascNakshatra?: string | null,
+  src\app\sarathi\life-report\_shell.tsx:2037:  moonNakshatra?: string | null
+  src\app\sarathi\life-report\_shell.tsx:2038:) {
+  src\app\sarathi\life-report\_shell.tsx:2039:  const incoming = new Map<string, AspectRow[]>();
+> src\app\sarathi\life-report\_shell.tsx:2040:  for (const a of aspects) {
+  src\app\sarathi\life-report\_shell.tsx:2041:    const to = (a?.to || "").trim();
+  src\app\sarathi\life-report\_shell.tsx:2042:    const from = (a?.from || "").trim();
+  src\app\sarathi\life-report\_shell.tsx:2043:    if (!to || !from) continue;
+  src\app\sarathi\life-report\_shell.tsx:2044:    const list = incoming.get(to) ?? [];
+  src\app\sarathi\life-report\_shell.tsx:2102:          ? `Nourished by: ${d.friendly.join(", ")}.`
+> src\app\sarathi\life-report\_shell.tsx:2103:          : "Nourished by: your own inner reserves (no 
+strong friendly aspects).",
+  src\app\sarathi\life-report\_shell.tsx:2104:        d.enemy.length
+  src\app\sarathi\life-report\_shell.tsx:2105:          ? `Stressors: ${d.enemy.join(", ")}.`
+> src\app\sarathi\life-report\_shell.tsx:2106:          : "Stressors: no major challenging aspects; 
+general mood and environment matter more.",
+  src\app\sarathi\life-report\_shell.tsx:2107:      ],
+  src\app\sarathi\life-report\_shell.tsx:2108:    });
+  src\app\sarathi\life-report\_shell.tsx:2109:  }
+  src\app\sarathi\life-report\_shell.tsx:2110:
+  src\app\sarathi\life-report\_shell.tsx:2121:        d.theme
+> src\app\sarathi\life-report\_shell.tsx:2122:          ? `Expression: ${d.theme}.`
+  src\app\sarathi\life-report\_shell.tsx:2123:          : `Expression through ${p.nakshatra || 
+"nakshatra"}.`,
+  src\app\sarathi\life-report\_shell.tsx:2124:        d.friendly.length
+> src\app\sarathi\life-report\_shell.tsx:2125:          ? `Gets help from: ${d.friendly.join(", ")}.`
+> src\app\sarathi\life-report\_shell.tsx:2126:          : "Gets help from: inner strength and the basic 
+dignity of this planet (no strong friendly aspects).",
+  src\app\sarathi\life-report\_shell.tsx:2127:        d.enemy.length
+> src\app\sarathi\life-report\_shell.tsx:2128:          ? `Faces resistance from: ${d.enemy.join(", ")}.`
+> src\app\sarathi\life-report\_shell.tsx:2129:          : "Faces resistance from: normal life challenges 
+rather than direct planetary clashes.",
+  src\app\sarathi\life-report\_shell.tsx:2130:      ],
+  src\app\sarathi\life-report\_shell.tsx:2131:    });
+  src\app\sarathi\life-report\_shell.tsx:2132:  }
+  src\app\sarathi\life-report\_shell.tsx:2133:
+  src\app\sarathi\life-report\_shell.tsx:2196:
+> src\app\sarathi\life-report\_shell.tsx:2197:function DashaBar({
+  src\app\sarathi\life-report\_shell.tsx:2198:  label,
+  src\app\sarathi\life-report\_shell.tsx:2199:  start,
+  src\app\sarathi\life-report\_shell.tsx:2200:  end,
+  src\app\sarathi\life-report\_shell.tsx:2201:  subtitle,
+  src\app\sarathi\life-report\_shell.tsx:2421:  {loading && (
+> src\app\sarathi\life-report\_shell.tsx:2422:    <p className="text-xs text-white/60">Building your 
+12-month overview…</p>
+  src\app\sarathi\life-report\_shell.tsx:2423:  )}
+  src\app\sarathi\life-report\_shell.tsx:2424:
+  src\app\sarathi\life-report\_shell.tsx:2425:  {!loading && !error && (transitSummary || "").trim() ? (
+  src\app\sarathi\life-report\_shell.tsx:2426:    <div className="rounded-2xl border border-white/15 
+bg-indigo-950/40 backdrop-blur-sm p-4 text-slate-100">
+  src\app\sarathi\life-report\_shell.tsx:2432:    <p className="text-xs text-white/60">
+> src\app\sarathi\life-report\_shell.tsx:2433:      12-month overview will appear here once transits are 
+available.
+  src\app\sarathi\life-report\_shell.tsx:2434:    </p>
+  src\app\sarathi\life-report\_shell.tsx:2435:  )}
+  src\app\sarathi\life-report\_shell.tsx:2436:
+  src\app\sarathi\life-report\_shell.tsx:2437:  {!loading && !!error && <p className="text-xs 
+text-red-400">{error}</p>}
+  src\app\sarathi\life-report\_shell.tsx:2450:
+> src\app\sarathi\life-report\_shell.tsx:2451:    // First item = overview, rest = individual months (if 
+present)
+> src\app\sarathi\life-report\_shell.tsx:2452:    const overview = hasData ? monthlyInsights[0] : null;
+  src\app\sarathi\life-report\_shell.tsx:2453:    const rest = hasData ? monthlyInsights.slice(1) : [];
+  src\app\sarathi\life-report\_shell.tsx:2454:
+> src\app\sarathi\life-report\_shell.tsx:2455:    // Try to split overview into “overview text” vs “raw 
+transit list”
+> src\app\sarathi\life-report\_shell.tsx:2456:    const overviewText = overview?.text ?? "";
+> src\app\sarathi\life-report\_shell.tsx:2457:    let mainNarrative = overviewText;
+  src\app\sarathi\life-report\_shell.tsx:2458:    let transitText = "";
+  src\app\sarathi\life-report\_shell.tsx:2459:
+  src\app\sarathi\life-report\_shell.tsx:2460:    const splitMarker = "Upcoming transit windows (next 12 
+months)";
+> src\app\sarathi\life-report\_shell.tsx:2461:    if (overviewText.includes(splitMarker)) {
+> src\app\sarathi\life-report\_shell.tsx:2462:      const [before, after] = 
+overviewText.split(splitMarker);
+  src\app\sarathi\life-report\_shell.tsx:2463:      mainNarrative = before.trim();
+  src\app\sarathi\life-report\_shell.tsx:2464:      transitText = after.trim();
+  src\app\sarathi\life-report\_shell.tsx:2465:    }
+  src\app\sarathi\life-report\_shell.tsx:2466:
+  src\app\sarathi\life-report\_shell.tsx:2480:          <div className="text-white/70">
+> src\app\sarathi\life-report\_shell.tsx:2481:            Building your 12-month overview…
+  src\app\sarathi\life-report\_shell.tsx:2482:          </div>
+  src\app\sarathi\life-report\_shell.tsx:2483:        )}
+  src\app\sarathi\life-report\_shell.tsx:2484:
+  src\app\sarathi\life-report\_shell.tsx:2485:        {!loading && error && (
+  src\app\sarathi\life-report\_shell.tsx:2490:          <div className="text-white/70">
+> src\app\sarathi\life-report\_shell.tsx:2491:            12-month overview will appear here once 
+transits are available.
+  src\app\sarathi\life-report\_shell.tsx:2492:          </div>
+  src\app\sarathi\life-report\_shell.tsx:2493:        )}
+  src\app\sarathi\life-report\_shell.tsx:2494:
+  src\app\sarathi\life-report\_shell.tsx:2495:        {!loading && !error && hasData && (
+  src\app\sarathi\life-report\_shell.tsx:2612:  report?: any;
+> src\app\sarathi\life-report\_shell.tsx:2613:  dashaStack?: any;
+  src\app\sarathi\life-report\_shell.tsx:2614:  transits?: any[] | null;
+  src\app\sarathi\life-report\_shell.tsx:2615:}): TodaysFocusProfile | null {
+> src\app\sarathi\life-report\_shell.tsx:2616:  const { report, dashaStack, transits } = opts || {};
+  src\app\sarathi\life-report\_shell.tsx:2617:
+  src\app\sarathi\life-report\_shell.tsx:2618:  // 1) Figure out dominant category from transits, if any
+  src\app\sarathi\life-report\_shell.tsx:2619:  type Cat = "career" | "relationships" | "health" | 
+"inner" | "general";
+  src\app\sarathi\life-report\_shell.tsx:2620:
+  src\app\sarathi\life-report\_shell.tsx:2642:
+> src\app\sarathi\life-report\_shell.tsx:2643:  // 2) Light influence from current dasha (if provided)
+> src\app\sarathi\life-report\_shell.tsx:2644:  let dashaFlavour: Cat | null = null;
+> src\app\sarathi\life-report\_shell.tsx:2645:  if (Array.isArray(dashaStack) && dashaStack.length > 0) {
+> src\app\sarathi\life-report\_shell.tsx:2646:    const md = (dashaStack[0]?.planet || 
+dashaStack[0]?.lord || "")
+  src\app\sarathi\life-report\_shell.tsx:2647:      .toString()
+  src\app\sarathi\life-report\_shell.tsx:2648:      .toLowerCase();
+  src\app\sarathi\life-report\_shell.tsx:2649:
+> src\app\sarathi\life-report\_shell.tsx:2650:    if (md === "saturn" || md === "mars") dashaFlavour = 
+"career";
+> src\app\sarathi\life-report\_shell.tsx:2651:    else if (md === "venus" || md === "moon") dashaFlavour 
+= "relationships";
+> src\app\sarathi\life-report\_shell.tsx:2652:    else if (md === "sun") dashaFlavour = "career";
+> src\app\sarathi\life-report\_shell.tsx:2653:    else if (md === "jupiter" || md === "mercury") 
+dashaFlavour = "general";
+> src\app\sarathi\life-report\_shell.tsx:2654:    else if (md === "ketu" || md === "rahu") dashaFlavour 
+= "inner";
+  src\app\sarathi\life-report\_shell.tsx:2655:  }
+  src\app\sarathi\life-report\_shell.tsx:2656:
+> src\app\sarathi\life-report\_shell.tsx:2657:  const finalCat: Cat = dashaFlavour ?? cat;
+  src\app\sarathi\life-report\_shell.tsx:2658:
+  src\app\sarathi\life-report\_shell.tsx:2659:  // 3) Map category → text
+  src\app\sarathi\life-report\_shell.tsx:2660:  if (finalCat === "career") {
+  src\app\sarathi\life-report\_shell.tsx:2661:    return {
+  src\app\sarathi\life-report\_shell.tsx:2939:          <div className="text-xs font-semibold uppercase 
+tracking-wide text-indigo-600">
+> src\app\sarathi\life-report\_shell.tsx:2940:            Today’s Focus · Dasha
+  src\app\sarathi\life-report\_shell.tsx:2941:          </div>
+  src\app\sarathi\life-report\_shell.tsx:2942:          <div className="mt-1 text-sm 
+font-semibold">{focusArea}</div>
+  src\app\sarathi\life-report\_shell.tsx:2943:          <p className="mt-1 text-xs 
+text-white/70">{focusHeadline}</p>
+  src\app\sarathi\life-report\_shell.tsx:2944:          <p className="mt-2 text-xs 
+text-white/70">{focusSummary}</p>
+  src\app\sarathi\life-report\_shell.tsx:3108:  const aiCtrlRef = useRef<AbortController | null>(null);
+> src\app\sarathi\life-report\_shell.tsx:3109:  const [dashaTransitSummary, setDashaTransitSummary] = 
+useState<string>("");
+  src\app\sarathi\life-report\_shell.tsx:3110:
+  src\app\sarathi\life-report\_shell.tsx:3111:  const [place, setPlace] = useState<PlaceLite | null>(() 
+=> {
+  src\app\sarathi\life-report\_shell.tsx:3112:    if (initialLat && initialLon) {
+  src\app\sarathi\life-report\_shell.tsx:3113:      const lat = parseFloat(initialLat);
+  src\app\sarathi\life-report\_shell.tsx:3121:
+> src\app\sarathi\life-report\_shell.tsx:3122:  const [activeTab, setActiveTab] = useState("overview");
+  src\app\sarathi\life-report\_shell.tsx:3123:
+> src\app\sarathi\life-report\_shell.tsx:3124:  const [dashaTimeline, setDashaTimeline] = useState<any[] 
+| null>(null);
+  src\app\sarathi\life-report\_shell.tsx:3125:  const [loading, setLoading] = useState(false);
+  src\app\sarathi\life-report\_shell.tsx:3126:  const [error, setError] = useState<string | null>(null);
+  src\app\sarathi\life-report\_shell.tsx:3127:
+  src\app\sarathi\life-report\_shell.tsx:3128:  const [report, setReport] = useState<LifeReportView | 
+null>(null);
+  src\app\sarathi\life-report\_shell.tsx:3284:      report,
+> src\app\sarathi\life-report\_shell.tsx:3285:      dashaStack: (report as any)?.dashaStack ?? null,
+  src\app\sarathi\life-report\_shell.tsx:3286:      transits: null, // we'll wire real transits later
+  src\app\sarathi\life-report\_shell.tsx:3287:    }),
+  src\app\sarathi\life-report\_shell.tsx:3288:  [report]
+  src\app\sarathi\life-report\_shell.tsx:3289:);
+  src\app\sarathi\life-report\_shell.tsx:3456:  setReport(null);
+> src\app\sarathi\life-report\_shell.tsx:3457:  setActiveTab("overview");
+  src\app\sarathi\life-report\_shell.tsx:3458:}, [dateISO, time, tz, place?.lat, place?.lon]);
+  src\app\sarathi\life-report\_shell.tsx:3459:
+  src\app\sarathi\life-report\_shell.tsx:3460:// Ensure activeTab is always valid (prevents blank screen)
+  src\app\sarathi\life-report\_shell.tsx:3461:useEffect(() => {
+> src\app\sarathi\life-report\_shell.tsx:3462:  const allowed = new Set(["overview", "phases", "now", 
+"advanced"]);
+> src\app\sarathi\life-report\_shell.tsx:3463:  if (!allowed.has(activeTab as any)) 
+setActiveTab("overview");
+  src\app\sarathi\life-report\_shell.tsx:3464:  // eslint-disable-next-line react-hooks/exhaustive-deps
+  src\app\sarathi\life-report\_shell.tsx:3465:}, []);
+  src\app\sarathi\life-report\_shell.tsx:3466:
+  src\app\sarathi\life-report\_shell.tsx:3467:
+  src\app\sarathi\life-report\_shell.tsx:3477:  setTransitSummary("");
+> src\app\sarathi\life-report\_shell.tsx:3478:  setDashaTransitSummary("");
+  src\app\sarathi\life-report\_shell.tsx:3479:  setMonthlyInsights([]);
+  src\app\sarathi\life-report\_shell.tsx:3480:  setMonthlyError(null);
+  src\app\sarathi\life-report\_shell.tsx:3481:  setMonthlyLoading(false);
+  src\app\sarathi\life-report\_shell.tsx:3482:  setWeeklyInsights([]);
+  src\app\sarathi\life-report\_shell.tsx:3667:    const planets = pickPlanets(data);
+> src\app\sarathi\life-report\_shell.tsx:3668:    const aspects = pickAspects(data);
+  src\app\sarathi\life-report\_shell.tsx:3669:
+  src\app\sarathi\life-report\_shell.tsx:3670:    const birthInstant = makeUtcInstant(d, t, tz);
+  src\app\sarathi\life-report\_shell.tsx:3671:    const rawPlanets: any[] =
+  src\app\sarathi\life-report\_shell.tsx:3672:      (data as any)?.raw?.planets ?? (data as 
+any)?.planets ?? [];
+  src\app\sarathi\life-report\_shell.tsx:3768:      planets,
+> src\app\sarathi\life-report\_shell.tsx:3769:      aspects,
+  src\app\sarathi\life-report\_shell.tsx:3770:      activePeriods: data?.activePeriods,
+  src\app\sarathi\life-report\_shell.tsx:3771:      lifeMilestones: data?.lifeMilestones,
+> src\app\sarathi\life-report\_shell.tsx:3772:      dashaTimeline: data?.dashaTimeline,
+  src\app\sarathi\life-report\_shell.tsx:3773:    };
+  src\app\sarathi\life-report\_shell.tsx:3774:
+  src\app\sarathi\life-report\_shell.tsx:3775:    const moonNakFinal =
+  src\app\sarathi\life-report\_shell.tsx:3776:      next.panchang?.moonNakshatraName ??
+  src\app\sarathi\life-report\_shell.tsx:3848:        planets: next.planets,
+> src\app\sarathi\life-report\_shell.tsx:3849:        aspects: next.aspects,
+  src\app\sarathi\life-report\_shell.tsx:3850:        nakshatraMap: (data as any)?.nakshatraMap || {},
+  src\app\sarathi\life-report\_shell.tsx:3851:      }),
+  src\app\sarathi\life-report\_shell.tsx:3852:      signal: ctrl.signal,
+  src\app\sarathi\life-report\_shell.tsx:3853:    });
+  src\app\sarathi\life-report\_shell.tsx:3890:
+> src\app\sarathi\life-report\_shell.tsx:3891:let mainDasha: any = null;
+  src\app\sarathi\life-report\_shell.tsx:3892:
+  src\app\sarathi\life-report\_shell.tsx:3893:let mdPlanet: string | null = null;
+  src\app\sarathi\life-report\_shell.tsx:3894:let adPlanet: string | null = null;
+  src\app\sarathi\life-report\_shell.tsx:3895:let pdPlanet: string | null = null;
+  src\app\sarathi\life-report\_shell.tsx:3903:
+> src\app\sarathi\life-report\_shell.tsx:3904:if (Array.isArray(next.dashaTimeline) && 
+next.dashaTimeline.length > 0) {
+  src\app\sarathi\life-report\_shell.tsx:3905:     const todayISO = new Date().toISOString().slice(0, 
+10);
+  src\app\sarathi\life-report\_shell.tsx:3906:   const activeRow =
+> src\app\sarathi\life-report\_shell.tsx:3907:    (next.dashaTimeline as any[]).find((r: any) => {
+  src\app\sarathi\life-report\_shell.tsx:3908:      const from = (
+  src\app\sarathi\life-report\_shell.tsx:3909:        r.fromISO ||
+  src\app\sarathi\life-report\_shell.tsx:3910:        r.startISO ||
+  src\app\sarathi\life-report\_shell.tsx:3911:        r.from ||
+  src\app\sarathi\life-report\_shell.tsx:3923:      return from <= todayISO && todayISO <= to;
+> src\app\sarathi\life-report\_shell.tsx:3924:    }) || (next.dashaTimeline[0] as any);
+  src\app\sarathi\life-report\_shell.tsx:3925:
+> src\app\sarathi\life-report\_shell.tsx:3926:  mainDasha = activeRow;
+  src\app\sarathi\life-report\_shell.tsx:3927:
+> src\app\sarathi\life-report\_shell.tsx:3928:  if (mainDasha) {
+  src\app\sarathi\life-report\_shell.tsx:3929:    mdPlanet =
+> src\app\sarathi\life-report\_shell.tsx:3930:      mainDasha.md ||
+> src\app\sarathi\life-report\_shell.tsx:3931:      mainDasha.mahadasha ||
+> src\app\sarathi\life-report\_shell.tsx:3932:      mainDasha.mdLord ||
+> src\app\sarathi\life-report\_shell.tsx:3933:      mainDasha.planet ||
+  src\app\sarathi\life-report\_shell.tsx:3934:      null;
+  src\app\sarathi\life-report\_shell.tsx:3935:
+  src\app\sarathi\life-report\_shell.tsx:3936:    adPlanet =
+> src\app\sarathi\life-report\_shell.tsx:3937:      mainDasha.ad ||
+> src\app\sarathi\life-report\_shell.tsx:3938:      mainDasha.antardasha ||
+> src\app\sarathi\life-report\_shell.tsx:3939:      mainDasha.adLord ||
+  src\app\sarathi\life-report\_shell.tsx:3940:      null;
+  src\app\sarathi\life-report\_shell.tsx:3941:
+  src\app\sarathi\life-report\_shell.tsx:3942:    pdPlanet =
+> src\app\sarathi\life-report\_shell.tsx:3943:      mainDasha.pd ||
+> src\app\sarathi\life-report\_shell.tsx:3944:      mainDasha.pratyantardasha ||
+> src\app\sarathi\life-report\_shell.tsx:3945:      mainDasha.pdLord ||
+  src\app\sarathi\life-report\_shell.tsx:3946:      null;
+  src\app\sarathi\life-report\_shell.tsx:3947:
+  src\app\sarathi\life-report\_shell.tsx:3948:    const fromVal =
+> src\app\sarathi\life-report\_shell.tsx:3949:      mainDasha.fromISO ||
+> src\app\sarathi\life-report\_shell.tsx:3950:      mainDasha.startISO ||
+> src\app\sarathi\life-report\_shell.tsx:3951:      mainDasha.from ||
+> src\app\sarathi\life-report\_shell.tsx:3952:      mainDasha.start ||
+  src\app\sarathi\life-report\_shell.tsx:3953:      null;
+  src\app\sarathi\life-report\_shell.tsx:3954:
+  src\app\sarathi\life-report\_shell.tsx:3955:    const toVal =
+> src\app\sarathi\life-report\_shell.tsx:3956:      mainDasha.toISO ||
+> src\app\sarathi\life-report\_shell.tsx:3957:      mainDasha.endISO ||
+> src\app\sarathi\life-report\_shell.tsx:3958:      mainDasha.to ||
+> src\app\sarathi\life-report\_shell.tsx:3959:      mainDasha.end ||
+  src\app\sarathi\life-report\_shell.tsx:3960:      null;
+  src\app\sarathi\life-report\_shell.tsx:3961:
+  src\app\sarathi\life-report\_shell.tsx:3962:    mdStart = fromVal ? String(fromVal).slice(0, 10) : 
+null;
+  src\app\sarathi\life-report\_shell.tsx:3963:    mdEnd = toVal ? String(toVal).slice(0, 10) : null;
+  src\app\sarathi\life-report\_shell.tsx:3975:   
+> src\app\sarathi\life-report\_shell.tsx:3976:    const md = mainDasha?.md ?? (mainDasha as 
+any)?.mahadasha ?? null;
+> src\app\sarathi\life-report\_shell.tsx:3977:    const ad = mainDasha?.ad ?? (mainDasha as 
+any)?.antardasha ?? null;
+  src\app\sarathi\life-report\_shell.tsx:3978:    const pd =
+> src\app\sarathi\life-report\_shell.tsx:3979:      mainDasha?.pd ?? (mainDasha as any)?.pratyantardasha 
+?? null;
+  src\app\sarathi\life-report\_shell.tsx:3980:
+  src\app\sarathi\life-report\_shell.tsx:3981:        // ---------- 4) TRANSITS + AI LAYERS ----------
+  src\app\sarathi\life-report\_shell.tsx:3982:    const loadTransitsAndInsights = async () => {
+  src\app\sarathi\life-report\_shell.tsx:3983:      try {
+  src\app\sarathi\life-report\_shell.tsx:4234:
+> src\app\sarathi\life-report\_shell.tsx:4235:        // 2) Dasha × Transits fusion
+  src\app\sarathi\life-report\_shell.tsx:4236:        try {
+> src\app\sarathi\life-report\_shell.tsx:4237:          const fusionRes = await 
+fetch("/api/ai-dasha-transits", {
+  src\app\sarathi\life-report\_shell.tsx:4238:            method: "POST",
+  src\app\sarathi\life-report\_shell.tsx:4239:            headers: { "content-type": "application/json" 
+},
+  src\app\sarathi\life-report\_shell.tsx:4240:            body: JSON.stringify({
+  src\app\sarathi\life-report\_shell.tsx:4241:              profile: {
+  src\app\sarathi\life-report\_shell.tsx:4246:              },
+> src\app\sarathi\life-report\_shell.tsx:4247:              dashaLayers: {
+  src\app\sarathi\life-report\_shell.tsx:4248:                md,
+  src\app\sarathi\life-report\_shell.tsx:4249:                ad,
+  src\app\sarathi\life-report\_shell.tsx:4250:                pd,
+> src\app\sarathi\life-report\_shell.tsx:4251:                timeline: next.dashaTimeline ?? null,
+  src\app\sarathi\life-report\_shell.tsx:4252:              },
+  src\app\sarathi\life-report\_shell.tsx:4253:              transits: hitList,
+  src\app\sarathi\life-report\_shell.tsx:4254:              lifeMilestones: next.lifeMilestones,
+  src\app\sarathi\life-report\_shell.tsx:4255:            }),
+  src\app\sarathi\life-report\_shell.tsx:4263:  const fusionText = (fusionJson as any)?.text ?? "";
+> src\app\sarathi\life-report\_shell.tsx:4264:  setDashaTransitSummary(fusionText);
+  src\app\sarathi\life-report\_shell.tsx:4265:
+> src\app\sarathi\life-report\_shell.tsx:4266:  // reuse the same text as fallback life story overview
+  src\app\sarathi\life-report\_shell.tsx:4267:  setTimelineSummary(fusionText);
+  src\app\sarathi\life-report\_shell.tsx:4268:} else {
+> src\app\sarathi\life-report\_shell.tsx:4269:  console.error("ai-dasha-transits failed", 
+fusionRes.status, fusionJson);
+  src\app\sarathi\life-report\_shell.tsx:4270:}
+  src\app\sarathi\life-report\_shell.tsx:4271:
+  src\app\sarathi\life-report\_shell.tsx:4272:        } catch (err) {
+> src\app\sarathi\life-report\_shell.tsx:4273:          console.error("ai-dasha-transits error", err);
+  src\app\sarathi\life-report\_shell.tsx:4274:        }
+  src\app\sarathi\life-report\_shell.tsx:4275:
+  src\app\sarathi\life-report\_shell.tsx:4276:        // 3) Monthly guidance (AI)
+  src\app\sarathi\life-report\_shell.tsx:4277:        try {
+  src\app\sarathi\life-report\_shell.tsx:4291:              },
+> src\app\sarathi\life-report\_shell.tsx:4292:              dashaLayers: {
+  src\app\sarathi\life-report\_shell.tsx:4293:                md,
+  src\app\sarathi\life-report\_shell.tsx:4294:                ad,
+  src\app\sarathi\life-report\_shell.tsx:4295:                pd,
+> src\app\sarathi\life-report\_shell.tsx:4296:                timeline: next.dashaTimeline ?? null,
+  src\app\sarathi\life-report\_shell.tsx:4297:              },
+  src\app\sarathi\life-report\_shell.tsx:4298:              transits: hitList,
+  src\app\sarathi\life-report\_shell.tsx:4299:              startDateISO: todayISO,
+  src\app\sarathi\life-report\_shell.tsx:4300:              months: 12,
+  src\app\sarathi\life-report\_shell.tsx:4366:            },
+> src\app\sarathi\life-report\_shell.tsx:4367:            dashaLayers: {
+  src\app\sarathi\life-report\_shell.tsx:4368:              md,
+  src\app\sarathi\life-report\_shell.tsx:4369:              ad,
+  src\app\sarathi\life-report\_shell.tsx:4370:              pd,
+> src\app\sarathi\life-report\_shell.tsx:4371:              timeline: next.dashaTimeline ?? null,
+  src\app\sarathi\life-report\_shell.tsx:4372:            },
+  src\app\sarathi\life-report\_shell.tsx:4373:            transits: hitList,
+  src\app\sarathi\life-report\_shell.tsx:4374:            startDateISO: todayISO,
+  src\app\sarathi\life-report\_shell.tsx:4375:            weeks: 8,
+  src\app\sarathi\life-report\_shell.tsx:4438:  setReport(next);
+> src\app\sarathi\life-report\_shell.tsx:4439:  // Fill Life Story Overview (until we wire a dedicated 
+AI endpoint)
+  src\app\sarathi\life-report\_shell.tsx:4440:setTimelineSummary(
+  src\app\sarathi\life-report\_shell.tsx:4441:  (next as any)?.timelineSummary ||
+> src\app\sarathi\life-report\_shell.tsx:4442:    (next as any)?.lifeOverview ||
+> src\app\sarathi\life-report\_shell.tsx:4443:    (next as any)?.lifeStoryOverview ||
+  src\app\sarathi\life-report\_shell.tsx:4444:    ""
+  src\app\sarathi\life-report\_shell.tsx:4445:);
+  src\app\sarathi\life-report\_shell.tsx:4446:
+> src\app\sarathi\life-report\_shell.tsx:4447:  setActiveTab("overview");
+  src\app\sarathi\life-report\_shell.tsx:4448:} catch (err: any) {
+  src\app\sarathi\life-report\_shell.tsx:4449:  console.error("life-report error", err);
+  src\app\sarathi\life-report\_shell.tsx:4450:  setError(
+  src\app\sarathi\life-report\_shell.tsx:4451:    err?.message || "Something went wrong while generating 
+your report."
+  src\app\sarathi\life-report\_shell.tsx:4458:
+> src\app\sarathi\life-report\_shell.tsx:4459:  /* ---------------- Tab 1: Placements ---------------- */
+  src\app\sarathi\life-report\_shell.tsx:4460:
+> src\app\sarathi\life-report\_shell.tsx:4461:  const TabPlacements = (() => {
+  src\app\sarathi\life-report\_shell.tsx:4462:  if (!report) {
+  src\app\sarathi\life-report\_shell.tsx:4463:    return (
+  src\app\sarathi\life-report\_shell.tsx:4464:      <>
+  src\app\sarathi\life-report\_shell.tsx:4465:        {engineUnavailable && (
+  src\app\sarathi\life-report\_shell.tsx:4544:              <CardTitle className="text-xl font-semibold 
+flex flex-wrap gap-2 items-baseline">
+> src\app\sarathi\life-report\_shell.tsx:4545:                Core birth signature
+  src\app\sarathi\life-report\_shell.tsx:4546:                {report.ascSign && (
+  src\app\sarathi\life-report\_shell.tsx:4547:                  <Badge variant="secondary" 
+className="rounded-lg text-xs">
+  src\app\sarathi\life-report\_shell.tsx:4548:                    Rising: {report.ascSign}
+  src\app\sarathi\life-report\_shell.tsx:4549:                  </Badge>
+  src\app\sarathi\life-report\_shell.tsx:4726:    <CardHeader className="pb-3">
+> src\app\sarathi\life-report\_shell.tsx:4727:      <CardTitle className="text-lg font-semibold 
+text-slate-50">Your life themes</CardTitle>
+  src\app\sarathi\life-report\_shell.tsx:4728:      <div className="text-sm text-white/70">
+  src\app\sarathi\life-report\_shell.tsx:4729:        A simple, practical view of what your chart 
+emphasizes — no astrology knowledge needed.
+  src\app\sarathi\life-report\_shell.tsx:4730:      </div>
+  src\app\sarathi\life-report\_shell.tsx:4731:    </CardHeader>
+  src\app\sarathi\life-report\_shell.tsx:4814:</motion.div>
+> src\app\sarathi\life-report\_shell.tsx:4815:{/* What to focus on now */}
+  src\app\sarathi\life-report\_shell.tsx:4816:<motion.div variants={fadeUpSmall}>
+  src\app\sarathi\life-report\_shell.tsx:4817:  <Card className="rounded-2xl border border-indigo-400/15 
+bg-indigo-950/40 backdrop-blur-md shadow-xl shadow-[0_0_30px_rgba(99,102,241,0.10)]">
+  src\app\sarathi\life-report\_shell.tsx:4818:    <CardHeader className="pb-3">
+> src\app\sarathi\life-report\_shell.tsx:4819:      <CardTitle className="text-base font-semibold 
+text-slate-50">What to focus on now</CardTitle>
+  src\app\sarathi\life-report\_shell.tsx:4820:      <div className="text-sm text-white/70">
+  src\app\sarathi\life-report\_shell.tsx:4821:        A simple direction for the next few weeks — 
+practical, not predictive.
+  src\app\sarathi\life-report\_shell.tsx:4822:      </div>
+  src\app\sarathi\life-report\_shell.tsx:4823:    </CardHeader>
+  src\app\sarathi\life-report\_shell.tsx:4854:      <div className="pt-2 text-xs text-white/70">
+> src\app\sarathi\life-report\_shell.tsx:4855:        Want this customized to your current dasha + 
+transits? Use{" "}
+  src\app\sarathi\life-report\_shell.tsx:4856:<span className="font-medium">{"Ask Sārathi"}</span>.
+  src\app\sarathi\life-report\_shell.tsx:4857:      </div>
+  src\app\sarathi\life-report\_shell.tsx:4858:    </CardContent>
+  src\app\sarathi\life-report\_shell.tsx:4859:  </Card>
+  src\app\sarathi\life-report\_shell.tsx:4861:
+> src\app\sarathi\life-report\_shell.tsx:4862:{/* Wheel + placements (collapsed by default) */}
+  src\app\sarathi\life-report\_shell.tsx:4863:<div className="mt-10 border-t border-white/15 pt-6 
+bg-[linear-gradient(to_bottom,rgba(255,255,255,0.02),transparent_35%)]">
+  src\app\sarathi\life-report\_shell.tsx:4864:  <motion.div variants={fadeUpSmall} className="space-y-4">
+  src\app\sarathi\life-report\_shell.tsx:4865:    <Accordion type="single" collapsible 
+className="w-full">
+> src\app\sarathi\life-report\_shell.tsx:4866:      <AccordionItem value="placements-details">
+  src\app\sarathi\life-report\_shell.tsx:4867:        <AccordionTrigger className="text-sm font-semibold 
+text-slate-100 hover:text-white [&_svg]:text-slate-200 [&_svg]:opacity-80">
+> src\app\sarathi\life-report\_shell.tsx:4868:          Advanced astrology (planets, houses & 
+interpretations)
+  src\app\sarathi\life-report\_shell.tsx:4869:        </AccordionTrigger>
+  src\app\sarathi\life-report\_shell.tsx:4870:
+  src\app\sarathi\life-report\_shell.tsx:4871:        <AccordionContent>
+  src\app\sarathi\life-report\_shell.tsx:4872:          <div className="mb-3 text-xs text-white/70">
+> src\app\sarathi\life-report\_shell.tsx:4873:            For advanced users: technical chart details 
+like planet positions, houses, and deeper interpretations.
+  src\app\sarathi\life-report\_shell.tsx:4874:          </div>
+  src\app\sarathi\life-report\_shell.tsx:4875:
+  src\app\sarathi\life-report\_shell.tsx:4876:          {report.planets?.length ? (
+  src\app\sarathi\life-report\_shell.tsx:4877:            <Card className="rounded-2xl border 
+border-indigo-400/15 bg-indigo-950/40 backdrop-blur-md shadow-xl 
+shadow-[0_0_30px_rgba(99,102,241,0.10)]">
+  src\app\sarathi\life-report\_shell.tsx:4879:                <CardTitle className="text-xl 
+font-semibold flex items-center justify-between">
+> src\app\sarathi\life-report\_shell.tsx:4880:                  Planet placements
+  src\app\sarathi\life-report\_shell.tsx:4881:                </CardTitle>
+  src\app\sarathi\life-report\_shell.tsx:4882:              </CardHeader>
+  src\app\sarathi\life-report\_shell.tsx:4883:
+  src\app\sarathi\life-report\_shell.tsx:4884:              <CardContent className="space-y-5 text-sm">
+  src\app\sarathi\life-report\_shell.tsx:4904:              <CardContent className="text-sm 
+text-white/70">
+> src\app\sarathi\life-report\_shell.tsx:4905:                Generate again to see planet placements.
+  src\app\sarathi\life-report\_shell.tsx:4906:              </CardContent>
+  src\app\sarathi\life-report\_shell.tsx:4907:            </Card>
+  src\app\sarathi\life-report\_shell.tsx:4908:          )}
+  src\app\sarathi\life-report\_shell.tsx:4909:        </AccordionContent>
+  src\app\sarathi\life-report\_shell.tsx:4929:        report.planets,
+> src\app\sarathi\life-report\_shell.tsx:4930:        report.aspects,
+  src\app\sarathi\life-report\_shell.tsx:4931:        report.ascNakshatraName,
+  src\app\sarathi\life-report\_shell.tsx:4932:        report.moonNakshatraName
+  src\app\sarathi\life-report\_shell.tsx:4933:      );
+  src\app\sarathi\life-report\_shell.tsx:4934:
+  src\app\sarathi\life-report\_shell.tsx:4946:        <AccordionTrigger className="text-sm font-semibold 
+text-slate-100 hover:text-white [&_svg]:text-slate-200 [&_svg]:opacity-80">
+> src\app\sarathi\life-report\_shell.tsx:4947:          Sārathi's Perspective (advanced)
+  src\app\sarathi\life-report\_shell.tsx:4948:        </AccordionTrigger>
+  src\app\sarathi\life-report\_shell.tsx:4949:
+  src\app\sarathi\life-report\_shell.tsx:4950:        <AccordionContent>
+  src\app\sarathi\life-report\_shell.tsx:4951:          <div className="mb-3 text-xs text-white/70">
+  src\app\sarathi\life-report\_shell.tsx:5072:  timelineSummary: string;
+> src\app\sarathi\life-report\_shell.tsx:5073:  dashaTransitSummary: string;
+  src\app\sarathi\life-report\_shell.tsx:5074:};
+  src\app\sarathi\life-report\_shell.tsx:5075:
+  src\app\sarathi\life-report\_shell.tsx:5076:const TabTimeline: React.FC<TabTimelineProps> = memo(
+> src\app\sarathi\life-report\_shell.tsx:5077:  ({ report, mounted, timelineSummary, dashaTransitSummary 
+}) => {
+  src\app\sarathi\life-report\_shell.tsx:5078:    if (!report) return null;
+  src\app\sarathi\life-report\_shell.tsx:5079:    const ap = report.activePeriods as any;
+  src\app\sarathi\life-report\_shell.tsx:5080:
+  src\app\sarathi\life-report\_shell.tsx:5081:    const sectionTrigger =
+  src\app\sarathi\life-report\_shell.tsx:5092:      >
+> src\app\sarathi\life-report\_shell.tsx:5093:        {/* 1) Current dasha progress (simple, always 
+visible) */}
+  src\app\sarathi\life-report\_shell.tsx:5094:        {ap && (
+  src\app\sarathi\life-report\_shell.tsx:5095:          <Card className="rounded-2xl border 
+border-indigo-400/15 bg-indigo-950/40 backdrop-blur-md shadow-xl 
+shadow-[0_0_30px_rgba(99,102,241,0.10)]">
+  src\app\sarathi\life-report\_shell.tsx:5096:            <CardHeader className="pb-2">
+  src\app\sarathi\life-report\_shell.tsx:5097:              <CardTitle className="text-lg font-semibold 
+text-slate-100">
+> src\app\sarathi\life-report\_shell.tsx:5098:                Current Dasha Progress
+  src\app\sarathi\life-report\_shell.tsx:5099:              </CardTitle>
+  src\app\sarathi\life-report\_shell.tsx:5100:              <p className={subNote}>
+> src\app\sarathi\life-report\_shell.tsx:5101:                Where you are right now in the dasha cycle 
+(big → medium → short).
+  src\app\sarathi\life-report\_shell.tsx:5102:              </p>
+  src\app\sarathi\life-report\_shell.tsx:5103:            </CardHeader>
+  src\app\sarathi\life-report\_shell.tsx:5104:
+  src\app\sarathi\life-report\_shell.tsx:5105:            <CardContent className="space-y-3">
+> src\app\sarathi\life-report\_shell.tsx:5106:              {ap.mahadasha && (
+> src\app\sarathi\life-report\_shell.tsx:5107:                <DashaBar
+> src\app\sarathi\life-report\_shell.tsx:5108:                  label={`Mahadasha — 
+${ap.mahadasha.lord}`}
+> src\app\sarathi\life-report\_shell.tsx:5109:                  start={ap.mahadasha.start}
+> src\app\sarathi\life-report\_shell.tsx:5110:                  end={ap.mahadasha.end}
+> src\app\sarathi\life-report\_shell.tsx:5111:                  subtitle={ap.mahadasha.summary}
+  src\app\sarathi\life-report\_shell.tsx:5112:                />
+  src\app\sarathi\life-report\_shell.tsx:5113:              )}
+  src\app\sarathi\life-report\_shell.tsx:5114:
+> src\app\sarathi\life-report\_shell.tsx:5115:              {ap.antardasha && (
+> src\app\sarathi\life-report\_shell.tsx:5116:                <DashaBar
+> src\app\sarathi\life-report\_shell.tsx:5117:                  label={`Antardasha — 
+${ap.antardasha.subLord} (in ${ap.antardasha.mahaLord})`}
+> src\app\sarathi\life-report\_shell.tsx:5118:                  start={ap.antardasha.start}
+> src\app\sarathi\life-report\_shell.tsx:5119:                  end={ap.antardasha.end}
+> src\app\sarathi\life-report\_shell.tsx:5120:                  subtitle={ap.antardasha.summary}
+  src\app\sarathi\life-report\_shell.tsx:5121:                />
+  src\app\sarathi\life-report\_shell.tsx:5122:              )}
+  src\app\sarathi\life-report\_shell.tsx:5123:
+> src\app\sarathi\life-report\_shell.tsx:5124:              {ap.pratyantardasha && (
+> src\app\sarathi\life-report\_shell.tsx:5125:                <DashaBar
+> src\app\sarathi\life-report\_shell.tsx:5126:                  label={`Pratyantardasha — 
+${ap.pratyantardasha.lord}`}
+> src\app\sarathi\life-report\_shell.tsx:5127:                  start={ap.pratyantardasha.start}
+> src\app\sarathi\life-report\_shell.tsx:5128:                  end={ap.pratyantardasha.end}
+> src\app\sarathi\life-report\_shell.tsx:5129:                  subtitle={ap.pratyantardasha.summary}
+  src\app\sarathi\life-report\_shell.tsx:5130:                />
+  src\app\sarathi\life-report\_shell.tsx:5131:              )}
+  src\app\sarathi\life-report\_shell.tsx:5132:            </CardContent>
+  src\app\sarathi\life-report\_shell.tsx:5133:          </Card>
+  src\app\sarathi\life-report\_shell.tsx:5143:            <AccordionTrigger className={sectionTrigger}>
+> src\app\sarathi\life-report\_shell.tsx:5144:              Dasha × Transits — Year Ahead Insight
+  src\app\sarathi\life-report\_shell.tsx:5145:            </AccordionTrigger>
+  src\app\sarathi\life-report\_shell.tsx:5146:
+  src\app\sarathi\life-report\_shell.tsx:5147:            <AccordionContent className="pt-2">
+  src\app\sarathi\life-report\_shell.tsx:5148:              <p className={subNote}>
+  src\app\sarathi\life-report\_shell.tsx:5149:                A simple “what to expect” story for the 
+coming year, based on your running
+> src\app\sarathi\life-report\_shell.tsx:5150:                dasha + major transits.
+  src\app\sarathi\life-report\_shell.tsx:5151:              </p>
+  src\app\sarathi\life-report\_shell.tsx:5152:
+  src\app\sarathi\life-report\_shell.tsx:5153:              <div className="mt-3">
+> src\app\sarathi\life-report\_shell.tsx:5154:                {dashaTransitSummary ? (
+  src\app\sarathi\life-report\_shell.tsx:5155:                  <Card className={ACC_CARD}>
+  src\app\sarathi\life-report\_shell.tsx:5156:                    <CardContent className="pt-4">
+  src\app\sarathi\life-report\_shell.tsx:5157:                      <div className="text-slate-100 
+text-sm leading-relaxed">
+> src\app\sarathi\life-report\_shell.tsx:5158:                        
+{renderAiTextBlocks(cleanTransitText(dashaTransitSummary))}
+  src\app\sarathi\life-report\_shell.tsx:5159:                      </div>
+  src\app\sarathi\life-report\_shell.tsx:5160:                    </CardContent>
+  src\app\sarathi\life-report\_shell.tsx:5161:                  </Card>
+  src\app\sarathi\life-report\_shell.tsx:5162:                ) : (
+  src\app\sarathi\life-report\_shell.tsx:5170:
+> src\app\sarathi\life-report\_shell.tsx:5171:          {/* Life story overview (hide if it's the same 
+as year-ahead) */}
+  src\app\sarathi\life-report\_shell.tsx:5172:{(() => {
+> src\app\sarathi\life-report\_shell.tsx:5173:  const y = (dashaTransitSummary || "").trim();
+  src\app\sarathi\life-report\_shell.tsx:5174:  const t = (timelineSummary || "").trim();
+  src\app\sarathi\life-report\_shell.tsx:5175:  const isDuplicate = !!y && !!t && y === t;
+  src\app\sarathi\life-report\_shell.tsx:5176:
+  src\app\sarathi\life-report\_shell.tsx:5177:  if (isDuplicate) return null;
+  src\app\sarathi\life-report\_shell.tsx:5179:  return (
+> src\app\sarathi\life-report\_shell.tsx:5180:    <AccordionItem value="life-overview">
+  src\app\sarathi\life-report\_shell.tsx:5181:      <AccordionTrigger className="text-xs font-medium 
+text-white/70">
+> src\app\sarathi\life-report\_shell.tsx:5182:        Life Story Overview
+  src\app\sarathi\life-report\_shell.tsx:5183:      </AccordionTrigger>
+  src\app\sarathi\life-report\_shell.tsx:5184:
+  src\app\sarathi\life-report\_shell.tsx:5185:      <AccordionContent>
+  src\app\sarathi\life-report\_shell.tsx:5186:        {t ? (
+  src\app\sarathi\life-report\_shell.tsx:5193:          <p className={"text-xs " + ACC_MUTED}>
+> src\app\sarathi\life-report\_shell.tsx:5194:            Your life themes will appear here once your 
+report summary is ready.
+  src\app\sarathi\life-report\_shell.tsx:5195:          </p>
+  src\app\sarathi\life-report\_shell.tsx:5196:        )}
+  src\app\sarathi\life-report\_shell.tsx:5197:      </AccordionContent>
+  src\app\sarathi\life-report\_shell.tsx:5198:    </AccordionItem>
+  src\app\sarathi\life-report\_shell.tsx:5202:          {/* C) Vimshottari timeline (compact list) */}
+> src\app\sarathi\life-report\_shell.tsx:5203:          {Array.isArray(report.dashaTimeline) && 
+report.dashaTimeline.length > 0 && (
+  src\app\sarathi\life-report\_shell.tsx:5204:            <AccordionItem
+  src\app\sarathi\life-report\_shell.tsx:5205:              value="timeline"
+  src\app\sarathi\life-report\_shell.tsx:5206:              className={"rounded-2xl border " + divider + 
+" bg-indigo-950/40"}
+  src\app\sarathi\life-report\_shell.tsx:5207:            >
+  src\app\sarathi\life-report\_shell.tsx:5208:              <AccordionTrigger className={sectionTrigger}>
+> src\app\sarathi\life-report\_shell.tsx:5209:                Vimshottari Mahadasha Timeline
+  src\app\sarathi\life-report\_shell.tsx:5210:              </AccordionTrigger>
+  src\app\sarathi\life-report\_shell.tsx:5211:
+  src\app\sarathi\life-report\_shell.tsx:5212:              <AccordionContent className="pt-2">
+  src\app\sarathi\life-report\_shell.tsx:5213:                <p className={subNote}>
+> src\app\sarathi\life-report\_shell.tsx:5214:                  The full sequence of mahadashas. The 
+active one is highlighted.
+  src\app\sarathi\life-report\_shell.tsx:5215:                </p>
+  src\app\sarathi\life-report\_shell.tsx:5216:
+  src\app\sarathi\life-report\_shell.tsx:5217:                <div className="mt-3">
+  src\app\sarathi\life-report\_shell.tsx:5218:                  <Card className={ACC_CARD}>
+  src\app\sarathi\life-report\_shell.tsx:5219:                    <CardContent className="pt-4 
+space-y-2">
+> src\app\sarathi\life-report\_shell.tsx:5220:                      {report.dashaTimeline.map((row: any, 
+idx: number) => {
+  src\app\sarathi\life-report\_shell.tsx:5221:                        const now = Date.now();
+  src\app\sarathi\life-report\_shell.tsx:5222:                        const s = new 
+Date(row.startISO).getTime();
+  src\app\sarathi\life-report\_shell.tsx:5223:                        const e = new 
+Date(row.endISO).getTime();
+  src\app\sarathi\life-report\_shell.tsx:5224:                        const isActive = now >= s && now 
+<= e;
+  src\app\sarathi\life-report\_shell.tsx:5237:                              <div className="text-[11px] 
+font-semibold uppercase tracking-wide text-white/60">
+> src\app\sarathi\life-report\_shell.tsx:5238:                                {row.planet} Mahadasha
+  src\app\sarathi\life-report\_shell.tsx:5239:                              </div>
+  src\app\sarathi\life-report\_shell.tsx:5240:                              <div className="text-[13px] 
+text-white/70">
+  src\app\sarathi\life-report\_shell.tsx:5241:                                {row.startISO} → 
+{row.endISO}
+  src\app\sarathi\life-report\_shell.tsx:5242:                              </div>
+  src\app\sarathi\life-report\_shell.tsx:5266:              <AccordionTrigger className={sectionTrigger}>
+> src\app\sarathi\life-report\_shell.tsx:5267:                Life Story — Key Phases
+  src\app\sarathi\life-report\_shell.tsx:5268:              </AccordionTrigger>
+  src\app\sarathi\life-report\_shell.tsx:5269:
+  src\app\sarathi\life-report\_shell.tsx:5270:              <AccordionContent className="pt-2">
+  src\app\sarathi\life-report\_shell.tsx:5271:                <p className={subNote}>
+  src\app\sarathi\life-report\_shell.tsx:5387:
+> src\app\sarathi\life-report\_shell.tsx:5388:      const dashaStack = (report as any)?.activePeriods ?? 
+null;
+  src\app\sarathi\life-report\_shell.tsx:5389:
+  src\app\sarathi\life-report\_shell.tsx:5390:      const core: CoreSignals = {
+  src\app\sarathi\life-report\_shell.tsx:5391:        birth: {
+  src\app\sarathi\life-report\_shell.tsx:5392:          dateISO: dateISO || new 
+Date().toISOString().slice(0, 10),
+  src\app\sarathi\life-report\_shell.tsx:5398:        },
+> src\app\sarathi\life-report\_shell.tsx:5399:        dashaStack,
+  src\app\sarathi\life-report\_shell.tsx:5400:        transits: (transits ?? []).map((t: any) => ({
+  src\app\sarathi\life-report\_shell.tsx:5401:          planet: t.planet,
+  src\app\sarathi\life-report\_shell.tsx:5402:          house: t.house,
+  src\app\sarathi\life-report\_shell.tsx:5403:          sign: t.sign,
+  src\app\sarathi\life-report\_shell.tsx:5538:
+> src\app\sarathi\life-report\_shell.tsx:5539:    // 2) Dasha timeline (MD/AD/PD windows)
+  src\app\sarathi\life-report\_shell.tsx:5540:    const timeline =
+> src\app\sarathi\life-report\_shell.tsx:5541:      Array.isArray(rep.dashaTimeline)
+> src\app\sarathi\life-report\_shell.tsx:5542:        ? rep.dashaTimeline
+  src\app\sarathi\life-report\_shell.tsx:5543:        : Array.isArray(rep.timelineWindows)
+  src\app\sarathi\life-report\_shell.tsx:5544:        ? rep.timelineWindows
+  src\app\sarathi\life-report\_shell.tsx:5545:        : [];
+  src\app\sarathi\life-report\_shell.tsx:5546:
+  src\app\sarathi\life-report\_shell.tsx:5721:          <TabsList className="flex flex-wrap gap-2">
+> src\app\sarathi\life-report\_shell.tsx:5722:  <TabsTrigger value="overview">Overview</TabsTrigger>
+> src\app\sarathi\life-report\_shell.tsx:5723:  <TabsTrigger value="phases">Life Phases</TabsTrigger>
+  src\app\sarathi\life-report\_shell.tsx:5724:  <TabsTrigger value="now">Now & Near Future</TabsTrigger>
+> src\app\sarathi\life-report\_shell.tsx:5725:  <TabsTrigger value="advanced">Advanced</TabsTrigger>
+  src\app\sarathi\life-report\_shell.tsx:5726:</TabsList>
+  src\app\sarathi\life-report\_shell.tsx:5727:        </Tabs>
+  src\app\sarathi\life-report\_shell.tsx:5728:
+  src\app\sarathi\life-report\_shell.tsx:5729:        <Link href="/sarathi/chat" className="md:ml-4">
+  src\app\sarathi\life-report\_shell.tsx:5744:<div className="mt-4 space-y-6">
+> src\app\sarathi\life-report\_shell.tsx:5745:  {/* OVERVIEW = show ONLY placements (core signature) + 
+personality summary */}
+> src\app\sarathi\life-report\_shell.tsx:5746:  {activeTab === "overview" && (
+  src\app\sarathi\life-report\_shell.tsx:5747:    <div className="space-y-6">
+> src\app\sarathi\life-report\_shell.tsx:5748:      {TabPlacements}
+  src\app\sarathi\life-report\_shell.tsx:5749:
+> src\app\sarathi\life-report\_shell.tsx:5750:      {/* Keep personality, but it now belongs to Overview 
+*/}
+  src\app\sarathi\life-report\_shell.tsx:5751:      <TabPersonality report={report} 
+aiSummary={aiSummary} />
+  src\app\sarathi\life-report\_shell.tsx:5752:    </div>
+  src\app\sarathi\life-report\_shell.tsx:5753:  )}
+  src\app\sarathi\life-report\_shell.tsx:5754:
+> src\app\sarathi\life-report\_shell.tsx:5755:  {/* LIFE PHASES = timeline only */}
+  src\app\sarathi\life-report\_shell.tsx:5756:  {activeTab === "phases" && (
+  src\app\sarathi\life-report\_shell.tsx:5757:    <TabTimeline
+  src\app\sarathi\life-report\_shell.tsx:5758:      report={report}
+  src\app\sarathi\life-report\_shell.tsx:5759:      mounted={mounted}
+  src\app\sarathi\life-report\_shell.tsx:5760:      timelineSummary={timelineSummary}
+> src\app\sarathi\life-report\_shell.tsx:5761:      dashaTransitSummary={dashaTransitSummary}
+  src\app\sarathi\life-report\_shell.tsx:5762:    />
+  src\app\sarathi\life-report\_shell.tsx:5763:  )}
+  src\app\sarathi\life-report\_shell.tsx:5764:
+  src\app\sarathi\life-report\_shell.tsx:5765:  {/* NOW & NEAR FUTURE = transits only */}
+  src\app\sarathi\life-report\_shell.tsx:5778:
+> src\app\sarathi\life-report\_shell.tsx:5779:  {/* ADVANCED = everything that overwhelms */}
+> src\app\sarathi\life-report\_shell.tsx:5780:  {activeTab === "advanced" && (
+  src\app\sarathi\life-report\_shell.tsx:5781:    <div className="space-y-6">
+  src\app\sarathi\life-report\_shell.tsx:5782:      {/* Daily guide stays accessible but not “primary” 
+*/}
+  src\app\sarathi\life-report\_shell.tsx:5783:      <div className="space-y-4">
+  src\app\sarathi\life-report\_shell.tsx:5784:        <TabDailyGuide
+
+

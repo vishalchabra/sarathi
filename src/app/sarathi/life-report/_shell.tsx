@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, {
   Suspense,
@@ -42,7 +42,7 @@ import { saveBirthProfile } from "@/lib/birth-profile";
 const AYANAMSA_LAHIRI_APPROX = 23.85;
 
 
-/* ---------------- Locking city autocomplete (simplified – always typeable) ---------------- */
+/* ---------------- Locking city autocomplete (simplified ? always typeable) ---------------- */
 
 
 const cityCache = new Map<string, Array<{ name: string; lat: number; lon: number }>>();
@@ -52,7 +52,7 @@ type PlaceLite = { name: string; lat: number; lon: number; tz?: string };
 function LockingCityAutocomplete({
   value,
   onSelect,
-  placeholder = "Start typing a city…",
+  placeholder = "Start typing a city?",
 }: {
   value: { name: string; lat: number; lon: number } | null;
   onSelect: (p: { name: string; lat: number; lon: number } | null) => void;
@@ -202,7 +202,7 @@ function LockingCityAutocomplete({
           aria-label="Clear"
           title="Clear"
         >
-          ×
+          ?
         </button>
       )}
 
@@ -212,7 +212,7 @@ function LockingCityAutocomplete({
           className="absolute z-20 mt-1 w-full rounded-md border bg-popover text-popover-foreground shadow"
         >
           {loading && (
-            <div className="px-3 py-2 text-sm text-white/70">Searching…</div>
+            <div className="px-3 py-2 text-sm text-white/70">Searching?</div>
           )}
           {!loading && !items.length && (
             <div className="px-3 py-2 text-sm text-white/70">No results</div>
@@ -256,7 +256,7 @@ type PanchangInfo = {
 
   meta?: Record<string, any>;
 
-  // 🕒 Timings
+  // ?? Timings
   sunrise?: string | null;
   sunriseISO?: string | null;
   sunset?: string | null;
@@ -266,7 +266,7 @@ type PanchangInfo = {
   moonset?: string | null;
   moonsetISO?: string | null;
 
-  // 🕑 Kaal windows (we’ll still show “— – —” until backend sends structured ranges)
+  // ?? Kaal windows (we?ll still show ?? ? ?? until backend sends structured ranges)
   rahuKaal?: any;
   gulikaKaal?: any;
   abhijit?: any;
@@ -433,7 +433,7 @@ function signIndexFromName(s?: string | null) {
   return i;
 }
 
-/** Light, date-aware Lahiri ayanāṁśa (deg). Base ~23.856° at 2000 CE, +50.29″/yr. */
+/** Light, date-aware Lahiri ayana?sa (deg). Base ~23.856? at 2000 CE, +50.29?/yr. */
 function lahiriAyanamsaDegrees(date: Date) {
   const year = date.getUTCFullYear();
   const base = 23.856; // around J2000
@@ -441,7 +441,7 @@ function lahiriAyanamsaDegrees(date: Date) {
   return base + (year - 2000) * perYear;
 }
 
-/** Convert tropical ecliptic longitude → sidereal (Lahiri). */
+/** Convert tropical ecliptic longitude ? sidereal (Lahiri). */
 function toSidereal(tropicalDeg: number, at: Date) {
   const ay = lahiriAyanamsaDegrees(at);
   return mod360(tropicalDeg - ay);
@@ -522,7 +522,7 @@ function toNum(x: any): number | undefined {
   return Number.isFinite(n) ? (n as number) : undefined;
 }
 
-// --- Yoga / Karana from sidereal ⊙ & ☾ ---
+// --- Yoga / Karana from sidereal ? & ? ---
 
 const KARANA_MOVABLE = [
   "Bava",
@@ -539,7 +539,7 @@ function norm360(x: number) {
   return ((x % 360) + 360) % 360;
 }
 
-/** Yoga = floor( (Sun + Moon) / 13°20' ) over 27 parts (sidereal) */
+/** Yoga = floor( (Sun + Moon) / 13?20' ) over 27 parts (sidereal) */
 function computeYogaName(
   sunSidDeg?: number,
   moonSidDeg?: number
@@ -550,7 +550,7 @@ function computeYogaName(
   return YOGAS_27[idx];
 }
 
-/** Karana: K = floor( (Moon - Sun) / 6° ) over 60 parts; mapping per canonical rules */
+/** Karana: K = floor( (Moon - Sun) / 6? ) over 60 parts; mapping per canonical rules */
 function computeKaranaName(
   sunSidDeg?: number,
   moonSidDeg?: number
@@ -560,7 +560,7 @@ function computeKaranaName(
   const K = Math.floor(D / 6); // 0..59
 
   // Fixed (sthira) karanas at specific K values:
-  // 57 → Shakuni, 58 → Chatushpada, 59 → Naga, 0 → Kimstughna
+  // 57 ? Shakuni, 58 ? Chatushpada, 59 ? Naga, 0 ? Kimstughna
   if (K === 57) return "Shakuni";
   if (K === 58) return "Chatushpada";
   if (K === 59) return "Naga";
@@ -900,7 +900,7 @@ function parsePersonality(raw: unknown): { bullets: string[]; closing: string } 
     // ignore
   }
 
-  // plain text fallback → split into lines if it looks list-y
+  // plain text fallback ? split into lines if it looks list-y
   const lines = str
     .split("\n")
     .map((x) => x.trim())
@@ -925,6 +925,39 @@ function normalizeDateToISO(input: string): string {
 }
 
 // ---------------- Weekly guidance helper (client-side) ----------------
+function fixWeirdEncoding(input: string) {
+  const s = String(input ?? "");
+
+  return s
+    // 1) Kill the Unicode replacement char (often rendered as �)
+    .replace(/\uFFFD/g, "")
+
+    // 2) Common mojibake sequences (as literal unicode codepoints)
+    .replace(/\u00E2\u0080\u0099/g, "\u2019") // â€™ -> ’
+    .replace(/\u00E2\u0080\u009C/g, "\u201C") // â€œ -> “
+    .replace(/\u00E2\u0080\u009D/g, "\u201D") // â€� -> ”
+    .replace(/\u00E2\u0080\u0093/g, "\u2013") // â€“ -> –
+    .replace(/\u00E2\u0080\u0094/g, "\u2014") // â€” -> —
+    .replace(/\u00E2\u0080\u00A6/g, "\u2026") // â€¦ -> …
+    .replace(/\u00E2\u0086\u0092/g, "\u2192") // â†’ -> →
+
+    // 3) Drop stray Â and NBSP
+    .replace(/\u00C2/g, "")
+    .replace(/\u00A0/g, " ")
+// --- Normalize " ? " separators (these are NOT real questions) ---
+// Convert "word ? word" → "word — word"
+.replace(/\s\?\s/g, " — ")
+
+// Convert repeated separators (if any)
+.replace(/\s—\s—\s/g, " — ")
+// Fix common broken apostrophes from copy/paste
+.replace(/(\w)\?(\w)/g, "$1'$2")
+
+    // 4) LAST resort: remove lone question marks that come from corruption.
+    //    (Conservative: only remove question marks that are surrounded by spaces)
+    .replace(/\s\?\s/g, " ");
+}
+
 
 function fmtRangeLabel(start: Date, end: Date): string {
   // Use UTC so it's stable and not affected by local time zone shifts
@@ -953,12 +986,12 @@ function fmtRangeLabel(start: Date, end: Date): string {
     }).format(start);
     const d1 = start.getUTCDate();
     const d2 = end.getUTCDate();
-    // e.g. "Nov 20–26"
-    return `${month} ${d1}–${d2}`;
+    // e.g. "Nov 20?26"
+    return `${month} ${d1}?${d2}`;
   }
 
-  // Different months or years, e.g. "Nov 30 – Dec 6"
-  return `${fmt.format(start)} – ${fmt.format(end)}`;
+  // Different months or years, e.g. "Nov 30 ? Dec 6"
+  return `${fmt.format(start)} ? ${fmt.format(end)}`;
 }
 
 type WeeklyInsight = { label: string; text: string };
@@ -1055,7 +1088,7 @@ function buildWeeklyFromTransits(
       const strongest = active[0];
       const planet = strongest.planet;
       const target = strongest.target || "a key natal point";
-      extra = ` A noticeable influence from ${planet} ${target} is active in the background — stay conscious, go slow and avoid big reactions.`;
+      extra = ` A noticeable influence from ${planet} ${target} is active in the background ? stay conscious, go slow and avoid big reactions.`;
     }
 
     out.push({
@@ -1249,7 +1282,7 @@ function houseFocusFromMoon(h?: number): string {
     case 1:
       return "your own mood, body, confidence and how you show up";
     default:
-      return "your overall mood and the day’s emotional flow";
+      return "your overall mood and the day?s emotional flow";
   }
 }
 function shortCategoryLabel(
@@ -1317,7 +1350,7 @@ function buildDailyFromMoonAndTransits(
       (m as any)?.moonNakshatra ??
       "this nakshatra";
 
-    // 🔹 This was missing – define relHouse safely from any of the fields
+    // ?? This was missing ? define relHouse safely from any of the fields
     const relHouse =
       typeof (m as any)?.relativeHouseFromMoon === "number"
         ? (m as any).relativeHouseFromMoon
@@ -1620,12 +1653,12 @@ const guessSiderealDegFrom = (pl: PlanetRow): number | undefined => {
 
   const signIdx = signIndexFromName(pl?.sign);
 
-  // Case: raw is 0–30 = within sign, use sign index to build 0–360
+  // Case: raw is 0?30 = within sign, use sign index to build 0?360
   if (raw >= 0 && raw < 30 && signIdx >= 0) {
     return wrap360(signIdx * 30 + raw);
   }
 
-  // Case: raw looks already 0–360 sidereal and matches sign
+  // Case: raw looks already 0?360 sidereal and matches sign
   if (signIdx >= 0 && signIndexFromDeg(raw) === signIdx) {
     return wrap360(raw);
   }
@@ -1636,8 +1669,58 @@ const guessSiderealDegFrom = (pl: PlanetRow): number | undefined => {
     return sidGuess;
   }
 
-  // If we can't be clever, still return the guess — better than nothing
+  // If we can't be clever, still return the guess ? better than nothing
   return sidGuess;
+};
+const PLANET_PRACTICE: Record<
+  string,
+  { strength: string; pressure: string; action: string }
+> = {
+  Sun: {
+    strength: "Leadership, clarity, and long-term purpose.",
+    pressure: "Over-responsibility or rigidity when outcomes matter.",
+    action: "Decide one priority for the week and say no to one distraction.",
+  },
+  Moon: {
+    strength: "Emotional intelligence, creativity, and intuition.",
+    pressure: "Mood-driven decisions or withdrawing when overloaded.",
+    action: "Protect sleep + take 10 minutes of quiet reset daily.",
+  },
+  Mars: {
+    strength: "Courage, initiative, and decisive action.",
+    pressure: "Impatience, conflict, or forcing outcomes too early.",
+    action: "Channel energy into one measurable task; avoid multitasking fights.",
+  },
+  Mercury: {
+    strength: "Learning, strategy, communication, and problem-solving.",
+    pressure: "Overthinking, anxiety, or mental restlessness.",
+    action: "Write the plan in 5 bullets; then execute step 1 today.",
+  },
+  Jupiter: {
+    strength: "Growth, mentorship, faith, and higher meaning.",
+    pressure: "Over-promising or waiting for perfect confidence.",
+    action: "Pick one skill to deepen for 30 days; track progress weekly.",
+  },
+  Venus: {
+    strength: "Harmony, relationships, taste, and value alignment.",
+    pressure: "People-pleasing or comfort spending.",
+    action: "Set one boundary + one ?delight? habit that doesn?t cost much.",
+  },
+  Saturn: {
+    strength: "Discipline, endurance, and mastery through structure.",
+    pressure: "Fear, delay-frustration, or self-criticism.",
+    action: "Build a routine: same time, small steps, 5 days/week.",
+  },
+  Rahu: {
+    strength: "Ambition, innovation, and breakthrough hunger.",
+    pressure: "Restlessness, obsession, or shortcuts.",
+    action: "Choose 1 bold goal, but add 1 safety rule you won?t break.",
+  },
+  Ketu: {
+    strength: "Detachment, insight, spiritual intelligence.",
+    pressure: "Disengagement or ?why bother? phases.",
+    action: "Do one grounding ritual daily (walk, breathwork, prayer, journaling).",
+  },
 };
 
 /* ---------------- Dignity & friends ---------------- */
@@ -1677,7 +1760,7 @@ const OWN: Record<string, string[]> = {
 };
 
 function dignity(planet: string, sign?: string) {
-  if (!sign) return { tag: "—", weight: 0 };
+  if (!sign) return { tag: "?", weight: 0 };
   if (EXALT[planet] === sign) return { tag: "Exalted", weight: +2 };
   if ((OWN[planet] || []).includes(sign)) return { tag: "Own sign", weight: +1 };
   if (DEBIL[planet] === sign) return { tag: "Debilitated", weight: -2 };
@@ -1795,7 +1878,7 @@ function nakTheme(name?: string | null) {
   return map[name] ?? null;
 }
 
-/* ---- zodiac helpers for House → Sign legend ---- */
+/* ---- zodiac helpers for House ? Sign legend ---- */
 
 function wrapIndex(i: number) {
   return ((i % 12) + 12) % 12;
@@ -1926,8 +2009,8 @@ function PlanetWheelSVG({
           return (
             <g key={`${h}-${p.name}-${idx}`}>
               <title>{`${p.name}${
-                p.sign ? ` • ${p.sign}` : ""
-              }${p.house ? ` • House ${p.house}` : ""}`}</title>
+                p.sign ? ` ? ${p.sign}` : ""
+              }${p.house ? ` ? House ${p.house}` : ""}`}</title>
               <circle cx={x} cy={y} r={8} fill="currentColor" fillOpacity="0.1" />
               <circle
                 cx={x}
@@ -1995,8 +2078,8 @@ function normalizePlanets(anyList: any[]): PlanetRow[] {
         toNum(p?.deg);
 
       const row: PlanetRow = {
-        name: name || "—",
-        sign: sign || "—",
+        name: name || "?",
+        sign: sign || "?",
         house: typeof house === "number" ? house : undefined,
         nakshatra,
         note: p?.note ?? p?.dignity ?? p?.status ?? p?.strength,
@@ -2071,19 +2154,19 @@ function buildPersonality(
   if (asc) {
     const d = describeTarget("Ascendant", ascNakshatra ?? asc.nakshatra);
     out.push({
-      headline: `Ascendant • ${asc.sign}${
-        asc.house ? ` • House ${asc.house}` : ""
-      }${ascNakshatra ? ` • ${ascNakshatra}` : ""}`,
+      headline: `Ascendant ? ${asc.sign}${
+        asc.house ? ` ? House ${asc.house}` : ""
+      }${ascNakshatra ? ` ? ${ascNakshatra}` : ""}`,
       bullets: [
         d.theme
           ? `Core vibe: ${d.theme}.`
           : `Core vibe shaped by ${asc.nakshatra || "asc. nakshatra"}.`,
         d.friendly.length
           ? `Supported by: ${d.friendly.join(", ")}.`
-          : "Supported by: —",
+          : "Supported by: ?",
         d.enemy.length
           ? `Pressures from: ${d.enemy.join(", ")}.`
-          : "Pressures from: —",
+          : "Pressures from: ?",
       ],
     });
   }
@@ -2091,19 +2174,20 @@ function buildPersonality(
   if (moon) {
     const d = describeTarget("Moon", moonNakshatra ?? moon.nakshatra);
     out.push({
-      headline: `Moon • ${moon.sign}${
-        moon.house ? ` • House ${moon.house}` : ""
-      }${moonNakshatra ? ` • ${moonNakshatra}` : ""}`,
+      headline: `Moon ? ${moon.sign}${
+        moon.house ? ` ? House ${moon.house}` : ""
+      }${moonNakshatra ? ` ? ${moonNakshatra}` : ""}`,
       bullets: [
         d.theme
           ? `Emotional style: ${d.theme}.`
           : `Emotional style tuned by ${moon.nakshatra || "moon nakshatra"}.`,
         d.friendly.length
-          ? `Nourished by: ${d.friendly.join(", ")}.`
-          : "Nourished by: your own inner reserves (no strong friendly aspects).",
-        d.enemy.length
-          ? `Stressors: ${d.enemy.join(", ")}.`
-          : "Stressors: no major challenging aspects; general mood and environment matter more.",
+  ? `Nourished by: ${d.friendly.join(", ")}.`
+  : "Nourished by: sleep, solitude, music, and a consistent routine.",
+d.enemy.length
+  ? `Stressors: ${d.enemy.join(", ")}.`
+  : "Stressors: overstimulation, irregular schedule, and emotional overload.",
+
       ],
     });
   }
@@ -2114,20 +2198,30 @@ function buildPersonality(
     if (!p) continue;
     const d = describeTarget(k, p.nakshatra);
     out.push({
-      headline: `${k} • ${p.sign}${
-        p.house ? ` • House ${p.house}` : ""
-      }${p.nakshatra ? ` • ${p.nakshatra}` : ""}`,
-      bullets: [
-        d.theme
-          ? `Expression: ${d.theme}.`
-          : `Expression through ${p.nakshatra || "nakshatra"}.`,
-        d.friendly.length
-          ? `Gets help from: ${d.friendly.join(", ")}.`
-          : "Gets help from: inner strength and the basic dignity of this planet (no strong friendly aspects).",
-        d.enemy.length
-          ? `Faces resistance from: ${d.enemy.join(", ")}.`
-          : "Faces resistance from: normal life challenges rather than direct planetary clashes.",
-      ],
+      headline: `${k} ? ${p.sign}${
+        p.house ? ` ? House ${p.house}` : ""
+      }${p.nakshatra ? ` ? ${p.nakshatra}` : ""}`,
+      bullets: (() => {
+  const base = PLANET_PRACTICE[p.name] ?? {
+    strength: "A meaningful life theme becomes active through this planet.",
+    pressure: "Challenges show up when this planet is overused or ignored.",
+    action: "Choose one small practice that aligns with your goals.",
+  };
+
+  const strength = `Strength: ${d.theme ? d.theme : base.strength}`;
+  const support = d.friendly.length
+  ? `Support: ${d.friendly.join(", ")} (helpful influences).`
+  : ""; // <-- remove the fallback support line entirely
+
+  const pressure = d.enemy.length
+    ? `Pressure point: ${d.enemy.join(", ")} (areas to manage).`
+    : `Pressure point: ${base.pressure}`;
+
+  const action = `Do this: ${base.action}`;
+
+  return [strength, pressure, support, action];
+})(),
+
     });
   }
 
@@ -2211,7 +2305,7 @@ function DashaBar({
       <div className="flex items-center justify-between text-xs mb-1">
         <div className="font-semibold">{label}</div>
         <div className="text-white/70">
-          {new Date(start).toLocaleDateString()} →{" "}
+          {new Date(start).toLocaleDateString()} ?{" "}
           {new Date(end).toLocaleDateString()}
         </div>
       </div>
@@ -2294,7 +2388,7 @@ function renderAiTextBlocks(raw: string) {
       continue;
     }
 
-    const b = line.match(/^[-•]\s+(.*)$/);
+    const b = line.match(/^[-?]\s+(.*)$/);
     if (b) {
       flushPara();
       bullets.push(b[1].trim());
@@ -2385,7 +2479,7 @@ const TabTransits: React.FC<TabTransitsProps> = memo(
 
           <CardContent className="text-sm">
             {dailyLoadingProp && (
-              <div className="text-xs text-slate-300">Loading next few days…</div>
+              <div className="text-xs text-slate-300">Loading next few days?</div>
             )}
 
             {!loading && !error && Array.isArray(dailyHighlights) && dailyHighlights.length > 0 && (
@@ -2419,7 +2513,7 @@ const TabTransits: React.FC<TabTransitsProps> = memo(
   </p>
 
   {loading && (
-    <p className="text-xs text-white/60">Building your 12-month overview…</p>
+    <p className="text-xs text-white/60">Building your 12-month overview?</p>
   )}
 
   {!loading && !error && (transitSummary || "").trim() ? (
@@ -2452,7 +2546,7 @@ const TabMonthly: React.FC<TabMonthlyProps> = memo(
     const overview = hasData ? monthlyInsights[0] : null;
     const rest = hasData ? monthlyInsights.slice(1) : [];
 
-    // Try to split overview into “overview text” vs “raw transit list”
+    // Try to split overview into ?overview text? vs ?raw transit list?
     const overviewText = overview?.text ?? "";
     let mainNarrative = overviewText;
     let transitText = "";
@@ -2478,7 +2572,7 @@ const TabMonthly: React.FC<TabMonthlyProps> = memo(
       <CardContent className="text-sm space-y-3 text-slate-100">
         {loading && (
           <div className="text-white/70">
-            Building your 12-month overview…
+            Building your 12-month overview?
           </div>
         )}
 
@@ -2603,7 +2697,7 @@ const TabWeekly: React.FC<TabWeeklyProps> = memo(
 type TodaysFocusProfile = {
   area: string;     // e.g. "Career & long-term direction"
   headline: string; // short title
-  summary: string;  // 1–2 sentence explanation
+  summary: string;  // 1?2 sentence explanation
   do: string;       // one clear "Do"
   avoid: string;    // one clear "Avoid"
 };
@@ -2656,13 +2750,13 @@ function buildTodaysFocusV2(opts: {
 
   const finalCat: Cat = dashaFlavour ?? cat;
 
-  // 3) Map category → text
+  // 3) Map category ? text
   if (finalCat === "career") {
     return {
       area: "Career & long-term direction",
       headline: "Day favours focused, practical steps for your work path.",
       summary:
-        "Good day to organise, plan or execute 1–2 meaningful actions that move your career or responsibilities forward.",
+        "Good day to organise, plan or execute 1?2 meaningful actions that move your career or responsibilities forward.",
       do: "Choose one clear work-related action (planning, mail, call, or execution) and complete it fully.",
       avoid:
         "Starting ten different tasks at once or making dramatic career decisions out of impatience.",
@@ -2701,7 +2795,7 @@ function buildTodaysFocusV2(opts: {
         "Use this energy to observe emotions, release old baggage and make space for a cleaner inner story.",
       do: "Spend a little time journaling, meditating or consciously closing one lingering emotional loop.",
       avoid:
-        "Digging too deep into old pain without breaks or taking irreversible decisions purely from today’s mood.",
+        "Digging too deep into old pain without breaks or taking irreversible decisions purely from today?s mood.",
     };
   }
 
@@ -2713,7 +2807,7 @@ function buildTodaysFocusV2(opts: {
       "Good for keeping things steady: a bit of work, a bit of connection, and some time for your own body and mind.",
     do: "Write 3 small tasks (work, relationships, self) and complete just one from each bucket if possible.",
     avoid:
-      "Letting the day scatter into endless scrolling and reacting to others’ priorities only.",
+      "Letting the day scatter into endless scrolling and reacting to others? priorities only.",
   };
 }
 type MoneyTip = {
@@ -2722,7 +2816,7 @@ type MoneyTip = {
   summary?: string;
   tilt?: string;            // e.g. "caution", "opportunity", etc.
   drivers?: string[];       // e.g. ["Saturn transit", "Rahu AD"]
-  windowLabel?: string;     // e.g. "Jan–Mar 2026" or "Next 30 days"
+  windowLabel?: string;     // e.g. "Jan?Mar 2026" or "Next 30 days"
   do?: string[];            // action recommendations
   avoid?: string[];         // what to avoid
 };
@@ -2816,7 +2910,7 @@ const TabDailyGuide: React.FC<{
     rAny.panchang?.moonNakshatraName ||
     null;
 
-  // Times – we only keep sunrise / sunset (you asked to drop moonrise/moonset globally anyway)
+  // Times ? we only keep sunrise / sunset (you asked to drop moonrise/moonset globally anyway)
   const sunriseRaw =
     pt?.sunriseISO ||
     pt?.sunrise ||
@@ -2836,7 +2930,7 @@ const TabDailyGuide: React.FC<{
   const formatTime = (raw: any): string | null => {
     if (!raw) return null;
     if (typeof raw === "string") {
-      // ISO: 2025-12-12T07:03:00+05:30 → 07:03
+      // ISO: 2025-12-12T07:03:00+05:30 ? 07:03
       if (raw.includes("T") && raw.length >= 16) {
         return raw.slice(11, 16);
       }
@@ -2908,7 +3002,7 @@ const TabDailyGuide: React.FC<{
           <div className="flex items-center justify-between gap-2">
             <div>
               <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
-                Sārathi Snapshot · {todayLabel}
+                Sārathi Snapshot ? {todayLabel}
               </div>
               <h3 className="mt-1 text-lg font-semibold">
                 {emotional?.headline ||
@@ -2919,25 +3013,25 @@ const TabDailyGuide: React.FC<{
 
           <p className="mt-3 text-sm text-white/70 leading-relaxed">
             {emotional?.summary ||
-              "You don’t have to solve everything today. Focus on doing a few things slowly and well, instead of chasing ten things at once."}
+              "You don?t have to solve everything today. Focus on doing a few things slowly and well, instead of chasing ten things at once."}
           </p>
 
-          {/* “Your next step” CTA */}
+          {/* ?Your next step? CTA */}
           <div className="mt-4 rounded-xl bg-white/5 px-3 py-3 text-sm">
             <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
               Your next step today
             </div>
             <p className="mt-1 text-slate-100">
               {emotional?.nextStep ||
-                "Choose one small action you can complete in the next 30–60 minutes. Do it with full attention, then allow yourself a short conscious break."}
+                "Choose one small action you can complete in the next 30?60 minutes. Do it with full attention, then allow yourself a short conscious break."}
             </p>
           </div>
         </div>
 
-        {/* Today’s Focus (MD/AD) */}
+        {/* Today?s Focus (MD/AD) */}
         <div className="rounded-2xl border border-indigo-200 bg-indigo-50/70 p-4 text-sm text-slate-100">
           <div className="text-xs font-semibold uppercase tracking-wide text-indigo-600">
-            Today’s Focus · Dasha
+            Today?s Focus ? Dasha
           </div>
           <div className="mt-1 text-sm font-semibold">{focusArea}</div>
           <p className="mt-1 text-xs text-white/70">{focusHeadline}</p>
@@ -2960,35 +3054,35 @@ const TabDailyGuide: React.FC<{
       <div className="grid gap-3 rounded-2xl border border-white/15 bg-indigo-950/40 backdrop-blur-md p-4 text-xs text-white/70 md:grid-cols-4">
         <div>
           <div className="font-semibold text-slate-100">Tithi</div>
-          <div>{tithiName || "—"}</div>
+          <div>{tithiName || "?"}</div>
         </div>
         <div>
           <div className="font-semibold text-slate-100">Nakshatra</div>
-          <div>{nakshatraName || "—"}</div>
+          <div>{nakshatraName || "?"}</div>
         </div>
         <div>
           <div className="font-semibold text-slate-100">Sunrise</div>
-          <div>{sunrise || "—"}</div>
+          <div>{sunrise || "?"}</div>
         </div>
         <div>
           <div className="font-semibold text-slate-100">Sunset</div>
-          <div>{sunset || "—"}</div>
+          <div>{sunset || "?"}</div>
         </div>
       </div>
 
-      {/* Middle row: Food · Fasting · Money */}
+      {/* Middle row: Food ? Fasting ? Money */}
       <div className="grid gap-4 md:grid-cols-3">
         {/* Food card */}
         <div className="rounded-2xl border border-emerald-400/25 bg-emerald-500/10 p-4 text-sm text-slate-100">
           <div className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
-            Food · Body
+            Food ? Body
           </div>
           <h3 className="mt-1 text-sm font-semibold">
             {food?.headline || "Keep food light and sattvic where possible."}
           </h3>
           <p className="mt-1 text-xs text-slate-100">
             {food?.summary ||
-              "Favour simple, clean meals that don’t weigh you down. Avoid heavy or very late-night eating if you can."}
+              "Favour simple, clean meals that don?t weigh you down. Avoid heavy or very late-night eating if you can."}
           </p>
           {Array.isArray(food?.suggestions) && food.suggestions.length > 0 && (
             <ul className="mt-2 list-disc pl-4 text-xs">
@@ -3002,18 +3096,18 @@ const TabDailyGuide: React.FC<{
         {/* Fasting card */}
         <div className="rounded-2xl border border-amber-400/25 bg-amber-500/10 p-4 text-sm text-slate-100">
           <div className="text-xs font-semibold uppercase tracking-wide text-amber-700">
-            Fasting · Reset
+            Fasting ? Reset
           </div>
           <h3 className="mt-1 text-sm font-semibold">
             {fasting?.headline || "Use simple discipline over extreme fasting."}
           </h3>
           <p className="mt-1 text-xs text-slate-100">
             {fasting?.summary ||
-              "If you’re fasting, keep it gentle and hydrated. If not, you can still “fast” from noise, screens, or negativity."}
+              "If you?re fasting, keep it gentle and hydrated. If not, you can still ?fast? from noise, screens, or negativity."}
           </p>
           {fasting?.isGoodDay != null && (
             <div className="mt-2 inline-flex rounded-full bg-white/10 px-2 py-1 text-[11px] font-medium text-amber-200">
-              {fasting.isGoodDay ? "Supportive day for fasting" : "Not a strong day for full fasting — choose lightness instead."}
+              {fasting.isGoodDay ? "Supportive day for fasting" : "Not a strong day for full fasting ? choose lightness instead."}
             </div>
           )}
         </div>
@@ -3023,7 +3117,7 @@ const TabDailyGuide: React.FC<{
           className={`rounded-2xl border p-4 text-sm ${moneyToneClass}`}
         >
           <div className="text-xs font-semibold uppercase tracking-wide">
-            Money · Day Tilt
+            Money ? Day Tilt
           </div>
           <h3 className="mt-1 text-sm font-semibold">
             {money?.headline ||
@@ -3031,11 +3125,11 @@ const TabDailyGuide: React.FC<{
                 ? "Day leans mildly favourable for money decisions."
                 : moneyTone === "caution"
                 ? "Go slow with big money moves today."
-                : "Neutral day — keep it steady.")}
+                : "Neutral day ? keep it steady.")}
           </h3>
           <p className="mt-1 text-xs">
             {money?.summary ||
-              "Treat money decisions as part of the long game. Avoid panic moves just because of today’s mood."}
+              "Treat money decisions as part of the long game. Avoid panic moves just because of today?s mood."}
           </p>
 
           {Array.isArray(money?.do) && money.do.length > 0 && (
@@ -3323,7 +3417,7 @@ const todaysFocus = useMemo(
   }
   
   const trimmedName = (name || "").trim() || "Default";
-  const profileId = `${trimmedName} — ${dateISO}`;
+  const profileId = `${trimmedName} ? ${dateISO}`;
 
   // Shape that Life Report / SavedProfile uses
   const savedProfile: SavedProfile = {
@@ -3435,7 +3529,7 @@ const todaysFocus = useMemo(
         </div>
 
         <div className="mt-1 text-[11px] text-white/70">
-          {retro ? "Retrograde • " : ""}
+          {retro ? "Retrograde ? " : ""}
           {pl.nakshatra ? `Nakshatra: ${pl.nakshatra}` : " "}
         </div>
       </div>
@@ -3546,7 +3640,8 @@ if (!t) {
 
     // --- call /api/life-report ---
     const ac = new AbortController();
-    const timeout = setTimeout(() => ac.abort(), 15000);
+    const timeout = setTimeout(() => ac.abort(), 180000);
+console.log("[life-report] sending payload", payload);
 
     let res: Response;
     try {
@@ -3562,14 +3657,16 @@ if (!t) {
         body: JSON.stringify(payload),
         signal: ac.signal,
       });
-    } catch (err) {
-      clearTimeout(timeout);
-      throw new Error(
-        (err as any)?.name === "AbortError"
-          ? "Request timed out. Please try again."
-          : "Network error while contacting /api/life-report."
-      );
-    }
+   } catch (err) {
+  clearTimeout(timeout);
+  throw new Error(
+    (err as any)?.name === "AbortError"
+      ? "Report generation is taking longer than expected. Please try again (or retry in a moment)."
+      : "Network error while contacting /api/life-report."
+  );
+}
+console.log("[life-report] response status", res.status);
+
     clearTimeout(timeout);
 
    if (!res.ok) {
@@ -3582,7 +3679,7 @@ if (!t) {
     // fall back to text below
   }
   
-  // 🔴 Special case: our life-report API says swisseph / engine is unavailable
+  // ?? Special case: our life-report API says swisseph / engine is unavailable
   if (json?.error === "astro_engine_unavailable") {
     const msg =
       json?.message ||
@@ -3606,7 +3703,7 @@ const data = (await res.json()) as LifeReportAPI;
 console.log("[AI SUMMARY RAW FROM API]", (data as any)?.aiSummary);
 
 
-// ✅ STEP 2: call /api/ai-personality using the REAL life-report payload
+// ? STEP 2: call /api/ai-personality using the REAL life-report payload
 try {
     const pRes = await fetch("/api/ai-personality", {
     method: "POST",
@@ -3646,7 +3743,7 @@ try {
   setAiSummary(`(DEBUG) ai-personality crashed: ${e?.message ?? String(e)}`);
 }
 
-    // 🔹 Notifications from API → state (all 3 buckets)
+    // ?? Notifications from API ? state (all 3 buckets)
     const anyData = data as any;
     const preview = anyData.previewNotifications ?? null;
     if (preview && typeof preview === "object") {
@@ -3804,7 +3901,7 @@ setTimeout(async () => {
   try {
     if (!next || !Array.isArray(next.planets) || next.planets.length === 0) return;
 
-    // ✅ bump version to invalidate old cached generic text
+    // ? bump version to invalidate old cached generic text
     const cacheKey =
       `sarathi:ai-personality:v3:${next.birthDateISO}:${next.birthTime}:${next.birthTz}:${next.ascSign}:${next.moonSign}:${next.sunSign}`;
 
@@ -3855,7 +3952,7 @@ setTimeout(async () => {
     const aiJson = await aiRes.json().catch(() => ({} as any));
 
     if (aiRes.ok && aiJson?.text) {
-      // ✅ store in the exact shape your renderer expects: { text: string[], closing: string }
+      // ? store in the exact shape your renderer expects: { text: string[], closing: string }
       const payload = {
         text: aiJson.text,
         closing: aiJson.closing ?? "",
@@ -4032,13 +4129,13 @@ if (Array.isArray(next.dashaTimeline) && next.dashaTimeline.length > 0) {
 
         const todayISO = new Date().toISOString().slice(0, 10);
 
-        // 5) Daily highlights – Moon + strongest transit, with Mars–Ketu special handling
+        // 5) Daily highlights ? Moon + strongest transit, with Mars?Ketu special handling
         try {
           setDailyLoading(true);
           setDailyError(null);
           setDailyHighlights([]);
 
-          // Moon + transits → structured facts
+          // Moon + transits ? structured facts
           const dailyFacts = buildDailyFacts(
             dailyMoon as any,
             hitList,
@@ -4062,11 +4159,11 @@ const describeNakshatraFocus = (nak: string): string => {
   const n = nak.toLowerCase();
 
   if (n.includes("ardra")) {
-    return "This Ardra Moon highlights emotional intensity, catharsis and the need to process what’s been building beneath the surface.";
+    return "This Ardra Moon highlights emotional intensity, catharsis and the need to process what?s been building beneath the surface.";
   }
 
   if (n.includes("punarvasu")) {
-    return "This Punarvasu Moon supports renewal and reset energy — returning to what matters and starting again with a lighter touch.";
+    return "This Punarvasu Moon supports renewal and reset energy ? returning to what matters and starting again with a lighter touch.";
   }
 
   if (n.includes("pushya")) {
@@ -4163,22 +4260,22 @@ const highlights: DailyHighlightLocal[] = safeDailyFacts.map((f, idx) => {
 
     if (isMarsKetuFact(f)) {
       if (idx === 0) {
-        // Only the FIRST day gets the full Mars–Ketu emphasis
+        // Only the FIRST day gets the full Mars?Ketu emphasis
         transitHook =
-          " This Mars–Ketu phase is loud today; use any spikes in emotion or urgency as a reminder to slow down and choose one grounded action.";
+          " This Mars?Ketu phase is loud today; use any spikes in emotion or urgency as a reminder to slow down and choose one grounded action.";
       } else {
         // Other days: rotate a few softer background wordings
         const mkVariants = [
-          " In the background, the Mars–Ketu thread keeps humming; if you feel rushed or irritable, pause and come back to small, deliberate steps.",
-          " Mars–Ketu is still active in the background today; notice any urge to overreact and turn it into one small, conscious adjustment instead.",
-          " This Mars–Ketu backdrop continues quietly; protect your energy by choosing one or two clear priorities rather than scattering yourself.",
+          " In the background, the Mars?Ketu thread keeps humming; if you feel rushed or irritable, pause and come back to small, deliberate steps.",
+          " Mars?Ketu is still active in the background today; notice any urge to overreact and turn it into one small, conscious adjustment instead.",
+          " This Mars?Ketu backdrop continues quietly; protect your energy by choosing one or two clear priorities rather than scattering yourself.",
         ];
         transitHook = mkVariants[idx % mkVariants.length];
       }
     } else {
-      // Generic strong-transit wording for non Mars–Ketu days
+      // Generic strong-transit wording for non Mars?Ketu days
       transitHook =
-        ` A noticeable transit from ${planet} to ${target} is active — ` +
+        ` A noticeable transit from ${planet} to ${target} is active ? ` +
         `treat it as a nudge for small, conscious adjustments rather than big, impulsive moves.`;
     }
   }
@@ -4232,7 +4329,7 @@ setDailyError(null);
           console.error("ai-transits error", err);
         }
 
-        // 2) Dasha × Transits fusion
+        // 2) Dasha ? Transits fusion
         try {
           const fusionRes = await fetch("/api/ai-dasha-transits", {
             method: "POST",
@@ -4578,12 +4675,12 @@ setTimelineSummary(
   report.panchang?.moonNakshatraName ??
   "";
 
-return `${moon?.sign ?? "—"}${moonNak ? ` (${moonNak})` : ""}`;
+return `${moon?.sign ?? "?"}${moonNak ? ` (${moonNak})` : ""}`;
 
     })()}
 </div>
     <div className="mt-1 text-xs text-white/70">
-      Your emotional style — what you need to feel steady and safe.
+      Your emotional style ? what you need to feel steady and safe.
     </div>
   </div>
 
@@ -4597,12 +4694,12 @@ return `${moon?.sign ?? "—"}${moonNak ? ` (${moonNak})` : ""}`;
       const sun = (report.planets || []).find(
         (p) => (p.name || "").toLowerCase() === "sun"
       );
-      return sun?.sign ?? "—";
+      return sun?.sign ?? "?";
     })()}
 </div>
 
     <div className="mt-1 text-xs text-white/70">
-      Your life direction — what you’re here to build and become.
+      Your life direction ? what you?re here to build and become.
     </div>
   </div>
 </div>
@@ -4644,7 +4741,7 @@ return `${moon?.sign ?? "—"}${moonNak ? ` (${moonNak})` : ""}`;
                 const weekday =
                   weekdayFromISODate(report.birthDateISO) ??
                   report.panchang?.weekday ??
-                  "—";
+                  "?";
 
                 const part = 360 / 27;
                 const yogaName =
@@ -4654,12 +4751,12 @@ return `${moon?.sign ?? "—"}${moonNak ? ` (${moonNak})` : ""}`;
                           (norm360(sunSid + moonSid) + 1e-8) / part
                         ) % 27
                       ]
-                    : report.panchang?.yogaName ?? "—";
+                    : report.panchang?.yogaName ?? "?";
 
                 const karanaName =
                   sunSid !== undefined && moonSid !== undefined
-                    ? computeKaranaName(sunSid, moonSid) ?? "—"
-                    : report.panchang?.karanaName ?? "—";
+                    ? computeKaranaName(sunSid, moonSid) ?? "?"
+                    : report.panchang?.karanaName ?? "?";
 
                 const moonNak =
   (report as any).panchangToday?.moonNakshatraName ??
@@ -4683,10 +4780,10 @@ return `${moon?.sign ?? "—"}${moonNak ? ` (${moonNak})` : ""}`;
 
                     <div>
                       <span className="font-medium">Tithi:</span>{" "}
-                      {report.panchang?.tithiName ?? "—"}{" "}
+                      {report.panchang?.tithiName ?? "?"}{" "}
                       {report.panchang?.meanings?.tithi && (
                         <span className="text-xs text-white/70">
-                          — {report.panchang.meanings.tithi}
+                          ? {report.panchang.meanings.tithi}
                         </span>
                       )}
                     </div>
@@ -4695,7 +4792,7 @@ return `${moon?.sign ?? "—"}${moonNak ? ` (${moonNak})` : ""}`;
                       <span className="font-medium">Yoga:</span> {yogaName}{" "}
                       {report.panchang?.meanings?.yoga && (
                         <span className="text-xs text-white/70">
-                          — {report.panchang.meanings.yoga}
+                          ? {report.panchang.meanings.yoga}
                         </span>
                       )}
                     </div>
@@ -4705,7 +4802,7 @@ return `${moon?.sign ?? "—"}${moonNak ? ` (${moonNak})` : ""}`;
                       {karanaName}{" "}
                       {report.panchang?.meanings?.karana && (
                         <span className="text-xs text-white/70">
-                          — {report.panchang.meanings.karana}
+                          ? {report.panchang.meanings.karana}
                         </span>
                       )}
                     </div>
@@ -4726,7 +4823,7 @@ return `${moon?.sign ?? "—"}${moonNak ? ` (${moonNak})` : ""}`;
     <CardHeader className="pb-3">
       <CardTitle className="text-lg font-semibold text-slate-50">Your life themes</CardTitle>
       <div className="text-sm text-white/70">
-        A simple, practical view of what your chart emphasizes — no astrology knowledge needed.
+        A simple, practical view of what your chart emphasizes ? no astrology knowledge needed.
       </div>
     </CardHeader>
 
@@ -4748,7 +4845,7 @@ return `${moon?.sign ?? "—"}${moonNak ? ` (${moonNak})` : ""}`;
         const ketu = findP("ketu");
 
         const fmt = (p: any) => {
-  if (!p) return "—";
+  if (!p) return "?";
   const sign = p.sign ? String(p.sign) : "";
   // Themes should be simple: no houses here
   return `${String(p.name)}${sign ? ` in ${sign}` : ""}`;
@@ -4768,39 +4865,39 @@ return `${moon?.sign ?? "—"}${moonNak ? ` (${moonNak})` : ""}`;
           <>
             {themeCard(
               "Mind & emotions",
-              moon ? fmt(moon) : `Moon sign: ${report.moonSign ?? "—"}`,
+              moon ? fmt(moon) : `Moon sign: ${report.moonSign ?? "?"}`,
               "How you process feelings, handle stress, and regain balance."
             )}
 
             {themeCard(
               "Identity & direction",
-              sun ? fmt(sun) : `Sun sign: ${report.sunSign ?? "—"}`,
-              "What drives you — confidence, purpose, and long-term direction."
+              sun ? fmt(sun) : `Sun sign: ${report.sunSign ?? "?"}`,
+              "What drives you ? confidence, purpose, and long-term direction."
             )}
 
             {themeCard(
               "Work & discipline",
-              sat ? fmt(sat) : "Saturn emphasis: —",
+              sat ? fmt(sat) : "Saturn emphasis: ?",
               "How you build stability: routines, responsibility, and patience."
             )}
 
             {themeCard(
               "Relationships & values",
-              ven || mars ? `${fmt(ven)}${ven && mars ? " · " : ""}${fmt(mars)}` : "Venus/Mars: —",
+              ven || mars ? `${fmt(ven)}${ven && mars ? " ? " : ""}${fmt(mars)}` : "Venus/Mars: ?",
               "How you bond, love, set boundaries, and handle conflict."
             )}
 
             {themeCard(
               "Growth & learning",
-              jup ? fmt(jup) : "Jupiter emphasis: —",
+              jup ? fmt(jup) : "Jupiter emphasis: ?",
               "Where luck grows: guidance, mentors, faith, and expansion."
             )}
 
             {(rahu || ketu) &&
               themeCard(
                 "Life lessons",
-                `${fmt(rahu)}${rahu && ketu ? " · " : ""}${fmt(ketu)}`,
-                "What life pushes you to master — growth edges and detachment points."
+                `${fmt(rahu)}${rahu && ketu ? " ? " : ""}${fmt(ketu)}`,
+                "What life pushes you to master ? growth edges and detachment points."
               )}
           </>
         );
@@ -4818,7 +4915,7 @@ return `${moon?.sign ?? "—"}${moonNak ? ` (${moonNak})` : ""}`;
     <CardHeader className="pb-3">
       <CardTitle className="text-base font-semibold text-slate-50">What to focus on now</CardTitle>
       <div className="text-sm text-white/70">
-        A simple direction for the next few weeks — practical, not predictive.
+        A simple direction for the next few weeks ? practical, not predictive.
       </div>
     </CardHeader>
 
@@ -4832,15 +4929,15 @@ return `${moon?.sign ?? "—"}${moonNak ? ` (${moonNak})` : ""}`;
         const sun = findP("sun");
         const sat = findP("saturn");
 
-        const moonSign = moon?.sign ?? report.moonSign ?? "—";
-        const sunSign = sun?.sign ?? report.sunSign ?? "—";
+        const moonSign = moon?.sign ?? report.moonSign ?? "?";
+        const sunSign = sun?.sign ?? report.sunSign ?? "?";
 
         const focusLines: string[] = [];
 
-        // Simple, safe guidance rules (no “you are impatient” type judgments)
-        focusLines.push(`Stabilize your mind first (Moon in ${moonSign}) — choose fewer priorities and finish what you start.`);
-        focusLines.push(`Take one long-term step daily (Sun in ${sunSign}) — consistency beats intensity.`);
-        if (sat) focusLines.push(`Protect your routine (Saturn influence) — sleep, discipline, and boundaries are your superpower right now.`);
+        // Simple, safe guidance rules (no ?you are impatient? type judgments)
+        focusLines.push(`Stabilize your mind first (Moon in ${moonSign}) ? choose fewer priorities and finish what you start.`);
+        focusLines.push(`Take one long-term step daily (Sun in ${sunSign}) ? consistency beats intensity.`);
+        if (sat) focusLines.push(`Protect your routine (Saturn influence) ? sleep, discipline, and boundaries are your superpower right now.`);
 
         return (
           <ul className="list-disc pl-5 space-y-2 text-white/90/90">
@@ -4852,7 +4949,7 @@ return `${moon?.sign ?? "—"}${moonNak ? ` (${moonNak})` : ""}`;
       })()}
 
       <div className="pt-2 text-xs text-white/70">
-        Want this customized to your current dasha + transits? Use{" "}
+        Want this personalized for your situation right now? Use{" "}
 <span className="font-medium">{"Ask Sārathi"}</span>.
       </div>
     </CardContent>
@@ -4881,18 +4978,62 @@ return `${moon?.sign ?? "—"}${moonNak ? ` (${moonNak})` : ""}`;
                 </CardTitle>
               </CardHeader>
 
-              <CardContent className="space-y-5 text-sm">
-                <div className="text-xs grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {(report.planets ?? [])
-                    .filter((p) => p?.name && p.name.toLowerCase() !== "ascendant")
-                    .slice()
-                    .sort(
-                      (a, b) =>
-                        PLANET_ORDER.indexOf(a.name) - PLANET_ORDER.indexOf(b.name)
-                    )
-                    .map((pl, idx) => renderPlacement(pl as any, idx))}
-                </div>
-              </CardContent>
+            <CardContent className="text-sm text-slate-100 leading-relaxed space-y-2">
+  {(() => {
+    // Build lines locally so we never depend on an outer `lines` variable
+    const text = fixWeirdEncoding(
+      String(
+        (report as any)?.aiSummary ??
+          (report as any)?.summary ??
+          (report as any)?.planetInterpretations ??
+          ""
+      )
+    );
+
+    const lines = text.split(/\r?\n/).filter((x) => x.trim().length > 0);
+
+    // If empty, show a gentle message instead of crashing
+    if (!lines.length) {
+      return (
+        <div className="text-white/70">
+          Summary not available yet. Generate / Refresh to fetch interpretations.
+        </div>
+      );
+    }
+
+    return lines.map((rawLine, i) => {
+      let l = fixWeirdEncoding(String(rawLine ?? ""));
+// For placements rows, convert separator " — " into bullets
+l = l.replace(/\s—\s/g, " • ");
+
+
+      // Safer split: keep everything after the first ":" intact
+      const idx = l.indexOf(":");
+      const hasLabel = idx !== -1;
+
+      const label = hasLabel ? l.slice(0, idx).trim() : "";
+      const rest = hasLabel ? l.slice(idx + 1).trim() : "";
+
+      return (
+        <div key={i} className="flex gap-2">
+          <span className="mt-2 h-1.5 w-1.5 rounded-full bg-white/40 shrink-0" />
+          <div>
+            {hasLabel ? (
+              <>
+                <span className="font-semibold text-slate-50">{label}:</span>{" "}
+                <span className="text-slate-100">{rest}</span>
+              </>
+            ) : (
+              <span className="text-slate-100">{l}</span>
+            )}
+          </div>
+        </div>
+      );
+    });
+  })()}
+</CardContent>
+
+
             </Card>
           ) : (
             <Card className="rounded-2xl shadow-inner border-dashed border-2 border-muted-foreground/20">
@@ -4957,7 +5098,7 @@ return `${moon?.sign ?? "—"}${moonNak ? ` (${moonNak})` : ""}`;
 
             <CardHeader>
               <CardTitle className="text-sm font-semibold text-slate-100">
-                Sārathi’s Perspective
+                Sārathi?s Perspective
               </CardTitle>
             </CardHeader>
 
@@ -5098,14 +5239,14 @@ const TabTimeline: React.FC<TabTimelineProps> = memo(
                 Current Dasha Progress
               </CardTitle>
               <p className={subNote}>
-                Where you are right now in the dasha cycle (big → medium → short).
+                Where you are right now in the dasha cycle (big ? medium ? short).
               </p>
             </CardHeader>
 
             <CardContent className="space-y-3">
               {ap.mahadasha && (
                 <DashaBar
-                  label={`Mahadasha — ${ap.mahadasha.lord}`}
+                  label={`Mahadasha ? ${ap.mahadasha.lord}`}
                   start={ap.mahadasha.start}
                   end={ap.mahadasha.end}
                   subtitle={ap.mahadasha.summary}
@@ -5114,7 +5255,7 @@ const TabTimeline: React.FC<TabTimelineProps> = memo(
 
               {ap.antardasha && (
                 <DashaBar
-                  label={`Antardasha — ${ap.antardasha.subLord} (in ${ap.antardasha.mahaLord})`}
+                  label={`Antardasha ? ${ap.antardasha.subLord} (in ${ap.antardasha.mahaLord})`}
                   start={ap.antardasha.start}
                   end={ap.antardasha.end}
                   subtitle={ap.antardasha.summary}
@@ -5123,7 +5264,7 @@ const TabTimeline: React.FC<TabTimelineProps> = memo(
 
               {ap.pratyantardasha && (
                 <DashaBar
-                  label={`Pratyantardasha — ${ap.pratyantardasha.lord}`}
+                  label={`Pratyantardasha ? ${ap.pratyantardasha.lord}`}
                   start={ap.pratyantardasha.start}
                   end={ap.pratyantardasha.end}
                   subtitle={ap.pratyantardasha.summary}
@@ -5141,12 +5282,12 @@ const TabTimeline: React.FC<TabTimelineProps> = memo(
             className={"rounded-2xl border " + divider + " bg-indigo-950/40"}
           >
             <AccordionTrigger className={sectionTrigger}>
-              Dasha × Transits — Year Ahead Insight
+              Dasha ? Transits ? Year Ahead Insight
             </AccordionTrigger>
 
             <AccordionContent className="pt-2">
               <p className={subNote}>
-                A simple “what to expect” story for the coming year, based on your running
+                A simple ?what to expect? story for the coming year, based on your running
                 dasha + major transits.
               </p>
 
@@ -5155,7 +5296,8 @@ const TabTimeline: React.FC<TabTimelineProps> = memo(
                   <Card className={ACC_CARD}>
                     <CardContent className="pt-4">
                       <div className="text-slate-100 text-sm leading-relaxed">
-                        {renderAiTextBlocks(cleanTransitText(dashaTransitSummary))}
+                        {renderAiTextBlocks(cleanTransitText(fixWeirdEncoding(dashaTransitSummary)))}
+
                       </div>
                     </CardContent>
                   </Card>
@@ -5238,7 +5380,7 @@ const TabTimeline: React.FC<TabTimelineProps> = memo(
                                 {row.planet} Mahadasha
                               </div>
                               <div className="text-[13px] text-white/70">
-                                {row.startISO} → {row.endISO}
+                                {row.startISO} ? {row.endISO}
                               </div>
                             </div>
 
@@ -5264,12 +5406,12 @@ const TabTimeline: React.FC<TabTimelineProps> = memo(
               className={"rounded-2xl border " + divider + " bg-indigo-950/40"}
             >
               <AccordionTrigger className={sectionTrigger}>
-                Life Story — Key Phases
+                Life Story ? Key Phases
               </AccordionTrigger>
 
               <AccordionContent className="pt-2">
                 <p className={subNote}>
-                  The most important turning points. Kept short so it’s easy to digest.
+                  The most important turning points. Kept short so it?s easy to digest.
                 </p>
 
                 <div className="mt-3">
@@ -5292,7 +5434,7 @@ const TabTimeline: React.FC<TabTimelineProps> = memo(
 
                                   <div className="text-[11px] text-slate-200/70">
                                     {m.approxAgeRange} (
-                                    {new Date(m.periodStart).getFullYear()}–{new Date(m.periodEnd).getFullYear()})
+                                    {new Date(m.periodStart).getFullYear()}?{new Date(m.periodEnd).getFullYear()})
                                   </div>
 
                                   {m.drivers && (
@@ -5585,7 +5727,7 @@ useEffect(() => {
     };
 
     
-    // ✅ NO HIDING: disable chat cache while we debug houses/asc
+    // ? NO HIDING: disable chat cache while we debug houses/asc
 window.localStorage.removeItem("sarathi.lifeReportCache.v2");
 // console.log("[life-report] chat cache disabled");
 
@@ -5683,7 +5825,7 @@ window.localStorage.removeItem("sarathi.lifeReportCache.v2");
       <option value="">(None selected)</option>
       {profiles.map((p) => (
         <option key={p.id} value={p.id}>
-          {p.label} — {p.birthDateISO}
+          {p.label} ? {p.birthDateISO}
         </option>
       ))}
     </select>
@@ -5779,7 +5921,7 @@ window.localStorage.removeItem("sarathi.lifeReportCache.v2");
   {/* ADVANCED = everything that overwhelms */}
   {activeTab === "advanced" && (
     <div className="space-y-6">
-      {/* Daily guide stays accessible but not “primary” */}
+      {/* Daily guide stays accessible but not ?primary? */}
       <div className="space-y-4">
         <TabDailyGuide
           report={report}
