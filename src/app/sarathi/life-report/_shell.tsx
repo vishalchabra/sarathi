@@ -38,7 +38,8 @@ import {
 } from "@/components/ui/accordion";
 import Link from "next/link";
 import { saveBirthProfile } from "@/lib/birth-profile";
-
+import { getMoonNakshatra } from "@/lib/astro"; 
+import { NAKSHATRA_INFO } from "@/lib/astrology/nakshatraMap";
 const AYANAMSA_LAHIRI_APPROX = 23.85;
 
 
@@ -535,9 +536,11 @@ const KARANA_MOVABLE = [
 ] as const;
 type MovableKarana = (typeof KARANA_MOVABLE)[number];
 
-function norm360(x: number) {
-  return ((x % 360) + 360) % 360;
+function norm360Local(n: number) {
+  const x = n % 360;
+  return x < 0 ? x + 360 : x;
 }
+
 
 /** Yoga = floor( (Sun + Moon) / 13?20' ) over 27 parts (sidereal) */
 function computeYogaName(
@@ -571,6 +574,39 @@ function computeKaranaName(
 }
 
 /* ---------------- Helpers ---------------- */
+function humanizeInsight(base: string): string {
+  const openers = [
+    "Today brings a subtle shift —",
+    "You may notice that",
+    "There’s a quiet invitation today to",
+    "The day supports a gentler approach —",
+    "Energy today encourages you to",
+    "This is a good day to"
+  ];
+
+  const endings = [
+    "Take it one step at a time.",
+    "Small, steady choices will go a long way.",
+    "No need to rush—clarity builds naturally.",
+    "Let simplicity guide your actions.",
+    "A calm pace will work in your favor.",
+  ];
+
+  const pick = (arr: string[]) => arr[Math.floor(Math.random() * arr.length)];
+
+  let sentence = base.trim();
+
+  // remove repetitive astrology phrasing
+  sentence = sentence
+    .replace(/this moon (position|phase|placement)/gi, "")
+    .replace(/this transit|the transit/gi, "")
+    .replace(/today you may|today you might/gi, "today you may")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  return `${pick(openers)} ${sentence} ${pick(endings)}`;
+}
+
 function primaryCategoryForRange(
   transits: any[] | null | undefined,
   from: Date,
@@ -671,6 +707,18 @@ function normalizePanchang(p: any): PanchangInfo | undefined {
   const karanaName = p.karanaName ?? p.karana ?? null;
   const moonNakshatraName =
     p.moonNakshatraName ?? p.moonNakshatra ?? p.nakshatra ?? null;
+function normalizeText(input: string): string {
+  if (!input) return "";
+
+  return input
+    .replace(/[�]/g, "")                // remove replacement chars
+    .replace(/[“”]/g, '"')
+    .replace(/[‘’]/g, "'")
+    .replace(/\u00A0/g, " ")            // non-breaking spaces
+    .replace(/\s+/g, " ")               // collapse spacing
+    .trim();
+}
+
 
   // ---- Times: read both flat and nested shapes ----
   const sunrise =
@@ -761,6 +809,90 @@ type DailyFact = {
     endISO: string;
   } | null;
 };
+function buildDayGuidance(
+  dateISO: string,
+  relHouse: number | null,
+  strongest: TransitHit | null,
+  idx: number
+): { expect: string; doLine: string; dontLine: string } {
+  const houseText = houseFocusFromMoon(
+    typeof relHouse === "number" ? relHouse : undefined
+  );
+
+  // Rotate tone a bit so it doesn't feel cloned
+  const openings = [
+    "Expect a steady day where small moves matter.",
+    "Expect a practical, results-first day.",
+    "Expect emotions to be noticeable—use them as information.",
+    "Expect a slightly sensitive day—keep things simple.",
+    "Expect focus to shift toward what’s pending.",
+    "Expect clarity if you slow down and prioritize.",
+    "Expect progress through discipline, not intensity.",
+  ];
+  const opening = openings[idx % openings.length];
+
+  // Base expectation from Moon-house focus
+  let expect = `${opening} Attention naturally goes toward ${houseText}.`;
+
+  // Add transit flavor (category + planet/target)
+  if (strongest) {
+    const planet = strongest.planet;
+    const target = strongest.target || "a key natal point";
+    const cat = strongest.category || "general";
+
+    if (cat === "career") {
+      expect += ` Career matters are louder today—${planet} ${target} can bring a decision, message, or visibility moment.`;
+    } else if (cat === "relationships") {
+      expect += ` Relationships and tone matter—${planet} ${target} can highlight a conversation or boundary.`;
+    } else if (cat === "health") {
+      expect += ` Energy and routine need attention—${planet} ${target} rewards small corrections (sleep/food/pacing).`;
+    } else if (cat === "inner") {
+      expect += ` Inner noise may rise—${planet} ${target} is better used for reflection than reaction.`;
+    } else {
+      expect += ` A subtle background influence is active—${planet} ${target}.`;
+    }
+  }
+
+  // DO / DON'T suggestions (short, specific)
+  const doBank = [
+    "Do: finish one pending task and close it fully.",
+    "Do: keep your schedule lighter and protect focus.",
+    "Do: have one honest conversation—soft tone, clear words.",
+    "Do: take 10 minutes for journaling/prayer before decisions.",
+    "Do: simplify—choose one priority and move it forward.",
+    "Do: handle money/food/routine with care and consistency.",
+    "Do: respond slowly; quality > speed.",
+  ];
+  const dontBank = [
+    "Don’t: multitask or start 3 things at once.",
+    "Don’t: react instantly to messages—pause first.",
+    "Don’t: overspend or overcommit to please others.",
+    "Don’t: push your body if energy feels low.",
+    "Don’t: argue to “win”—aim for clarity instead.",
+    "Don’t: make big decisions late at night or in a rush.",
+    "Don’t: let small friction turn into a big mood.",
+  ];
+
+  let doLine = doBank[idx % doBank.length];
+  let dontLine = dontBank[idx % dontBank.length];
+
+  // Slightly tune DO/DON'T to category
+  if (strongest?.category === "career") {
+    doLine = "Do: take one concrete career step (send, submit, schedule, follow up).";
+    dontLine = "Don’t: make impulsive job/business calls without checking details.";
+  } else if (strongest?.category === "relationships") {
+    doLine = "Do: prioritize one relationship action (check-in, clarify, set boundary).";
+    dontLine = "Don’t: escalate emotionally—keep tone calm and precise.";
+  } else if (strongest?.category === "health") {
+    doLine = "Do: support the body (hydration, lighter food, early sleep).";
+    dontLine = "Don’t: overtrain or experiment wildly with diet/routine today.";
+  } else if (strongest?.category === "inner") {
+    doLine = "Do: take quiet time—reflect before reacting.";
+    dontLine = "Don’t: spiral in overthinking; write it down and move on.";
+  }
+
+  return { expect, doLine, dontLine };
+}
 
 // small helper to generate facts from moon + transits
 function buildDailyFacts(
@@ -781,27 +913,55 @@ function buildDailyFacts(
     const day = addDaysLoose(startBase, i);
     const dateISO = day.toISOString().slice(0, 10);
 
-       const m = dailyMoon.find((x) => x.dateISO === dateISO);
+    const m = dailyMoon.find((x) => x.dateISO === dateISO);
 
-    const nak =
-      (m as any)?.moonNakshatraName ||
-      (m as any)?.moonNakshatra ||
-      (m as any)?.nakshatraName ||
-      (m as any)?.nakshatra ||
-      "this nakshatra";
+// --- 1) Determine Moon nakshatra (SOURCE OF TRUTH) ---
+let moonNakName = "—";
+let moonNakPada: number | null = null;
 
-    const rel =
-      (m as any)?.relativeHouseFromMoon ?? (m as any)?.houseFromMoon;
+// Prefer a real sidereal degree if your dailyMoon row has it
+const moonSidDeg = Number(
+  (m as any)?.siderealLongitude ??
+    (m as any)?.siderealLon ??
+    (m as any)?.siderealDeg ??
+    (m as any)?.moonSiderealLongitude ??
+    (m as any)?.moonSiderealLon ??
+    (m as any)?.moonSiderealDeg ??
+    (m as any)?.moonLonSidereal ??
+    (m as any)?.moonLon ??
+    (m as any)?.lon ??
+    (m as any)?.deg
+);
 
+if (Number.isFinite(moonSidDeg)) {
+  const cn = nakshatraFromDegASCII(moonSidDeg);
+  moonNakName = cn.name;
+  moonNakPada = cn.pada;
+} else {
+  // fallback ONLY if we have no degree
+  const fallbackNak =
+    (m as any)?.moonNakshatraName ||
+    (m as any)?.moonNakshatra ||
+    (m as any)?.nakshatraName ||
+    (m as any)?.nakshatra ||
+    null;
 
+  if (typeof fallbackNak === "string" && fallbackNak.trim()) {
+    moonNakName = fallbackNak.trim();
+  }
+}
+
+// --- 2) Relative house from Moon ---
+const rel =
+  (m as any)?.relativeHouseFromMoon ??
+  (m as any)?.houseFromMoon ??
+  null;
+
+    // ---- 2) Strongest transit of that day ----
     const strongest = (() => {
-      const ts = transits.filter(
-        (t) => t.startISO <= dateISO && t.endISO >= dateISO
-      );
+      const ts = transits.filter((t) => t.startISO <= dateISO && t.endISO >= dateISO);
       if (!ts.length) return null;
-      const best = ts.reduce((b, c) =>
-        c.strength > b.strength ? c : b
-      );
+      const best = ts.reduce((b, c) => (c.strength > b.strength ? c : b));
       return {
         planet: best.planet,
         target: best.target,
@@ -812,9 +972,11 @@ function buildDailyFacts(
       };
     })();
 
+    // ---- 3) Output ----
     out.push({
       dateISO,
-      moonNakshatra: nak,
+      moonNakshatra: moonNakPada ? `${moonNakName} (Pada ${moonNakPada})` : moonNakName,
+
       relativeHouse: rel,
       strongestTransit: strongest,
     });
@@ -822,6 +984,7 @@ function buildDailyFacts(
 
   return out;
 }
+
 function ordinal(n?: number): string {
   if (!n || !Number.isFinite(n)) return "";
   const v = Math.abs(Math.trunc(n));
@@ -923,6 +1086,19 @@ function normalizeDateToISO(input: string): string {
 
   return s; // fallback (won't crash)
 }
+function cleanText(input: string): string {
+  if (!input) return "";
+
+  return input
+    // Common broken UTF-8 sequences
+    .replace(/\uFFFD/g, "")          // � replacement
+    .replace(/\u00A0/g, " ")         // non-breaking space
+    .replace(/\u2018|\u2019/g, "'")  // smart single quotes
+    .replace(/\u201C|\u201D/g, '"')  // smart double quotes
+    .replace(/\u2013|\u2014/g, "—")  // en/em dash
+    .replace(/\s+/g, " ")            // normalize spacing
+    .trim();
+}
 
 // ---------------- Weekly guidance helper (client-side) ----------------
 function fixWeirdEncoding(input: string) {
@@ -946,14 +1122,35 @@ function fixWeirdEncoding(input: string) {
     .replace(/\u00A0/g, " ")
 
     // 4) Fix separators and broken apostrophes
-.replace(/\s*\?\s*/g, " — ")          // ANY ? divider -> em dash (covers dates too)
-.replace(/(\w)\?(\w)/g, "$1'$2")      // you?re -> you're
+// Replace "active? treat" (question mark used as separator) -> em dash
+.replace(/([A-Za-z0-9])\?\s+(?=[a-z])/g, "$1 — ")
+
+// Replace " ? " separators -> em dash
+.replace(/\s+\?\s+/g, " — ")
+
+// Fix contractions like you?re -> you're
+.replace(/(\w)\?(\w)/g, "$1'$2")
 
     // 5) Collapse accidental doubles
     .replace(/\s{2,}/g, " ")              // collapse extra spaces
 .trim();
 }
 
+function sanitizeText(input: string): string {
+  if (!input) return "";
+
+  return input
+    // remove � replacement characters
+    .replace(/\uFFFD/g, "")
+    // common mojibake fixes
+    .replace(/â€™/g, "’")
+    .replace(/â€œ|â€�/g, '"')
+    .replace(/â€˜|â€™/g, "'")
+    .replace(/â€“|â€”/g, "—")
+    .replace(/â€¦/g, "…")
+    .replace(/\s+/g, " ")
+    .trim();
+}
 
 function fmtRangeLabel(start: Date, end: Date): string {
   // Use UTC so it's stable and not affected by local time zone shifts
@@ -1084,7 +1281,7 @@ function buildWeeklyFromTransits(
       const strongest = active[0];
       const planet = strongest.planet;
       const target = strongest.target || "a key natal point";
-      extra = ` A noticeable influence from ${planet} ${target} is active in the background ? stay conscious, go slow and avoid big reactions.`;
+      extra = ` A noticeable influence from ${planet} ${target} is active in the background - stay conscious, go slow and avoid big reactions.`;
     }
 
     out.push({
@@ -1095,6 +1292,66 @@ function buildWeeklyFromTransits(
 
   return out;
 }
+// --- Nakshatra helpers (deterministic; do NOT trust AI text for this) ---
+const NAK_SPAN = 13 + 20 / 60; // 13°20' = 13.333333333...
+const NAK_NAMES_ASCII = [
+  "Ashwini","Bharani","Krittika","Rohini","Mrigashirsha","Ardra",
+  "Punarvasu","Pushya","Ashlesha","Magha","Purva Phalguni","Uttara Phalguni",
+  "Hasta","Chitra","Swati","Vishakha","Anuradha","Jyeshtha",
+  "Mula","Purva Ashadha","Uttara Ashadha","Shravana","Dhanishta","Shatabhisha",
+  "Purva Bhadrapada","Uttara Bhadrapada","Revati",
+];
+
+function norm360(n: number) {
+  const x = n % 360;
+  return x < 0 ? x + 360 : x;
+}
+
+function nakshatraFromDegASCII(deg: number) {
+  const d = norm360(deg);
+  const idx = Math.min(26, Math.max(0, Math.floor(d / NAK_SPAN)));
+  const into = d - idx * NAK_SPAN;
+  const pada = Math.min(4, Math.max(1, Math.floor(into / (NAK_SPAN / 4)) + 1));
+  return { name: NAK_NAMES_ASCII[idx], pada };
+}
+
+// Remove any AI-hallucinated nakshatra mentions from highlight text
+function stripNakshatraClaims(s: string) {
+  const t = String(s ?? "");
+  if (!t.trim()) return t;
+
+  // Build a safe list of nakshatra names we want to strip if AI mentions them
+  const NAKS = [
+    "Ashwini","Bharani","Krittika","Rohini","Mrigashirsha","Ardra",
+    "Punarvasu","Pushya","Ashlesha","Magha","Purva Phalguni","Uttara Phalguni",
+    "Hasta","Chitra","Swati","Vishakha","Anuradha","Jyeshtha",
+    "Mula","Purva Ashadha","Uttara Ashadha","Shravana","Dhanishta","Shatabhisha",
+    "Purva Bhadrapada","Uttara Bhadrapada","Revati",
+  ];
+
+  // Matches things like:
+  // "Pushya Moon day...", "This Ashlesha Moon...", "Moon in Purva Phalguni...",
+  // "Moon moves through Pushya...", "Moon nakshatra is Pushya..."
+  const nakPattern = NAKS.map((n) => n.replace(/\s+/g, "\\s+")).join("|");
+
+  return t
+    // "Pushya Moon day ..." / "Ashlesha Moon ..."
+    .replace(new RegExp(`\\b(?:${nakPattern})\\s+Moon\\b[^.]*\\.?\\s*`, "gi"), "")
+
+    // "Moon in Pushya..." / "Moon is in Pushya..."
+    .replace(new RegExp(`\\bMoon\\s+(?:is\\s+)?in\\s+(?:${nakPattern})\\b[^.]*\\.?\\s*`, "gi"), "")
+
+    // "Moon moves through Pushya..." / "Moon transits Pushya..."
+    .replace(new RegExp(`\\bMoon\\s+(?:moves\\s+through|transits|enters)\\s+(?:${nakPattern})\\b[^.]*\\.?\\s*`, "gi"), "")
+
+    // "Moon nakshatra is: Pushya"
+    .replace(new RegExp(`\\bMoon\\s+nakshatra\\s+(?:is|:)?\\s*(?:${nakPattern})\\b[^.]*\\.?\\s*`, "gi"), "")
+
+    // cleanup extra spaces
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
 
 /* ---------------- Monthly highlights helper (client-side) ---------------- */
 
@@ -1317,6 +1574,43 @@ function chooseStrongTransitForDay(
   if ((best.strength ?? 0) < 0.5) return null;
   return best;
 }
+function buildTransitLine(
+  i: number,
+  strong: TransitHit,
+  dateISO: string
+): string {
+  // Derive category safely
+  const cat = (strong?.category || "").toLowerCase();
+
+  const templates: Array<(area: string) => string> = [
+  (area) =>
+    `Today invites focused attention toward ${area}.`,
+  (area) =>
+    `This is a good day to move steadily within ${area}.`,
+  (area) =>
+    `Energy today supports calm, thoughtful progress around ${area}.`,
+];
+
+
+  // Decide focus area
+  const area =
+    cat === "career"
+      ? "career and long-term direction"
+      : cat === "relationships"
+      ? "relationships and emotional balance"
+      : cat === "health"
+      ? "health, routines, and wellbeing"
+      : cat === "inner"
+      ? "inner balance and emotional clarity"
+      : "your daily priorities";
+
+  // Rotate template by index so lines don't repeat
+  const template = templates[i % templates.length];
+
+  return template(area);
+}
+
+
 
 function buildDailyFromMoonAndTransits(
   dailyMoon: DailyMoonEntry[],
@@ -1339,12 +1633,36 @@ function buildDailyFromMoonAndTransits(
 
     const m = dailyMoon.find((x) => x.dateISO === dateISO);
 
-    const nak =
-      m?.nakshatraName ??
-      m?.nakshatra ??
-      // for sweDailyMoon rows
-      (m as any)?.moonNakshatra ??
-      "this nakshatra";
+// Deterministic nakshatra if we have a real degree
+let nak = "—";
+const moonSidDeg = Number(
+  (m as any)?.siderealLongitude ??
+    (m as any)?.siderealLon ??
+    (m as any)?.siderealDeg ??
+    (m as any)?.moonSiderealLongitude ??
+    (m as any)?.moonSiderealLon ??
+    (m as any)?.moonSiderealDeg ??
+    (m as any)?.moonLonSidereal ??
+    (m as any)?.moonLon ??
+    (m as any)?.lon ??
+    (m as any)?.deg
+);
+
+if (Number.isFinite(moonSidDeg)) {
+  nak = nakshatraFromDegASCII(moonSidDeg).name;
+} else {
+  const fallbackNak =
+    (m as any)?.moonNakshatraName ||
+    (m as any)?.moonNakshatra ||
+    (m as any)?.nakshatraName ||
+    (m as any)?.nakshatra ||
+    null;
+
+  if (typeof fallbackNak === "string" && fallbackNak.trim()) {
+    nak = fallbackNak.trim();
+  }
+}
+
 
     // ?? This was missing ? define relHouse safely from any of the fields
     const relHouse =
@@ -1362,30 +1680,64 @@ function buildDailyFromMoonAndTransits(
     );
 
     // Base Moon sentence
-    let text = `Today the Moon moves through ${nak} from your natal Moon${
-      relHouse ? ` (about the ${houseOrdinal} house)` : ""
-    }, drawing attention to ${houseText}.`;
+    const openers = [
+  `Keep choices simple today — one priority, one action.`,
+  `Move slower than usual and notice what truly needs attention.`,
+  `A good day to tidy something small that has been pending.`,
+  `Stay present in conversations; soft tone will go further than force.`,
+  `Focus on steady progress, not speed — small steps compound.`,
+  `Protect your energy: fewer tasks, cleaner boundaries.`,
+  `Ground yourself first, then respond — don’t react.`,
+];
+
+const tips = [
+  `Choose one thing to finish, then stop.`,
+  `Say less, listen more.`,
+  `Avoid rushing decisions.`,
+  `Keep spending conservative and practical.`,
+  `Do one body-friendly reset: walk, hydration, early sleep.`,
+  `Handle the most annoying small task first.`,
+  `Simplify your schedule and reduce noise.`,
+];
+
+// vary by day index
+const opener = openers[i % openers.length];
+const tip = tips[(i * 2) % tips.length];
+
+// If you want house influence, keep it generic (NO nakshatra mention)
+const houseLine =
+  typeof relHouse === "number" && relHouse >= 1 && relHouse <= 12
+    ? `Emotional focus leans toward ${houseText}.`
+    : `Keep your emotional tone steady and practical.`;
+
+// Base text (varied)
+let text = `${opener} ${houseLine} ${tip}`;
+
 
     // Overlay strongest transit for that day, if any
-    const strong = chooseStrongTransitForDay(dateISO, transits);
-    if (strong) {
-      const area = shortCategoryLabel(strong.category);
-      const planet = strong.planet;
-      const target = strong.target || "a key natal point";
+  // Overlay strongest transit for that day, but avoid repeating the exact same ending daily
+let lastTransitKey = "";
+const strong = chooseStrongTransitForDay(dateISO, transits);
 
-      if (strong.category === "career") {
-        text += ` With ${planet} ${target}, a stronger career transit is active now, so even small decisions about work, visibility or long-term direction can carry extra weight.`;
-      } else if (strong.category === "relationships") {
-        text += ` With ${planet} ${target}, relationships are a little louder; one honest, present interaction can shift the tone around you.`;
-      } else if (strong.category === "health") {
-        text += ` ${planet} ${target} highlights ${area}; listen to your body and adjust pace, food or rest instead of pushing blindly.`;
-      } else if (strong.category === "inner") {
-        text += ` ${planet} ${target} amplifies inner work; some quiet time for reflection, journaling or prayer will go a long way.`;
-      } else {
-        text += ` ${planet} ${target} colours your day in a subtle way; notice which life area feels ready for a small adjustment.`;
-      }
-    }
+if (strong) {
+  const key = `${strong.planet}|${strong.target}|${strong.category}`;
 
+  // If the SAME transit is active multiple days in a row,
+  // alternate between full line and a shorter “theme” line.
+  const sameAsYesterday = key === lastTransitKey;
+
+  if (sameAsYesterday) {
+    // short variant (no repeated “noticeable transit …” sentence)
+    text += ` Keep it simple: one priority, one action.`;
+  } else {
+    text += ` ${buildTransitLine(i, strong, dateISO)}`;
+  }
+
+  lastTransitKey = key;
+}
+;
+
+      
     out.push({ dateISO, text });
   }
 
@@ -1395,7 +1747,7 @@ function buildDailyFromMoonAndTransits(
 
 // ---------------- Daily highlights helper (client-side) ----------------
 
-type DailyHighlight = { dateISO: string; text: string };
+type DailyHighlight = { dateISO: string; text: string; doLine?: string; dontLine?: string };
 
 // must match /api/ai-daily/route.ts
 type DailyFeature = {
@@ -1629,6 +1981,61 @@ function weekdayFromISODate(iso: string): string | undefined {
   return new Intl.DateTimeFormat("en-US", { weekday: "long" }).format(d);
 }
 
+// Normalizes weird encoding, stray symbols, and spacing
+function normalizeText(input: string): string {
+  if (!input) return "";
+
+  return input
+    .replace(/[�]/g, "")                 // remove replacement chars
+    .replace(/\s+/g, " ")                // normalize whitespace
+    .replace(/\u00A0/g, " ")             // non-breaking spaces
+    .replace(/\s+([.,!?])/g, "$1")       // fix spacing before punctuation
+    .trim();
+}
+function normalizeHighlightText(raw: string, i: number): string {
+  // 1) Normalize encoding + spacing
+  let s = String(raw ?? "");
+  s = fixWeirdEncoding(s);
+  s = sanitizeText(s);
+  s = cleanText(s);
+
+  // 2) Kill the exact repeated “nudge” line (anywhere, even mid paragraph)
+  s = s.replace(
+    /\s*(A\s+noticeable\s+transit\s+from\s+Venus\s+to\s+conjunction\s+natal\s+Venus\s+is\s+active\s+—\s*treat\s+it\s+as\s+a\s+nudge\s+for\s+small,\s+conscious\s+adjustments\s+rather\s+than\s+big,\s+impulsive\s+moves\.?)\s*/gi,
+    " "
+  );
+
+  // 3) Also remove similar variants (slightly different wording)
+  s = s.replace(
+    /\s*(A\s+noticeable\s+transit\s+from\s+Venus[^.]{0,140}?\s+is\s+active\s+—\s*treat\s+it\s+as\s+a\s+nudge[^.]*\.?)\s*/gi,
+    " "
+  );
+
+  // 4) Add a rotating ending so each day doesn't feel cloned
+  const endings = [
+    "Keep it simple: one priority, one action.",
+    "Go steady—small improvements beat big reactions.",
+    "Choose clarity over speed today.",
+    "Do one useful thing and stop there.",
+    "Slow down before you reply or decide.",
+    "Pick one adjustment and repeat it.",
+    "Less drama, more precision.",
+  ];
+
+  s = s.replace(/\s+/g, " ").trim();
+
+  // Only append an ending if we actually removed the repeated line
+  // (so we don’t bloat good text)
+  const removedSomething =
+    /Venus\s+to\s+conjunction\s+natal\s+Venus/i.test(String(raw ?? "")) &&
+    !/Venus\s+to\s+conjunction\s+natal\s+Venus/i.test(s);
+
+  if (removedSomething) {
+    s = `${s} ${endings[i % endings.length]}`.trim();
+  }
+
+  return s;
+}
 
 /* ---------------- Sidereal degree helpers for planets ---------------- */
 
@@ -2331,9 +2738,7 @@ function DashaBar({
   );
 }
 function renderAiTextBlocks(raw: string) {
-  const text = (raw ?? "").trim();
-  if (!text) return null;
-
+  const text = String(raw ?? "");
   const lines = text.split("\n");
   const out: React.ReactNode[] = [];
   let bullets: string[] = [];
@@ -2364,7 +2769,7 @@ function renderAiTextBlocks(raw: string) {
   };
 
   for (const line0 of lines) {
-    const line = line0.replace(/\t/g, "  ").trimEnd();
+    const line = String(line0 ?? "").replace(/\t/g, "  ").trimEnd();
 
     if (/^---+$/.test(line.trim())) {
       flushBullets();
@@ -2394,10 +2799,15 @@ function renderAiTextBlocks(raw: string) {
       continue;
     }
 
-    const b = line.match(/^[-?]\s+(.*)$/);
+    // bullet lines: "- " or "• "
+    const b =
+      line.match(/^\-\s+(.*)$/) ||
+      line.match(/^\•\s+(.*)$/) ||
+      line.match(/^\u2022\s+(.*)$/);
+
     if (b) {
       flushPara();
-      bullets.push(b[1].trim());
+      bullets.push((b[1] ?? "").trim());
       continue;
     }
 
@@ -2461,14 +2871,19 @@ const cleanTransitText = (raw: string) => {
 
 const TabTransits: React.FC<TabTransitsProps> = memo(
   ({
-    loading,
-    error,
-     transitSummary,
+    loading, // unused here now (12-month removed)
+    error,   // unused here now (12-month removed)
+    transitSummary, // unused here now (12-month removed)
     dailyHighlights,
     dailyLoading: dailyLoadingProp,
     dailyError: dailyErrorProp,
     mounted,
   }) => {
+    const list = Array.isArray(dailyHighlights) ? dailyHighlights : [];
+
+    // Only show a few cards to keep it clean
+    const visible = list.slice(0, 6);
+
     return (
       <div
         className={
@@ -2477,65 +2892,112 @@ const TabTransits: React.FC<TabTransitsProps> = memo(
         }
       >
         <Card className="rounded-2xl border border-indigo-400/15 bg-indigo-950/40 backdrop-blur-md shadow-xl shadow-[0_0_30px_rgba(99,102,241,0.10)]">
-          <CardHeader>
+          <CardHeader className="pb-3">
             <CardTitle className="text-lg font-semibold !text-slate-100">
-              Today &amp; next few days 
+              Today &amp; next few days
             </CardTitle>
+            <div className="text-xs text-white/70">
+              Short, practical highlights. No heavy technical dump.
+            </div>
           </CardHeader>
 
-          <CardContent className="text-sm">
+          <CardContent className="space-y-3">
+            {/* Loading */}
             {dailyLoadingProp && (
-              <div className="text-xs text-slate-300">Loading next few days</div>
+              <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/70">
+                Loading next few days…
+              </div>
             )}
 
-            {!loading && !error && Array.isArray(dailyHighlights) && dailyHighlights.length > 0 && (
-              <ul className="space-y-2">
-                {dailyHighlights.map((d) => (
-                  <li key={d.dateISO} className="leading-relaxed">
-                    <span className="mr-2 inline-flex rounded-md bg-white/5 px-2 py-0.5 text-sm font-semibold text-indigo-100">
-                      {d.dateISO}
-                    </span>
-                    <span className="text-slate-200">{d.text}</span>
-                  </li>
-                ))}
-              </ul>
+            {/* Error */}
+            {!dailyLoadingProp && dailyErrorProp && (
+              <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-3 py-2 text-xs text-red-200">
+                {dailyErrorProp}
+              </div>
             )}
 
-            {!loading &&
-              !error &&
-              (!Array.isArray(dailyHighlights) || dailyHighlights.length === 0) && (
-                <div className="text-xs text-slate-300">
-                  No strong transit windows are active in the next few days.
-                </div>
+            {/* Empty */}
+            {!dailyLoadingProp && !dailyErrorProp && visible.length === 0 && (
+              <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/70">
+                No strong highlights for the next few days.
+              </div>
+            )}
+{/* Cards */}
+{!dailyLoadingProp && !dailyErrorProp && visible.length > 0 && (
+  <div className="space-y-3">
+    {visible.map((d, idx) => {
+      const dateISO = String(d.dateISO ?? "").trim();
+
+      const dateLabel = (() => {
+        try {
+          if (!dateISO) return "—";
+          const dt = new Date(dateISO + "T00:00:00");
+          if (Number.isNaN(dt.getTime())) return dateISO;
+          return dt.toLocaleDateString(undefined, {
+            weekday: "short",
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+          });
+        } catch {
+          return dateISO || "—";
+        }
+      })();
+
+      // --- text pipeline ---
+      const rawText = String((d as any)?.text ?? "");
+
+      // 1) remove any wrong “Moon in XYZ” claims (AI hallucinations)
+      // 2) normalize + de-duplicate repetitive endings via idx rotation
+      const finalLine = normalizeHighlightText(
+        stripNakshatraClaims(rawText),
+        idx
+      );
+
+      return (
+        <div
+          key={dateISO || idx}
+          className="rounded-2xl border border-white/10 bg-white/5 p-4"
+        >
+          {/* Header */}
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <div className="text-sm font-semibold text-slate-100">
+                {cleanText(dateLabel)}
+              </div>
+              {dateISO && (
+                <div className="text-[11px] text-white/50">{dateISO}</div>
               )}
+            </div>
 
-            {!loading && !error && dailyErrorProp && (
-              <div className="mt-2 text-xs text-red-400">{dailyErrorProp}</div>
-            )}
-            {/* 2) Next 12 months */}
-<div className="space-y-2">
-  <p className="text-xs font-semibold uppercase tracking-wide text-white/60">
-    Next 12 months
-  </p>
+            <span className="inline-flex items-center gap-1 rounded-full border border-indigo-400/20 bg-indigo-500/10 px-2 py-0.5 text-[11px] font-semibold text-indigo-200">
+              Next few days
+            </span>
+          </div>
 
-  {loading && (
-    <p className="text-xs text-white/60">Building your 12-month overview</p>
-  )}
+          {/* Main message */}
+          <div className="mt-3 text-sm leading-relaxed text-slate-200 whitespace-pre-wrap">
+            {finalLine || "—"}
+          </div>
 
-  {!loading && !error && (transitSummary || "").trim() ? (
-    <div className="rounded-2xl border border-white/15 bg-indigo-950/40 backdrop-blur-sm p-4 text-slate-100">
-      {renderAiTextBlocks(cleanTransitText(transitSummary))}
-    </div>
-  ) : null}
+          {/* Footer tags */}
+          <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] text-white/60">
+            <span className="rounded-md border border-white/10 bg-white/5 px-2 py-0.5">
+              Priority: 1 thing
+            </span>
+            <span className="rounded-md border border-white/10 bg-white/5 px-2 py-0.5">
+              Action: 1 step
+            </span>
+            <span className="rounded-md border border-white/10 bg-white/5 px-2 py-0.5">
+              Avoid overthinking
+            </span>
+          </div>
+        </div>
+      );
+    })}
+  </div>
+)}
 
-  {!loading && !error && !(transitSummary || "").trim() && (
-    <p className="text-xs text-white/60">
-      12-month overview will appear here once transits are available.
-    </p>
-  )}
-
-  {!loading && !!error && <p className="text-xs text-red-400">{error}</p>}
-</div>
 
           </CardContent>
         </Card>
@@ -2543,7 +3005,6 @@ const TabTransits: React.FC<TabTransitsProps> = memo(
     );
   }
 );
-
 const TabMonthly: React.FC<TabMonthlyProps> = memo(
   ({ monthlyInsights, loading, error, mounted }) => {
     const hasData = Array.isArray(monthlyInsights) && monthlyInsights.length > 0;
@@ -2830,10 +3291,10 @@ type MoneyTip = {
 const TabDailyGuide: React.FC<{
   report: LifeReportView | null;
   guide: {
-    emotionalWeather: EmotionalWeather;
-    food: FoodGuide;
-    fasting: FastingGuide;
-    moneyTip: MoneyTip;
+    emotionalWeather?: EmotionalWeather;
+    food?: FoodGuide;
+    fasting?: FastingGuide;
+    moneyTip?: MoneyTip;
   } | null;
   guideError: string | null;
   dailyHighlights: { dateISO: string; text: string }[];
@@ -4189,16 +4650,18 @@ const describeNakshatraFocus = (nak: string): string => {
 };
 
           // Slightly varied sentence templates so the week doesn't feel copy-pasted
-const templates: Array<(nak: string, area: string) => string> = [
-  (nak, area) =>
-    `With the Moon in ${nak}, your attention may naturally settle on ${area}. Notice one situation where a small adjustment would genuinely help.`,
-  (nak, area) =>
-    `${nak} Moon day: your energy leans toward ${area}. Keep choices simple and intentional here rather than trying to do everything at once.`,
-  (nak, area) =>
-    `As the Moon moves through ${nak}, themes around ${area} come into focus. Use this as a chance to tidy something small that has been pending.`,
-  (nak, area) =>
-    `Under this ${nak} Moon, ${area} may feel more visible than usual. Go slowly, respond, and avoid reacting from urgency.`,
+const templates: Array<(area: string) => string> = [
+  (area) =>
+    `Your attention naturally settles on ${area} today. Notice one situation where a small adjustment would genuinely help.`,
+  (area) =>
+    `Today carries a calm, observant tone around ${area}. Keep it simple and intentional rather than trying to do everything at once.`,
+  (area) =>
+    `${area} comes into focus today. Use this as a chance to clear one small pending thing and move forward steadily.`,
+  (area) =>
+    `Be steady and responsive around ${area}. Avoid reacting from urgency — you’ll get better results with patience.`,
 ];
+
+
 
 const safeDailyFacts = Array.isArray(dailyFacts) ? dailyFacts : [];
 
@@ -4209,22 +4672,10 @@ const highlights: DailyHighlightLocal[] = safeDailyFacts.map((f, idx) => {
     typeof f.dateISO === "string" &&
     f.dateISO.slice(0, 10) === todayISO;
 
-  const nakFromPanchang = isToday
-    ? ( (next as any)?.panchang?.moonNakshatraName ??
-        (next as any)?.panchang?.nakshatraName ??
-        (next as any)?.panchang?.nakshatra?.name ??
-        (next as any)?.moonToday?.nakshatra ??
-        undefined )
-    : undefined;
+  // We intentionally DO NOT use nakshatra here.
+// Daily guidance must remain neutral and behavior-based.
+const nak = null;
 
-  const rawNak =
-    nakFromPanchang ||
-    (f.moonNakshatra &&
-      f.moonNakshatra.toString().toLowerCase() !== "a key nakshatra"
-      ? f.moonNakshatra
-      : undefined);
-
-  const nak = rawNak ?? "this nakshatra";
   const nakStr = String(nak);
 
   // Optional: if you already have describeNakshatraFocus(nakStr) defined above, keep using it.
@@ -4253,9 +4704,32 @@ const highlights: DailyHighlightLocal[] = safeDailyFacts.map((f, idx) => {
     area =
       "your long-term direction and how daily choices support it";
   }
+const DAILY_TONES = [
+  "slow and observant",
+  "practical and grounded",
+  "emotionally aware",
+  "reflective and inward",
+  "decisive but calm",
+  "light and adaptive",
+  "focused on completion",
+];
 
-  const coreLine = templates[idx % templates.length](nakStr, area);
-  const base = nakFlavor ? `${coreLine} ${nakFlavor}` : coreLine;
+  const safeNak = (nak && typeof nak === "string" ? nak : "the Moon");
+const tone = DAILY_TONES[idx % DAILY_TONES.length];
+
+const coreLine = templates[idx % templates.length](area);
+const closers = [
+  "Small, steady choices will go further than big reactions.",
+  "Focus on what you can gently improve today.",
+  "Let awareness guide action rather than urgency.",
+  "Choose simplicity over overthinking.",
+];
+
+const finalLine =
+  coreLine + " " + closers[idx % closers.length];
+
+
+  const base = coreLine;
 
   const tr = f.strongestTransit;
   let transitHook = "";
@@ -4272,8 +4746,8 @@ const highlights: DailyHighlightLocal[] = safeDailyFacts.map((f, idx) => {
       } else {
         // Other days: rotate a few softer background wordings
         const mkVariants = [
-          " In the background, the Mars?Ketu thread keeps humming; if you feel rushed or irritable, pause and come back to small, deliberate steps.",
-          " Mars?Ketu is still active in the background today; notice any urge to overreact and turn it into one small, conscious adjustment instead.",
+          " In the background, the Mars-Ketu thread keeps humming; if you feel rushed or irritable, pause and come back to small, deliberate steps.",
+          " Mars-Ketu is still active in the background today; notice any urge to overreact and turn it into one small, conscious adjustment instead.",
           " This Mars?Ketu backdrop continues quietly; protect your energy by choosing one or two clear priorities rather than scattering yourself.",
         ];
         transitHook = mkVariants[idx % mkVariants.length];
@@ -4292,7 +4766,13 @@ const highlights: DailyHighlightLocal[] = safeDailyFacts.map((f, idx) => {
   };
 });
 
-setDailyHighlights(highlights);
+setDailyHighlights(
+  (highlights || []).map((h, idx) => ({
+  ...h,
+  text: normalizeHighlightText(h.text, idx),
+}))
+);
+
 setDailyError(null);
 
         } catch (err) {

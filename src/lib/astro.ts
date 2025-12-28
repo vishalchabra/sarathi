@@ -284,3 +284,26 @@ export function computeHousePlacements(dobLocalISO: string, place: { lat: number
   }
   return { asc, houses, longs, signName: asc.signName };
 }
+// --- Convenience helper for Moon Nakshatra ---
+// --- Convenience helper for Moon Nakshatra (sidereal Lahiri) ---
+// dateISO = "YYYY-MM-DD"
+export function getMoonNakshatra(dateISO: string) {
+  // Use midnight UTC for consistency.
+  // (If you want local midnight for a location, pass a Date or (dateISO+place) and convert.)
+  const dtUTC = new Date(`${dateISO}T00:00:00Z`);
+
+  const tropicalLon = moonTropicalLongitude(dtUTC);
+  const siderealLon = toSiderealLongitudeLahiri(tropicalLon, dtUTC);
+
+  const nak = nakshatraFromLongitude(siderealLon);
+
+  return {
+    name: nak.name,      // ✅ string
+    pada: nak.pada,      // ✅ correct pada 1..4
+    index: nak.index,    // optional but useful
+    lord: nak.lord,      // optional but useful
+    siderealLon,
+    tropicalLon,
+    ayanamsa: lahiriAyanamsa(dtUTC),
+  };
+}
