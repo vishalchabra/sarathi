@@ -12,7 +12,9 @@ import React, {
 
 import { ensureNotificationTz } from "@/lib/notifications/timezone";
 
-import { useSearchParams } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CareerWindowCard } from "@/components/sarathi/CareerWindowCard";
 import DailyRhythmCard from "@/components/sarathi/DailyRhythmCard";
@@ -59,6 +61,7 @@ function LockingCityAutocomplete({
   onSelect: (p: { name: string; lat: number; lon: number } | null) => void;
   placeholder?: string;
 }) {
+  
   const [q, setQ] = React.useState(value?.name ?? "");
   const [open, setOpen] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
@@ -238,6 +241,7 @@ function LockingCityAutocomplete({
     </div>
   );
 }
+
 
 /* ---------------- Types from API (defensive) ---------------- */
 
@@ -574,6 +578,30 @@ function computeKaranaName(
 }
 
 /* ---------------- Helpers ---------------- */
+function TabFromUrl({
+  onTab,
+}: {
+  onTab: (t: "overview" | "phases" | "now" | "advanced") => void;
+}) {
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    try {
+      const sp = new URLSearchParams(window.location.search);
+      const t = (sp.get("tab") || "").toLowerCase();
+
+      if (t === "overview" || t === "phases" || t === "now" || t === "advanced") {
+        onTab(t as any);
+      }
+    } catch {
+      // ignore
+    }
+  }, [onTab]);
+
+  return null;
+}
+
+
 function humanizeInsight(base: string): string {
   const openers = [
     "Today brings a subtle shift —",
@@ -705,19 +733,8 @@ function normalizePanchang(p: any): PanchangInfo | undefined {
 
   const yogaName = p.yogaName ?? p.yoga ?? null;
   const karanaName = p.karanaName ?? p.karana ?? null;
-  const moonNakshatraName =
+    const moonNakshatraName =
     p.moonNakshatraName ?? p.moonNakshatra ?? p.nakshatra ?? null;
-function normalizeText(input: string): string {
-  if (!input) return "";
-
-  return input
-    .replace(/[�]/g, "")                // remove replacement chars
-    .replace(/[“”]/g, '"')
-    .replace(/[‘’]/g, "'")
-    .replace(/\u00A0/g, " ")            // non-breaking spaces
-    .replace(/\s+/g, " ")               // collapse spacing
-    .trim();
-}
 
 
   // ---- Times: read both flat and nested shapes ----
@@ -1091,7 +1108,7 @@ function cleanText(input: string): string {
 
   return input
     // Common broken UTF-8 sequences
-    .replace(/\uFFFD/g, "")          // � replacement
+    .replace(/\uFFFD/g, "")          // ? replacement
     .replace(/\u00A0/g, " ")         // non-breaking space
     .replace(/\u2018|\u2019/g, "'")  // smart single quotes
     .replace(/\u201C|\u201D/g, '"')  // smart double quotes
@@ -1105,17 +1122,17 @@ function fixWeirdEncoding(input: string) {
   const s = String(input ?? "");
 
   return s
-    // 1) Kill the Unicode replacement char (often rendered as �)
+    // 1) Kill the Unicode replacement char (often rendered as ?)
     .replace(/\uFFFD/g, "")
 
     // 2) Common mojibake sequences (as literal unicode codepoints)
     .replace(/\u00E2\u0080\u0099/g, "\u2019") // â€™ -> ’
     .replace(/\u00E2\u0080\u009C/g, "\u201C") // â€œ -> “
-    .replace(/\u00E2\u0080\u009D/g, "\u201D") // â€� -> ”
+    .replace(/\u00E2\u0080\u009D/g, "\u201D") // â€? -> ”
     .replace(/\u00E2\u0080\u0093/g, "\u2013") // â€“ -> –
     .replace(/\u00E2\u0080\u0094/g, "\u2014") // â€” -> —
     .replace(/\u00E2\u0080\u00A6/g, "\u2026") // â€¦ -> …
-    .replace(/\u00E2\u0086\u0092/g, "\u2192") // â†’ -> →
+    .replace(/\u00E2\u0086\u0092/g, "\u2192") // â†’ -> ?
 
     // 3) Drop stray Â and NBSP
     .replace(/\u00C2/g, "")
@@ -1140,11 +1157,11 @@ function sanitizeText(input: string): string {
   if (!input) return "";
 
   return input
-    // remove � replacement characters
+    // remove ? replacement characters
     .replace(/\uFFFD/g, "")
     // common mojibake fixes
     .replace(/â€™/g, "’")
-    .replace(/â€œ|â€�/g, '"')
+    .replace(/â€œ|â€?/g, '"')
     .replace(/â€˜|â€™/g, "'")
     .replace(/â€“|â€”/g, "—")
     .replace(/â€¦/g, "…")
@@ -1986,7 +2003,7 @@ function normalizeText(input: string): string {
   if (!input) return "";
 
   return input
-    .replace(/[�]/g, "")                 // remove replacement chars
+    .replace(/[?]/g, "")                 // remove replacement chars
     .replace(/\s+/g, " ")                // normalize whitespace
     .replace(/\u00A0/g, " ")             // non-breaking spaces
     .replace(/\s+([.,!?])/g, "$1")       // fix spacing before punctuation
@@ -3277,15 +3294,17 @@ function buildTodaysFocusV2(opts: {
       "Letting the day scatter into endless scrolling and reacting to others priorities only.",
   };
 }
+
+
 type MoneyTip = {
-  tone: "caution" | "neutral" | "opportunity" | string; // how the day feels for money
+  tone: "caution" | "neutral" | "opportunity" | string;
   headline: string;
   summary: string;
-  tilt: string;            // e.g. "caution", "opportunity", etc.
-  drivers: string[];       // e.g. ["Saturn transit", "Rahu AD"]
-  windowLabel: string;     // e.g. "Jan-Mar 2026" or "Next 30 days"
-  do: string[];            // action recommendations
-  avoid: string[];         // what to avoid
+  tilt: string;
+  drivers: string[];
+  windowLabel: string;
+  do: string[];
+  avoid: string[];
 };
 
 const TabDailyGuide: React.FC<{
@@ -3300,7 +3319,7 @@ const TabDailyGuide: React.FC<{
   dailyHighlights: { dateISO: string; text: string }[];
   dailyLoading: boolean;
   mounted: boolean;
-  todaysFocus: any; // can type properly later
+  todaysFocus: any;
 }> = ({
   report,
   guide,
@@ -3312,314 +3331,509 @@ const TabDailyGuide: React.FC<{
 }) => {
   if (!mounted) return null;
 
-  // ---------------- Basic safe objects ----------------
-  const rAny: any = report || {};
-  const gAny: any = guide || {};
+  const emotional = guide?.emotionalWeather;
+  const food = guide?.food;
+  const fasting = guide?.fasting;
+  const money = guide?.moneyTip;
 
-  const emotional: any =
-    gAny.emotionalWeather ||
-    rAny.emotionalWeather ||
-    null;
-
-  const food: any =
-    gAny.food ||
-    rAny.foodToday ||
-    null;
-
-  const fasting: any =
-    gAny.fasting ||
-    rAny.fastingToday ||
-    null;
-
-  const money: any =
-    gAny.moneyTip ||
-    rAny.moneyToday ||
-    null;
-
-  // ---------------- Panchang merge (today) ----------------
-  const panchangToday: any =
-    rAny.panchangToday ||
-    rAny.panchang?.today ||
-    rAny.panchang ||
-    gAny.panchangToday ||
-    gAny.panchang?.today ||
-    gAny.panchang ||
-    null;
-
-  const candidateFromReport: any =
-    (rAny.panchangToday && rAny.panchangToday) ||
-    (rAny.panchang && rAny.panchang) ||
-    null;
-
-  const candidateFromGuide: any =
-    (gAny.panchangToday && gAny.panchangToday) ||
-    (gAny.panchang && gAny.panchang) ||
-    null;
-
-  const pt: any = {
-    ...(panchangToday || {}),
-    ...(candidateFromGuide || {}),
-    ...(candidateFromReport || {}),
-  };
-
-  const tithiName =
-    pt?.tithi?.fullName ||
-    pt?.tithi?.name ||
-    pt?.tithiName ||
-    null;
-
-  const nakshatraName =
-    pt?.nakshatra?.name ||
-    pt?.nakshatraName ||
-    pt?.moon?.nakshatraName ||
-    pt?.moon?.nakshatra?.name ||
-    rAny.moonNakshatraName ||
-    rAny.panchang?.moonNakshatraName ||
-    null;
-
-  // Times ? we only keep sunrise / sunset (you asked to drop moonrise/moonset globally anyway)
-  const sunriseRaw =
-    pt?.sunriseISO ||
-    pt?.sunrise ||
-    pt?.sun?.riseISO ||
-    pt?.sun?.rise ||
-    pt?.sun?.sunrise ||
-    null;
-
-  const sunsetRaw =
-    pt?.sunsetISO ||
-    pt?.sunset ||
-    pt?.sun?.setISO ||
-    pt?.sun?.set ||
-    pt?.sun?.sunset ||
-    null;
-
-  const formatTime = (raw: any): string | null => {
-    if (!raw) return null;
-    if (typeof raw === "string") {
-      // ISO: 2025-12-12T07:03:00+05:30 ? 07:03
-      if (raw.includes("T") && raw.length >= 16) {
-        return raw.slice(11, 16);
-      }
-      return raw;
-    }
-    return null;
-  };
-
-  const sunrise = formatTime(sunriseRaw);
-  const sunset = formatTime(sunsetRaw);
-
-  // ---------------- Todays Focus (MD/AD focus) ----------------
-  const tf: any = todaysFocus || {};
-  const focusArea: string =
-    tf.area ||
-    tf.domain ||
-    "Overall balance";
-
-  const focusHeadline: string =
-    tf.headline ||
-    "Day favours balanced, steady progress.";
-
-  const focusSummary: string =
-    tf.summary ||
-    "Nothing extreme is required. Use the day to keep momentum in one or two important areas.";
-
-  const focusDo: string =
-    tf.do ||
-    "Pick one task that genuinely matters and complete it with full attention.";
-
-  const focusAvoid: string =
-    tf.avoid ||
-    "Avoid scattering attention across too many half-started things.";
-
-  // ---------------- Helpers for money tone ----------------
-  const moneyTone: string =
-    money?.tone ||
-    money?.tilt ||
-    "neutral";
-
-  const moneyToneClass = (() => {
-    if (moneyTone === "opportunity")
-      return "bg-emerald-500/10 border-emerald-400/25 text-emerald-100";
-    if (moneyTone === "caution")
-      return "bg-red-500/10 border-red-400/25 text-red-100";
-    if (moneyTone === "mixed")
-      return "bg-amber-500/10 border-amber-400/25 text-amber-100";
-    return "bg-white/5 border-white/15 text-slate-100";
-  })();
-
-  const todayLabel: string =
-    rAny.todayLabel ||
-    rAny.dateISO ||
+  const todayLabel =
+    (dailyHighlights?.[0]?.dateISO as string) ||
     new Date().toISOString().slice(0, 10);
 
   return (
     <div className="space-y-5">
-      {/* Error from /daily-guide API */}
       {guideError && (
         <div className="rounded-md border border-red-400/25 bg-red-500/10 px-3 py-2 text-sm text-red-200">
           {guideError}
         </div>
       )}
 
-      {/* Top row: Sārathi Snapshot + Today's Focus + Panchang mini card */}
+      {/* Snapshot */}
+      <div className="rounded-2xl border border-white/15 bg-indigo-950/40 p-4">
+        <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+          Sarathi Snapshot • {todayLabel}
+        </div>
+        <div className="mt-1 text-lg font-semibold text-slate-100">
+          {emotional?.headline ||
+            "Today favours calm, conscious choices over impulsive moves."}
+        </div>
+        <p className="mt-2 text-sm text-white/70">
+          {emotional?.summary ||
+            "You don’t have to solve everything today. Choose one priority and move steadily."}
+        </p>
+      </div>
+
+     {/* 3 mini cards */}
+{(() => {
+  const foodTitle =
+    (food as any)?.headline ||
+    (food as any)?.title ||
+    (food as any)?.label ||
+    "Keep food light and sattvic where possible.";
+
+  const foodText =
+    (food as any)?.summary ||
+    (food as any)?.text ||
+    (food as any)?.note ||
+    "Favour simple, clean meals that don’t weigh you down.";
+
+  const fastingTitle =
+    (fasting as any)?.headline ||
+    (fasting as any)?.title ||
+    "Use simple discipline over extremes.";
+
+  const fastingText =
+    (fasting as any)?.summary ||
+    (fasting as any)?.text ||
+    "If fasting, keep it gentle and hydrated. If not, ‘fast’ from noise/screens.";
+
+  const moneyTitle =
+    (money as any)?.headline ||
+    (money as any)?.title ||
+    "Keep money decisions steady today.";
+
+  const moneyText =
+    (money as any)?.summary ||
+    (money as any)?.text ||
+    "Avoid panic moves. Treat decisions as part of the long game.";
+
+  const fastingIsGoodDay =
+    typeof (fasting as any)?.isGoodDay === "boolean"
+      ? (fasting as any).isGoodDay
+      : null;
+
+  const foodSuggestions: any[] = Array.isArray((food as any)?.suggestions)
+    ? ((food as any).suggestions as any[])
+    : [];
+
+  const moneyDo: any[] = Array.isArray((money as any)?.do) ? ((money as any).do as any[]) : [];
+
+  return (
+    <div className="grid gap-4 md:grid-cols-3">
+      {/* Food */}
+      <div className="rounded-2xl border border-emerald-400/25 bg-emerald-500/10 p-4">
+        <div className="text-xs font-semibold uppercase tracking-wide text-emerald-200">
+          Food
+        </div>
+
+        <div className="mt-1 text-sm font-semibold text-slate-100 leading-snug">
+          {foodTitle}
+        </div>
+
+        <p className="mt-2 text-xs text-white/70 leading-relaxed">
+          {foodText}
+        </p>
+
+        {foodSuggestions.length > 0 && (
+          <ul className="mt-3 list-disc pl-4 text-xs text-white/70 space-y-1">
+            {foodSuggestions.slice(0, 5).map((s, i) => (
+              <li key={i}>{String(s)}</li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      {/* Fasting */}
+      <div className="rounded-2xl border border-amber-400/25 bg-amber-500/10 p-4">
+        <div className="text-xs font-semibold uppercase tracking-wide text-amber-200">
+          Fasting
+        </div>
+
+        <div className="mt-1 text-sm font-semibold text-slate-100 leading-snug">
+          {fastingTitle}
+        </div>
+
+        <p className="mt-2 text-xs text-white/70 leading-relaxed">
+          {fastingText}
+        </p>
+
+        {fastingIsGoodDay !== null && (
+          <div className="mt-3 inline-flex rounded-full bg-white/10 px-2 py-1 text-[11px] font-medium text-amber-200">
+            {fastingIsGoodDay
+              ? "Supportive day for fasting"
+              : "Not a strong day for full fasting — choose lightness instead."}
+          </div>
+        )}
+      </div>
+
+      {/* Money */}
+      <div className="rounded-2xl border border-white/15 bg-white/5 p-4">
+        <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+          Money
+        </div>
+
+        <div className="mt-1 text-sm font-semibold text-slate-100 leading-snug">
+          {moneyTitle}
+        </div>
+
+        <p className="mt-2 text-xs text-white/70 leading-relaxed">
+          {moneyText}
+        </p>
+
+        {moneyDo.length > 0 && (
+          <div className="mt-3 text-xs text-white/70">
+            <div className="text-[11px] font-semibold text-slate-100">Do</div>
+            <ul className="mt-2 list-disc pl-4 space-y-1">
+              {moneyDo.slice(0, 3).map((s, i) => (
+                <li key={i}>{String(s)}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+})()}
+
+      {/* Loading */}
+      {dailyLoading && (
+        <div className="text-sm text-white/60">Loading next few days…</div>
+      )}
+    </div>
+  );
+};
+
+
+/* ======================================================================
+   ADVANCED TAB (Premium conversion experience)
+   Tone: balanced (wisdom + clarity)
+   No backend changes required: uses safe heuristics + existing report data.
+======================================================================== */
+
+// ---------- helpers (top-level, NOT inside another component) ----------
+function clamp(n: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, n));
+}
+
+function safeStr(v: any, fallback = "") {
+  const s = String(v ?? "").trim();
+  return s || fallback;
+}
+
+function buildCorePattern(report: any) {
+  const asc = safeStr(report?.ascSign, "?");
+
+  const planets: any[] = Array.isArray(report?.planets) ? report.planets : [];
+
+  const findPlanet = (name: string) =>
+    planets.find((p) => safeStr(p?.name).toLowerCase() === name.toLowerCase());
+
+  const moon = findPlanet("Moon");
+  const sun = findPlanet("Sun");
+
+  const moonSign = safeStr(moon?.sign, safeStr(report?.moonSign, "?"));
+  const sunSign = safeStr(sun?.sign, safeStr(report?.sunSign, "?"));
+
+  return [
+    `Your outer approach is shaped by ${asc} rising — the way you initiate, lead, and respond to life.`,
+    `Your emotional rhythm is colored by the Moon in ${moonSign} — how you process, bond, and recover.`,
+    `Your direction and drive are flavored by the Sun in ${sunSign} — where growth wants consistency over intensity.`,
+  ].join(" ");
+}
+
+
+function pickDeepPatterns(report: any) {
+  const planets: any[] = Array.isArray(report?.planets) ? report.planets : [];
+  const findP = (name: string) =>
+    planets.find((p) => safeStr(p?.name).toLowerCase() === name.toLowerCase());
+
+  const moon = findP("Moon");
+  const saturn = findP("Saturn");
+  const rahu = findP("Rahu");
+  const ketu = findP("Ketu");
+
+  return [
+    {
+      title: "Emotional pattern",
+      text: moon
+        ? `With Moon in ${safeStr(moon?.sign, "?")} (house ${safeStr(moon?.house, "?")}), you restore clarity through steadiness. You do best when you name what you feel, then take one calm action.`
+        : `Your chart suggests you regain clarity through steadiness: feel first, then act simply.`,
+    },
+    {
+      title: "Life strategy",
+      text: saturn
+        ? `Saturn’s influence (house ${safeStr(saturn?.house, "?")}) shows progress through structure. When you commit to a routine, life becomes easier to navigate — and your results compound.`
+        : `Your progress accelerates when you choose structure over scattered effort.`,
+    },
+    {
+      title: "Karmic growth edge",
+      text: rahu || ketu
+        ? `The Rahu–Ketu axis highlights where desire and detachment both teach you. The lesson is balance: ambition with inner steadiness, progress without losing your center.`
+        : `A repeating theme is learning balance: ambition without restlessness, patience without delay.`,
+    },
+  ];
+}
+
+function buildDecisionBuckets(report: any) {
+  const planets: any[] = Array.isArray(report?.planets) ? report.planets : [];
+  const hasMoon = planets.some((p) => safeStr(p?.name).toLowerCase() === "moon");
+  const hasSat = planets.some(
+    (p) => safeStr(p?.name).toLowerCase() === "saturn"
+  );
+  const hasMars = planets.some(
+    (p) => safeStr(p?.name).toLowerCase() === "mars"
+  );
+
+  const supportive: string[] = [
+    "Long-term planning, systems, commitments",
+    "Steady execution over scattered effort",
+    "Clean closure: finish what’s open",
+  ];
+  const neutral: string[] = [
+    "Learning, maintenance, steady progress",
+    "Conversations that clarify expectations",
+  ];
+  const avoid: string[] = [
+    "Rushed reactions and impulsive decisions",
+    "Overcommitting to please others",
+  ];
+
+  if (hasSat) {
+    supportive.push("Routine-building (sleep, discipline, boundaries)");
+    avoid.push("Shortcuts that create future cleanup");
+  }
+  if (hasMars) {
+    supportive.push("Physical action (workouts, decisive follow-through)");
+    avoid.push("Unnecessary conflict / ego battles");
+  }
+  if (hasMoon) {
+    supportive.push("Emotional hygiene (journaling, quiet clarity)");
+    avoid.push("Late-night overthinking / spirals");
+  }
+
+  return { supportive, neutral, avoid };
+}
+
+function computeAlignment(report: any) {
+  const planets: any[] = Array.isArray(report?.planets) ? report.planets : [];
+  const hasSat = planets.some((p) => safeStr(p?.name).toLowerCase() === "saturn");
+  const hasMoon = planets.some((p) => safeStr(p?.name).toLowerCase() === "moon");
+  const hasJup = planets.some(
+    (p) => safeStr(p?.name).toLowerCase() === "jupiter"
+  );
+
+  const base = 64;
+  return {
+    mind: clamp(base + (hasSat ? 6 : 0) + (hasJup ? 4 : 0), 35, 92),
+    emotions: clamp(base + (hasMoon ? 7 : -3), 35, 92),
+    direction: clamp(base + (hasJup ? 8 : 0), 35, 92),
+    energy: clamp(base + 2, 35, 92),
+    support: clamp(base + (hasSat ? 3 : 0), 35, 92),
+  };
+}
+const cleanMd = (s: string) =>
+  s
+    .replace(/^#{1,6}\s+/gm, "")   // remove leading ### etc
+    .replace(/\*\*(.*?)\*\*/g, "$1") // remove **bold**
+    .replace(/`([^`]+)`/g, "$1")     // remove `code`
+    .trim();
+
+// ---------- TabAdvanced (top-level component) ----------
+const TabAdvanced: React.FC<{
+  report: LifeReportView | null;
+  mounted: boolean;
+  timelineSummary?: string | null;
+  dashaTransitSummary?: string | null;
+}> = ({ report, mounted, timelineSummary, dashaTransitSummary }) => {
+  if (!mounted) return null;
+
+  const r: any = report || {};
+  const corePattern = buildCorePattern(r);
+  const patterns = pickDeepPatterns(r);
+  const buckets = buildDecisionBuckets(r);
+  const align = computeAlignment(r);
+
+  const Locked: React.FC<{ title: string; children: React.ReactNode }> = ({
+  title,
+  children,
+}) => (
+  <div className="overflow-hidden rounded-2xl border border-white/15 bg-indigo-950/40 p-4 backdrop-blur-md shadow-xl shadow-[0_0_30px_rgba(99,102,241,0.10)]">
+    <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+      {title}
+    </div>
+    <div className="mt-3">{children}</div>
+  </div>
+);
+
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="rounded-2xl border border-white/15 bg-white/5 p-4">
+        <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+          Advanced • your deeper map
+        </div>
+        <div className="mt-1 text-lg font-semibold text-slate-100">
+          Patterns, timing, and decision intelligence — with wisdom and clarity.
+        </div>
+        <div className="mt-1 text-sm text-white/70">
+          This is a high-level preview. Your full Sarathi plan unlocks exact
+          windows and deeper personalization.
+        </div>
+      </div>
+
+      {/* Top row */}
       <div className="grid gap-4 md:grid-cols-3">
-        {/* Sārathi Snapshot */}
+        {/* Core Pattern */}
         <div className="md:col-span-2 rounded-2xl border border-white/15 bg-indigo-950/40 p-4 backdrop-blur-md shadow-xl shadow-[0_0_30px_rgba(99,102,241,0.10)]">
-          <div className="flex items-center justify-between gap-2">
-            <div>
-              <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
-                Sārathi Snapshot ? {todayLabel}
-              </div>
-              <h3 className="mt-1 text-lg font-semibold">
-                {emotional?.headline ||
-                  "Today favours calm, conscious choices over impulsive moves."}
-              </h3>
-            </div>
+          <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+            Your core pattern
           </div>
-
-          <p className="mt-3 text-sm text-white/70 leading-relaxed">
-            {emotional?.summary ||
-              "You don?t have to solve everything today. Focus on doing a few things slowly and well, instead of chasing ten things at once."}
+          <p className="mt-2 text-sm text-white/80 leading-relaxed">
+            {corePattern}
           </p>
 
-          {/* ?Your next step? CTA */}
-          <div className="mt-4 rounded-xl bg-white/5 px-3 py-3 text-sm">
+          <div className="mt-3 rounded-xl bg-white/5 px-3 py-3 text-sm">
             <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
-              Your next step today
+              One next step
             </div>
-            <p className="mt-1 text-slate-100">
-              {emotional?.nextStep ||
-                "Choose one small action you can complete in the next 30?60 minutes. Do it with full attention, then allow yourself a short conscious break."}
-            </p>
+            <div className="mt-1 text-slate-100">
+              Choose one area to simplify today — reduce noise, then take one
+              deliberate action.
+            </div>
           </div>
         </div>
 
-        {/* Today?s Focus (MD/AD) */}
-        <div className="rounded-2xl border border-indigo-200 bg-indigo-50/70 p-4 text-sm text-slate-100">
-          <div className="text-xs font-semibold uppercase tracking-wide text-indigo-600">
-            Today?s Focus ? Dasha
+        {/* Alignment Index */}
+        <div className="rounded-2xl border border-white/15 bg-white/5 p-4">
+          <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+            Soul alignment index
           </div>
-          <div className="mt-1 text-sm font-semibold">{focusArea}</div>
-          <p className="mt-1 text-xs text-white/70">{focusHeadline}</p>
-          <p className="mt-2 text-xs text-white/70">{focusSummary}</p>
 
-          <div className="mt-3 grid gap-2 text-xs">
-            <div>
-              <div className="font-semibold text-slate-100">Do</div>
-              <p className="text-white/70">{focusDo}</p>
-            </div>
-            <div>
-              <div className="font-semibold text-slate-100">Avoid</div>
-              <p className="text-white/70">{focusAvoid}</p>
-            </div>
+          <div className="mt-3 space-y-2 text-xs text-white/80">
+            {[
+              ["Mind", align.mind],
+              ["Emotions", align.emotions],
+              ["Direction", align.direction],
+              ["Energy", align.energy],
+              ["External support", align.support],
+            ].map(([label, score]) => (
+              <div key={String(label)} className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-white/80">{label}</span>
+                  <span className="font-semibold text-slate-100">
+                    {Number(score)}
+                  </span>
+                </div>
+                <div className="h-2 w-full rounded-full bg-white/10">
+                  <div
+                    className="h-2 rounded-full bg-white/40"
+                    style={{ width: `${Number(score)}%` }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-3 text-xs text-white/60">
+            Full version explains *why* these scores move — and what to do
+            day-by-day.
           </div>
         </div>
       </div>
 
-      {/* Panchang mini bar */}
-      <div className="grid gap-3 rounded-2xl border border-white/15 bg-indigo-950/40 backdrop-blur-md p-4 text-xs text-white/70 md:grid-cols-4">
-        <div>
-          <div className="font-semibold text-slate-100">Tithi</div>
-          <div>{tithiName || "?"}</div>
-        </div>
-        <div>
-          <div className="font-semibold text-slate-100">Nakshatra</div>
-          <div>{nakshatraName || "?"}</div>
-        </div>
-        <div>
-          <div className="font-semibold text-slate-100">Sunrise</div>
-          <div>{sunrise || "?"}</div>
-        </div>
-        <div>
-          <div className="font-semibold text-slate-100">Sunset</div>
-          <div>{sunset || "?"}</div>
-        </div>
-      </div>
-
-      {/* Middle row: Food ? Fasting ? Money */}
+      {/* Deep Patterns */}
       <div className="grid gap-4 md:grid-cols-3">
-        {/* Food card */}
-        <div className="rounded-2xl border border-emerald-400/25 bg-emerald-500/10 p-4 text-sm text-slate-100">
-          <div className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
-            Food ? Body
+        {patterns.map((p) => (
+          <div
+            key={p.title}
+            className="rounded-2xl border border-white/15 bg-white/5 p-4"
+          >
+            <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+              {p.title}
+            </div>
+            <div className="mt-2 text-sm text-white/80 leading-relaxed">
+              {p.text}
+            </div>
           </div>
-          <h3 className="mt-1 text-sm font-semibold">
-            {food?.headline || "Keep food light and sattvic where possible."}
-          </h3>
-          <p className="mt-1 text-xs text-slate-100">
-            {food?.summary ||
-              "Favour simple, clean meals that don?t weigh you down. Avoid heavy or very late-night eating if you can."}
-          </p>
-          {Array.isArray(food?.suggestions) && food.suggestions.length > 0 && (
-            <ul className="mt-2 list-disc pl-4 text-xs">
-              {food.suggestions.map((s: string, i: number) => (
+        ))}
+      </div>
+
+      {/* Life Timeline preview (locked) */}
+      <Locked title="Your life timeline (preview)">
+        <div className="text-sm text-white/80 leading-relaxed">
+          <div className="font-semibold text-slate-100">
+            Past - Present - Upcoming
+          
+          </div>
+          <div className="mt-2">
+            {cleanMd(safeStr(dashaTransitSummary, "The full timeline links dasha phases with transit triggers — so you know when to act and when to wait."))}
+
+          </div>
+        </div>
+      </Locked>
+
+      {/* Decision Intelligence */}
+      <div className="rounded-2xl border border-white/15 bg-indigo-950/40 p-4 backdrop-blur-md shadow-xl shadow-[0_0_30px_rgba(99,102,241,0.10)]">
+        <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+          Decision intelligence
+        </div>
+        <div className="mt-1 text-sm font-semibold text-slate-100">
+          Where your energy is best spent right now
+        </div>
+
+        <div className="mt-3 grid gap-3 md:grid-cols-3">
+          <div className="rounded-xl border border-emerald-400/25 bg-emerald-500/10 p-3">
+            <div className="text-xs font-semibold uppercase tracking-wide text-emerald-200">
+              Supportive
+            </div>
+            <ul className="mt-2 list-disc pl-4 text-xs text-white/80 space-y-1">
+              {buckets.supportive.slice(0, 4).map((s, i) => (
                 <li key={i}>{s}</li>
               ))}
             </ul>
-          )}
+          </div>
+
+          <div className="rounded-xl border border-amber-400/25 bg-amber-500/10 p-3">
+            <div className="text-xs font-semibold uppercase tracking-wide text-amber-200">
+              Neutral
+            </div>
+            <ul className="mt-2 list-disc pl-4 text-xs text-white/80 space-y-1">
+              {buckets.neutral.slice(0, 4).map((s, i) => (
+                <li key={i}>{s}</li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="rounded-xl border border-red-400/25 bg-red-500/10 p-3">
+            <div className="text-xs font-semibold uppercase tracking-wide text-red-200">
+              Avoid
+            </div>
+            <ul className="mt-2 list-disc pl-4 text-xs text-white/80 space-y-1">
+              {buckets.avoid.slice(0, 4).map((s, i) => (
+                <li key={i}>{s}</li>
+              ))}
+            </ul>
+          </div>
         </div>
 
-        {/* Fasting card */}
-        <div className="rounded-2xl border border-amber-400/25 bg-amber-500/10 p-4 text-sm text-slate-100">
-          <div className="text-xs font-semibold uppercase tracking-wide text-amber-700">
-            Fasting ? Reset
-          </div>
-          <h3 className="mt-1 text-sm font-semibold">
-            {fasting?.headline || "Use simple discipline over extreme fasting."}
-          </h3>
-          <p className="mt-1 text-xs text-slate-100">
-            {fasting?.summary ||
-              "If you?re fasting, keep it gentle and hydrated. If not, you can still ?fast? from noise, screens, or negativity."}
-          </p>
-          {fasting?.isGoodDay != null && (
-            <div className="mt-2 inline-flex rounded-full bg-white/10 px-2 py-1 text-[11px] font-medium text-amber-200">
-              {fasting.isGoodDay ? "Supportive day for fasting" : "Not a strong day for full fasting ? choose lightness instead."}
-            </div>
-          )}
+        <div className="mt-3 text-xs text-white/60">
+          Pro unlock adds: exact dates/windows + why each bucket is active for
+          you.
         </div>
+      </div>
 
-        {/* Money card */}
-        <div
-          className={`rounded-2xl border p-4 text-sm ${moneyToneClass}`}
-        >
-          <div className="text-xs font-semibold uppercase tracking-wide">
-            Money ? Day Tilt
-          </div>
-          <h3 className="mt-1 text-sm font-semibold">
-            {money?.headline ||
-              (moneyTone === "opportunity"
-                ? "Day leans mildly favourable for money decisions."
-                : moneyTone === "caution"
-                ? "Go slow with big money moves today."
-                : "Neutral day ? keep it steady.")}
-          </h3>
-          <p className="mt-1 text-xs">
-            {money?.summary ||
-              "Treat money decisions as part of the long game. Avoid panic moves just because of today?s mood."}
-          </p>
-
-          {Array.isArray(money?.do) && money.do.length > 0 && (
-            <div className="mt-2">
-              <div className="text-[11px] font-semibold">Do</div>
-              <ul className="mt-1 list-disc pl-4 text-[11px]">
-                {money.do.map((s: string, i: number) => (
-                  <li key={i}>{s}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {Array.isArray(money?.avoid) && money.avoid.length > 0 && (
-            <div className="mt-2">
-              <div className="text-[11px] font-semibold">Avoid</div>
-              <ul className="mt-1 list-disc pl-4 text-[11px]">
-                {money.avoid.map((s: string, i: number) => (
-                  <li key={i}>{s}</li>
-                ))}
-              </ul>
-            </div>
-          )}
+      {/* Final CTA */}
+      <div className="rounded-2xl border border-white/15 bg-white/5 p-4">
+        <div className="text-sm font-semibold text-slate-100">
+          Want the complete picture?
+        </div>
+        <div className="mt-1 text-sm text-white/70">
+          Unlock deeper timing, relationship patterns, and personalized action
+          plans across life areas.
+        </div>
+        <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+          <Link href="/sarathi/upgrade" className="w-full sm:w-auto">
+            <Button className="w-full sm:w-auto">Unlock Full Guidance</Button>
+          </Link>
+          <Link href="/sarathi/chat" className="w-full sm:w-auto">
+            <Button
+              variant="outline"
+              className="w-full sm:w-auto border-white/20 hover:bg-white/10 text-white"
+            >
+              Ask Sarathi
+            </Button>
+          </Link>
         </div>
       </div>
     </div>
@@ -3681,6 +3895,32 @@ const LifeReportShell: React.FC<LifeReportShellProps> = ({
   });
 
   const [activeTab, setActiveTab] = useState("overview");
+  const router = useRouter();
+const pathname = usePathname();
+const setTabFromUrl = useCallback(
+  (t: "overview" | "phases" | "now" | "advanced") => {
+    setActiveTab(t);
+  },
+  []
+);
+
+    // Read ?tab= from URL on first mount (deep-link to a tab)
+// Read ?tab= from URL on first mount (deep-link to a tab)
+useEffect(() => {
+  if (typeof window === "undefined") return;
+
+  try {
+    const sp = new URLSearchParams(window.location.search);
+    const t = (sp.get("tab") || "").toLowerCase();
+
+    if (t === "overview" || t === "phases" || t === "now" || t === "advanced") {
+      setActiveTab(t as any);
+    }
+  } catch {
+    // ignore
+  }
+}, []);
+
 
   const [dashaTimeline, setDashaTimeline] = useState<any[] | null>(null);
   const [loading, setLoading] = useState(false);
@@ -3704,6 +3944,7 @@ const LifeReportShell: React.FC<LifeReportShellProps> = ({
 
   const [mounted, setMounted] = useState(false);
   // make sure client-only tabs (timeline, transits, monthly, weekly, myths) show
+  
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -5368,7 +5609,7 @@ const TabPlacements = () => {
 
             <div className="pt-2 text-xs text-white/70">
               Want this personalized for your situation right now? Use{" "}
-              <span className="font-medium">Ask Sārathi</span>.
+              <span className="font-medium">Ask Sarathi</span>.
             </div>
           </CardContent>
         </Card>
@@ -5585,7 +5826,7 @@ const TabPersonality: React.FC<TabPersonalityProps> = memo(
             <Card className="rounded-2xl border border-indigo-400/15 bg-indigo-950/40 backdrop-blur-md shadow-xl shadow-[0_0_30px_rgba(99,102,241,0.10)]">
               <CardHeader>
                 <CardTitle className="text-base font-semibold text-slate-50">
-                  Sārathi’s summary
+                  Sarathi’s summary
                 </CardTitle>
               </CardHeader>
 
@@ -5656,6 +5897,15 @@ const TabPersonality: React.FC<TabPersonalityProps> = memo(
     );
   }
 );
+function stripMdLite(s: any) {
+  return String(s ?? "")
+    .replace(/^#{1,6}\s+/gm, "")        // remove markdown headings like ### Title
+    .replace(/\*\*(.*?)\*\*/g, "$1")    // remove **bold**
+    .replace(/\*(.*?)\*/g, "$1")        // remove *italic*
+    .replace(/`{1,3}/g, "")             // remove inline/backticks
+    .replace(/\s+/g, " ")
+    .trim();
+}
 
  /* ---------------- Tab 3: Timeline ---------------- */
 type SavedProfile = {
@@ -5749,44 +5999,63 @@ const TabTimeline: React.FC<TabTimelineProps> = memo(
             </AccordionTrigger>
 
             <AccordionContent className="pt-2">
-              <p className={subNote}>
-                A simple what to expect story for the coming year, based on your running
-                dasha + major transits.
-              </p>
+  <p className={subNote}>
+    A short preview of your year-ahead story (full breakdown in Advanced • Pro).
+  </p>
 
-              <div className="mt-3">
-                {dashaTransitSummary ? (
-                  <Card className={ACC_CARD}>
-                    <CardContent className="pt-4">
-                      <div className="text-slate-100 text-sm leading-relaxed">
-                        {renderAiTextBlocks(cleanTransitText(fixWeirdEncoding(dashaTransitSummary)))}
+  <div className="mt-3">
+    {dashaTransitSummary ? (
+      <Card className={ACC_CARD}>
+        <CardContent className="pt-4">
+          {(() => {
+            const raw = cleanTransitText(fixWeirdEncoding(dashaTransitSummary));
+            const plain = stripMdLite(raw);
 
-                      </div>
-                    </CardContent>
-                  </Card>
-                ) : (
-                  <p className={"mt-2 text-xs " + ACC_MUTED}>
-                    No year-ahead summary available yet.
-                  </p>
-                )}
+            const teaser =
+              plain.length > 260 ? plain.slice(0, 260).trim() + "…" : plain;
+
+            return (
+              <div className="space-y-3">
+                <div className="text-slate-100 text-sm leading-relaxed">
+                  {teaser}
+                </div>
+
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <div className={"text-xs " + ACC_MUTED}>
+                    Want the full insight, key windows, and action plan?
+                  </div>
+
+                  <Link href="/sarathi/life-report?tab=advanced" className="w-full sm:w-auto">
+                    <Button size="sm" className="w-full sm:w-auto">
+                      View in Advanced (Pro)
+                    </Button>
+                  </Link>
+                </div>
               </div>
-            </AccordionContent>
+            );
+          })()}
+        </CardContent>
+      </Card>
+    ) : (
+      <p className={"mt-2 text-xs " + ACC_MUTED}>
+        No year-ahead summary available yet.
+      </p>
+    )}
+  </div>
+</AccordionContent>
+
           </AccordionItem>
 
           {/* Life story overview (hide if it's the same as year-ahead) */}
 {(() => {
   const y = (dashaTransitSummary || "").trim();
   const t = (timelineSummary || "").trim();
-  const isDuplicate = !!y && !!t && y === t;
+  // no longer hide: year-ahead is a teaser now, so it's not overwhelming
 
-  if (isDuplicate) return null;
 
   return (
     <AccordionItem value="life-overview">
-      <AccordionTrigger className="text-xs font-medium text-white/70">
-        Life Story Overview
-      </AccordionTrigger>
-
+      
       <AccordionContent>
         {t ? (
           <Card className={ACC_CARD}>
@@ -6203,6 +6472,9 @@ window.localStorage.removeItem("sarathi.lifeReportCache.v2");
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-8 md:py-12">
+      <Suspense fallback={null}>
+      <TabFromUrl onTab={setTabFromUrl} />
+    </Suspense>
       <Card className="rounded-2xl border border-white/15 bg-indigo-950/40 backdrop-blur-md shadow-xl shadow-[0_0_30px_rgba(99,102,241,0.10)]">
         <CardHeader>
           <CardTitle className="text-xl font-semibold">
@@ -6261,7 +6533,7 @@ window.localStorage.removeItem("sarathi.lifeReportCache.v2");
                 }
                 setPlace({ name: p.name, lat: p.lat, lon: p.lon, tz });
               }}
-              placeholder="City, Country (e.g., Saharanpur)"
+              placeholder="City, Country (e.g., Delhi)"
             />
             {place && (
               <p className="text-xs text-white/70">
@@ -6316,18 +6588,29 @@ window.localStorage.removeItem("sarathi.lifeReportCache.v2");
         </CardContent>
       </Card>
 
-      {/* Tabs + Ask Sārathi chat entry */}
+      {/* Tabs + Ask Sarathi chat entry */}
       <div className="mt-2 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <Tabs
           value={activeTab}
-          onValueChange={(v) => setActiveTab(v as any)}
+          onValueChange={(v) => {
+  const next = String(v);
+  setActiveTab(next as any);
+
+const sp = new URLSearchParams(
+  typeof window !== "undefined" ? window.location.search : ""
+);
+sp.set("tab", next);
+router.replace(`${pathname}?${sp.toString()}`, { scroll: false });
+
+}}
+
           className="flex-1"
         >
           <TabsList className="flex flex-wrap gap-2">
   <TabsTrigger value="overview">Overview</TabsTrigger>
   <TabsTrigger value="phases">Life Phases</TabsTrigger>
   <TabsTrigger value="now">Now & Near Future</TabsTrigger>
-  <TabsTrigger value="advanced">Advanced</TabsTrigger>
+  <TabsTrigger value="advanced">Advanced • Pro</TabsTrigger>
 </TabsList>
         </Tabs>
 
@@ -6340,7 +6623,7 @@ window.localStorage.removeItem("sarathi.lifeReportCache.v2");
 
 
           >
-           Ask Sārathi
+           Ask Sarathi
           </Button>
         </Link>
       </div>
@@ -6380,25 +6663,16 @@ window.localStorage.removeItem("sarathi.lifeReportCache.v2");
     />
   )}
 
-  {/* ADVANCED = everything that overwhelms */}
+     {/* ADVANCED = premium deep insights (conversion page) */}
   {activeTab === "advanced" && (
-    <div className="space-y-6">
-      {/* Daily guide stays accessible but not ?primary? */}
-      <div className="space-y-4">
-        <TabDailyGuide
-          report={report}
-          guide={guide}
-          guideError={guideError}
-          dailyHighlights={dailyHighlights}
-          dailyLoading={dailyLoading}
-          mounted={mounted}
-          todaysFocus={todaysFocus}
-        />
-      </div>
-    </div>
+    <TabAdvanced
+      report={report}
+      mounted={mounted}
+      timelineSummary={timelineSummary}
+      dashaTransitSummary={dashaTransitSummary}
+    />
   )}
 </div>
-
     </main>
   );
 }
@@ -6408,7 +6682,7 @@ export default LifeReportShell;
 /* ---------------- Prefill wrapper (disabled for now) ---------------- */
 
 // function LifeReportInnerWithPrefill() {
-//   const searchParams = useSearchParams();
+//   
 //
 //   const name = searchParams.get("name") ?? "";
 //   const dateISO = searchParams.get("date") ?? "";
