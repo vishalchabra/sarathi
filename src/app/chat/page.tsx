@@ -1,14 +1,16 @@
-// FILE: src/app/chat/page.tsx
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { KeyboardEvent } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import dynamic from "next/dynamic";
+import { loadBirthProfile } from "@/lib/birth-profile";
 
 const LANBanner = dynamic(() => import("@/components/LANBanner"), { ssr: false });
+
 type BirthLike = {
   name?: string;
   dateISO?: string;
@@ -17,6 +19,7 @@ type BirthLike = {
   lat?: number;
   lon?: number;
 };
+
 type LifeReportLike = {
   activePeriods?: any;
   timeline?: any[];
@@ -30,12 +33,20 @@ type LifeReportLike = {
 };
 
 type Message = { role: "user" | "assistant"; text: string };
+
 function inferTopic(q: string) {
   const s = (q || "").toLowerCase();
 
-  if (/(job|career|switch|change\s*job|job\s*change|promotion|resign|notice|interview|offer|role|boss|manager|work)/.test(s)) return "job";
-  if (/(money|wealth|income|salary|bonus|debt|loan|invest|investment|stock|profit|business)/.test(s)) return "wealth";
-  if (/(relationship|love|partner|marriage|husband|wife|breakup|affair|compatibility)/.test(s)) return "relationships";
+  if (
+    /(job|career|switch|change\s*job|job\s*change|promotion|resign|notice|interview|offer|role|boss|manager|work)/.test(
+      s
+    )
+  )
+    return "job";
+  if (/(money|wealth|income|salary|bonus|debt|loan|invest|investment|stock|profit|business)/.test(s))
+    return "wealth";
+  if (/(relationship|love|partner|marriage|husband|wife|breakup|affair|compatibility)/.test(s))
+    return "relationships";
   if (/(health|sick|ill|disease|doctor|hospital|injury|stress|anxiety|sleep)/.test(s)) return "health";
   if (/(property|house|home|flat|rent|buy\s*house|sell\s*house|real\s*estate|land)/.test(s)) return "property";
   if (/(car|vehicle|bike|scooter|automobile|buy\s*car|new\s*car|upgrade|registration)/.test(s)) return "vehicle";
@@ -44,16 +55,34 @@ function inferTopic(q: string) {
   return "general";
 }
 
+function isProfileComplete(p: any) {
+  return !!(
+    p &&
+    p.dobISO &&
+    p.tob &&
+    p.place &&
+    typeof p.place.lat === "number" &&
+    typeof p.place.lon === "number" &&
+    !!p.place.tz
+  );
+}
+
 export default function AstroChatPage() {
   const [report, setReport] = useState<LifeReportLike | null>(null);
+  const [profile, setProfile] = useState<any>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [q, setQ] = useState("");
   const [loading, setLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-    // Load cached Life Report + dasha bundle for chat
+  // Load saved Birth Profile + cached Life Report for chat
   useEffect(() => {
     try {
+      // 1) Load saved profile (for UI + requests)
+      const p = loadBirthProfile();
+      setProfile(p);
+
+      // 2) Load cached life report context (optional)
       const rawCache =
         localStorage.getItem("sarathi.lifeReportCache.v2") ||
         localStorage.getItem("sarathi.lifeReportCache"); // older fallback
@@ -68,66 +97,26 @@ export default function AstroChatPage() {
       // --- birth details (best-effort from cache) ---
       const birth = cached
         ? {
-            name:
-              cached?.name ??
-              cached?.profile?.name ??
-              cached?.ascendant?.name ??
-              "",
-            dateISO:
-              cached?.birthDateISO ??
-              cached?.birth?.dateISO ??
-              cached?.profile?.birthDateISO ??
-              "",
-            time:
-              cached?.birthTime ??
-              cached?.birth?.time ??
-              cached?.profile?.birthTime ??
-              "",
-            tz:
-              cached?.birthTz ??
-              cached?.birth?.tz ??
-              cached?.profile?.birthTz ??
-              "",
-            lat:
-              cached?.birthLat ??
-              cached?.birth?.lat ??
-              cached?.profile?.lat ??
-              0,
-            lon:
-              cached?.birthLon ??
-              cached?.birth?.lon ??
-              cached?.profile?.lon ??
-              0,
+            name: cached?.name ?? cached?.profile?.name ?? cached?.ascendant?.name ?? "",
+            dateISO: cached?.birthDateISO ?? cached?.birth?.dateISO ?? cached?.profile?.birthDateISO ?? "",
+            time: cached?.birthTime ?? cached?.birth?.time ?? cached?.profile?.birthTime ?? "",
+            tz: cached?.birthTz ?? cached?.birth?.tz ?? cached?.profile?.birthTz ?? "",
+            lat: cached?.birthLat ?? cached?.birth?.lat ?? cached?.profile?.lat ?? 0,
+            lon: cached?.birthLon ?? cached?.birth?.lon ?? cached?.profile?.lon ?? 0,
           }
         : null;
-// light natal snapshot if present
-      const natal =
-        cached?.natal ??
-        cached?.natalSummary ??
-        null;
-           // --- base lite report from cache ---
+
+      const natal = cached?.natal ?? cached?.natalSummary ?? null;
+
       let activePeriods: any =
-        cached?.activePeriods ??
-        cached?.ascendant?.activePeriods ??
-        cached?.activePeriodsLive ??
-        null;
+        cached?.activePeriods ?? cached?.ascendant?.activePeriods ?? cached?.activePeriodsLive ?? null;
 
-      let timeline =
-        cached?.timeline ??
-        cached?.timelineWindows ??
-        cached?.dashaTimeline ??
-        [];
+      let timeline = cached?.timeline ?? cached?.timelineWindows ?? cached?.dashaTimeline ?? [];
 
-      // existing transit windows (if life report already built them)
-      let transitWindows =
-        cached?.transitWindows ??
-        cached?.transits?.windows ??
-        [];
+      let transitWindows = cached?.transitWindows ?? cached?.transits?.windows ?? [];
 
       // NEW: raw transits from Life Report
-      const rawTransits: any[] = Array.isArray((cached as any)?.transits)
-        ? (cached as any).transits
-        : [];
+      const rawTransits: any[] = Array.isArray((cached as any)?.transits) ? (cached as any).transits : [];
 
       // If we have raw transits but no transitWindows, synthesize a simple window
       if ((!transitWindows || transitWindows.length === 0) && rawTransits.length) {
@@ -136,37 +125,18 @@ export default function AstroChatPage() {
 
         const future = rawTransits
           .map((t) => {
-            const fromISO =
-              t.startISO ||
-              t.start ||
-              t.from ||
-              t.dateISO ||
-              t.at ||
-              null;
-            const toISO =
-              t.endISO ||
-              t.end ||
-              t.to ||
-              fromISO;
+            const fromISO = t.startISO || t.start || t.from || t.dateISO || t.at || null;
+            const toISO = t.endISO || t.end || t.to || fromISO;
 
             const fromMs = fromISO ? new Date(fromISO).getTime() : NaN;
             const toMs = toISO ? new Date(toISO).getTime() : NaN;
 
             return { t, fromISO, toISO, fromMs, toMs };
           })
-          .filter(
-            (x) =>
-              Number.isFinite(x.fromMs) &&
-              x.fromMs >= now &&
-              x.fromMs <= now + horizonMs
-          );
+          .filter((x) => Number.isFinite(x.fromMs) && x.fromMs >= now && x.fromMs <= now + horizonMs);
 
         if (future.length) {
-          // pick the strongest / most relevant hit
-          future.sort(
-            (a, b) =>
-              (Number(b.t.strength) || 0) - (Number(a.t.strength) || 0)
-          );
+          future.sort((a, b) => (Number(b.t.strength) || 0) - (Number(a.t.strength) || 0));
           const top = future[0];
 
           const cat = (top.t.category || "").toString().toLowerCase();
@@ -177,25 +147,19 @@ export default function AstroChatPage() {
             money: "money, gains and practical security",
             inner: "inner work, healing and mindset",
           };
-          const focusArea =
-            focusAreaMap[cat] || "a key area that’s being activated";
+          const focusArea = focusAreaMap[cat] || "a key area that’s being activated";
 
           const driverPlanet = top.t.planet || "A planet";
           const driverSign = top.t.sign ? ` in ${top.t.sign}` : "";
-          const driverHouse = top.t.house
-            ? ` affecting house ${top.t.house}`
-            : "";
-          const driver =
-            `${driverPlanet}${driverSign}${driverHouse}`.trim() ||
-            "Transit activation";
+          const driverHouse = top.t.house ? ` affecting house ${top.t.house}` : "";
+          const driver = `${driverPlanet}${driverSign}${driverHouse}`.trim() || "Transit activation";
 
           const tags: string[] = Array.isArray(top.t.tags) ? top.t.tags : [];
-          const riskFlag: "caution" | "opportunity" | "mixed" | undefined =
-            tags.includes("caution")
-              ? "caution"
-              : tags.includes("opportunity")
-              ? "opportunity"
-              : "mixed";
+          const riskFlag: "caution" | "opportunity" | "mixed" | undefined = tags.includes("caution")
+            ? "caution"
+            : tags.includes("opportunity")
+            ? "opportunity"
+            : "mixed";
 
           const summary = top.t.windowLabel || top.t.label || "";
 
@@ -213,9 +177,6 @@ export default function AstroChatPage() {
         }
       }
 
-
-      // --- now derive MD / AD / PD where possible ---
-
       // 1) Derive Mahadasha from life-report-dasha.ads
       let maha: any = activePeriods?.mahadasha ?? null;
 
@@ -225,14 +186,9 @@ export default function AstroChatPage() {
 
         let currentRow: any = null;
 
-        // try bundle.current first
         if (dashaBundle.current?.md) {
-          const startMs = new Date(
-            dashaBundle.current.startISO || dashaBundle.current.start
-          ).getTime();
-          const endMs = new Date(
-            dashaBundle.current.endISO || dashaBundle.current.end
-          ).getTime();
+          const startMs = new Date(dashaBundle.current.startISO || dashaBundle.current.start).getTime();
+          const endMs = new Date(dashaBundle.current.endISO || dashaBundle.current.end).getTime();
           if (Number.isFinite(startMs) && Number.isFinite(endMs)) {
             if (todayMs >= startMs && todayMs <= endMs) {
               currentRow = {
@@ -244,7 +200,6 @@ export default function AstroChatPage() {
           }
         }
 
-        // if not, scan ads[]
         if (!currentRow) {
           for (const r of ads) {
             const startISO = r.startISO || r.start || r.fromISO;
@@ -287,35 +242,17 @@ export default function AstroChatPage() {
             const toMs = new Date(toISO).getTime();
             return { w, fromISO, toISO, fromMs, toMs };
           })
-          .filter(
-            (x) =>
-              Number.isFinite(x.fromMs) &&
-              Number.isFinite(x.toMs)
-          );
+          .filter((x) => Number.isFinite(x.fromMs) && Number.isFinite(x.toMs));
 
-        let currentWin =
-          windows.find(
-            (x) => now >= x.fromMs && now <= x.toMs
-          ) || null;
+        let currentWin = windows.find((x) => now >= x.fromMs && now <= x.toMs) || null;
 
-        // Fallback: closest window by start date
         if (!currentWin && windows.length) {
-          currentWin = [...windows].sort(
-            (a, b) =>
-              Math.abs(a.fromMs - now) -
-              Math.abs(b.fromMs - now)
-          )[0];
+          currentWin = [...windows].sort((a, b) => Math.abs(a.fromMs - now) - Math.abs(b.fromMs - now))[0];
         }
 
         if (currentWin) {
           const w = currentWin.w;
-          const mdLord =
-            maha?.lord ||
-            w.mdLord ||
-            w.mahaLord ||
-            w.md ||
-            w.planet ||
-            "";
+          const mdLord = maha?.lord || w.mdLord || w.mahaLord || w.md || w.planet || "";
 
           if (!antar && w.adLord) {
             antar = {
@@ -359,45 +296,75 @@ export default function AstroChatPage() {
   const canSend = useMemo(() => q.trim().length > 0 && !loading, [q, loading]);
 
   async function send() {
-  if (!canSend) return;
+    if (!canSend) return;
 
-  const question = q.trim();
-  const topic = inferTopic(question);
+    const question = q.trim();
+    const topic = inferTopic(question);
 
-  setMessages((m) => [...m, { role: "user", text: question }]);
-  setQ("");
-  setLoading(true);
+    setMessages((m) => [...m, { role: "user", text: question }]);
+    setQ("");
+    setLoading(true);
 
-  try {
-    console.log("[CHAT SEND]", { question, topic, hasReport: !!report });
+    try {
+      // ✅ IMPORTANT: send the saved profile EXACTLY as stored
+      const freshProfile = loadBirthProfile();
+      setProfile(freshProfile);
 
-    const res = await fetch("/api/astro-chat", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        message: question,
+      const ok = isProfileComplete(freshProfile);
+
+      console.log("[SARATHI_CHAT_DEBUG] sending", {
+        question,
         topic,
-        report, // send the lite report context you built from cache
-      }),
-    });
+        reportPresent: !!report,
+        profilePresent: !!freshProfile,
+        profileOk: ok,
+        dobISO: (freshProfile as any)?.dobISO,
+        tob: (freshProfile as any)?.tob,
+        tz: (freshProfile as any)?.place?.tz,
+        lat: (freshProfile as any)?.place?.lat,
+        lon: (freshProfile as any)?.place?.lon,
+      });
 
-    const json = await res.json();
-    const answer = json?.answer || json?.error || "…";
+      if (!ok) {
+        setMessages((m) => [
+          ...m,
+          {
+            role: "assistant",
+            text: "Your profile isn’t saved yet. Please go to Profile, enter birth date/time/place, and hit Save.",
+          },
+        ]);
+        return;
+      }
 
-    setMessages((m) => [...m, { role: "assistant", text: String(answer) }]);
-  } catch (e: any) {
-    setMessages((m) => [
-      ...m,
-      { role: "assistant", text: `⚠️ Network error: ${e?.message || e}` },
-    ]);
-  } finally {
-    setLoading(false);
-    inputRef.current?.focus();
+      const res = await fetch("/api/astro-chat", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          message: question,
+          // ✅ send under BOTH keys so backend always sees it
+          profile: freshProfile,
+          birthProfile: freshProfile,
+          topic,
+          report, // lite report context you built from cache
+        }),
+      });
+
+      const json = await res.json();
+      const answer = json?.answer || json?.text || json?.error || "…";
+
+      setMessages((m) => [...m, { role: "assistant", text: String(answer) }]);
+    } catch (e: any) {
+      setMessages((m) => [
+        ...m,
+        { role: "assistant", text: `⚠️ Network error: ${e?.message || e}` },
+      ]);
+    } finally {
+      setLoading(false);
+      inputRef.current?.focus();
+    }
   }
-}
 
-
-  function onEnter(e: React.KeyboardEvent<HTMLInputElement>) {
+  function onEnter(e: KeyboardEvent<HTMLInputElement>) {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       send();
@@ -415,6 +382,15 @@ export default function AstroChatPage() {
             <Badge variant="outline" className="rounded-lg text-xs">
               GPT-5
             </Badge>
+
+            {profile?.name ? (
+              <Badge className="rounded-lg text-xs">Profile loaded: {profile.name}</Badge>
+            ) : (
+              <Badge variant="outline" className="rounded-lg text-xs">
+                No profile
+              </Badge>
+            )}
+
             {report?.activePeriods ? (
               <Badge className="rounded-lg text-xs">Life Report linked</Badge>
             ) : (
@@ -424,6 +400,7 @@ export default function AstroChatPage() {
             )}
           </div>
         </CardHeader>
+
         <CardContent className="space-y-4">
           <div className="rounded-xl border p-3 bg-muted/40">
             <div className="text-xs text-muted-foreground">
@@ -438,9 +415,7 @@ export default function AstroChatPage() {
                 <div
                   className={
                     "inline-block max-w-[85%] rounded-2xl px-3 py-2 text-sm leading-relaxed " +
-                    (m.role === "user"
-                      ? "bg-foreground text-background"
-                      : "bg-muted")
+                    (m.role === "user" ? "bg-foreground text-background" : "bg-muted")
                   }
                 >
                   {m.text}

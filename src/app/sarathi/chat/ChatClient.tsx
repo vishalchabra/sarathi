@@ -481,6 +481,8 @@ function SarathiAnswerCard({
   confidenceText?: string;
   detailNote?: string;
 }) {
+  const [expanded, setExpanded] = useState(false);
+
   return (
     <div className="rounded-2xl border border-white/10 bg-slate-950/35 p-4 text-sm leading-6 text-slate-100">
       <div className="flex items-start justify-between gap-3">
@@ -500,7 +502,25 @@ function SarathiAnswerCard({
         ) : null}
       </div>
 
-      {answer ? <p className="mt-3 whitespace-pre-wrap">{answer}</p> : null}
+      {answer ? (
+  <div className="mt-3">
+    <p className="whitespace-pre-wrap">
+      {expanded ? answer : answer.slice(0, 600)}
+      {answer.length > 600 && !expanded ? "…" : ""}
+    </p>
+
+    {answer.length > 600 && (
+      <button
+        type="button"
+        onClick={() => setExpanded((v) => !v)}
+        className="mt-2 text-xs text-indigo-300 hover:underline"
+      >
+        {expanded ? "Show less" : "Show more"}
+      </button>
+    )}
+  </div>
+) : null}
+
 
       {(how || (whyBullets && whyBullets.length)) ? (
         <div className="mt-4 grid gap-3 md:grid-cols-2">
@@ -530,13 +550,43 @@ function SarathiAnswerCard({
     </div>
   );
 }
+function getFreshProfileForApi(): Profile | null {
+  const p = loadBirthProfile();
+  if (!p) return null;
+
+  const lat = Number(p.place?.lat);
+  const lon = Number(p.place?.lon);
+  const tz = String(p.place?.tz ?? "");
+
+  const placeOk = Number.isFinite(lat) && Number.isFinite(lon) && !!tz;
+
+  return {
+    name: p.name,
+    dobISO: p.dobISO,
+    tob: p.tob,
+    place: placeOk
+      ? { name: p.place?.name ?? "", lat, lon, tz }
+      : undefined,
+  };
+}
+
+function loadLifeReportCache(): any | null {
+  try {
+    if (typeof window === "undefined") return null;
+    const s = localStorage.getItem("sarathi.lifeReportCache.v2");
+    return s ? JSON.parse(s) : null;
+  } catch {
+    return null;
+  }
+}
+
 
 /* ===================== Component ===================== */
 export default function ChatClient() {
   const [mounted, setMounted] = useState(false);
   const [safeMode, setSafeMode] = useState(false);
   const [view, setView] = useState<"cards" | "narrative" | "qa">("qa");
-  const [showDetails, setShowDetails] = useState(false);
+  const [showDetails, setShowDetails] = useState(true);
   const [chattyMode, setChattyMode] = useState(true);
   const [profile, setProfile] = useState<Profile>({});
   const [messages, setMessages] = useState<Msg[]>([
@@ -689,33 +739,69 @@ export default function ChatClient() {
     const userIntent = intentFromQuery(query);
     const styleToSend =
       userIntent === "exact" ? "narrative" : userIntent === "when" ? "cards" : "qa";
+     // Always send the freshest saved profile (authoritative)
+const fresh = getFreshProfileForApi();
 
-    const payload: any = {
+// Fall back to the in-memory profile if fresh is missing
+const finalProfile: Profile = fresh ?? prof ?? {};
+
+// Ensure we always have a usable place object (even if birth details missing)
+const finalPlace = effectivePlace(finalProfile);
+
+// Debug (shows in browser console)
+console.log("[sarathi/chat] finalProfile being sent", {
+  name: finalProfile?.name,
+  dobISO: finalProfile?.dobISO,
+  tob: finalProfile?.tob,
+  place: {
+    tz: finalProfile?.place?.tz ?? finalPlace.tz,
+    lat: finalProfile?.place?.lat ?? finalPlace.lat,
+    lon: finalProfile?.place?.lon ?? finalPlace.lon,
+    name: finalProfile?.place?.name ?? finalPlace.name,
+  },
+});
+
+
+
+
+// (optional debug)
+console.log("[chat] profile send", {
+  dobISO: finalProfile?.dobISO,
+  tob: finalProfile?.tob,
+  tz: finalPlace?.tz,
+  lat: finalPlace?.lat,
+  lon: finalPlace?.lon,
+});
+
+const payload: any = {
   question: query,
-  // pass birth in the format astro-chat expects
-  birth: prof?.dobISO
-    ? {
-        name: prof?.name,
-        dateISO: prof.dobISO,
-        time: prof.tob ?? "00:00",
-        tz: place.tz,
-        lat: place.lat,
-        lon: place.lon,
-      }
-    : null,
-
-  // If you have a Life Report cached in localStorage, pass it through as reportData
+  message: query,
+  profile: finalProfile,
+  birthProfile: finalProfile,
   reportData: (() => {
-    try {
-      const raw = localStorage.getItem("sarathi.lifeReportCache.v2") 
-        || localStorage.getItem("life-report-cache.v2")
-        || localStorage.getItem("life-report"); // keep fallback
-      return raw ? JSON.parse(raw) : null;
-    } catch {
-      return null;
+  try {
+    const raw =
+      localStorage.getItem("sarathi.lifeReportCache.v2") ||
+      localStorage.getItem("sarathi.lifeReportCache"); // legacy fallback
+    if (!raw) return null;
+
+    const cached = JSON.parse(raw);
+
+    // ✅ If cached is { data, profile }, unwrap to the real Life Report
+    if (cached && typeof cached === "object" && cached.data && typeof cached.data === "object") {
+      return cached.data;
     }
-  })(),
+
+    // ✅ If it's already the report, send as-is
+    return cached;
+  } catch {
+    return null;
+  }
+})(),
+
 };
+
+
 
 
     let res: Response | undefined;
@@ -723,12 +809,12 @@ export default function ChatClient() {
 
     try {
       res = await fetch("/api/astro-chat", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        cache: "no-store",
-        next: { revalidate: 0 },
-        body: JSON.stringify(payload),
-      });
+  method: "POST",
+  headers: { "content-type": "application/json" },
+  cache: "no-store",
+  body: JSON.stringify(payload),
+});
+
       try {
         body = await res.json();
       } catch {
@@ -808,6 +894,14 @@ export default function ChatClient() {
       out = out.replace(/\b[a-z]+ md\s*\/\s*[a-z]+ ad\b/gi, "").replace(/\s{2,}/g, " ").trim();
       return out;
     };
+const stripEvidenceMarker = (s?: string) => {
+  if (!s) return s;
+  return s
+    .replace(/\*\*why this\s*\(evidence\)\s*\*\*/gi, "")
+    .replace(/\*\*why this\s*\*\*/gi, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+};
 
     try {
       const data = await askServer(augmented, profile);
@@ -824,23 +918,28 @@ export default function ChatClient() {
       if (safeData.bottomLine?.lead) {
         safeData.bottomLine = {
           ...safeData.bottomLine,
-          lead: stripMDAD(safeData.bottomLine.lead) ?? safeData.bottomLine.lead,
+         lead:
+  stripEvidenceMarker(stripMDAD(safeData.bottomLine.lead)) ??
+  safeData.bottomLine.lead,
         };
       }
       if (safeData.bottomLine?.nuance) {
-        safeData.bottomLine = {
-          ...safeData.bottomLine,
-          nuance: stripMDAD(safeData.bottomLine.nuance) ?? safeData.bottomLine.nuance,
-        };
-      }
+  safeData.bottomLine = {
+    ...safeData.bottomLine,
+    nuance:
+      stripEvidenceMarker(stripMDAD(safeData.bottomLine.nuance)) ??
+      safeData.bottomLine.nuance,
+  };
+}
 
-      if (safeData.copy?.answer || safeData.copy?.how) {
+         if (safeData.copy?.answer || safeData.copy?.how) {
         safeData.copy = {
           ...safeData.copy,
           ...(safeData.copy?.answer
-            ? { answer: stripMDAD(safeData.copy.answer) ?? safeData.copy.answer }
+           ? { answer: stripEvidenceMarker(stripMDAD(safeData.copy.answer)) ?? safeData.copy.answer }
+
             : {}),
-          ...(safeData.copy?.how ? { how: stripMDAD(safeData.copy.how) ?? safeData.copy.how } : {}),
+          ...(safeData.copy?.how ? { how: stripEvidenceMarker(stripMDAD(safeData.copy.how)) ?? safeData.copy.how } : {}),
         } as any;
       }
 
@@ -1008,14 +1107,68 @@ export default function ChatClient() {
 
 if (msg.role === "assistant" && msg.data) {
   const d = msg.data;
+console.log("[job-debug] full payload", d);
+console.log("[job-debug] lengths", {
+  bottom: d?.bottomLine?.lead?.length ?? 0,
+  copyAnswer: d?.copy?.answer?.length ?? 0,
+  copyLong: d?.copy?.long?.length ?? 0,
+  win0why: Array.isArray(d?.windows?.[0]?.why) ? d.windows[0].why.join(" ").length : 0,
+  win0do: Array.isArray(d?.windows?.[0]?.do) ? d.windows[0].do.join(" ").length : 0,
+});
 
   const now = d?.now?.label || d?.extra?.nowLabel;
 
-  const answer =
-    d?.copy?.answer ||
-    d?.bottomLine?.lead ||
-    d?.copy?.long ||
-    "Here’s what I found.";
+const preferLong = intent === "when" || intent === "exact" || view === "narrative";
+
+const fallbackAnswer =
+  Array.isArray(d?.windows) && d.windows.length
+    ? [
+        `Main window: ${d.windows[0]?.label || ""} (${d.windows[0]?.fromISO || ""} → ${d.windows[0]?.toISO || ""})`.trim(),
+        ...(Array.isArray(d.windows[0]?.why) ? d.windows[0].why.slice(0, 2) : []),
+      ]
+        .filter(Boolean)
+        .join("\n")
+    : Array.isArray(d?.guidance) && d.guidance.length
+    ? d.guidance.slice(0, 3).join("\n")
+    : "Here’s what I found.";
+
+const longFromWindows =
+  Array.isArray(d?.windows) && d.windows.length
+    ? [
+        "What this phase means",
+        ...(Array.isArray(d.windows[0]?.why) ? d.windows[0].why : []),
+        ...(Array.isArray(d.windows[0]?.notes) ? d.windows[0].notes : d.windows[0]?.notes ? [String(d.windows[0].notes)] : []),
+        "",
+        "What to do now",
+        ...(Array.isArray(d.windows[0]?.do) ? d.windows[0].do : []),
+        ...(d?.copy?.how ? [d.copy.how] : []),
+      ]
+        .flat()
+        .filter(Boolean)
+        .join("\n")
+    : "";
+
+let answer =
+  (preferLong
+    ? (d?.copy?.long || d?.copy?.answer || longFromWindows || d?.answer)
+    : (d?.copy?.answer || d?.answer || d?.copy?.long)) ||
+  d?.bottomLine?.lead ||
+  fallbackAnswer;
+
+
+if (!answer || answer.trim().length < 120) {
+  answer = answer ? `${answer}\n\n${fallbackAnswer}` : fallbackAnswer;
+}
+
+console.log("[chat] keys:", {
+  hasCopy: !!d?.copy,
+  hasLong: !!d?.copy?.long,
+  hasAnswer: !!d?.copy?.answer,
+  hasWindows: Array.isArray(d?.windows) ? d.windows.length : 0,
+  hasBottom: !!d?.bottomLine?.lead,
+});
+
+
 
   const how =
     d?.copy?.how ||

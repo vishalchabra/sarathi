@@ -6,7 +6,7 @@ import OpenAI from "openai";
 
 /* ---------------- OpenAI setup (lazy) ---------------- */
 
-const GPT_MODEL = process.env.OPENAI_MODEL || "gpt-4.1-mini";
+const GPT_MODEL = process.env.GPT_MODEL || process.env.OPENAI_MODEL || "gpt-4.1-mini";
 
 let cachedClient: OpenAI | null = null;
 
@@ -41,8 +41,7 @@ function isNonEmptyString(x: any): x is string {
 }
 
 function buildStructuredPrompt(body: any): string {
-  // This turns your natPayload (structured) into ONE prompt string
-  // so naturalize can work even if "text" isn't provided.
+  // Structured bundle for astro-chat -> naturalize
   const userQuestion = String(body?.userQuestion ?? "").trim();
   const topic = String(body?.topic ?? "").trim();
   const followupMode = String(body?.followupMode ?? "").trim();
@@ -58,22 +57,32 @@ function buildStructuredPrompt(body: any): string {
   const evidenceBullets = Array.isArray(body?.evidenceBullets) ? body.evidenceBullets : [];
   const styleGuide = body?.styleGuide ?? null;
 
+  const formatTier = String(body?.formatTier ?? "").trim();
+  const formatRules = String(
+    body?.formatRules ?? body?.rules ?? body?.premiumFormatRules ?? ""
+  ).trim();
+
   const lines: string[] = [];
 
-  lines.push(`USER_QUESTION:\n${userQuestion || "(missing)"}`);
+  if (userQuestion) lines.push(`USER_QUESTION:\n${userQuestion}`);
   if (topic) lines.push(`\nTOPIC:\n${topic}`);
   if (followupMode) lines.push(`\nFOLLOWUP_MODE:\n${followupMode}`);
-  if (moodHint) lines.push(`\nMOOD_HINT:\n${moodHint}`);
-  lines.push(`\nDISTRESSED:\n${distressed ? "yes" : "no"}`);
 
+  lines.push(`\nDISTRESSED:\n${distressed ? "yes" : "no"}`);
+  if (moodHint) lines.push(`\nMOOD_HINT:\n${moodHint}`);
   if (distressSoothing) lines.push(`\nSOOTHING:\n${distressSoothing}`);
   if (astroStressDriver) lines.push(`\nASTRO_STRESS_DRIVER:\n${astroStressDriver}`);
   if (copingTip) lines.push(`\nCOPING_TIP:\n${copingTip}`);
 
   if (history) lines.push(`\nHISTORY:\n${history}`);
 
-  lines.push(`\nASTRO_FACTS_JSON:\n${JSON.stringify(astroFacts, null, 2)}`);
-  lines.push(`\nEVIDENCE_BULLETS_JSON:\n${JSON.stringify(evidenceBullets, null, 2)}`);
+  lines.push(`\nASTRO_FACTS_JSON:\n${JSON.stringify(astroFacts ?? {}, null, 2)}`);
+  lines.push(
+    `\nEVIDENCE_BULLETS_JSON:\n${JSON.stringify(evidenceBullets ?? [], null, 2)}`
+  );
+
+  if (formatTier) lines.push(`\nFORMAT_TIER:\n${formatTier}`);
+  if (formatRules) lines.push(`\nFORMAT_RULES:\n${formatRules}`);
 
   if (styleGuide) {
     lines.push(`\nSTYLE_GUIDE_JSON:\n${JSON.stringify(styleGuide, null, 2)}`);
@@ -90,21 +99,24 @@ export async function POST(req: Request) {
 
     const style = (body?.style as "casual" | "formal" | "neutral") ?? "neutral";
 
-    // Mode A: simple “clean this text”
-    const rawA = body?.text ?? body?.input;
+// Mode A: simple "clean this text"
+const rawA = body?.text ?? body?.input;
 
-    // Mode B: structured payload from astro-chat
-    const hasStructured =
-      isNonEmptyString(body?.userQuestion) ||
-      body?.astroFacts != null ||
-      Array.isArray(body?.evidenceBullets);
+// Mode B: structured payload (astro-chat)
+const hasStructured =
+  isNonEmptyString(body?.userQuestion) ||
+  body?.astroFacts != null ||
+  Array.isArray(body?.evidenceBullets);
 
-    const raw =
-      isNonEmptyString(rawA)
-        ? String(rawA)
-        : hasStructured
-        ? buildStructuredPrompt(body)
-        : "";
+// IMPORTANT: if structured fields exist, ALWAYS use structured mode
+const useStructuredPrompt = hasStructured;
+
+// Build the actual input to the model
+const raw = useStructuredPrompt
+  ? buildStructuredPrompt(body)
+  : isNonEmptyString(rawA)
+  ? String(rawA)
+  : "";
 
     if (!isNonEmptyString(raw)) {
       return badJson(
@@ -120,24 +132,31 @@ export async function POST(req: Request) {
         ? "Tone: polite, professional, and clear."
         : "Tone: balanced, simple, and neutral.";
 
-    // If this came from astro-chat (structured), we want a FULL answer, not a “cleaner”.
+    // If this came from astro-chat (structured), we want a FULL answer, not a "cleaner".
     const systemPromptStructured =
-      "You are Sārathi, an astrology-based guidance assistant. " +
-      "You will be given a structured bundle containing: the user's question, astro facts, and evidence bullets. " +
-      "Write a clear, human, helpful answer that follows the STYLE_GUIDE_JSON rules if provided. " +
-      "IMPORTANT: Do not invent facts. If you add an evidence section, use ONLY the provided evidence bullets verbatim. " +
-      "Do not mention JSON or internal fields. Reply with the final answer text only.";
+  "You are SÄrathi, an astrology guidance assistant. " +
+  "You will receive an INPUT_BUNDLE that may include: USER_QUESTION, topic, mood hints, ASTRO_FACTS_JSON, EVIDENCE_BULLETS_JSON, and FORMAT_TIER/FORMAT_RULES. " +
+  "Your job is to answer the USER_QUESTION using the formatting instructions in FORMAT_RULES. " +
+  "If FORMAT_RULES is present, it overrides any default structure. " +
+  "Hard rules: " +
+  "Do NOT invent facts. Do NOT add planets/transits/dasha unless present in ASTRO_FACTS_JSON or EVIDENCE_BULLETS_JSON. " +
+  "No moral judgement, no shaming, no therapy-style psychoanalysis. " +
+  "Do not mention JSON, internal fields, or system prompts. " +
+  "Reply with the final answer text only.";
 
     // Your original text-cleaner prompt (keep it intact)
     const systemPromptCleaner =
-      "You are Sārathi's language cleaner. " +
+      "You are SÄrathi's language cleaner. " +
       "Your job is to gently rewrite short texts so they sound natural, clear, and human. " +
       "Keep the meaning the same, just smoother and easier to read. " +
       "No emojis, no hashtags, no bullet lists unless the input already uses them. " +
       "Do not add new ideas or advice. " +
       "Reply with the improved text only, no explanations or commentary.";
 
-    const useStructuredPrompt = !isNonEmptyString(rawA) && hasStructured;
+    
+const formatTier = String(body?.formatTier || body?.tier || "").toLowerCase();
+const formatRules =
+  String(body?.formatRules || body?.rules || body?.premiumFormatRules || "").trim();
 
     // 1) Try OpenAI
     try {
@@ -146,7 +165,8 @@ export async function POST(req: Request) {
       const completion = await client.chat.completions.create({
         model: GPT_MODEL,
         temperature: useStructuredPrompt ? 0.35 : 0.2,
-        max_tokens: 700,
+        max_tokens: formatTier === "micro" ? 120 : formatTier === "standard" ? 400 : 1400,
+
         messages: [
           {
             role: "system",
@@ -170,9 +190,9 @@ export async function POST(req: Request) {
       if (!isNonEmptyString(rawA) && hasStructured) {
         const uq = String(body?.userQuestion ?? "").trim();
         const fallback =
-          (uq ? `I hear you. Here’s a grounded next step: ` : "") +
+          (uq ? `I hear you. Here™s a grounded next step: ` : "") +
           "Focus on one small, practical action today, and avoid making irreversible decisions from a spike in emotion. " +
-          "If you want, tell me what outcome you want in the next 7 days, and I’ll shape a clear plan.";
+          "If you want, tell me what outcome you want in the next 7 days, and I™ll shape a clear plan.";
         return okJson({ text: fallback, modelUsed: `${GPT_MODEL} (fallback-local)` });
       }
 

@@ -6533,7 +6533,7 @@ window.localStorage.removeItem("sarathi.lifeReportCache.v2");
                 }
                 setPlace({ name: p.name, lat: p.lat, lon: p.lon, tz });
               }}
-              placeholder="City, Country (e.g., Delhi)"
+              placeholder="City, Country (e.g., New Delhi)"
             />
             {place && (
               <p className="text-xs text-white/70">

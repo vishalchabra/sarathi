@@ -1,15 +1,15 @@
 // src/app/api/astro-chat/route.ts
 
-const chatContext = new Map<string, string[]>(); // memory of recent questions
-const lastFollowup = new Map<string, string>();  // last followup lane we offered
-const lastFacts = new Map<string, any>();        // last astroFacts bundle
-const MAX_HISTORY = 6;
-
 export const runtime = "nodejs";
 
 import "server-only";
 import { NextResponse } from "next/server";
 import { SARATHI_SYSTEM_PROMPT } from "@/lib/qa/systemPrompt";
+
+const chatContext = new Map<string, string[]>(); // memory of recent questions
+const lastFollowup = new Map<string, string>();  // last followup lane we offered
+const lastFacts = new Map<string, any>();        // last astroFacts bundle
+const MAX_HISTORY = 6;
 /* --------------------------------------------------
    Types
 -------------------------------------------------- */
@@ -110,8 +110,20 @@ type AstroChatRequest = {
 /* --------------------------------------------------
    Util
 -------------------------------------------------- */
+function cleanUnknown(s?: string) {
+  if (!s) return "";
+  return s
+    .replace(/\b(unknown|not available|n\/a)\b/gi, "")
+    // ✅ keep line breaks; only compress repeated spaces/tabs
+    .replace(/[ \t]{2,}/g, " ")
+    // ✅ avoid huge vertical gaps
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
 
 function okJson(data: any, status = 200) {
+  
   return new NextResponse(JSON.stringify(data), {
     status,
     headers: { "content-type": "application/json" },
@@ -279,6 +291,26 @@ function reassureUser(topic: string): string {
     return "This is 'delayed inflow', not 'no inflow'. It's timing, not doom.";
   return "I can feel how heavy this is. This is shaping energy, not punishment. You're not broken.";
 }
+function isMicroIntentQuestion(q: string): boolean {
+  const l = (q || "").toLowerCase().trim();
+
+  // very short = usually micro
+  if (l.length <= 18) return true;
+
+  // daily/lifestyle quick intents
+  if (
+    /\b(what color|which color|what to wear|wear today|outfit|dress)\b/.test(l) ||
+    /\b(what should i eat|what to eat|eat today|diet today|khana|khaana)\b/.test(l) ||
+    /\b(is today good|is it good today|good day for|should i go|should i do)\b/.test(l) ||
+    /\b(meeting today|good for meeting|call today|presentation today)\b/.test(l) ||
+    /\b(gym today|workout today|run today)\b/.test(l) ||
+    /\b(travel today|drive today|go out today)\b/.test(l)
+  ) {
+    return true;
+  }
+
+  return false;
+}
 
 /* --------------------------------------------------
    Follow-up classifier
@@ -299,6 +331,20 @@ function isShortFollowup(q: string): boolean {
     return true;
 
   return false;
+}
+function canonicalTopic(t: string): "career" | "money" | "relationships" | "health" | "property" | "vehicle" | "disputes" | "generic" {
+  const x = String(t || "").toLowerCase().trim();
+
+  // normalize synonyms
+  if (x === "job" || x === "career") return "career";
+  if (x === "wealth" || x === "money" || x === "finance") return "money";
+  if (x === "relationship" || x === "relationships" || x === "marriage") return "relationships";
+  if (x === "health") return "health";
+  if (x === "property") return "property";
+  if (x === "vehicle") return "vehicle";
+  if (x === "disputes" || x === "dispute" || x === "legal") return "disputes";
+
+  return "generic";
 }
 
 /* --------------------------------------------------
@@ -356,14 +402,12 @@ function buildShortHorizon(
   report?: LifeReportLike | null,
   span: "day" | "week" | "month" = "day"
 ): string {
-  if (!report?.activePeriods) {
-    return "I need your dasha context to read the moment. Open Life Report first.";
-  }
+  const activeAny = getActiveDashaAnyShape(report);
 
-  const { mahadasha, antardasha, pratyantardasha } = report.activePeriods;
-  const maha = mahadasha?.lord || "—";
-  const antar = antardasha?.subLord || "—";
-  const praty = pratyantardasha?.lord || "—";
+const maha = activeAny.md || "—";
+const antar = activeAny.ad || "—";
+const praty = activeAny.pd || "—";
+
 
   const antarTone = toneForLord(antar);
   const pratyTone = toneForLord(praty);
@@ -414,6 +458,67 @@ function buildShortHorizon(
 
 
 /* -------------------- Topic scoring -------------------- */
+function normalizeProfile(p: any) {
+  if (!p || typeof p !== "object") return null;
+
+  const name = p.name ?? p.fullName ?? p.profileName ?? undefined;
+
+  const dobISO =
+    p.dobISO ??
+    p.dateISO ??
+    p.birthDateISO ??
+    p.birth?.dateISO ??
+    p.birth?.birthDateISO ??
+    p.profile?.birthDateISO ??
+    undefined;
+
+  const tob =
+    p.tob ??
+    p.time ??
+    p.birthTime ??
+    p.birth?.time ??
+    p.birth?.birthTime ??
+    p.profile?.birthTime ??
+    undefined;
+
+  const placeObj = p.place ?? p.birth?.place ?? p.profile?.place ?? null;
+
+  const tz =
+    placeObj?.tz ??
+    p.tz ??
+    p.birthTz ??
+    p.birth?.tz ??
+    p.profile?.birthTz ??
+    undefined;
+
+  const lat =
+    placeObj?.lat ??
+    p.lat ??
+    p.birthLat ??
+    p.birth?.lat ??
+    p.profile?.lat ??
+    undefined;
+
+  const lon =
+    placeObj?.lon ??
+    p.lon ??
+    p.birthLon ??
+    p.birth?.lon ??
+    p.profile?.lon ??
+    undefined;
+
+  const place =
+    tz != null || lat != null || lon != null
+      ? {
+          name: placeObj?.name ?? p.placeName ?? p.birthPlace ?? "",
+          tz: String(tz ?? ""),
+          lat: Number(lat),
+          lon: Number(lon),
+        }
+      : undefined;
+
+  return { name, dobISO, tob, place };
+}
 
 function pickBestTransitWindows(
   report: LifeReportLike | null | undefined,
@@ -421,32 +526,35 @@ function pickBestTransitWindows(
 ) {
   if (!report?.transitWindows || !Array.isArray(report.transitWindows)) return [];
 
-  function scoreTransitForTopic(t: TransitWindow, topic: string): number {
-    const area = (t.focusArea || "").toLowerCase();
-    const driver = (t.driver || "").toLowerCase();
-    const summary = (t.summary || "").toLowerCase();
+  const t = canonicalTopic(topic);
 
-    if (topic === "career") {
+  function scoreTransitForTopic(tw: TransitWindow, topic2: string): number {
+    const area = (tw.focusArea || "").toLowerCase();
+    const driver = (tw.driver || "").toLowerCase();
+    const summary = (tw.summary || "").toLowerCase();
+
+    // use topic2 NOT outer var
+    if (topic2 === "career") {
       if (
         area.includes("career") || area.includes("status") || area.includes("recognition") ||
         summary.includes("career") || driver.includes("10th") || driver.includes("11th") ||
         driver.includes("reputation") || driver.includes("visibility")
       ) return 10;
     }
-    if (topic === "money") {
+    if (topic2 === "money") {
       if (
         area.includes("money") || area.includes("income") || area.includes("wealth") ||
         area.includes("earnings") || summary.includes("money") || summary.includes("income") ||
         driver.includes("2nd") || driver.includes("11th")
       ) return 10;
     }
-    if (topic === "relationship") {
+    if (topic2 === "relationships") {
       if (
         area.includes("relationship") || area.includes("partnership") || area.includes("marriage") ||
         driver.includes("7th") || summary.includes("relationship")
       ) return 10;
     }
-    if (topic === "health") {
+    if (topic2 === "health") {
       if (
         area.includes("health") || area.includes("body") || area.includes("recovery") ||
         area.includes("stress") || driver.includes("6th") || driver.includes("8th") ||
@@ -454,55 +562,55 @@ function pickBestTransitWindows(
       ) return 10;
     }
 
-    // generic or weak match
     return 1;
   }
 
-  const ranked = report.transitWindows
-    .map((tw) => ({ win: tw, s: scoreTransitForTopic(tw, topic) }))
+  const ranked = (report?.transitWindows ?? [])
+      .map((tw) => ({ win: tw, s: scoreTransitForTopic(tw, t) }))
     .sort((a, b) => b.s - a.s);
 
   if (!ranked.length) return [];
 
-  // 🔹 For generic questions ("how is my day looking"), still use the top windows
-  if (topic === "generic") {
-    return ranked.slice(0, 2).map((r) => r.win);
-  }
+  if (t === "generic") return ranked.slice(0, 2).map((r) => r.win);
 
-  // 🔹 For specific topics, keep the stronger threshold
   return ranked
     .filter((r) => r.s >= 5)
     .slice(0, 2)
     .map((r) => r.win);
 }
 
-
 function pickFromTimeline(
   report: LifeReportLike | null | undefined,
   topic: string
-) {
+): TimelineWindow | null {
   if (!report?.timeline || !Array.isArray(report.timeline)) return null;
+
+  const t = canonicalTopic(topic);
 
   const scored = report.timeline.map((w) => {
     const hay = `${w.label} ${w.blurb} ${(w.highlights || []).join(" ")}`.toLowerCase();
     let score = 0;
 
     const topicKeys: Record<string, string[]> = {
-      career: ["career","status","recognition","authority","promotion","visibility","leadership"],
-      money: ["money","income","finance","wealth","bonus","gain","raise"],
-      relationship: ["relationship","partner","marriage","union"],
-      health: ["health","body","stress","vitality","energy","wellbeing"],
+      career: ["career", "status", "recognition", "authority", "promotion", "visibility", "leadership"],
+      money: ["money", "income", "finance", "wealth", "bonus", "gain", "raise"],
+      relationships: ["relationship", "partner", "marriage", "union", "partnership"],
+      health: ["health", "body", "stress", "vitality", "energy", "wellbeing"],
       generic: [],
+      property: ["property", "house", "real estate", "land"],
+      vehicle: ["vehicle", "car", "bike"],
+      disputes: ["dispute", "legal", "case", "court"],
     };
-    for (const k of topicKeys[topic] ?? []) if (hay.includes(k)) score += 2;
+
+    for (const k of topicKeys[t] ?? []) if (hay.includes(k)) score += 2;
 
     const ad = (w.adLord || "").toLowerCase();
     const pd = (w.pdLord || "").toLowerCase();
 
-    if (topic === "career" && /(sun|mars|jupiter|saturn|venus|rahu)/.test(ad + pd)) score += 2;
-    if (topic === "money" && /(venus|mercury|jupiter|rahu)/.test(ad + pd)) score += 2;
-    if (topic === "health" && /(venus|moon|mercury|sun)/.test(ad + pd)) score += 2;
-    if (topic === "relationship" && /(venus|moon|jupiter)/.test(ad + pd)) score += 2;
+    if (t === "career" && /(sun|mars|jupiter|saturn|venus|rahu)/.test(ad + pd)) score += 2;
+    if (t === "money" && /(venus|mercury|jupiter|rahu)/.test(ad + pd)) score += 2;
+    if (t === "health" && /(venus|moon|mercury|sun)/.test(ad + pd)) score += 2;
+    if (t === "relationships" && /(venus|moon|jupiter)/.test(ad + pd)) score += 2;
 
     return { w, score };
   });
@@ -510,6 +618,7 @@ function pickFromTimeline(
   const best = scored.sort((a, b) => b.score - a.score)[0];
   return best?.score ? best.w : null;
 }
+
 
 function scoreTransitCareerWindow(win: TransitWindow): number {
   let s = 3;
@@ -526,6 +635,9 @@ function scoreTransitCareerWindow(win: TransitWindow): number {
   if (s < 1) s = 1;
   if (s > 5) s = 5;
   return s;
+}
+function cleanValue(v?: string) {
+  return !v || v.toLowerCase() === "unknown" ? null : v;
 }
 
 function scoreCareerWindow(
@@ -548,55 +660,83 @@ function scoreCareerWindow(
 
 function buildCareerBriefStructured(opts: { report?: LifeReportLike | null }) {
   const { report } = opts;
+
   const bestTransit = pickBestTransitWindows(report, "career");
   const bestTimeline = pickFromTimeline(report, "career");
 
-  if (bestTransit.length) {
+  // ✅ 1) Prefer transit window if present
+  if (bestTransit.length > 0) {
     const w = bestTransit[0];
-    const strength = scoreTransitCareerWindow(w);
-    const confidenceWord = strength >= 4 ? "high" : strength === 3 ? "medium" : "low";
+    const strengthScore = scoreTransitCareerWindow(w);
+    const confidenceWord = strengthScore >= 4 ? "high" : strengthScore === 3 ? "medium" : "low";
 
     return {
       topic: "career",
       type: "career_window",
       hasWindow: true,
       windowRange: fmtRange(w.from, w.to),
-      strengthScore: strength,
+      strengthScore,
       confidenceWord,
-      strengthBar: strengthBar(strength),
-      why: w.driver || "",
-      theme: w.summary || "",
-      firstAction: w.actions?.[0] || "",
-      note: "Transit + your dasha suggests visibility / recognition pressure",
+      strengthBar: strengthBar(strengthScore),
+      why: w.driver ? `Transit driver: ${w.driver}` : "",
+      theme: w.summary || "Career movement window",
+      actions: Array.isArray(w.actions) ? w.actions.slice(0, 3) : [],
+      risk: w.riskFlag || "mixed",
+      message:
+        `Next career movement window: ${fmtRange(w.from, w.to)}. ` +
+        `Strength: ${confidenceWord}.`,
     };
   }
 
-  const bestTimelineWin = bestTimeline;
-  if (bestTimelineWin) {
-    const strength = scoreCareerWindow(bestTimelineWin.adLord, bestTimelineWin.pdLord, bestTimelineWin.score);
-    const confidenceWord = strength >= 4 ? "high" : strength === 3 ? "medium" : "low";
+  // ✅ 2) Else use best timeline window
+  if (bestTimeline) {
+    const strengthScore = scoreCareerWindow(bestTimeline.adLord, bestTimeline.pdLord, bestTimeline.score);
+    const confidenceWord = strengthScore >= 4 ? "high" : strengthScore === 3 ? "medium" : "low";
 
     return {
       topic: "career",
       type: "career_window",
       hasWindow: true,
-      windowRange: fmtRange(bestTimelineWin.from, bestTimelineWin.to),
-      strengthScore: strength,
+      windowRange: fmtRange(bestTimeline.from, bestTimeline.to),
+      strengthScore,
       confidenceWord,
-      strengthBar: strengthBar(strength),
-      why: `${bestTimelineWin.adLord} (active sub-lord) + ${bestTimelineWin.pdLord} (immediate trigger) pushes status / authority.`,
-      theme: bestTimelineWin.blurb ? bestTimelineWin.blurb.trim().replace(/\s+/g, " ") : "",
-      firstAction: "Step forward during that period instead of waiting to be picked.",
-      note: "Dasha combo supports recognition / authority.",
+      strengthBar: strengthBar(strengthScore),
+      why: `Dasha timeline: AD ${bestTimeline.adLord}, PD ${bestTimeline.pdLord}`,
+      theme: (bestTimeline.blurb || bestTimeline.label || "Career phase").trim(),
+      actions: [],
+      risk: "mixed",
+      message:
+        `Career phase: ${fmtRange(bestTimeline.from, bestTimeline.to)}. ` +
+        `Strength: ${confidenceWord}.`,
     };
   }
 
+  // ✅ 3) Fallback: no window tagged
   return {
     topic: "career",
     type: "career_window",
     hasWindow: false,
+    windowRange: null,
+    strengthScore: null,
+    confidenceWord: null,
+    strengthBar: null,
+    why: "",
+    theme: "",
+    actions: [],
+    risk: "mixed",
     message:
-      "I don't see a clean promotion spike in the data yet. That usually means the current sub-period isn't pure 'authority/visibility'. Momentum flips when the sub-lord changes.",
+      "Right now there isn’t a sharply defined career shift window. This period is more about preparation and positioning. The next change activates when your sub-period shifts.",
+  };
+}
+function getActiveDashaAnyShape(report: any) {
+  const a = report?.activePeriods ?? report?.dasha ?? {};
+  const md = a?.mahadasha?.lord ?? a?.md?.lord ?? a?.mdLord ?? a?.md ?? "";
+  const ad = a?.antardasha?.subLord ?? a?.ad?.lord ?? a?.adLord ?? a?.ad ?? "";
+  const pd = a?.pratyantardasha?.lord ?? a?.pd?.lord ?? a?.pdLord ?? a?.pd ?? "";
+  return {
+    md: String(md || "Unknown"),
+    ad: String(ad || "Unknown"),
+    pd: String(pd || "Unknown"),
   };
 }
 
@@ -605,6 +745,8 @@ function scoreGenericWindow(
   winTimeline?: TimelineWindow | null,
   winTransit?: TransitWindow | null
 ): number {
+  const t = canonicalTopic(topic);
+
   if (winTransit) {
     let base = 3;
     if (winTransit.riskFlag === "opportunity") base += 1;
@@ -620,9 +762,9 @@ function scoreGenericWindow(
     const ad = (winTimeline.adLord || "").toLowerCase();
     const pd = (winTimeline.pdLord || "").toLowerCase();
 
-    if (topic === "health" && /(moon|venus|sun|mercury)/.test(ad + pd)) base += 1;
-    if (topic === "money"  && /(venus|jupiter|mercury|rahu)/.test(ad + pd)) base += 1;
-    if (topic === "relationship" && /(venus|moon|jupiter)/.test(ad + pd)) base += 1;
+    if (t === "health" && /(moon|venus|sun|mercury)/.test(ad + pd)) base += 1;
+    if (t === "money"  && /(venus|jupiter|mercury|rahu)/.test(ad + pd)) base += 1;
+    if (t === "relationships" && /(venus|moon|jupiter)/.test(ad + pd)) base += 1;
 
     if (base < 1) base = 1;
     if (base > 5) base = 5;
@@ -680,6 +822,121 @@ function buildGenericBrief(opts: {
 
   return `No specific future window tagged, but ${runningSubLord} is setting the tone. Watch the next sub-lord change for the next real shift in ${topic}.`;
 }
+type Tone =
+  | "strategist"      // timing + decision clarity
+  | "coach"           // motivation + step-by-step
+  | "calm_protector"  // health/anxiety sensitive
+  | "practical"       // purchases, logistics, money hygiene
+  | "direct";         // crisp, no fluff
+
+type Depth = "quick" | "standard" | "premium";
+type FormatTier = "micro" | "standard" | "premium";
+function hasLowConfidenceSignal(text: string): boolean {
+  const q = text.toLowerCase();
+
+  return (
+    // uncertainty / doubt
+    /\b(should i|should i be|is it right|is it wrong|am i doing|am i on the right|what if|what should i do)\b/.test(q) ||
+
+    // anxiety / instability
+    /\b(confused|stuck|lost|unsure|anxious|worried|scared|afraid|overthinking)\b/.test(q) ||
+
+    // life-direction signals
+    /\b(change|switch|leave|quit|move on|next step|future|path|direction)\b/.test(q)
+  );
+}
+
+function pickFormatTier(question: string): FormatTier {
+  const q = question.toLowerCase();
+
+  // 🔥 Priority 1: emotional / life-direction uncertainty → PREMIUM
+  if (hasLowConfidenceSignal(q)) {
+    return "premium";
+  }
+
+  // 🎯 Clear decision-based questions → PREMIUM
+  if (
+    /(when|should i|will i|is it time|can i)\b/.test(q) &&
+    /(job|career|marriage|relationship|business|move|switch|resign|quit|finance)/.test(q)
+  ) {
+    return "premium";
+  }
+
+  // ⚡ Short, practical daily questions
+  if (
+    /(what color|what should i wear|what to eat|what should i eat|today)/.test(q)
+  ) {
+    return "micro";
+  }
+
+  // Default
+  return "standard";
+}
+
+function pickToneAndDepth(question: string, topic?: string): { tone: Tone; depth: Depth } {
+  const q = (question || "").toLowerCase();
+
+  // Depth (paid default = premium unless user asks short)
+  const wantsQuick =
+    /\b(short|brief|quick|one line|in 1 sentence|tldr)\b/.test(q);
+
+  const depth: Depth = wantsQuick ? "quick" : "premium";
+
+  // Tone by topic + keywords
+  const isHealth = topic === "health" || /\b(health|sick|pain|stress|anxiety|panic|sleep)\b/.test(q);
+  if (isHealth) return { tone: "calm_protector", depth };
+
+  const isRelationship =
+    topic === "relationships" || topic === "marriage" || /\b(relationship|marriage|love|breakup|fight)\b/.test(q);
+  if (isRelationship) return { tone: "coach", depth };
+
+  const isTiming =
+    /\b(when|timing|date|month|window|should i|switch|change|job|offer|promotion)\b/.test(q);
+  if (isTiming) return { tone: "strategist", depth };
+
+  const isPractical =
+    /\b(buy|purchase|vehicle|property|loan|rent|invest|money|finance|budget)\b/.test(q);
+  if (isPractical) return { tone: "practical", depth };
+
+  return { tone: "direct", depth };
+}
+
+function ensurePremiumMeat(answer: string, extras: {
+  nowLabel?: string;
+  windows?: Array<{ fromISO?: string; toISO?: string; label?: string; why?: string[]; do?: string[] }>;
+}): string {
+  let out = (answer || "").trim();
+  if (!out) return out;
+
+  const hasActionPlan = /7\s*day|30\s*day|90\s*day/i.test(out);
+  const hasRisks = /risk|avoid/i.test(out);
+  const hasTiming = /timing|window|from|to|oct|nov|202/i.test(out);
+
+  const w = (extras.windows || []).slice(0, 3).map((x) => {
+    const range = `${x.fromISO || "?"} → ${x.toISO || "?"}`;
+    const label = x.label || "Window";
+    return `- ${label}: ${range}`;
+  });
+
+  // If the model forgot key paid sections, we append cleanly.
+  if (!hasTiming && w.length) {
+    out += `\n\nTiming (next windows)\n${w.join("\n")}`;
+  }
+
+  if (!hasActionPlan) {
+    out += `\n\nAction plan\n- Next 7 days: tidy your basics (CV/portfolio, referrals, shortlist).\n- Next 30 days: run 6–10 high-quality applications + 2 warm intros weekly.\n- Next 90 days: commit to one skill upgrade + interview reps + negotiation prep.`;
+  }
+
+  if (!hasRisks) {
+    out += `\n\nRisks to avoid\n- Big decisions in frustration.\n- Comparing your pace to others.\n- Overthinking instead of executing weekly steps.`;
+  }
+
+  if (extras.nowLabel && !out.toLowerCase().includes(extras.nowLabel.toLowerCase())) {
+    out += `\n\nCurrent timing\n- ${extras.nowLabel}`;
+  }
+
+  return out;
+}
 
 
 /* --------------------------------------------------
@@ -688,22 +945,20 @@ function buildGenericBrief(opts: {
 
 function buildWhyEvidence(opts: {
   report?: LifeReportLike | null;
-  topic: "career" | "money" | "relationship" | "health" | "generic";
-}) {
+  topic: ReturnType<typeof canonicalTopic>;
+})
+ {
+
   const { report, topic } = opts;
   const bullets: string[] = [];
   if (!report) return bullets;
 
-  const md = report.activePeriods?.mahadasha;
-  const ad = report.activePeriods?.antardasha;
-  const pd = report.activePeriods?.pratyantardasha;
-  if (md || ad || pd) {
-    const parts: string[] = [];
-    if (md?.lord) parts.push(`MD ${md.lord} ${fmtRange(md.start, md.end)}`);
-    if (ad?.subLord) parts.push(`AD ${ad.subLord} ${fmtRange(ad.start, ad.end)}`);
-    if (pd?.lord) parts.push(`PD ${pd.lord} ${fmtRange(pd.start, pd.end)}`);
-    if (parts.length) bullets.push(`Active dasha stack → ${parts.join(" • ")}`);
-  }
+  const act = getActiveDashaAnyShape(report);
+
+if (act.md !== "Unknown" || act.ad !== "Unknown" || act.pd !== "Unknown") {
+  bullets.push(`Active dasha stack → MD ${act.md} • AD ${act.ad} • PD ${act.pd}`);
+}
+
 
   const bestTransit = pickBestTransitWindows(report, topic);
   if (bestTransit.length) {
@@ -731,9 +986,15 @@ bullets.push(
     );
   }
 
-  if (!bullets.length && ad?.subLord) {
-    bullets.push(`Tone set by ${ad.subLord} Antardasha until ${fmtDateShort(ad.end)}.`);
-  }
+  const adLord = report?.activePeriods?.antardasha?.subLord;
+const adEnd = report?.activePeriods?.antardasha?.end;
+
+if (!bullets.length && adLord) {
+  bullets.push(
+    `Tone set by ${adLord} Antardasha${adEnd ? ` until ${fmtDateShort(adEnd)}.` : "."}`
+  );
+}
+
 
   return bullets;
 }
@@ -757,12 +1018,13 @@ function remedyForPlanet(p: string): string {
 }
 
 function buildRemedyAnswer(report?: LifeReportLike | null): string {
-  if (!report?.activePeriods) return "I'd need your dasha context to suggest safe remedies. Open Life Report first.";
+  const act = getActiveDashaAnyShape(report);
+const md = act.md === "Unknown" ? "" : act.md;
+const ad = act.ad === "Unknown" ? "" : act.ad;
+const pd = act.pd === "Unknown" ? "" : act.pd;
 
-  const { mahadasha, antardasha, pratyantardasha } = report.activePeriods;
-  const md = mahadasha?.lord || "";
-  const ad = antardasha?.subLord || "";
-  const pd = pratyantardasha?.lord || "";
+if (!md && !ad && !pd) return "I'd need your dasha context to suggest safe remedies. Open Life Report first.";
+
 
   const uniquePlanets = Array.from(new Set([md, ad, pd].filter(Boolean)));
   if (!uniquePlanets.length) return "I can't see your active dasha rulers clearly, so I'd be guessing remedies — not safe.";
@@ -874,9 +1136,10 @@ function lookupAstroConcept(question: string): string | null {
 }
 function buildFoodAnswer(report: LifeReportLike | null): string {
   // --- 1) Read dasha stack safely ---
-  const md = report?.activePeriods?.mahadasha?.lord || "";
-  const ad = report?.activePeriods?.antardasha?.subLord || "";
-  const pd = report?.activePeriods?.pratyantardasha?.lord || "";
+  const act = getActiveDashaAnyShape(report);
+const md = act.md === "Unknown" ? "" : act.md;
+const ad = act.ad === "Unknown" ? "" : act.ad;
+const pd = act.pd === "Unknown" ? "" : act.pd;
 
   const stack = `${md} ${ad} ${pd}`.toLowerCase();
 
@@ -946,20 +1209,20 @@ function buildFoodAnswer(report: LifeReportLike | null): string {
   if (!hasAnyDasha) {
     // no report / no dasha context – generic but still useful answer
     return [
-      "🥗 **What you should eat today**",
+      "🥗 What you should eat today",
       "",
       "Your system will feel better today with warm, simple, home-style food rather than heavy or hyper-stimulating options.",
       "",
-      "### Eat more of (favour today)",
+      "Eat more of (favour today)",
       ...favourLines,
       "",
-      "### Go easy on",
+      "Go easy on",
       ...avoidLines,
       "",
-      "### One simple rule for today",
-      `**${simpleRule}**`,
+      "One simple rule for today",
+      `${simpleRule}`,
       "",
-      "### Joy element",
+      "Joy element",
       joyLine,
     ]
       .filter(Boolean)
@@ -968,20 +1231,20 @@ function buildFoodAnswer(report: LifeReportLike | null): string {
 
   // --- 6) Dasha-aware answer ---
   return [
-    "🥗 **What you should eat today**",
+    "🥗 What you should eat today",
     "",
     themeLine,
     "",
-    "### Eat more of (favour today)",
+    "Eat more of (favour today)",
     ...favourLines,
     "",
-    "### Go easy on",
+    "Go easy on",
     ...avoidLines,
     "",
-    "### One simple rule for today",
-    `**${simpleRule}**`,
+    "One simple rule for today",
+    `${simpleRule}`,
     "",
-    "### Joy element",
+    "Joy element",
     joyLine,
     "",
     whyLine,
@@ -995,11 +1258,9 @@ function buildFoodAnswer(report: LifeReportLike | null): string {
 -------------------------------------------------- */
 
 function inferAstroStressDriver(report: LifeReportLike | null): string {
-  if (!report?.activePeriods) return "";
-
-  const { antardasha, pratyantardasha } = report.activePeriods;
-  const sub = antardasha?.subLord?.toLowerCase() || "";
-  const trigger = pratyantardasha?.lord?.toLowerCase() || "";
+  const act = getActiveDashaAnyShape(report);
+const sub = (act.ad || "").toLowerCase();
+const trigger = (act.pd || "").toLowerCase();
 
   if (sub.includes("saturn") || trigger.includes("saturn"))
     return "Saturn pressure = long grind, heavy responsibility, 'prove yourself' energy. Slow doesn't mean failing.";
@@ -1054,23 +1315,17 @@ function pickCopingTip(stressDriver: string): string {
 -------------------------------------------------- */
 
 function buildCurrentSummary(report?: LifeReportLike | null): string {
-  if (!report?.activePeriods) return "Current period info isn't loaded yet.";
+  if (!report?.activePeriods) {
+    return "Current period information is not available.";
+  }
 
   const { mahadasha, antardasha, pratyantardasha } = report.activePeriods;
 
-  const maha = mahadasha
-    ? `${mahadasha.lord} Mahadasha (${fmtDateShort(mahadasha.start)} → ${fmtDateShort(mahadasha.end)})`
-    : "Mahadasha info missing";
+  const md = mahadasha?.lord ?? "Unknown";
+  const ad = antardasha?.subLord ?? "Unknown";
+  const pd = pratyantardasha?.lord ?? "Unknown";
 
-  const antar = antardasha
-    ? `${antardasha.subLord} Antardasha (${fmtDateShort(antardasha.start)} → ${fmtDateShort(antardasha.end)})`
-    : "Antardasha info missing";
-
-  const praty = pratyantardasha
-    ? `${pratyantardasha.lord} Pratyantardasha (${fmtDateShort(pratyantardasha.start)} → ${fmtDateShort(pratyantardasha.end)})`
-    : "Pratyantardasha info missing";
-
-  return [`You're under ${maha}.`, `Right now you're running ${antar}.`, `Immediate trigger layer: ${praty}.`].join(" ");
+  return `You are currently running ${md} Mahadasha, ${ad} Antardasha, and ${pd} Pratyantardasha.`;
 }
 
 function gemstoneAdvice(report: LifeReportLike | null | undefined, question: string): string {
@@ -1393,54 +1648,235 @@ function buildDailyRhythm(
 }
 
 function buildAstroFacts(question: string, report: LifeReportLike | null) {
+  // ---------- helpers ----------
+  const safeStr = (v: any) => (typeof v === "string" ? v.trim() : "");
+  const isoDay = () => new Date().toISOString().slice(0, 10);
+
+  const getActive = (r: any) => {
+  const a = r?.activePeriods ?? r?.periods ?? r?.dasha ?? {};
+
+  // Try both naming styles
+  const md =
+    a?.mahadasha?.lord ??
+    a?.md?.lord ??
+    a?.mdLord ??
+    a?.md ??
+    "";
+
+  const ad =
+    a?.antardasha?.subLord ??
+    a?.antardasha?.lord ??
+    a?.ad?.lord ??
+    a?.adLord ??
+    a?.ad ??
+    "";
+
+  const pd =
+    a?.pratyantardasha?.lord ??
+    a?.pd?.lord ??
+    a?.pdLord ??
+    a?.pd ??
+    "";
+
+  const mdRange = {
+    start: a?.mahadasha?.start ?? a?.md?.start ?? a?.mdStart ?? null,
+    end:   a?.mahadasha?.end   ?? a?.md?.end   ?? a?.mdEnd   ?? null,
+  };
+  const adRange = {
+    start: a?.antardasha?.start ?? a?.ad?.start ?? a?.adStart ?? null,
+    end:   a?.antardasha?.end   ?? a?.ad?.end   ?? a?.adEnd   ?? null,
+  };
+  const pdRange = {
+    start: a?.pratyantardasha?.start ?? a?.pd?.start ?? a?.pdStart ?? null,
+    end:   a?.pratyantardasha?.end   ?? a?.pd?.end   ?? a?.pdEnd   ?? null,
+  };
+
+  return {
+    md: safeStr(md) || "Unknown",
+    ad: safeStr(ad) || "Unknown",
+    pd: safeStr(pd) || "Unknown",
+    ranges: { md: mdRange, ad: adRange, pd: pdRange },
+  };
+};
+
+
+  const pickBestWindow = (windows: any[], topic: string) => {
+    if (!Array.isArray(windows) || windows.length === 0) return null;
+
+    const q = (topic || "").toLowerCase();
+    const scoreWin = (w: any) => {
+      let s = 0;
+      const focus = safeStr(w?.focusArea).toLowerCase();
+      const driver = safeStr(w?.driver).toLowerCase();
+      const summary = safeStr(w?.summary).toLowerCase();
+      const tag = safeStr(w?.riskFlag).toLowerCase();
+
+      // topic match boost
+      if (q.includes("job") || q.includes("career")) {
+        if (focus.includes("career") || focus.includes("status") || summary.includes("career")) s += 3;
+        if (driver.includes("10") || driver.includes("sun") || driver.includes("saturn")) s += 1;
+      }
+      if (q.includes("relationship")) {
+        if (focus.includes("relationship") || summary.includes("relationship")) s += 3;
+      }
+      if (q.includes("health")) {
+        if (focus.includes("health") || summary.includes("health") || summary.includes("stress")) s += 3;
+      }
+      if (q.includes("money") || q.includes("wealth")) {
+        if (focus.includes("money") || summary.includes("gains") || summary.includes("income")) s += 3;
+      }
+
+      // prefer windows with dates
+      if (w?.from && w?.to) s += 1;
+      // slight preference for opportunity over caution if equal
+      if (tag === "opportunity") s += 0.25;
+      return s;
+    };
+
+    return [...windows].sort((a, b) => scoreWin(b) - scoreWin(a))[0];
+  };
+
+  const normalizeTransitWindows = (r: any) => {
+    const wins = Array.isArray(r?.transitWindows) ? r.transitWindows : [];
+    // support both shapes:
+    // {from,to,focusArea,driver,riskFlag,summary,actions}
+    // OR {fromISO,toISO,label,tag,why,do}
+    return wins.map((w: any) => {
+      const from = w?.from ?? w?.fromISO ?? w?.startISO ?? w?.start ?? null;
+      const to = w?.to ?? w?.toISO ?? w?.endISO ?? w?.end ?? null;
+      return {
+        from,
+        to,
+        focusArea: w?.focusArea ?? "",
+        driver: w?.driver ?? "",
+        riskFlag: w?.riskFlag ?? w?.tag ?? "",
+        summary: w?.summary ?? w?.label ?? "",
+        actions: Array.isArray(w?.actions) ? w.actions : Array.isArray(w?.do) ? w.do : [],
+        why: Array.isArray(w?.why) ? w.why : [],
+      };
+    });
+  };
+
+  // ---------- base ----------
   if (!report) {
     return {
       question,
       hasReport: false,
+      todayISO: isoDay(),
       note: "No life report / dasha context loaded.",
     };
   }
 
-  // 🔹 Natal flavour (Moon nakshatra etc.), coming from sarathi.lifeReportCache.v2
+  const topic = detectTopic(question); // if detectTopic exists in this file
+  const active = getActive(report);
+
+  // natal flavour (Moon nakshatra etc.)
   const natal = (report as any)?.natal;
   let natalContext = "";
-
   if (natal?.moonNakshatra) {
     const theme =
       natal.moonNakshatraTheme && String(natal.moonNakshatraTheme).trim().length
         ? ` (${natal.moonNakshatraTheme})`
         : "";
     natalContext =
-      `Your Moon is in ${natal.moonNakshatra}${theme}. ` +
-      `Days tend to feel better when you respect that emotional flavour rather than fighting it.`;
+      `Moon nakshatra: ${natal.moonNakshatra}${theme}. ` +
+      `Use this as the emotional “operating style” for the advice.`;
   }
-   const foodGuide = buildFoodGuide(report);
-    const dailyRhythm = buildDailyRhythm(report);
 
-  return {
-    question,
-    hasReport: true,
+  // Daily engines (you already have these)
+  const foodGuide = buildFoodGuide(report);
+  const dailyRhythm = buildDailyRhythm(report);
 
-    activePeriodSummary: buildCurrentSummary(report),
-    careerTiming: buildCareerBriefStructured({ report }),
+  // Timing windows: prefer report.transitWindows (most useful), then career brief, then next phases
+  const transitWindows = normalizeTransitWindows(report);
+  const bestWindow = pickBestWindow(transitWindows, String(topic));
+  const bestWindowRange =
+    bestWindow?.from && bestWindow?.to ? `${bestWindow.from} → ${bestWindow.to}` : "";
 
-    dayTone:   buildShortHorizon(report, "day"),
-    weekTone:  buildShortHorizon(report, "week"),
-    monthTone: buildShortHorizon(report, "month"),
+  // Evidence bullets: keep it factual (no invented claims)
+  const evidence: string[] = [];
+  evidence.push(`Active dasha: MD ${active.md}, AD ${active.ad}, PD ${active.pd}.`);
 
-    nextPhasesSummary: buildNextPhases(report),
-    remediesNow:       buildRemedyAnswer(report),
-    gemstoneNote:      gemstoneAdvice(report, question),
-    conceptExplainer:  lookupAstroConcept(question),
+  if (bestWindowRange) {
+    const driver = safeStr(bestWindow?.driver);
+    const focus = safeStr(bestWindow?.focusArea);
+    evidence.push(`Main window: ${bestWindowRange}${focus ? ` (${focus})` : ""}${driver ? ` — driver: ${driver}` : ""}.`);
+  }
 
-    // 🆕 explicit natal field the model can read
-    natalContext,
-
-    // 🆕 NEW: unified daily rhythm engine output
-    dailyRhythm,
-  };
+  // pull from your existing structured builders too
+  const careerBrief = buildCareerBriefStructured({ report });
+if (careerBrief?.type === "career_window" && (careerBrief as any)?.windowRange) {
+  evidence.push(`Career timing: ${(careerBrief as any).windowRange}.`);
 }
 
+  const currentSummary = buildCurrentSummary(report);
+  const nextPhases = buildNextPhases(report);
+
+  // if your structured career brief has a windowRange, add it to evidence so model stops guessing
+  const cbRange = safeStr((careerBrief as any)?.windowRange || "");
+  if (cbRange) evidence.push(`Career timing (engine): ${cbRange}.`);
+
+  // Add up to 2 “why” bullets if present in best window
+  const why = Array.isArray(bestWindow?.why) ? bestWindow.why.slice(0, 3) : [];
+  for (const w of why) {
+    const s = safeStr(w);
+    if (s) evidence.push(`Why: ${s}`);
+  }
+
+  // Output: make it explicit + compact
+  return {
+    question,
+    topic,
+    hasReport: true,
+    todayISO: isoDay(),
+
+    // Structured dasha (VERY important)
+    activeDasha: {
+      md: active.md,
+      ad: active.ad,
+      pd: active.pd,
+      ranges: active.ranges,
+    },
+
+    // Existing summaries you already trust
+    activePeriodSummary: currentSummary,
+    nextPhasesSummary: nextPhases,
+    careerTiming: careerBrief,
+
+    // Short horizon tones
+    dayTone: buildShortHorizon(report, "day"),
+    weekTone: buildShortHorizon(report, "week"),
+    monthTone: buildShortHorizon(report, "month"),
+
+    // Windows for the model to reference (instead of “eclipses / jupiter / uranus” generic text)
+    transitWindows: transitWindows.slice(0, 6),
+    bestWindow: bestWindow
+      ? {
+          range: bestWindowRange || null,
+          focusArea: safeStr(bestWindow.focusArea) || null,
+          driver: safeStr(bestWindow.driver) || null,
+          riskFlag: safeStr(bestWindow.riskFlag) || null,
+          summary: safeStr(bestWindow.summary) || null,
+          actions: Array.isArray(bestWindow.actions) ? bestWindow.actions.slice(0, 4) : [],
+        }
+      : null,
+
+    // Remedies etc.
+    remediesNow: buildRemedyAnswer(report),
+    gemstoneNote: gemstoneAdvice(report, question),
+    conceptExplainer: lookupAstroConcept(question),
+
+    // Natal hint
+    natalContext,
+
+    // Daily engines
+    foodGuide,
+    dailyRhythm,
+
+    // Key: evidence bullets the naturalizer can cite
+    evidenceBullets: evidence.slice(0, 7),
+  };
+}
 
 /* --------------------------------------------------
    POST handler
@@ -1448,32 +1884,154 @@ function buildAstroFacts(question: string, report: LifeReportLike | null) {
 
 export async function POST(req: Request) {
   try {
-    const body = (await req.json()) as AstroChatRequest;
+    const body = (await req.json()) as any;
 
-    const question = String(body.question ?? body.message ?? "").trim();
-    const report = body.report ?? body.reportData ?? null;
-
+    const question = String(body?.question ?? body?.message ?? "").trim();
     if (!question) return badJson("No question provided", 400);
-    // Use client topic if provided, otherwise infer from question
 
-    // 🔹 Food Engine: handle food/diet questions directly, without GPT
+    // Accept profile under either key
+    const rawProfile = body?.profile ?? body?.birthProfile ?? null;
+    const profile = normalizeProfile(rawProfile);
+
+    console.log("[astro-chat] incoming profile", {
+      hasProfile: !!rawProfile,
+      rawKeys: rawProfile ? Object.keys(rawProfile) : [],
+      normalized: profile
+        ? {
+            name: profile?.name,
+            dobISO: profile?.dobISO,
+            tob: profile?.tob,
+            tz: profile?.place?.tz,
+            lat: profile?.place?.lat,
+            lon: profile?.place?.lon,
+          }
+        : null,
+    });
+
+    // report might be sent by client OR we can compute it from profile
+    let report: any = body?.report ?? body?.reportData ?? null;
+
+    // ✅ Some callers send { data, profile } wrapper. Unwrap to the actual report.
+    if (report && typeof report === "object" && report.data && typeof report.data === "object") {
+      report = report.data;
+    }
+
+    console.log("[astro-chat] incoming keys", Object.keys(body || {}));
+    console.log("[astro-chat] has report?", !!report, report ? Object.keys(report) : null);
+
+    console.log("[astro-chat] report timing snapshot", {
+      hasActivePeriods: !!report?.activePeriods,
+      timelineLen: Array.isArray(report?.timeline) ? report.timeline.length : 0,
+      transitLen: Array.isArray(report?.transitWindows) ? report.transitWindows.length : 0,
+    });
+
+    // Minimum profile validation (only needed for PERSONALIZED mode)
+    const profileOk =
+      !!profile?.dobISO &&
+      !!profile?.tob &&
+      Number.isFinite(Number(profile?.place?.lat)) &&
+      Number.isFinite(Number(profile?.place?.lon)) &&
+      !!profile?.place?.tz;
+
+    const reportHasTiming =
+      !!report?.activePeriods ||
+      (Array.isArray(report?.timeline) && report.timeline.length > 0) ||
+      (Array.isArray(report?.transitWindows) && report.transitWindows.length > 0);
+
+    // If we have a profile but no report/timing, build the report (personalized mode)
+    if (profileOk && !reportHasTiming) {
+      try {
+        const lifeReportURL = safeInternalURL(req, "/api/life-report");
+        const lrRes = await fetch(lifeReportURL, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            name: profile?.name ?? "User",
+            birthDateISO: profile!.dobISO!,
+            birthTime: profile!.tob!,
+            birthTz: profile!.place!.tz,
+            birthLat: profile!.place!.lat,
+            birthLon: profile!.place!.lon,
+          }),
+        });
+
+        if (lrRes.ok) {
+          report = await lrRes.json();
+        } else {
+          const t = await lrRes.text();
+          console.warn("[astro-chat] /api/life-report failed:", lrRes.status, t);
+          report = null;
+        }
+      } catch (e: any) {
+        console.warn("[astro-chat] could not build report:", e?.message || e);
+        report = null;
+      }
+    }
+
+    console.log("[astro-chat] profileOk:", profileOk, {
+      name: profile?.name,
+      dobISO: profile?.dobISO,
+      tob: profile?.tob,
+      tz: profile?.place?.tz,
+      lat: profile?.place?.lat,
+      lon: profile?.place?.lon,
+    });
+    console.log("[astro-chat] report keys", report ? Object.keys(report) : null);
+    console.log("[astro-chat] has activePeriods?", !!report?.activePeriods, report?.activePeriods);
+    console.log("[astro-chat] timeline len", Array.isArray(report?.timeline) ? report.timeline.length : null);
+    console.log(
+      "[astro-chat] transitWindows len",
+      Array.isArray(report?.transitWindows) ? report.transitWindows.length : null
+    );
+
+    // Core mode switch
+    const actAny = getActiveDashaAnyShape(report);
+    const mdAny = actAny.md;
+    const adAny = actAny.ad;
+
+    const hasTiming =
+      (mdAny && mdAny !== "Unknown") ||
+      (adAny && adAny !== "Unknown") ||
+      (Array.isArray(report?.timeline) && report.timeline.length > 0) ||
+      (Array.isArray(report?.transitWindows) && report.transitWindows.length > 0);
+
+    // ✅ If profile is valid, we are personalized even if report/timing didn't load
+    const mode: "personalized" | "generic" = profileOk || hasTiming ? "personalized" : "generic";
+
+    console.log("MODE CHECK", {
+      hasProfile: !!profile,
+      hasDOB: !!profile?.dobISO,
+      hasTime: !!profile?.tob,
+      hasPlace: !!profile?.place,
+      hasReport: !!report,
+      mode,
+    });
+
+    // 🔹 Food Engine (works in both modes)
     if (isFoodQuestion(question)) {
       const foodText = buildFoodAnswer(report);
       return okJson({
         answer: foodText,
+        copy: { answer: foodText, long: foodText },
         followupMode: "new",
         distressed: false,
       });
     }
 
-   const topic = detectTopic(question);
+    const topic = canonicalTopic(detectTopic(question));
+    const { tone, depth } = pickToneAndDepth(question, topic);
+
+    // decide response size early
+    const formatTier: FormatTier = isMicroIntentQuestion(question) ? "micro" : pickFormatTier(question);
+    console.log("[astro-chat] formatTier:", formatTier, "question:", question);
+
     const moodHint = inferMood(question);
     const distressed = detectDistress(question);
     const distressSoothing = distressed ? reassureUser(topic) : "";
     const astroStressDriver = inferAstroStressDriver(report);
     const copingTip = pickCopingTip(astroStressDriver);
 
-    const userId = "default"; // simple session id for now
+    const userId = "default";
 
     // memory of last few questions
     const prevArr = chatContext.get(userId) || [];
@@ -1486,124 +2044,147 @@ export async function POST(req: Request) {
     const astroFacts = buildAstroFacts(question, report);
     lastFacts.set(userId, astroFacts);
 
-    // followup vs new ask
     const followupMode = isShortFollowup(question) ? "short" : "new";
 
-    // what we offered last time (career_deepen, etc.)
     const prevFollowKind = lastFollowup.get(userId) || "generic_deepen";
-    const evidenceBullets = buildWhyEvidence({ report, topic });
-        // Build a lightweight signature of "today's astro window"
+    const baseEvidence = buildWhyEvidence({ report, topic });
+
+    // only build careerBrief if the question is actually career
+    const careerBrief = topic === "career" ? buildCareerBriefStructured({ report }) : null;
+
+    const evidenceBullets = [...(Array.isArray(baseEvidence) ? baseEvidence : [])];
+
+    if (
+      careerBrief?.type === "career_window" &&
+      (careerBrief as any)?.hasWindow &&
+      (careerBrief as any)?.windowRange
+    ) {
+      evidenceBullets.push(`Career window: ${(careerBrief as any).windowRange}`);
+      if ((careerBrief as any)?.confidenceWord) evidenceBullets.push(`Strength: ${(careerBrief as any).confidenceWord}`);
+      if ((careerBrief as any)?.theme) evidenceBullets.push(`Theme: ${(careerBrief as any).theme}`);
+    }
+
+    // signature of "today's astro window"
     const todayISO = new Date().toISOString().slice(0, 10);
 
-    const active = report?.activePeriods;
-    const maha = active?.mahadasha?.lord || "";
-    const antar = active?.antardasha?.subLord || "";
-    const praty = active?.pratyantardasha?.lord || "";
+    const actSig = getActiveDashaAnyShape(report);
+    const maha = actSig.md === "Unknown" ? "" : actSig.md;
+    const antar = actSig.ad === "Unknown" ? "" : actSig.ad;
+    const praty = actSig.pd === "Unknown" ? "" : actSig.pd;
 
+    const timingLoaded = Boolean(hasTiming);
     const activeTransit = pickActiveTransitNow(report);
-    const transitKey = activeTransit
-      ? `${activeTransit.driver || ""}|${activeTransit.focusArea || ""}`
-      : "";
+    const transitKey = activeTransit ? `${activeTransit.driver || ""}|${activeTransit.focusArea || ""}` : "";
 
-    const astroWindowSignature = [
-      todayISO,
-      maha,
-      antar,
-      praty,
-      transitKey,
-    ]
+    const astroWindowSignature = [todayISO, maha, antar, praty, transitKey]
       .map((x) => String(x || "").toLowerCase().trim())
       .join("|");
 
     const questionSignature = question.toLowerCase().trim();
-    const natText =
-  [
-    `USER_QUESTION:\n${question}`,
-    `\nTOPIC:\n${topic}`,
-    `\nFOLLOWUP_MODE:\n${followupMode}`,
-    `\nMOOD_HINT:\n${moodHint}`,
-    `\nDISTRESSED:\n${distressed ? "yes" : "no"}`,
-    distressSoothing ? `\nSOOTHING:\n${distressSoothing}` : "",
-    astroStressDriver ? `\nASTRO_STRESS_DRIVER:\n${astroStressDriver}` : "",
-    copingTip ? `\nCOPING_TIP:\n${copingTip}` : "",
-    history ? `\nHISTORY:\n${history}` : "",
-    `\nASTRO_FACTS_JSON:\n${JSON.stringify(astroFacts ?? {}, null, 2)}`,
-    `\nEVIDENCE_BULLETS_JSON:\n${JSON.stringify(evidenceBullets ?? [], null, 2)}`,
-    `\nSTYLE_GUIDE_JSON:\n${JSON.stringify(
-      {
-        vibe: "soft-direct, not guru, not corporate",
-        rules: [
-          "If the user asks 'when' (job/career timing), respond in 4 lines: (1) Best window range, (2) Strength score, (3) 2 actions, (4) one risk to avoid. No emotional commentary.",
-          "Answer the actual ask first (timing, safety, near-term behavior).",
-          "Be calm and human, but do NOT psychoanalyze the user. Only add reassurance if DISTRESSED=yes.",
-          "Offer one practical way to survive the phase they're in.",
-          "End with exactly one next choice, not a menu.",
-          "After the answer, add a short 'Why this (evidence):' section with 2–4 bullets, using ONLY the provided evidenceBullets verbatim (no guesses). If evidenceBullets is empty, skip the section.",
-          "If astroFacts.natalContext is present, weave in exactly one short, grounded sentence of natal flavour (no jargon, no textbook dump).",
-          "If astroFacts.dailyRhythm is present, keep the tone, focus and oneStep aligned with it instead of inventing a new direction.",
-        ],
-        avoid: [
-          "No dumping raw dasha / transit data unless user asked 'why does it feel like this'.",
-          "Don't sound like a horoscope blog.",
-          "Don't blame them or say 'be positive'.",
-        ],
-      },
-      null,
-      2
-    )}`,
-  ]
-    .filter(Boolean)
-    .join("\n");
 
-        // payload for /api/naturalize
+    const styleGuide = {
+      vibe: "clear, warm, direct; modern astrology guide; no fluff",
+      coreRules: [
+        "Answer the user's question immediately. Do NOT stall with phrases like 'while I refresh...' or 'let me pull your chart'.",
+        "If MODE=generic: answer as an astrology expert in general terms. Offer personalization in ONE short sentence at the end.",
+        "If MODE=personalized: NEVER ask for birth details. Use astroFacts/report if present. If report is missing, answer using natal basics from profile (no excuses).",
+        "If MODE=personalized and report/timing is missing: do NOT ask for birth details. Say: 'Open Life Report once so I can load your timing windows' (one short line).",
+        "No psychoanalysis. No moral judgment. No doom. No fear messaging.",
+        "If user asks timing: give a window + 2 actions + 1 risk to avoid. Keep it compact.",
+        "Do NOT output the heading 'Why this (evidence)'. If the user explicitly asks why, use heading: 'Why (astro):'",
+        "Never say you're 'refreshing' or 'loading' timing windows.",
+        "If MODE=personalized: do NOT mention any planet/transit unless it appears in EVIDENCE_BULLETS_JSON or ASTRO_FACTS_JSON.",
+        "If user asks 'why': add a short 'Why (astro):' section with 2–4 bullets, grounded in the provided evidence only.",
+      ],
+      formatting: ["Prefer short paragraphs and bullets.", "Never include placeholders like 'refreshing windows'."],
+      avoid: ["No dumping raw dasha / transit data unless user asked 'why does it feel like this'.", "Don't sound like a horoscope blog.", "Don't blame them or say 'be positive'."],
+    };
+
+    const premiumFormatRules = `
+TONE=${tone}
+DEPTH=${depth}
+
+Write like a trusted human advisor speaking directly to the user.
+
+Structure the response naturally using these sections (use headings only where helpful):
+
+• Verdict  
+One clear, grounded sentence that answers the user’s question directly.
+
+• What this phase means  
+Explain what is happening *now* in simple, human terms.  
+Acknowledge how this phase can feel emotionally without judgment.
+
+• What to focus on now  
+Give 2–4 practical actions that fit the current timing.  
+These should feel doable, not overwhelming.
+
+• What to avoid  
+List 2–3 common mistakes people make in this phase.
+
+• Timing insight  
+If a clear window exists, state it.  
+If not, explain *what changes the timing* (sub-period shift, new trigger, external opportunity).
+
+• Closing guidance  
+End with a calm, confident takeaway that reassures and orients the user forward.
+
+Hard rules:
+- Never sound like a report or horoscope.
+- Never blame the user or analyze their personality.
+- Translate astrology into lived experience.
+- Use only facts present in ASTRO_FACTS_JSON and EVIDENCE_BULLETS_JSON.
+- Every heading must have content. Never output a heading with no text under it.
+`.trim();
+
+    const standardRules = `
+Answer in 6–10 short lines.
+No section headings unless truly needed.
+Be direct and practical.
+If you mention astrology, it must be supported by EVIDENCE_BULLETS_JSON or ASTRO_FACTS_JSON.
+`.trim();
+
+    const microRules = `
+Answer in 1–2 short lines.
+Do NOT use headings.
+Give one clear suggestion + one short reason.
+If you mention astrology, it must be supported by EVIDENCE_BULLETS_JSON or ASTRO_FACTS_JSON.
+`.trim();
+
+    const rules = formatTier === "premium" ? premiumFormatRules : formatTier === "micro" ? microRules : standardRules;
+
+    // payload for /api/naturalize
     const natPayload = {
-       text: natText,
-       input: natText,
       userQuestion: question,
       topic,
       history,
       astroFacts,
       moodHint,
-
+      mode,
       distressed,
       distressSoothing,
       astroStressDriver,
       copingTip,
-
       followupMode,
       lastFollowupKind: prevFollowKind,
-
       astroWindowSignature,
       questionSignature,
-
       evidenceBullets,
-
-            styleGuide: {
-        vibe: "soft-direct, not guru, not corporate",
-        rules: [
-          "If the user asks 'when' (job/career timing), respond in 4 lines: (1) Best window range, (2) Strength score, (3) 2 actions, (4) one risk to avoid. No emotional commentary.",
-          "Answer the actual ask first (timing, safety, near-term behavior).",
-          "Be calm and human, but do NOT psychoanalyze the user. Only add reassurance if DISTRESSED=yes.",
-          "Offer one practical way to survive the phase they're in.",
-          "End with exactly one next choice, not a menu.",
-          "After the answer, add a short 'Why this (evidence):' section with 2–4 bullets, using ONLY the provided evidenceBullets verbatim (no guesses). If evidenceBullets is empty, skip the section.",
-          "If astroFacts.natalContext is present, weave in exactly one short, grounded sentence of natal flavour (no jargon, no textbook dump).",
-          "If astroFacts.dailyRhythm is present, keep the tone, focus and oneStep aligned with it instead of inventing a new direction."
-        ],
-        avoid: [
-          "No dumping raw dasha / transit data unless user asked 'why does it feel like this'.",
-          "Don't sound like a horoscope blog.",
-          "Don't blame them or say 'be positive'."
-        ]
-      }
-      };
+      styleGuide,
+      formatTier,
+      formatRules: rules,
+      tone,
+      depth,
+      timingLoaded,
+    };
 
     // ---- call /api/naturalize ----
     let naturalJson: any = null;
 
     try {
       const naturalizeURL = safeInternalURL(req, "/api/naturalize");
-      console.log("[astro-chat] natText length:", natText.length);
+      console.log("[astro-chat] natPayload keys:", Object.keys(natPayload || {}));
+
       const naturalRes = await fetch(naturalizeURL, {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -1611,17 +2192,17 @@ export async function POST(req: Request) {
       });
 
       if (!naturalRes.ok) {
-  const errText = await naturalRes.text();
-  return okJson({
-    answer:
-      `⚠️ GPT call failed (naturalize ${naturalRes.status}).\n\n` +
-      `Server said:\n${errText}\n\n` +
-      `Tip: Check OPENAI_API_KEY / GPT_MODEL in .env.local, then restart dev server.`,
-    followupMode,
-    distressed,
-    debug: true,
-  });
-}
+        const errText = await naturalRes.text();
+        return okJson({
+          answer:
+            `⚠️ GPT call failed (naturalize ${naturalRes.status}).\n\n` +
+            `Server said:\n${errText}\n\n` +
+            `Tip: Check OPENAI_API_KEY / GPT_MODEL in .env.local, then restart dev server.`,
+          followupMode,
+          distressed,
+          debug: true,
+        });
+      }
 
       naturalJson = await naturalRes.json();
     } catch (e: any) {
@@ -1635,64 +2216,56 @@ export async function POST(req: Request) {
       });
     }
 
-    // if we got a styled, human answer, return that (and append evidence if needed)
-       if (naturalJson?.text) {
+    // ✅ If we got a styled, human answer, return that
+    if (naturalJson?.text) {
       lastFollowup.set(userId, naturalJson.followupKind || "generic_deepen");
 
-      let finalText = naturalJson.text as string;
-      if (Array.isArray(evidenceBullets) && evidenceBullets.length && !/Why this \(evidence\)/i.test(finalText)) {
-        finalText += "\n\n**Why this (evidence):**\n" + evidenceBullets.map(b => `• ${b}`).join("\n");
+      const finalText = String(naturalJson.text || "").trim();
+      const outText = cleanUnknown(finalText);
+
+      // If model returned empty, fall back gracefully
+      if (!outText) {
+        const fallback = mode === "personalized"
+          ? "I can answer this, but open Life Report once so I can load your timing windows."
+          : "Ask your question with your birth details (DOB/TOB/City) for a precise timing-based answer.";
+
+        return okJson({
+          answer: fallback,
+          evidenceBullets,
+          followupMode,
+          distressed,
+          copy: { answer: fallback, long: fallback },
+        });
       }
 
-
-
       return okJson({
-        answer: finalText,
+        answer: outText,
+        evidenceBullets,
         followupMode,
         distressed,
+        copy: { answer: outText, long: outText },
       });
     }
 
-
-    // graceful fallback (still human voice)
-    const timingCore =
-      astroFacts.careerTiming?.windowRange ||
-      astroFacts.nextPhasesSummary ||
-      astroFacts.activePeriodSummary ||
-      "";
-
-    const fallbackLines: string[] = [];
-    if (timingCore) {
-      fallbackLines.push(
-        `Let me be direct: ${timingCore}. That's the pressure window where things actually move for you.`
-      );
-    }
-
-    if (distressed) {
-      fallbackLines.push(
-        "I can feel how heavy this is. You're not cursed or behind. This is slow-build timing, not punishment. The job right now is protect energy and collect proof, not burn yourself out trying to force a result today."
-      );
-    } else {
-      fallbackLines.push(
-        "This is not 'you're stuck forever'. It's slow-bake timing, not dead timing. You're being asked to build leverage, not panic-jump."
-      );
-    }
-
-    fallbackLines.push(
-      "Do you want me to help you survive this stretch without burning out, or talk pure safety/stability (like 'is it safe to jump')?"
-    );
-
-    if (evidenceBullets && evidenceBullets.length) {
-      fallbackLines.push("**Why this (evidence):**\n" + evidenceBullets.map(b => `• ${b}`).join("\n"));
-    }
+    // ✅ If /api/naturalize returned no text, do a safe fallback using astroFacts
+    const fallbackText =
+      mode === "personalized"
+        ? [
+            "I can answer this, but I need one thing:",
+            "Open Life Report once so I can load your timing windows and give precise dates.",
+          ].join(" ")
+        : "I can answer generally, but for precise timing I need your birth details (DOB, time, city).";
 
     return okJson({
-      answer: fallbackLines.join("\n\n"),
+      answer: fallbackText,
+      evidenceBullets,
       followupMode,
       distressed,
+      copy: { answer: fallbackText, long: fallbackText },
+      debug: true,
     });
-  } catch (err: any) {
-    console.error("astro-chat error:", err);
-    return okJson({ error: "astro-chat internal error", details: err?.message ?? String(err) }, 500);
+  } catch (e: any) {
+    console.error("[astro-chat] POST failed:", e?.message || e);
+    return badJson(`Server error: ${String(e?.message || e)}`, 500);
   }
 }
