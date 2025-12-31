@@ -45,7 +45,7 @@ export default function Home() {
 
           <div className="flex items-center gap-2">
             <Badge className="hidden bg-emerald-500/15 text-[11px] font-normal text-emerald-300 border border-emerald-400/30 sm:inline-flex">
-              Early access ? Private beta
+              Early access - Private beta
             </Badge>
             <Link href="/sarathi/life-report">
               <Button
@@ -65,7 +65,7 @@ export default function Home() {
         <section className="grid gap-8 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] md:items-center">
           <div className="space-y-5">
             <Badge className="bg-indigo-500/15 text-[11px] font-normal text-indigo-200 border border-indigo-400/40">
-              Vedic astrology ? Purpose ? Practical guidance
+              Vedic astrology - Purpose - Practical guidance
             </Badge>
 
             <h1 className="text-balance text-3xl font-semibold tracking-tight sm:text-4xl md:text-5xl">
@@ -74,7 +74,7 @@ export default function Home() {
             </h1>
 
             <p className="max-w-xl text-sm leading-relaxed text-slate-300 sm:text-[15px]">
-              Sārathi reads your chart, dashas and transits with depth??then
+              Sārathi reads your chart, dashas and transits with depth then
               translates them into calm, practical guidance for career, money,
               relationships and inner growth. No fear. No fatalism. Just honest
               direction.
@@ -180,7 +180,7 @@ export default function Home() {
                   </div>
                   <p className="text-[11px] text-slate-400">
                     No you are doomed predictions. Just windows, tendencies
-                    and choices so you stay in the driver?s seat.
+                    and choices so you stay in the driver's seat.
                   </p>
                 </div>
               </div>
