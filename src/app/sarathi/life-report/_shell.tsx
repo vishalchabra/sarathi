@@ -3501,6 +3501,64 @@ const TabDailyGuide: React.FC<{
 ======================================================================== */
 
 // ---------- helpers (top-level, NOT inside another component) ----------
+function pickStrings(v: any): string[] {
+  if (!v) return [];
+  if (Array.isArray(v)) return v.map(String).filter(Boolean);
+  if (typeof v === "string") return v ? [v] : [];
+  return [];
+}
+
+function firstNonEmpty(...arrs: any[]): string[] {
+  for (const a of arrs) {
+    const s = pickStrings(a);
+    if (s.length) return s;
+  }
+  return [];
+}
+
+function extractEvidence(report: any) {
+  const r = report || {};
+
+  // Common places you might already have structured data
+  const focus = firstNonEmpty(
+    r?.nowFocus?.bullets,
+    r?.now?.bullets,
+    r?.focusAreas,
+    r?.whatToFocusOn,
+    r?.guidance?.focus,
+    r?.core?.focus
+  );
+
+  const cautions = firstNonEmpty(
+    r?.nowAvoid?.bullets,
+    r?.now?.avoid,
+    r?.avoidAreas,
+    r?.whatToAvoid,
+    r?.guidance?.avoid
+  );
+
+  const transit = firstNonEmpty(
+    r?.transitHighlights,
+    r?.transits?.highlights,
+    r?.now?.transits,
+    r?.timeline?.transitTriggers
+  );
+
+  const dasha = firstNonEmpty(
+    r?.dashaSummary?.bullets,
+    r?.dasha?.bullets,
+    r?.activePeriods,
+    r?.lifePhases,
+    r?.timeline?.phases
+  );
+
+  return { focus, cautions, transit, dasha };
+}
+
+function takeN(arr: string[], n: number) {
+  return (arr || []).slice(0, n);
+}
+
 function clamp(n: number, min: number, max: number) {
   return Math.max(min, Math.min(max, n));
 }
@@ -3726,7 +3784,7 @@ const TabAdvanced: React.FC<{
           </div>
 
           <div className="mt-3 text-xs text-white/60">
-            Full version explains *why* these scores move — and what to do
+            Full version explains 'why' these scores move — and what to do
             day-by-day.
           </div>
         </div>
@@ -3839,6 +3897,15 @@ const TabAdvanced: React.FC<{
     </div>
   );
 };
+type TabFullPlanProps = {
+  report: LifeReportView | null;
+  mounted: boolean;
+  isPro: boolean;
+  dailyHighlights: DailyHighlight[];
+  dailyLoading: boolean;
+  dailyError: string | null;
+  notificationsPreview: any | null;
+};
 
 
 /* ---------------- Main Shell ---------------- */
@@ -3895,14 +3962,22 @@ const LifeReportShell: React.FC<LifeReportShellProps> = ({
   });
 
   const [activeTab, setActiveTab] = useState("overview");
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+  setMounted(true);
+}, []);
   const router = useRouter();
 const pathname = usePathname();
 const setTabFromUrl = useCallback(
-  (t: "overview" | "phases" | "now" | "advanced") => {
+  (t: "overview" | "phases" | "now" | "advanced" | "full") => {
     setActiveTab(t);
   },
   []
 );
+const isPro =
+  mounted &&
+  typeof window !== "undefined" &&
+  String(window.localStorage.getItem("sarathi_plan") || "free").toLowerCase() === "pro";
 
     // Read ?tab= from URL on first mount (deep-link to a tab)
 // Read ?tab= from URL on first mount (deep-link to a tab)
@@ -3913,9 +3988,16 @@ useEffect(() => {
     const sp = new URLSearchParams(window.location.search);
     const t = (sp.get("tab") || "").toLowerCase();
 
-    if (t === "overview" || t === "phases" || t === "now" || t === "advanced") {
-      setActiveTab(t as any);
-    }
+    if (
+  t === "overview" ||
+  t === "phases" ||
+  t === "now" ||
+  t === "advanced" ||
+  t === "full"
+) {
+  setTabFromUrl(t as any);
+}
+
   } catch {
     // ignore
   }
@@ -3942,12 +4024,7 @@ useEffect(() => {
   const [monthlyLoading, setMonthlyLoading] = useState(false);
   const [monthlyError, setMonthlyError] = useState<string | null>(null);
 
-  const [mounted, setMounted] = useState(false);
-  // make sure client-only tabs (timeline, transits, monthly, weekly, myths) show
-  
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+
   type WeeklyInsightLocal = { label: string; text: string };
   const [weeklyInsights, setWeeklyInsights] = useState<WeeklyInsightLocal[]>([]);
   const [weeklyLoading, setWeeklyLoading] = useState(false);
@@ -6611,7 +6688,9 @@ router.replace(`${pathname}?${sp.toString()}`, { scroll: false });
   <TabsTrigger value="phases">Life Phases</TabsTrigger>
   <TabsTrigger value="now">Now & Near Future</TabsTrigger>
   <TabsTrigger value="advanced">Advanced • Pro</TabsTrigger>
+  <TabsTrigger value="full">Full Plan 🔒</TabsTrigger>
 </TabsList>
+
         </Tabs>
 
         <Link href="/sarathi/chat" className="md:ml-4">
@@ -6630,6 +6709,8 @@ router.replace(`${pathname}?${sp.toString()}`, { scroll: false });
 
     {/* Tab content */}
 <div className="mt-4 space-y-6">
+  <div className="text-xs text-white/50">DEBUG activeTab: {String(activeTab)}</div>
+
   {/* OVERVIEW = show ONLY placements (core signature) + personality summary */}
   {activeTab === "overview" && (
     <div className="space-y-6">
@@ -6672,10 +6753,347 @@ router.replace(`${pathname}?${sp.toString()}`, { scroll: false });
       dashaTransitSummary={dashaTransitSummary}
     />
   )}
+  {activeTab === "full" && (
+  <TabFullPlan
+    report={report}
+    mounted={mounted}
+    isPro={isPro}
+    dailyHighlights={dailyHighlights}
+    dailyLoading={dailyLoading}
+    dailyError={dailyError}
+    notificationsPreview={notificationsPreview}
+  />
+)}
+
+
 </div>
+
     </main>
+    
   );
+  
 }
+const TabFullPlan: React.FC<TabFullPlanProps> = ({
+  report,
+  mounted,
+  isPro,
+  dailyHighlights,
+  dailyLoading,
+  dailyError,
+  notificationsPreview,
+}) => {
+  // 1) Never blank
+  if (!mounted) {
+    return (
+      <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-white/70">
+        Loading Full Plan…
+      </div>
+    );
+  }
+
+  // 2) One paywall only
+  if (!isPro) {
+    return (
+      <div className="rounded-2xl border border-white/15 bg-indigo-950/40 p-5 backdrop-blur-md">
+        <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+          Full Plan 🔒 (Pro)
+        </div>
+        <div className="mt-1 text-lg font-semibold text-slate-100">
+          Unlock Full Version
+        </div>
+        <div className="mt-2 text-sm text-white/70 leading-relaxed">
+          Get the reasons behind your alignment scores, timing windows, and a day-by-day action plan.
+        </div>
+
+        <div className="mt-4 grid gap-3 md:grid-cols-3">
+          {["Why scores move", "Timing windows", "Daily action plan"].map((t) => (
+            <div
+              key={t}
+              className="rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-white/80"
+            >
+              {t}
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="text-xs text-white/60">
+            Dev: set <span className="text-white/80">localStorage.sarathi_plan="pro"</span>
+          </div>
+          <Button size="sm" className="w-full sm:w-auto">
+            Upgrade to Pro
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // 3) Compute Pro data (now this will actually run)
+  const r: any = report || {};
+  const align = computeAlignment(r);
+  const ev = extractEvidence(r);
+
+// Build "Top 3 Drivers" from real evidence (fallback if missing)
+const topDrivers = (() => {
+  const a = [
+    ...takeN(ev.dasha, 2),
+    ...takeN(ev.transit, 2),
+    ...takeN(ev.focus, 2),
+  ].map((x) => String(x).trim()).filter(Boolean);
+
+  // If report has little evidence, keep it useful and premium
+  if (a.length >= 3) return a.slice(0, 3);
+
+  return [
+    "Your current cycle rewards consistency and structured action (do one thing fully).",
+    "Emotional clarity improves when you slow responses and reduce noise.",
+    "Timing is supportive for planning and follow-through; avoid impulsive decisions.",
+  ];
+})();
+
+  const drivers = [
+    {
+      key: "Mind",
+      score: align.mind,
+      why: "Clarity + focus are available when you simplify and follow one thread.",
+      do: ["Work in 2 focused blocks", "Write a 3-line plan before meetings"],
+      avoid: ["Multitasking", "Starting 5 things at once"],
+    },
+    {
+      key: "Emotions",
+      score: align.emotions,
+      why: "Emotional rhythm improves with steadiness and slower responses.",
+      do: ["One honest conversation", "10-minute quiet reset"],
+      avoid: ["Late-night spirals", "Over-explaining"],
+    },
+    {
+      key: "Direction",
+      score: align.direction,
+      why: "Growth wants consistency over intensity — one priority wins today.",
+      do: ["Pick 1 priority and finish", "Say no to 1 distraction"],
+      avoid: ["Changing targets mid-day", "Overcommitting"],
+    },
+    {
+      key: "Energy",
+      score: align.energy,
+      why: "Energy is stable — protect it from decision fatigue.",
+      do: ["Hardest task first", "20–30 min movement"],
+      avoid: ["Scrolling loops", "Reactive scheduling"],
+    },
+    {
+      key: "External support",
+      score: align.support,
+      why: "Support rises when requests are specific and boundaries are clear.",
+      do: ["Ask for 1 specific help", "Set 1 boundary clearly"],
+      avoid: ["Silent resentment", "Vague requests"],
+    },
+  ];
+
+  // 4) Pro UI
+  return (
+    <div className="space-y-6">
+      <div className="rounded-2xl border border-white/15 bg-white/5 p-4">
+        <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+          Full plan • explain + act
+        </div>
+        <div className="mt-1 text-lg font-semibold text-slate-100">
+          Why your alignment moves — and exactly what to do day-by-day
+        </div>
+        <div className="mt-1 text-sm text-white/70">
+          This is the “full version” promised in Advanced.
+        </div>
+      </div>
+
+      {/* Today's Astro Drivers (real evidence first, then fallback) */}
+<div className="rounded-2xl border border-white/15 bg-white/5 p-4">
+  <div className="text-sm font-semibold text-slate-100">Today’s Astro Drivers</div>
+  <div className="mt-2 text-sm text-white/70">
+    These are pulled from your current report signals (dasha/transits/focus) and translated into actions.
+  </div>
+
+  <div className="mt-3 grid gap-3 md:grid-cols-3">
+    {topDrivers.map((t, idx) => (
+      <div key={idx} className="rounded-xl border border-white/10 bg-indigo-950/40 p-3">
+        <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+          Driver {idx + 1}
+        </div>
+        <div className="mt-2 text-sm text-white/85 leading-relaxed">{t}</div>
+      </div>
+    ))}
+  </div>
+</div>
+
+{/* Soul Alignment Index (explained) */}
+<div className="rounded-2xl border border-white/15 bg-indigo-950/40 p-4 backdrop-blur-md">
+  <div className="text-sm font-semibold text-slate-100">Soul Alignment Index — Explained</div>
+
+  <div className="mt-3 grid gap-4 md:grid-cols-2">
+    {drivers.map((d) => (
+      <div key={d.key} className="rounded-2xl border border-white/15 bg-white/5 p-4">
+        <div className="flex items-center justify-between">
+          <div className="text-xs font-semibold uppercase tracking-wide text-white/60">{d.key}</div>
+          <div className="text-sm font-semibold text-slate-100">{Number(d.score)}</div>
+        </div>
+
+        <div className="mt-2 text-sm text-white/80 leading-relaxed">{d.why}</div>
+
+        {/* Evidence (real if available) */}
+        <div className="mt-3 rounded-xl border border-white/10 bg-white/5 p-3">
+          <div className="text-[11px] font-semibold uppercase tracking-wide text-white/60">Evidence</div>
+          <ul className="mt-2 list-disc pl-4 text-sm text-white/75 space-y-1">
+            {(takeN(ev.focus, 2).length ? takeN(ev.focus, 2) : ["No structured evidence found yet — improving this next."]).map(
+              (x) => (
+                <li key={x}>{x}</li>
+              )
+            )}
+          </ul>
+        </div>
+
+        <div className="mt-3 grid gap-3 md:grid-cols-2">
+          <div className="rounded-xl border border-emerald-400/25 bg-emerald-500/10 p-3">
+            <div className="text-xs font-semibold uppercase tracking-wide text-emerald-100/90">
+              Do
+            </div>
+            <ul className="mt-2 list-disc pl-4 text-sm text-white/80 space-y-1">
+              {d.do.map((x) => (
+                <li key={x}>{x}</li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="rounded-xl border border-red-400/20 bg-red-500/10 p-3">
+            <div className="text-xs font-semibold uppercase tracking-wide text-red-100/90">
+              Avoid
+            </div>
+            <ul className="mt-2 list-disc pl-4 text-sm text-white/80 space-y-1">
+              {d.avoid.map((x) => (
+                <li key={x}>{x}</li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </div>
+    ))}
+  </div>
+</div>
+
+
+      {/* Day-by-day plan */}
+      <div className="rounded-2xl border border-white/15 bg-white/5 p-4">
+        <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+          Day-by-day action plan (next few days)
+        </div>
+
+        <div className="mt-3 space-y-3">
+          {dailyLoading && (
+            <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/70">
+              Loading…
+            </div>
+          )}
+
+          {!dailyLoading && dailyError && (
+            <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-3 py-2 text-xs text-red-200">
+              {dailyError}
+            </div>
+          )}
+
+          {!dailyLoading &&
+          !dailyError &&
+          Array.isArray(dailyHighlights) &&
+          dailyHighlights.length > 0 ? (
+            dailyHighlights.slice(0, 7).map((h: any, idx: number) => (
+              <div key={idx} className="rounded-xl border border-white/10 bg-indigo-950/40 p-3">
+                <div className="text-[11px] font-semibold uppercase tracking-wide text-white/60">
+                  {h.dateISO}
+                </div>
+                <div className="mt-1 text-sm text-white/80 leading-relaxed">{h.text}</div>
+              </div>
+            ))
+          ) : (
+            <div className="text-xs text-white/60">No daily plan available yet.</div>
+          )}
+        </div>
+      </div>
+
+      {/* Notification preview */}
+      <div className="rounded-2xl border border-white/15 bg-indigo-950/40 p-4 backdrop-blur-md">
+        <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+          Your notification schedule (preview)
+        </div>
+        <div className="mt-2 text-sm text-white/70">
+          This is how Pro will send morning / midday / evening nudges (in-app + push later).
+        </div>
+
+        <div className="mt-3 grid gap-3 md:grid-cols-3">
+          {["morning", "midday", "evening"].map((k) => {
+            const arr = (notificationsPreview as any)?.[k] || [];
+            return (
+              <div key={k} className="rounded-xl border border-white/10 bg-white/5 p-3">
+                <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+                  {k}
+                </div>
+                <div className="mt-2 space-y-2">
+                  {Array.isArray(arr) && arr.length ? (
+                    arr.slice(0, 3).map((n: any) => (
+                      <div key={n.id || n.text} className="text-sm text-white/80">
+                        {n.text}
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-xs text-white/60">No items yet.</div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+  {/* Timing Intelligence (v1 from notificationsPreview + report) */}
+<div className="rounded-2xl border border-white/15 bg-indigo-950/40 p-4 backdrop-blur-md">
+  <div className="text-sm font-semibold text-slate-100">Timing Intelligence</div>
+  <div className="mt-2 text-sm text-white/70">
+    Best moments and caution moments — built from your schedule + current report.
+  </div>
+
+  <div className="mt-3 grid gap-3 md:grid-cols-2">
+    <div className="rounded-xl border border-emerald-400/20 bg-emerald-500/10 p-3">
+      <div className="text-xs font-semibold uppercase tracking-wide text-emerald-100/90">
+        Best windows (today)
+      </div>
+      <ul className="mt-2 list-disc pl-4 text-sm text-white/80 space-y-1">
+        {["morning", "midday", "evening"].flatMap((k) => {
+          const arr = (notificationsPreview as any)?.[k] || [];
+          return (arr || []).slice(0, 1).map((n: any) => `${k}: ${n.text || ""}`.trim());
+        }).filter(Boolean).slice(0, 3).map((x: string) => (
+          <li key={x}>{x}</li>
+        ))}
+        {!((notificationsPreview as any)?.morning || (notificationsPreview as any)?.midday || (notificationsPreview as any)?.evening) && (
+          <li>Best window: late morning for focused work; early evening for follow-ups.</li>
+        )}
+      </ul>
+    </div>
+
+    <div className="rounded-xl border border-red-400/20 bg-red-500/10 p-3">
+      <div className="text-xs font-semibold uppercase tracking-wide text-red-100/90">
+        Caution windows
+      </div>
+      <ul className="mt-2 list-disc pl-4 text-sm text-white/80 space-y-1">
+        {(takeN(ev.cautions, 3).length ? takeN(ev.cautions, 3) : [
+          "Avoid impulsive decisions in the afternoon dip.",
+          "Avoid heavy conversations late at night.",
+        ]).map((x) => (
+          <li key={x}>{x}</li>
+        ))}
+      </ul>
+    </div>
+  </div>
+</div>
+
+};
+
+
 
 export default LifeReportShell;
 
