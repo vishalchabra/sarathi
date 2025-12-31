@@ -22,7 +22,7 @@ export default function Home() {
             </div>
           </Link>
 
-          {/* NAV: About ? ? My Story ? ? Why ? ? FAQs ? ? Life Report ? ? Ask Sārathi */}
+          {/* NAV: About  My Story  Why  FAQs  Life Report  Ask Sārathi */}
           <nav className="hidden items-center gap-4 text-sm text-slate-300 sm:flex">
   <Link href="/about" className="hover:text-slate-50">
     About
@@ -69,7 +69,7 @@ export default function Home() {
             </Badge>
 
             <h1 className="text-balance text-3xl font-semibold tracking-tight sm:text-4xl md:text-5xl">
-              Clarity for life?s decisions ??
+              Clarity for life's decisions
               <span className="text-indigo-300"> in your browser.</span>
             </h1>
 
@@ -87,7 +87,7 @@ export default function Home() {
     </Button>
   </Link>
 
-  <Link href="#about">
+  <Link href="about">
     <Button
       variant="outline"
       className="rounded-xl border-slate-700 bg-slate-900/60 text-xs text-slate-100 hover:bg-slate-800"
@@ -111,13 +111,13 @@ export default function Home() {
                 About
               </Link>
               <Link
-                href="/about#my-story"
+                href="/about my-story"
                 className="rounded-full border border-white/10 bg-white/5 px-3 py-1 hover:bg-white/10"
               >
                 My Story
               </Link>
               <Link
-                href="/about#why-sarathi"
+                href="/about why-sarathi"
                 className="rounded-full border border-white/10 bg-white/5 px-3 py-1 hover:bg-white/10"
               >
                 Why Sārathi
@@ -150,7 +150,7 @@ export default function Home() {
                   </div>
                   <p className="text-[11px] text-slate-400">
                     Your ascendant, moons, dashas and key patterns explained in
-                    plain English??without cookbook copy-paste.
+                    plain English without cookbook copy-paste.
                   </p>
                 </div>
               </div>
@@ -179,8 +179,8 @@ export default function Home() {
                     A calm, non-fatalistic view
                   </div>
                   <p className="text-[11px] text-slate-400">
-                    No ?you are doomed?? predictions. Just windows, tendencies
-                    and choices??so you stay in the driver?s seat.
+                    No you are doomed predictions. Just windows, tendencies
+                    and choices so you stay in the driver?s seat.
                   </p>
                 </div>
               </div>
@@ -196,7 +196,7 @@ export default function Home() {
                 A simple way to use astrology (without anxiety)
               </div>
               <p className="mt-1 text-sm text-slate-200/80 leading-6">
-                Observe the phase you?re in ? ? understand the theme ? ? take one clear step.
+                Observe the phase you're in understand the theme take one clear step.
               </p>
             </div>
 
@@ -298,7 +298,7 @@ export default function Home() {
         <footer className="mt-4 border-t border-slate-800/70 pt-8 text-xs text-slate-400">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div className="text-slate-400">
-              ?? {new Date().getFullYear()} Sārathi. All rights reserved.
+             {new Date().getFullYear()} Sārathi. All rights reserved.
             </div>
             <div className="flex flex-wrap gap-4">
               <Link href="/about" className="hover:text-slate-200">
