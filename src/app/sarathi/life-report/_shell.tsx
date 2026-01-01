@@ -3501,6 +3501,192 @@ const TabDailyGuide: React.FC<{
 ======================================================================== */
 
 // ---------- helpers (top-level, NOT inside another component) ----------
+function extractTimeline(report: any) {
+  const r = report || {};
+  const milestones = Array.isArray(r?.lifeMilestones) ? r.lifeMilestones : [];
+  const phases = Array.isArray(r?.lifePhases) ? r.lifePhases : [];
+  const active = Array.isArray(r?.activePeriods) ? r.activePeriods : [];
+
+  // Normalize into a single list of { title, range, text }
+  const items: Array<{ title: string; range?: string; text?: string }> = [];
+
+  milestones.forEach((m: any) => {
+    items.push({
+      title: String(m?.title || m?.label || "Milestone"),
+      range: String(m?.range || m?.window || m?.dates || "").trim() || undefined,
+      text: String(m?.text || m?.description || m?.summary || "").trim() || undefined,
+    });
+  });
+
+  phases.forEach((p: any) => {
+    items.push({
+      title: String(p?.title || p?.label || "Phase"),
+      range: String(p?.range || p?.window || p?.dates || "").trim() || undefined,
+      text: String(p?.text || p?.summary || p?.description || "").trim() || undefined,
+    });
+  });
+
+  active.forEach((a: any) => {
+    items.push({
+      title: String(a?.title || a?.label || "Active period"),
+      range: String(a?.range || a?.window || a?.dates || "").trim() || undefined,
+      text: String(a?.text || a?.summary || a?.description || "").trim() || undefined,
+    });
+  });
+
+  return items.filter((x) => x.title);
+}
+
+type PlanetLike = {
+  name?: string;
+  sign?: string;
+  house?: number;
+  nakshatra?: string;
+  siderealLongitude?: number;
+  dignity?: string;
+};
+
+function norm(s: any) {
+  return String(s || "").trim().toLowerCase();
+}
+
+function getPlanet(report: any, planetName: string): PlanetLike | null {
+  const arr = Array.isArray(report?.planets) ? report.planets : [];
+  const p = arr.find((x: any) => norm(x?.name) === norm(planetName));
+  return p || null;
+}
+
+function housePhrase(h?: number | null) {
+  if (!h || typeof h !== "number") return "";
+  const suffix = h === 1 ? "st" : h === 2 ? "nd" : h === 3 ? "rd" : "th";
+  return `${h}${suffix} house`;
+}
+
+function fmtPlanet(p: PlanetLike | null) {
+  if (!p) return null;
+  const sign = p.sign ? String(p.sign) : "";
+  const house = typeof p.house === "number" ? ` (${housePhrase(p.house)})` : "";
+  const nak = p.nakshatra ? ` • ${p.nakshatra}` : "";
+  return `${p.name || "Planet"} in ${sign}${house}${nak}`.trim();
+}
+
+/**
+ * “Real” alignment drivers based on planets + houses (and later dasha/transits when we map exact fields).
+ */
+function buildAlignmentDriversFromChart(report: any) {
+  const sun = getPlanet(report, "Sun");
+  const moon = getPlanet(report, "Moon");
+  const mars = getPlanet(report, "Mars");
+  const merc = getPlanet(report, "Mercury");
+  const jup = getPlanet(report, "Jupiter");
+  const ven = getPlanet(report, "Venus");
+  const sat = getPlanet(report, "Saturn");
+  const rahu = getPlanet(report, "Rahu");
+  const ketu = getPlanet(report, "Ketu");
+
+  // Evidence bullets (real)
+  const evidenceMind = [
+    fmtPlanet(merc),
+    sat?.house ? `Saturn emphasis: discipline via ${housePhrase(sat.house)}` : null,
+    ketu?.house ? `Ketu focus: detachment lessons via ${housePhrase(ketu.house)}` : null,
+  ].filter(Boolean) as string[];
+
+  const evidenceEmo = [
+    fmtPlanet(moon),
+    ven?.house ? `Venus soothing effect via ${housePhrase(ven.house)}` : null,
+    sat?.house ? `Saturn can cool emotions via ${housePhrase(sat.house)}` : null,
+  ].filter(Boolean) as string[];
+
+  const evidenceDir = [
+    fmtPlanet(sun),
+    fmtPlanet(jup),
+    rahu?.house ? `Rahu ambition grows via ${housePhrase(rahu.house)}` : null,
+  ].filter(Boolean) as string[];
+
+  const evidenceEnergy = [
+    fmtPlanet(mars),
+    sat?.house ? `Saturn affects stamina via ${housePhrase(sat.house)}` : null,
+    moon?.house ? `Moon affects rhythm via ${housePhrase(moon.house)}` : null,
+  ].filter(Boolean) as string[];
+
+  const evidenceSupport = [
+    ven?.house ? `Venus supports relationships via ${housePhrase(ven.house)}` : null,
+    jup?.house ? `Jupiter brings mentors via ${housePhrase(jup.house)}` : null,
+    rahu?.house ? `Networks expand via ${housePhrase(rahu.house)}` : null,
+  ].filter(Boolean) as string[];
+
+  // Convert evidence into “why” text
+  const whyMind =
+    evidenceMind.length
+      ? `Mind patterns are shaped by ${evidenceMind[0]}${evidenceMind[1] ? ` and ${evidenceMind[1]}` : ""}.`
+      : "Mind patterns improve when you simplify and follow one thread.";
+
+  const whyEmo =
+    evidenceEmo.length
+      ? `Emotional rhythm is colored by ${evidenceEmo[0]}${evidenceEmo[1] ? ` and ${evidenceEmo[1]}` : ""}.`
+      : "Emotional rhythm improves with steadiness and slower responses.";
+
+  const whyDir =
+    evidenceDir.length
+      ? `Direction is driven by ${evidenceDir[0]}${evidenceDir[1] ? ` + ${evidenceDir[1]}` : ""}.`
+      : "Direction strengthens when you commit to one priority.";
+
+  const whyEnergy =
+    evidenceEnergy.length
+      ? `Energy and drive are influenced by ${evidenceEnergy[0]}${evidenceEnergy[1] ? ` and ${evidenceEnergy[1]}` : ""}.`
+      : "Energy is stable—protect it from decision fatigue.";
+
+  const whySupport =
+    evidenceSupport.length
+      ? `External support increases through ${evidenceSupport[0]}${evidenceSupport[1] ? ` and ${evidenceSupport[1]}` : ""}.`
+      : "External support rises when requests are specific and boundaries are clear.";
+
+  return {
+    evidence: { mind: evidenceMind, emotions: evidenceEmo, direction: evidenceDir, energy: evidenceEnergy, support: evidenceSupport },
+    why: { mind: whyMind, emotions: whyEmo, direction: whyDir, energy: whyEnergy, support: whySupport },
+  };
+}
+
+/**
+ * Timing Intelligence v1:
+ * - Uses notificationsPreview as “best windows” (already derived by your system)
+ * - Adds simple caution windows based on Moon/Mars/Saturn house emphasis
+ */
+function buildTimingV1(report: any, notificationsPreview: any) {
+  const moon = getPlanet(report, "Moon");
+  const mars = getPlanet(report, "Mars");
+  const sat = getPlanet(report, "Saturn");
+
+  const best: string[] = [];
+  ["morning", "midday", "evening"].forEach((k) => {
+    const arr = notificationsPreview?.[k] || [];
+    if (Array.isArray(arr) && arr.length) {
+      const t = String(arr[0]?.text || "").trim();
+      if (t) best.push(`${k}: ${t}`);
+    }
+  });
+
+  const caution: string[] = [];
+  if (mars?.house === 6 || mars?.house === 8 || mars?.house === 12) {
+    caution.push("Mars is in a more intense house — avoid impulsive conflict today.");
+  }
+  if (sat?.house === 6 || sat?.house === 8 || sat?.house === 12) {
+    caution.push("Saturn pressure is higher — avoid overcommitting and running on low sleep.");
+  }
+  if (moon?.house === 8 || moon?.house === 12) {
+    caution.push("Moon is in a sensitive house — avoid emotional overexposure / late-night heavy talks.");
+  }
+
+  if (!best.length) {
+    best.push("late morning: focused work / planning", "early evening: follow-ups / clarity");
+  }
+  if (!caution.length) {
+    caution.push("mid-afternoon: avoid impulsive decisions", "late night: avoid heavy conversations");
+  }
+
+  return { best: best.slice(0, 3), caution: caution.slice(0, 3) };
+}
+
 function pickStrings(v: any): string[] {
   if (!v) return [];
   if (Array.isArray(v)) return v.map(String).filter(Boolean);
@@ -3905,6 +4091,7 @@ type TabFullPlanProps = {
   dailyLoading: boolean;
   dailyError: string | null;
   notificationsPreview: any | null;
+  dashaTimeline?: any[] | null;
 };
 
 
@@ -6762,6 +6949,7 @@ router.replace(`${pathname}?${sp.toString()}`, { scroll: false });
     dailyLoading={dailyLoading}
     dailyError={dailyError}
     notificationsPreview={notificationsPreview}
+     dashaTimeline={dashaTimeline} 
   />
 )}
 
@@ -6781,8 +6969,8 @@ const TabFullPlan: React.FC<TabFullPlanProps> = ({
   dailyLoading,
   dailyError,
   notificationsPreview,
+  dashaTimeline,
 }) => {
-  // 1) Never blank
   if (!mounted) {
     return (
       <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-white/70">
@@ -6791,7 +6979,6 @@ const TabFullPlan: React.FC<TabFullPlanProps> = ({
     );
   }
 
-  // 2) One paywall only
   if (!isPro) {
     return (
       <div className="rounded-2xl border border-white/15 bg-indigo-950/40 p-5 backdrop-blur-md">
@@ -6818,7 +7005,10 @@ const TabFullPlan: React.FC<TabFullPlanProps> = ({
 
         <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div className="text-xs text-white/60">
-            Dev: set <span className="text-white/80">localStorage.sarathi_plan="pro"</span>
+            Dev: set{" "}
+            <span className="text-white/80">
+              localStorage.sarathi_plan="pro"
+            </span>
           </div>
           <Button size="sm" className="w-full sm:w-auto">
             Upgrade to Pro
@@ -6828,70 +7018,244 @@ const TabFullPlan: React.FC<TabFullPlanProps> = ({
     );
   }
 
-  // 3) Compute Pro data (now this will actually run)
-  const r: any = report || {};
+  
+const r: any = report || {};
+const ap = r?.activePeriods as any;
+
+
+
+const todayISO = new Date().toISOString().slice(0, 10);
+const horizonISO = new Date(Date.now() + 365 * 24 * 3600 * 1000)
+  .toISOString()
+  .slice(0, 10);
+
+// ✅ define FIRST
+const toISODate = (v: any): string => {
+  const s = String(v || "").trim();
+  if (!s) return "";
+
+  // Already ISO-ish (YYYY-MM-DD or YYYY-MM-DDTHH:mm:ss...)
+  const isoMatch = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (isoMatch) {
+    const y = isoMatch[1];
+    const m = String(isoMatch[2]).padStart(2, "0");
+    const d = String(isoMatch[3]).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  }
+
+  // DD-MM-YYYY or DD/MM/YYYY
+  const dmy = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+  if (dmy) {
+    const d = String(dmy[1]).padStart(2, "0");
+    const m = String(dmy[2]).padStart(2, "0");
+    const y = dmy[3];
+    return `${y}-${m}-${d}`;
+  }
+
+  // Last resort: Date parse
+  const dt = new Date(s);
+  if (!Number.isNaN(dt.getTime())) return dt.toISOString().slice(0, 10);
+
+  return "";
+};
+
+const dayNum = (iso: string) => {
+  if (!iso) return NaN;
+  const t = new Date(iso + "T00:00:00.000Z").getTime();
+  return t;
+};
+
+const normalizeRow = (row: any) => {
+  const start = toISODate(
+    row?.fromISO ??
+      row?.startISO ??
+      row?.from ??
+      row?.start ??
+      row?.startDate ??
+      row?.dateFrom ??
+      row?.begin ??
+      row?.s
+  );
+
+  const end = toISODate(
+    row?.toISO ??
+      row?.endISO ??
+      row?.to ??
+      row?.end ??
+      row?.endDate ??
+      row?.dateTo ??
+      row?.finish ??
+      row?.e
+  );
+
+  const md = String(row?.md || row?.mahadasha || row?.mdLord || row?.planet || row?.major || "").trim();
+  const ad = String(row?.ad || row?.antardasha || row?.adLord || row?.sub || row?.minor || "").trim();
+  const pd = String(row?.pd || row?.pratyantardasha || row?.pdLord || row?.subsub || "").trim();
+
+  return { start, end, md, ad, pd, raw: row };
+};
+
+
+// horizon numbers (safe compare)
+const todayN = dayNum(todayISO);
+const horizonN = dayNum(horizonISO);
+
+
+const adEndISO = toISODate(ap?.antardasha?.end);
+const adEndN = dayNum(adEndISO);
+
+// +/- 1 day tolerance (handles timezone shifts)
+const oneDay = 24 * 60 * 60 * 1000;
+
+
+// 🔎 TEMP DEBUG (remove later)
+
+
+console.log("ALL REPORT KEYS:", Object.keys(r));
+console.log("DASHA RAW:", r?.dasha, r?.dashaTimeline, r?.activePeriods);
+
   const align = computeAlignment(r);
   const ev = extractEvidence(r);
+  const real = buildAlignmentDriversFromChart(r);
 
-// Build "Top 3 Drivers" from real evidence (fallback if missing)
-const topDrivers = (() => {
-  const a = [
-    ...takeN(ev.dasha, 2),
-    ...takeN(ev.transit, 2),
-    ...takeN(ev.focus, 2),
-  ].map((x) => String(x).trim()).filter(Boolean);
+  const topDrivers = (() => {
+    const a = [...takeN(ev.dasha, 2), ...takeN(ev.transit, 2), ...takeN(ev.focus, 2)]
+      .map((x) => String(x).trim())
+      .filter(Boolean);
 
-  // If report has little evidence, keep it useful and premium
-  if (a.length >= 3) return a.slice(0, 3);
+    if (a.length >= 3) return a.slice(0, 3);
 
-  return [
-    "Your current cycle rewards consistency and structured action (do one thing fully).",
-    "Emotional clarity improves when you slow responses and reduce noise.",
-    "Timing is supportive for planning and follow-through; avoid impulsive decisions.",
-  ];
-})();
+    return [
+      "Your current cycle rewards consistency and structured action (do one thing fully).",
+      "Emotional clarity improves when you slow responses and reduce noise.",
+      "Timing is supportive for planning and follow-through; avoid impulsive decisions.",
+    ];
+  })();
 
   const drivers = [
-    {
-      key: "Mind",
-      score: align.mind,
-      why: "Clarity + focus are available when you simplify and follow one thread.",
-      do: ["Work in 2 focused blocks", "Write a 3-line plan before meetings"],
-      avoid: ["Multitasking", "Starting 5 things at once"],
-    },
-    {
-      key: "Emotions",
-      score: align.emotions,
-      why: "Emotional rhythm improves with steadiness and slower responses.",
+    { key: "Mind", score: align.mind, why: real.why.mind, evidence: real.evidence.mind,
+      do: ["Work in 2 focused blocks", "Write a 3-line plan before action"],
+      avoid: ["Multitasking", "Starting 5 things at once"] },
+    { key: "Emotions", score: align.emotions, why: real.why.emotions, evidence: real.evidence.emotions,
       do: ["One honest conversation", "10-minute quiet reset"],
-      avoid: ["Late-night spirals", "Over-explaining"],
-    },
-    {
-      key: "Direction",
-      score: align.direction,
-      why: "Growth wants consistency over intensity — one priority wins today.",
+      avoid: ["Over-explaining", "Late-night spirals"] },
+    { key: "Direction", score: align.direction, why: real.why.direction, evidence: real.evidence.direction,
       do: ["Pick 1 priority and finish", "Say no to 1 distraction"],
-      avoid: ["Changing targets mid-day", "Overcommitting"],
-    },
-    {
-      key: "Energy",
-      score: align.energy,
-      why: "Energy is stable — protect it from decision fatigue.",
+      avoid: ["Changing targets mid-day", "Overcommitting"] },
+    { key: "Energy", score: align.energy, why: real.why.energy, evidence: real.evidence.energy,
       do: ["Hardest task first", "20–30 min movement"],
-      avoid: ["Scrolling loops", "Reactive scheduling"],
-    },
-    {
-      key: "External support",
-      score: align.support,
-      why: "Support rises when requests are specific and boundaries are clear.",
+      avoid: ["Scrolling loops", "Reactive scheduling"] },
+    { key: "External support", score: align.support, why: real.why.support, evidence: real.evidence.support,
       do: ["Ask for 1 specific help", "Set 1 boundary clearly"],
-      avoid: ["Silent resentment", "Vague requests"],
-    },
+      avoid: ["Vague requests", "Silent resentment"] },
   ];
+const weekTheme =
+  takeN(ev.transit, 1)[0] ||
+  takeN(ev.dasha, 1)[0] ||
+  "Build steady momentum through consistency. Simplify, then execute deliberately.";
+// --- Vimshottari helpers (AD inside current MD) ---
+const VIM_ORDER = ["Ketu","Venus","Sun","Moon","Mars","Rahu","Jupiter","Saturn","Mercury"] as const;
 
-  // 4) Pro UI
+const PLANET_YEARS: Record<string, number> = {
+  Ketu: 7,
+  Venus: 20,
+  Sun: 6,
+  Moon: 10,
+  Mars: 7,
+  Rahu: 18,
+  Jupiter: 16,
+  Saturn: 19,
+  Mercury: 17,
+};
+
+const normLord = (s: any) => {
+  const t = String(s || "").trim();
+  if (!t) return "";
+  return t.charAt(0).toUpperCase() + t.slice(1).toLowerCase();
+};
+
+const addDaysISO = (iso: string, days: number) => {
+  const d = new Date(iso);
+  d.setDate(d.getDate() + Math.max(0, Math.round(days)));
+  return d.toISOString().slice(0, 10);
+};
+
+const diffDays = (aISO: string, bISO: string) => {
+  // a - b
+  const a = new Date(aISO).getTime();
+  const b = new Date(bISO).getTime();
+  return Math.round((a - b) / (1000 * 60 * 60 * 24));
+};
+
+const rotateFrom = (lord: string) => {
+  const i = VIM_ORDER.indexOf(lord as any);
+  if (i < 0) return [...VIM_ORDER];
+  return [...VIM_ORDER.slice(i), ...VIM_ORDER.slice(0, i)];
+};
+
+const nextInMdSeq = (mdLord: string, currentAdLord: string) => {
+  const seq = rotateFrom(mdLord);
+  const j = seq.indexOf(currentAdLord as any);
+  if (j < 0) return seq[0]; // fallback
+  return seq[(j + 1) % seq.length];
+};
+
+// Find current MD window from MD timeline (dashaTimeline)
+// MD timeline rows only
+const dtMD = Array.isArray(dashaTimeline)
+  ? dashaTimeline
+  : Array.isArray(r?.dashaTimeline)
+  ? r.dashaTimeline
+  : [];
+
+const mdRow = dtMD
+  .map((row: any) => ({
+    planet: normLord(row?.planet || row?.md || row?.mahadasha || ""),
+    start: String(row?.startISO || row?.start || "").slice(0, 10),
+    end: String(row?.endISO || row?.end || "").slice(0, 10),
+  }))
+  .find((x: any) => x.start && x.end && x.start <= todayISO && todayISO <= x.end);
+
+// Current MD/AD from activePeriods
+const mdLord = normLord(ap?.mahadasha?.lord);
+const adLord = normLord(ap?.antardasha?.subLord);
+const adEnd = String(ap?.antardasha?.end || "").slice(0, 10);
+
+// Compute next AD (only if it starts within next 12 months)
+let nextAD: null | { lord: string; start: string; end: string } = null;
+
+if (mdRow?.start && mdRow?.end && mdLord && adLord && adEnd) {
+  const nextAdLord = nextInMdSeq(mdLord, adLord);
+  const adStart = adEnd; // next AD starts right after current AD ends (same date boundary)
+
+  // AD duration = MD duration * (planetYears / 120)
+  const mdLenDays = diffDays(mdRow.end, mdRow.start);
+  const years = PLANET_YEARS[nextAdLord] ?? 0;
+  const adLenDays = mdLenDays * (years / 120);
+
+  let adEndISO = addDaysISO(adStart, adLenDays);
+
+  // Clamp to MD end
+  if (adEndISO > mdRow.end) adEndISO = mdRow.end;
+
+  // Only show if within horizon
+  if (adStart > todayISO && adStart <= horizonISO) {
+    nextAD = { lord: nextAdLord, start: adStart, end: adEndISO };
+  }
+}
+
+// Next MD (major shift) from MD timeline
+const nextMD = dtMD
+  .map((row: any) => ({
+    planet: normLord(row?.planet || ""),
+    start: String(row?.startISO || "").slice(0, 10),
+    end: String(row?.endISO || "").slice(0, 10),
+  }))
+  .find((x: any) => x.start && x.start > todayISO);
+
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="rounded-2xl border border-white/15 bg-white/5 p-4">
         <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
           Full plan • explain + act
@@ -6904,77 +7268,236 @@ const topDrivers = (() => {
         </div>
       </div>
 
-      {/* Today's Astro Drivers (real evidence first, then fallback) */}
-<div className="rounded-2xl border border-white/15 bg-white/5 p-4">
-  <div className="text-sm font-semibold text-slate-100">Today’s Astro Drivers</div>
-  <div className="mt-2 text-sm text-white/70">
-    These are pulled from your current report signals (dasha/transits/focus) and translated into actions.
-  </div>
-
-  <div className="mt-3 grid gap-3 md:grid-cols-3">
-    {topDrivers.map((t, idx) => (
-      <div key={idx} className="rounded-xl border border-white/10 bg-indigo-950/40 p-3">
-        <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
-          Driver {idx + 1}
+      {/* Today’s drivers */}
+      <div className="rounded-2xl border border-white/15 bg-white/5 p-4">
+        <div className="text-sm font-semibold text-slate-100">Today’s Astro Drivers</div>
+        <div className="mt-2 text-sm text-white/70">
+          Pulled from your current report signals and translated into actions.
         </div>
-        <div className="mt-2 text-sm text-white/85 leading-relaxed">{t}</div>
+
+        <div className="mt-3 grid gap-3 md:grid-cols-3">
+          {topDrivers.map((t, idx) => (
+            <div key={idx} className="rounded-xl border border-white/10 bg-indigo-950/40 p-3">
+              <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+                Driver {idx + 1}
+              </div>
+              <div className="mt-2 text-sm text-white/85 leading-relaxed">{t}</div>
+            </div>
+          ))}
+        </div>
       </div>
-    ))}
-  </div>
-</div>
 
-{/* Soul Alignment Index (explained) */}
-<div className="rounded-2xl border border-white/15 bg-indigo-950/40 p-4 backdrop-blur-md">
-  <div className="text-sm font-semibold text-slate-100">Soul Alignment Index — Explained</div>
+      {/* Soul Alignment explained */}
+      <div className="rounded-2xl border border-white/15 bg-indigo-950/40 p-4 backdrop-blur-md">
+        <div className="text-sm font-semibold text-slate-100">Soul Alignment Index — Explained</div>
 
-  <div className="mt-3 grid gap-4 md:grid-cols-2">
-    {drivers.map((d) => (
-      <div key={d.key} className="rounded-2xl border border-white/15 bg-white/5 p-4">
-        <div className="flex items-center justify-between">
-          <div className="text-xs font-semibold uppercase tracking-wide text-white/60">{d.key}</div>
-          <div className="text-sm font-semibold text-slate-100">{Number(d.score)}</div>
+        <div className="mt-3 grid gap-4 md:grid-cols-2">
+          {drivers.map((d) => (
+            <div key={d.key} className="rounded-2xl border border-white/15 bg-white/5 p-4">
+              <div className="flex items-center justify-between">
+                <div className="text-xs font-semibold uppercase tracking-wide text-white/60">{d.key}</div>
+                <div className="text-sm font-semibold text-slate-100">{Number(d.score)}</div>
+              </div>
+
+              <div className="mt-2 text-sm text-white/80 leading-relaxed">{d.why}</div>
+
+              <div className="mt-3 rounded-xl border border-white/10 bg-white/5 p-3">
+                <div className="text-[11px] font-semibold uppercase tracking-wide text-white/60">Evidence</div>
+                <ul className="mt-2 list-disc pl-4 text-sm text-white/75 space-y-1">
+                  {(Array.isArray((d as any).evidence) && (d as any).evidence.length
+                    ? (d as any).evidence.slice(0, 3)
+                    : ["Evidence is being computed…"]
+                  ).map((x: string) => (
+                    <li key={x}>{x}</li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="mt-3 grid gap-3 md:grid-cols-2">
+                <div className="rounded-xl border border-emerald-400/25 bg-emerald-500/10 p-3">
+                  <div className="text-xs font-semibold uppercase tracking-wide text-emerald-100/90">Do</div>
+                  <ul className="mt-2 list-disc pl-4 text-sm text-white/80 space-y-1">
+                    {d.do.map((x) => <li key={x}>{x}</li>)}
+                  </ul>
+                </div>
+
+                <div className="rounded-xl border border-red-400/20 bg-red-500/10 p-3">
+                  <div className="text-xs font-semibold uppercase tracking-wide text-red-100/90">Avoid</div>
+                  <ul className="mt-2 list-disc pl-4 text-sm text-white/80 space-y-1">
+                    {d.avoid.map((x) => <li key={x}>{x}</li>)}
+                  </ul>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
+      </div>
 
-        <div className="mt-2 text-sm text-white/80 leading-relaxed">{d.why}</div>
-
-        {/* Evidence (real if available) */}
-        <div className="mt-3 rounded-xl border border-white/10 bg-white/5 p-3">
-          <div className="text-[11px] font-semibold uppercase tracking-wide text-white/60">Evidence</div>
-          <ul className="mt-2 list-disc pl-4 text-sm text-white/75 space-y-1">
-            {(takeN(ev.focus, 2).length ? takeN(ev.focus, 2) : ["No structured evidence found yet — improving this next."]).map(
-              (x) => (
-                <li key={x}>{x}</li>
-              )
-            )}
-          </ul>
+      {/* Timing Intelligence */}
+      <div className="rounded-2xl border border-white/15 bg-indigo-950/40 p-4 backdrop-blur-md">
+        <div className="text-sm font-semibold text-slate-100">Timing Intelligence</div>
+        <div className="mt-2 text-sm text-white/70">
+          Best moments and caution moments — built from your schedule + current report.
         </div>
 
         <div className="mt-3 grid gap-3 md:grid-cols-2">
-          <div className="rounded-xl border border-emerald-400/25 bg-emerald-500/10 p-3">
+          <div className="rounded-xl border border-emerald-400/20 bg-emerald-500/10 p-3">
             <div className="text-xs font-semibold uppercase tracking-wide text-emerald-100/90">
-              Do
+              Best windows (today)
             </div>
             <ul className="mt-2 list-disc pl-4 text-sm text-white/80 space-y-1">
-              {d.do.map((x) => (
-                <li key={x}>{x}</li>
-              ))}
+              {["morning", "midday", "evening"]
+                .flatMap((k) => {
+                  const arr = (notificationsPreview as any)?.[k] || [];
+                  return (arr || []).slice(0, 1).map((n: any) => `${k}: ${n.text || ""}`.trim());
+                })
+                .filter(Boolean)
+                .slice(0, 3)
+                .map((x: string) => <li key={x}>{x}</li>)}
             </ul>
           </div>
 
           <div className="rounded-xl border border-red-400/20 bg-red-500/10 p-3">
             <div className="text-xs font-semibold uppercase tracking-wide text-red-100/90">
-              Avoid
+              Caution windows
             </div>
             <ul className="mt-2 list-disc pl-4 text-sm text-white/80 space-y-1">
-              {d.avoid.map((x) => (
-                <li key={x}>{x}</li>
-              ))}
+              {(takeN(ev.cautions, 3).length
+                ? takeN(ev.cautions, 3)
+                : ["Avoid impulsive decisions in the afternoon dip.", "Avoid heavy conversations late at night."]
+              ).map((x: string) => <li key={x}>{x}</li>)}
             </ul>
           </div>
         </div>
       </div>
-    ))}
+
+      {/* Next 4–6 weeks */}
+      <div className="rounded-2xl border border-white/15 bg-white/5 p-4">
+        <div className="text-sm font-semibold text-slate-100">Next 4–6 weeks</div>
+        <div className="mt-1 text-sm text-white/70">
+          One theme + only the most meaningful moves.
+        </div>
+
+        <div className="mt-3 rounded-xl border border-white/10 bg-indigo-950/40 p-3">
+          <div className="text-xs font-semibold uppercase tracking-wide text-white/60">Theme</div>
+          <div className="mt-1 text-sm text-white/85 leading-relaxed">
+            {weekTheme}
+          </div>
+        </div>
+      </div>
+
+      {/* Next 12 months */}
+      <div className="rounded-2xl border border-white/15 bg-indigo-950/40 p-4 backdrop-blur-md">
+  <div className="text-sm font-semibold text-slate-100">Next 12 months</div>
+  <div className="mt-1 text-sm text-white/70">
+    Only meaningful shifts (based on your actual dasha periods).
   </div>
+
+  {/* Current truth (from activePeriods) */}
+  {ap?.mahadasha || ap?.antardasha || ap?.pratyantardasha ? (
+    <div className="mt-3 rounded-xl border border-white/10 bg-white/5 p-3">
+      <div className="text-xs font-semibold uppercase tracking-wide text-white/60">Current</div>
+      <div className="mt-2 text-sm text-white/80">
+        {ap?.mahadasha?.lord ? `MD: ${ap.mahadasha.lord}` : "MD: —"}
+        {ap?.antardasha?.subLord ? ` • AD: ${ap.antardasha.subLord}` : ""}
+        {ap?.pratyantardasha?.subLord ? ` • PD: ${ap.pratyantardasha.subLord}` : ""}
+      </div>
+      <div className="mt-1 text-xs text-white/60">
+        {ap?.antardasha?.start && ap?.antardasha?.end
+          ? `${String(ap.antardasha.start).slice(0, 10)} → ${String(ap.antardasha.end).slice(0, 10)}`
+          : ""}
+      </div>
+    </div>
+  ) : null}
+
+  {/* Upcoming shifts from the same dashaTimeline you already compute */}
+ <div className="mt-3 grid gap-3 md:grid-cols-3">
+  {/* 1) Next AD shift (most important for next 12 months) */}
+  {nextAD ? (
+    <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+      <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+        Next shift (Antardasha)
+      </div>
+      <div className="mt-1 text-sm font-semibold text-slate-100">
+        AD: {nextAD.lord}
+      </div>
+      <div className="mt-1 text-xs text-white/60">
+        {nextAD.start} → {nextAD.end}
+      </div>
+      <div className="mt-2 text-sm text-white/75">
+        Inside MD {mdLord || "—"} — plan key actions around this change.
+      </div>
+    </div>
+  ) : (
+    <div className="text-xs text-white/60">
+      No Antardasha boundary inside the next 12 months.
+    </div>
+  )}
+
+  {/* 2) Next MD shift (bigger horizon, optional) */}
+  {nextMD?.start ? (
+    <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+      <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+        Major shift (Mahadasha)
+      </div>
+      <div className="mt-1 text-sm font-semibold text-slate-100">
+        MD: {nextMD.planet}
+      </div>
+      <div className="mt-1 text-xs text-white/60">
+        {nextMD.start} → {nextMD.end}
+      </div>
+      <div className="mt-2 text-sm text-white/75">
+        Longer-term turning point — keep it on your radar.
+      </div>
+    </div>
+  ) : null}
+</div>
+
+</div>
+{/* Weekly Insight (next 7 days) */}
+<div className="rounded-2xl border border-white/15 bg-white/5 p-4">
+  <div className="text-sm font-semibold text-slate-100">Weekly insight</div>
+  <div className="mt-1 text-sm text-white/70">
+    One theme + two priorities + one caution (no noise).
+  </div>
+
+  {Array.isArray(dailyHighlights) && dailyHighlights.length ? (
+    (() => {
+      const next7 = dailyHighlights.slice(0, 7);
+      const theme =
+        String(takeN(ev.transit, 1)[0] || takeN(ev.dasha, 1)[0] || next7[0]?.text || "")
+          .trim()
+          .slice(0, 220);
+
+      const p1 = String(next7[0]?.text || "").trim().slice(0, 140) || "Keep one priority active all week.";
+      const p2 = String(next7[1]?.text || "").trim().slice(0, 140) || "Make steady progress through routine.";
+      const caution = String(takeN(ev.cautions, 1)[0] || "Avoid impulsive decisions when you feel rushed.").trim();
+
+      return (
+        <div className="mt-3 grid gap-3 md:grid-cols-2">
+          <div className="rounded-xl border border-white/10 bg-indigo-950/40 p-3 md:col-span-2">
+            <div className="text-xs font-semibold uppercase tracking-wide text-white/60">Theme</div>
+            <div className="mt-1 text-sm text-white/85 leading-relaxed">{theme || "Steady progress beats intensity this week."}</div>
+          </div>
+
+          <div className="rounded-xl border border-emerald-400/20 bg-emerald-500/10 p-3">
+            <div className="text-xs font-semibold uppercase tracking-wide text-emerald-100/90">Priorities</div>
+            <ul className="mt-2 list-disc pl-4 text-sm text-white/80 space-y-1">
+              <li>{p1}</li>
+              <li>{p2}</li>
+            </ul>
+          </div>
+
+          <div className="rounded-xl border border-red-400/20 bg-red-500/10 p-3">
+            <div className="text-xs font-semibold uppercase tracking-wide text-red-100/90">Caution</div>
+            <div className="mt-2 text-sm text-white/80">{caution}</div>
+          </div>
+        </div>
+      );
+    })()
+  ) : (
+    <div className="mt-3 text-xs text-white/60">Weekly insight will appear once your next few days are available.</div>
+  )}
 </div>
 
 
@@ -6985,27 +7508,10 @@ const topDrivers = (() => {
         </div>
 
         <div className="mt-3 space-y-3">
-          {dailyLoading && (
-            <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/70">
-              Loading…
-            </div>
-          )}
-
-          {!dailyLoading && dailyError && (
-            <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-3 py-2 text-xs text-red-200">
-              {dailyError}
-            </div>
-          )}
-
-          {!dailyLoading &&
-          !dailyError &&
-          Array.isArray(dailyHighlights) &&
-          dailyHighlights.length > 0 ? (
-            dailyHighlights.slice(0, 7).map((h: any, idx: number) => (
+          {!dailyLoading && !dailyError && Array.isArray(dailyHighlights) && dailyHighlights.length > 0 ? (
+            dailyHighlights.slice(0, 3).map((h: any, idx: number) => (
               <div key={idx} className="rounded-xl border border-white/10 bg-indigo-950/40 p-3">
-                <div className="text-[11px] font-semibold uppercase tracking-wide text-white/60">
-                  {h.dateISO}
-                </div>
+                <div className="text-[11px] font-semibold uppercase tracking-wide text-white/60">{h.dateISO}</div>
                 <div className="mt-1 text-sm text-white/80 leading-relaxed">{h.text}</div>
               </div>
             ))
@@ -7014,83 +7520,8 @@ const topDrivers = (() => {
           )}
         </div>
       </div>
-
-      {/* Notification preview */}
-      <div className="rounded-2xl border border-white/15 bg-indigo-950/40 p-4 backdrop-blur-md">
-        <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
-          Your notification schedule (preview)
-        </div>
-        <div className="mt-2 text-sm text-white/70">
-          This is how Pro will send morning / midday / evening nudges (in-app + push later).
-        </div>
-
-        <div className="mt-3 grid gap-3 md:grid-cols-3">
-          {["morning", "midday", "evening"].map((k) => {
-            const arr = (notificationsPreview as any)?.[k] || [];
-            return (
-              <div key={k} className="rounded-xl border border-white/10 bg-white/5 p-3">
-                <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
-                  {k}
-                </div>
-                <div className="mt-2 space-y-2">
-                  {Array.isArray(arr) && arr.length ? (
-                    arr.slice(0, 3).map((n: any) => (
-                      <div key={n.id || n.text} className="text-sm text-white/80">
-                        {n.text}
-                      </div>
-                    ))
-                  ) : (
-                    <div className="text-xs text-white/60">No items yet.</div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
     </div>
   );
-  {/* Timing Intelligence (v1 from notificationsPreview + report) */}
-<div className="rounded-2xl border border-white/15 bg-indigo-950/40 p-4 backdrop-blur-md">
-  <div className="text-sm font-semibold text-slate-100">Timing Intelligence</div>
-  <div className="mt-2 text-sm text-white/70">
-    Best moments and caution moments — built from your schedule + current report.
-  </div>
-
-  <div className="mt-3 grid gap-3 md:grid-cols-2">
-    <div className="rounded-xl border border-emerald-400/20 bg-emerald-500/10 p-3">
-      <div className="text-xs font-semibold uppercase tracking-wide text-emerald-100/90">
-        Best windows (today)
-      </div>
-      <ul className="mt-2 list-disc pl-4 text-sm text-white/80 space-y-1">
-        {["morning", "midday", "evening"].flatMap((k) => {
-          const arr = (notificationsPreview as any)?.[k] || [];
-          return (arr || []).slice(0, 1).map((n: any) => `${k}: ${n.text || ""}`.trim());
-        }).filter(Boolean).slice(0, 3).map((x: string) => (
-          <li key={x}>{x}</li>
-        ))}
-        {!((notificationsPreview as any)?.morning || (notificationsPreview as any)?.midday || (notificationsPreview as any)?.evening) && (
-          <li>Best window: late morning for focused work; early evening for follow-ups.</li>
-        )}
-      </ul>
-    </div>
-
-    <div className="rounded-xl border border-red-400/20 bg-red-500/10 p-3">
-      <div className="text-xs font-semibold uppercase tracking-wide text-red-100/90">
-        Caution windows
-      </div>
-      <ul className="mt-2 list-disc pl-4 text-sm text-white/80 space-y-1">
-        {(takeN(ev.cautions, 3).length ? takeN(ev.cautions, 3) : [
-          "Avoid impulsive decisions in the afternoon dip.",
-          "Avoid heavy conversations late at night.",
-        ]).map((x) => (
-          <li key={x}>{x}</li>
-        ))}
-      </ul>
-    </div>
-  </div>
-</div>
-
 };
 
 
