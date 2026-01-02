@@ -1116,6 +1116,23 @@ function cleanText(input: string): string {
     .replace(/\s+/g, " ")            // normalize spacing
     .trim();
 }
+function parseAiJson(raw: string) {
+  const s0 = (raw ?? "").trim();
+  if (!s0) return null;
+
+  // Remove common code fences
+  const s1 = s0
+    .replace(/^```json\s*/i, "")
+    .replace(/^```\s*/i, "")
+    .replace(/```$/i, "")
+    .trim();
+
+  try {
+    return JSON.parse(s1);
+  } catch {
+    return null;
+  }
+}
 
 // ---------------- Weekly guidance helper (client-side) ----------------
 function fixWeirdEncoding(input: string) {
@@ -6621,31 +6638,90 @@ const TabTimeline: React.FC<TabTimelineProps> = memo(
       <Card className={ACC_CARD}>
         <CardContent className="pt-4">
           {(() => {
-            const raw = cleanTransitText(fixWeirdEncoding(dashaTransitSummary));
-            const plain = stripMdLite(raw);
+            const raw0 = cleanTransitText(fixWeirdEncoding(dashaTransitSummary));
+const obj = parseAiJson(raw0);
 
-            const teaser =
-              plain.length > 260 ? plain.slice(0, 260).trim() + "…" : plain;
+// If it's JSON, build a nice teaser from fields.
+// If not, fall back to short plain text.
+let teaser = "";
+let windows: any[] = [];
 
-            return (
-              <div className="space-y-3">
-                <div className="text-slate-100 text-sm leading-relaxed">
-                  {teaser}
-                </div>
+if (obj && typeof obj === "object") {
+  const headline = typeof (obj as any).headline === "string" ? (obj as any).headline.trim() : "";
+  const dashaLine = typeof (obj as any).dashaLine === "string" ? (obj as any).dashaLine.trim() : "";
+  const summary = typeof (obj as any).summary === "string" ? (obj as any).summary.trim() : "";
+  windows = Array.isArray((obj as any).windows) ? (obj as any).windows : [];
 
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                  <div className={"text-xs " + ACC_MUTED}>
-                    Want the full insight, key windows, and action plan?
-                  </div>
+  // Build a readable teaser paragraph
+  teaser = [headline, dashaLine, summary].filter(Boolean).join(" — ").trim();
+} else {
+  const plain = stripMdLite(raw0);
+  teaser = plain.length > 260 ? plain.slice(0, 260).trim() + "…" : plain;
+}
 
-                  <Link href="/sarathi/life-report?tab=advanced" className="w-full sm:w-auto">
-                    <Button size="sm" className="w-full sm:w-auto">
-                      View in Advanced (Pro)
-                    </Button>
-                  </Link>
-                </div>
+return (
+  <div className="space-y-3">
+    <div className="text-slate-100 text-sm leading-relaxed">
+      {teaser || "Year-ahead preview will appear here once available."}
+    </div>
+
+    {/* Optional: show top 2 windows when JSON exists */}
+    {windows.length > 0 ? (
+      <div className="space-y-2">
+        {windows.slice(0, 2).map((w: any, idx: number) => {
+          const label =
+            typeof w?.label === "string" && w.label.trim()
+              ? w.label.trim()
+              : typeof w?.category === "string" && w.category.trim()
+              ? w.category.trim()
+              : `Window ${idx + 1}`;
+
+          const when = typeof w?.when === "string" ? w.when.trim() : "";
+          const strength =
+            typeof w?.strength === "number" && Number.isFinite(w.strength)
+              ? Math.max(0, Math.min(1, w.strength))
+              : null;
+
+          return (
+            <div
+              key={idx}
+              className="rounded-xl border border-white/10 bg-white/5 p-3"
+            >
+              <div className="text-sm font-semibold text-slate-100">
+                {label}
               </div>
-            );
+              {(when || strength !== null) ? (
+                <div className="mt-1 text-xs text-white/60">
+                  {when ? <span>{when}</span> : null}
+                  {when && strength !== null ? <span>{" · "}</span> : null}
+                  {strength !== null ? (
+                    <span>strength {Math.round(strength * 10)}/10</span>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
+          );
+        })}
+      </div>
+    ) : null}
+
+    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+      <div className={"text-xs " + ACC_MUTED}>
+        Want the full insight, key windows, and action plan?
+      </div>
+
+      <Link
+        href="/sarathi/life-report?tab=advanced"
+        className="w-full sm:w-auto"
+      >
+        <Button size="sm" className="w-full sm:w-auto">
+          View in Advanced (Pro)
+        </Button>
+      </Link>
+    </div>
+  </div>
+);
+
           })()}
         </CardContent>
       </Card>
