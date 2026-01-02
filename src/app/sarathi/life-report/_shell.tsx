@@ -6896,7 +6896,7 @@ router.replace(`${pathname}?${sp.toString()}`, { scroll: false });
 
     {/* Tab content */}
 <div className="mt-4 space-y-6">
-  <div className="text-xs text-white/50">DEBUG activeTab: {String(activeTab)}</div>
+  
 
   {/* OVERVIEW = show ONLY placements (core signature) + personality summary */}
   {activeTab === "overview" && (
@@ -6989,7 +6989,7 @@ const TabFullPlan: React.FC<TabFullPlanProps> = ({
           Unlock Full Version
         </div>
         <div className="mt-2 text-sm text-white/70 leading-relaxed">
-          Get the reasons behind your alignment scores, timing windows, and a day-by-day action plan.
+          Get the reasons behind your alignment scores, timing windows, and a 3-day action runway.
         </div>
 
         <div className="mt-4 grid gap-3 md:grid-cols-3">
@@ -7017,9 +7017,42 @@ const TabFullPlan: React.FC<TabFullPlanProps> = ({
       </div>
     );
   }
+  // -------------------------
+  // BLANK STATE: no report yet
+  // -------------------------
+  const r: any = report ?? null;
+
+  const hasReport =
+    !!r &&
+    typeof r === "object" &&
+    // pick any 1–2 stable fields your report always has:
+    (Array.isArray(r?.planets) && r.planets.length > 0) ||
+    (Array.isArray(r?.core?.houses) && r.core.houses.length > 0) ||
+    !!r?.ascSign ||
+    !!r?.meta?.birthDateISO;
+
+  if (!hasReport) {
+    return (
+      <div className="rounded-2xl border border-white/15 bg-white/5 p-5">
+        <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+          Full plan
+        </div>
+        <div className="mt-1 text-lg font-semibold text-slate-100">
+          Enter birth details to generate your Full Plan
+        </div>
+        <div className="mt-2 text-sm text-white/70 leading-relaxed">
+          This section becomes personalized only after you generate your report.
+        </div>
+
+        <div className="mt-4 rounded-xl border border-white/10 bg-indigo-950/40 p-3 text-sm text-white/75">
+          Tip: Fill your birth details above and click{" "}
+          <span className="text-white/90 font-medium">Generate / Refresh Report</span>.
+        </div>
+      </div>
+    );
+  }
 
   
-const r: any = report || {};
 const ap = r?.activePeriods as any;
 
 
@@ -7108,11 +7141,6 @@ const adEndN = dayNum(adEndISO);
 const oneDay = 24 * 60 * 60 * 1000;
 
 
-// 🔎 TEMP DEBUG (remove later)
-
-
-console.log("ALL REPORT KEYS:", Object.keys(r));
-console.log("DASHA RAW:", r?.dasha, r?.dashaTimeline, r?.activePeriods);
 
   const align = computeAlignment(r);
   const ev = extractEvidence(r);
@@ -7253,277 +7281,745 @@ const nextMD = dtMD
   }))
   .find((x: any) => x.start && x.start > todayISO);
 
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="rounded-2xl border border-white/15 bg-white/5 p-4">
-        <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
-          Full plan • explain + act
-        </div>
-        <div className="mt-1 text-lg font-semibold text-slate-100">
-          Why your alignment moves — and exactly what to do day-by-day
-        </div>
-        <div className="mt-1 text-sm text-white/70">
-          This is the “full version” promised in Advanced.
-        </div>
-      </div>
+   return (
+  <div className="space-y-6">
+    {(() => {
+      // -------------------------
+      // Shared helpers (tone + cleanup)
+      // -------------------------
+      const clean = (s: any) =>
+        String(s || "")
+          .replace(/\s+/g, " ")
+          .trim();
 
-      {/* Today’s drivers */}
-      <div className="rounded-2xl border border-white/15 bg-white/5 p-4">
-        <div className="text-sm font-semibold text-slate-100">Today’s Astro Drivers</div>
-        <div className="mt-2 text-sm text-white/70">
-          Pulled from your current report signals and translated into actions.
-        </div>
+      const sentenceCase = (s: string) => {
+        const t = clean(s);
+        if (!t) return "";
+        const out = t.charAt(0).toUpperCase() + t.slice(1);
+        return /[.!?]$/.test(out) ? out : out + ".";
+      };
 
-        <div className="mt-3 grid gap-3 md:grid-cols-3">
-          {topDrivers.map((t, idx) => (
-            <div key={idx} className="rounded-xl border border-white/10 bg-indigo-950/40 p-3">
-              <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
-                Driver {idx + 1}
-              </div>
-              <div className="mt-2 text-sm text-white/85 leading-relaxed">{t}</div>
-            </div>
-          ))}
-        </div>
-      </div>
+      const trimToSentence = (s: string, maxLen: number) => {
+        const t = clean(s);
+        if (!t) return "";
+        if (t.length <= maxLen) return /[.!?]$/.test(t) ? t : t + ".";
 
-      {/* Soul Alignment explained */}
-      <div className="rounded-2xl border border-white/15 bg-indigo-950/40 p-4 backdrop-blur-md">
-        <div className="text-sm font-semibold text-slate-100">Soul Alignment Index — Explained</div>
+        const cut = t.slice(0, maxLen);
+        const lastPunct = Math.max(
+          cut.lastIndexOf("."),
+          cut.lastIndexOf("!"),
+          cut.lastIndexOf("?")
+        );
+        if (lastPunct >= Math.max(40, Math.floor(maxLen * 0.5))) {
+          return cut.slice(0, lastPunct + 1);
+        }
 
-        <div className="mt-3 grid gap-4 md:grid-cols-2">
-          {drivers.map((d) => (
-            <div key={d.key} className="rounded-2xl border border-white/15 bg-white/5 p-4">
-              <div className="flex items-center justify-between">
-                <div className="text-xs font-semibold uppercase tracking-wide text-white/60">{d.key}</div>
-                <div className="text-sm font-semibold text-slate-100">{Number(d.score)}</div>
-              </div>
+        const lastSpace = cut.lastIndexOf(" ");
+        const base = (lastSpace > 40 ? cut.slice(0, lastSpace) : cut).trim();
+        return /[.!?]$/.test(base) ? base : base + ".";
+      };
 
-              <div className="mt-2 text-sm text-white/80 leading-relaxed">{d.why}</div>
+      const stripRepeats = (s: string) => {
+        let t = clean(s);
+        t = t.replace(/Focus this more around Food\s*&\s*diet focus\.?/gi, "");
+        t = t.replace(/\s+\./g, ".");
+        return clean(t);
+      };
 
-              <div className="mt-3 rounded-xl border border-white/10 bg-white/5 p-3">
-                <div className="text-[11px] font-semibold uppercase tracking-wide text-white/60">Evidence</div>
-                <ul className="mt-2 list-disc pl-4 text-sm text-white/75 space-y-1">
-                  {(Array.isArray((d as any).evidence) && (d as any).evidence.length
-                    ? (d as any).evidence.slice(0, 3)
-                    : ["Evidence is being computed…"]
-                  ).map((x: string) => (
-                    <li key={x}>{x}</li>
-                  ))}
-                </ul>
-              </div>
+      const norm = (s: string) =>
+        clean(s)
+          .toLowerCase()
+          .replace(/[^a-z0-9 ]/g, "")
+          .replace(/\s+/g, " ");
 
-              <div className="mt-3 grid gap-3 md:grid-cols-2">
-                <div className="rounded-xl border border-emerald-400/25 bg-emerald-500/10 p-3">
-                  <div className="text-xs font-semibold uppercase tracking-wide text-emerald-100/90">Do</div>
-                  <ul className="mt-2 list-disc pl-4 text-sm text-white/80 space-y-1">
-                    {d.do.map((x) => <li key={x}>{x}</li>)}
-                  </ul>
-                </div>
+      // tone shifting by horizon
+      const toTodayTone = (s: string) => {
+        let t = clean(s);
+        // keep "today" if present; just reduce overly conversational fluff
+        t = t.replace(/\bRight now\b/gi, "Today");
+        t = t.replace(/\bcurrently\b/gi, "today");
+        return t;
+      };
 
-                <div className="rounded-xl border border-red-400/20 bg-red-500/10 p-3">
-                  <div className="text-xs font-semibold uppercase tracking-wide text-red-100/90">Avoid</div>
-                  <ul className="mt-2 list-disc pl-4 text-sm text-white/80 space-y-1">
-                    {d.avoid.map((x) => <li key={x}>{x}</li>)}
-                  </ul>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+      const toWeekTone = (s: string) => {
+        let t = clean(s);
+        t = t.replace(/\btoday\b/gi, "this week");
+        t = t.replace(/\btonight\b/gi, "later this week");
+        t = t.replace(/\bthis morning\b/gi, "early this week");
+        t = t.replace(/\bthis afternoon\b/gi, "mid-week");
+        t = t.replace(/\bthis evening\b/gi, "later this week");
+        t = t.replace(/\bright now\b/gi, "over the next few days");
+        t = t.replace(/\bcurrently\b/gi, "over the next 7 days");
+        return t;
+      };
 
-      {/* Timing Intelligence */}
-      <div className="rounded-2xl border border-white/15 bg-indigo-950/40 p-4 backdrop-blur-md">
-        <div className="text-sm font-semibold text-slate-100">Timing Intelligence</div>
-        <div className="mt-2 text-sm text-white/70">
-          Best moments and caution moments — built from your schedule + current report.
-        </div>
+      const toPhaseTone = (s: string) => {
+        let t = clean(s);
+        t = t.replace(/\btoday\b/gi, "this period");
+        t = t.replace(/\btonight\b/gi, "later in the period");
+        t = t.replace(/\bthis morning\b/gi, "early in the period");
+        t = t.replace(/\bthis afternoon\b/gi, "mid-period");
+        t = t.replace(/\bthis evening\b/gi, "later in the period");
+        t = t.replace(/\bright now\b/gi, "as this period unfolds");
+        t = t.replace(/\bcurrently\b/gi, "over the coming weeks");
+        return t;
+      };
 
-        <div className="mt-3 grid gap-3 md:grid-cols-2">
-          <div className="rounded-xl border border-emerald-400/20 bg-emerald-500/10 p-3">
-            <div className="text-xs font-semibold uppercase tracking-wide text-emerald-100/90">
-              Best windows (today)
-            </div>
-            <ul className="mt-2 list-disc pl-4 text-sm text-white/80 space-y-1">
-              {["morning", "midday", "evening"]
-                .flatMap((k) => {
-                  const arr = (notificationsPreview as any)?.[k] || [];
-                  return (arr || []).slice(0, 1).map((n: any) => `${k}: ${n.text || ""}`.trim());
-                })
-                .filter(Boolean)
-                .slice(0, 3)
-                .map((x: string) => <li key={x}>{x}</li>)}
-            </ul>
-          </div>
+      const safeList = (arr: any, n: number) =>
+        (Array.isArray(arr) ? arr : []).map(clean).filter(Boolean).slice(0, n);
 
-          <div className="rounded-xl border border-red-400/20 bg-red-500/10 p-3">
-            <div className="text-xs font-semibold uppercase tracking-wide text-red-100/90">
-              Caution windows
-            </div>
-            <ul className="mt-2 list-disc pl-4 text-sm text-white/80 space-y-1">
-              {(takeN(ev.cautions, 3).length
-                ? takeN(ev.cautions, 3)
-                : ["Avoid impulsive decisions in the afternoon dip.", "Avoid heavy conversations late at night."]
-              ).map((x: string) => <li key={x}>{x}</li>)}
-            </ul>
-          </div>
-        </div>
-      </div>
+      // -------------------------
+      // Derived text buckets (non-repetitive)
+      // -------------------------
+      const dashaNotes = safeList(ev?.dasha, 3);
+      const transitNotes = safeList(ev?.transit, 3);
+      const focusNotes = safeList(ev?.focus, 3);
+      const cautionNotes = safeList(ev?.cautions, 3);
 
-      {/* Next 4–6 weeks */}
-      <div className="rounded-2xl border border-white/15 bg-white/5 p-4">
-        <div className="text-sm font-semibold text-slate-100">Next 4–6 weeks</div>
-        <div className="mt-1 text-sm text-white/70">
-          One theme + only the most meaningful moves.
-        </div>
+      // “Core directive” for paid feel (one anchor sentence)
+      const coreDirective = (() => {
+        const src =
+          clean(transitNotes[0]) ||
+          clean(dashaNotes[0]) ||
+          clean(focusNotes[0]) ||
+          "Focus on consistency and follow-through. Keep it simple and finish what you start.";
+        return sentenceCase(trimToSentence(toPhaseTone(src), 180));
+      })();
 
-        <div className="mt-3 rounded-xl border border-white/10 bg-indigo-950/40 p-3">
-          <div className="text-xs font-semibold uppercase tracking-wide text-white/60">Theme</div>
-          <div className="mt-1 text-sm text-white/85 leading-relaxed">
-            {weekTheme}
-          </div>
-        </div>
-      </div>
+      // Today drivers — convert to “Today” tone and make them complete
+      const driversToday = topDrivers
+        .map((x) => sentenceCase(trimToSentence(toTodayTone(stripRepeats(String(x))), 160)))
+        .slice(0, 3);
 
-      {/* Next 12 months */}
-      <div className="rounded-2xl border border-white/15 bg-indigo-950/40 p-4 backdrop-blur-md">
-  <div className="text-sm font-semibold text-slate-100">Next 12 months</div>
-  <div className="mt-1 text-sm text-white/70">
-    Only meaningful shifts (based on your actual dasha periods).
-  </div>
+      // Weekly theme
+      const weekThemeBase =
+        clean(transitNotes[0]) ||
+        clean(dashaNotes[0]) ||
+        clean(weekTheme) ||
+        "Build steady momentum through consistency. Simplify, then execute deliberately.";
+      const weekThemeNice = sentenceCase(trimToSentence(toWeekTone(weekThemeBase), 220));
 
-  {/* Current truth (from activePeriods) */}
-  {ap?.mahadasha || ap?.antardasha || ap?.pratyantardasha ? (
-    <div className="mt-3 rounded-xl border border-white/10 bg-white/5 p-3">
-      <div className="text-xs font-semibold uppercase tracking-wide text-white/60">Current</div>
-      <div className="mt-2 text-sm text-white/80">
-        {ap?.mahadasha?.lord ? `MD: ${ap.mahadasha.lord}` : "MD: —"}
-        {ap?.antardasha?.subLord ? ` • AD: ${ap.antardasha.subLord}` : ""}
-        {ap?.pratyantardasha?.subLord ? ` • PD: ${ap.pratyantardasha.subLord}` : ""}
-      </div>
-      <div className="mt-1 text-xs text-white/60">
-        {ap?.antardasha?.start && ap?.antardasha?.end
-          ? `${String(ap.antardasha.start).slice(0, 10)} → ${String(ap.antardasha.end).slice(0, 10)}`
-          : ""}
-      </div>
-    </div>
-  ) : null}
+      // Weekly priorities: pick two distinct daily highlights without repeating theme
+      const weeklyPriorities = (() => {
+        const next7 = Array.isArray(dailyHighlights) ? dailyHighlights.slice(0, 7) : [];
+        const themeN = norm(weekThemeBase);
 
-  {/* Upcoming shifts from the same dashaTimeline you already compute */}
- <div className="mt-3 grid gap-3 md:grid-cols-3">
-  {/* 1) Next AD shift (most important for next 12 months) */}
-  {nextAD ? (
-    <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-      <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
-        Next shift (Antardasha)
-      </div>
-      <div className="mt-1 text-sm font-semibold text-slate-100">
-        AD: {nextAD.lord}
-      </div>
-      <div className="mt-1 text-xs text-white/60">
-        {nextAD.start} → {nextAD.end}
-      </div>
-      <div className="mt-2 text-sm text-white/75">
-        Inside MD {mdLord || "—"} — plan key actions around this change.
-      </div>
-    </div>
-  ) : (
-    <div className="text-xs text-white/60">
-      No Antardasha boundary inside the next 12 months.
-    </div>
-  )}
+        const candidates = next7
+          .map((d: any) => clean(d?.text))
+          .filter(Boolean)
+          .filter((t) => {
+            const tn = norm(t);
+            if (!tn) return false;
+            if (tn === themeN) return false;
+            if (themeN && tn.startsWith(themeN.slice(0, Math.min(80, themeN.length)))) return false;
+            return true;
+          })
+          .filter((t, idx, arr) => arr.findIndex((x) => norm(x) === norm(t)) === idx);
 
-  {/* 2) Next MD shift (bigger horizon, optional) */}
-  {nextMD?.start ? (
-    <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-      <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
-        Major shift (Mahadasha)
-      </div>
-      <div className="mt-1 text-sm font-semibold text-slate-100">
-        MD: {nextMD.planet}
-      </div>
-      <div className="mt-1 text-xs text-white/60">
-        {nextMD.start} → {nextMD.end}
-      </div>
-      <div className="mt-2 text-sm text-white/75">
-        Longer-term turning point — keep it on your radar.
-      </div>
-    </div>
-  ) : null}
-</div>
+        const p1Raw =
+          candidates[0] ||
+          "Close one open loop and finish the first clear step of an important task.";
+        const p2Raw =
+          candidates[1] ||
+          "Protect one focused block on your calendar and make steady progress on it.";
 
-</div>
-{/* Weekly Insight (next 7 days) */}
-<div className="rounded-2xl border border-white/15 bg-white/5 p-4">
-  <div className="text-sm font-semibold text-slate-100">Weekly insight</div>
-  <div className="mt-1 text-sm text-white/70">
-    One theme + two priorities + one caution (no noise).
-  </div>
+        const p1 = sentenceCase(
+          trimToSentence(toWeekTone(p1Raw).replace(/^Over the next 7 days:\s*/i, "Early week: "), 170)
+        );
+        const p2 = sentenceCase(
+          trimToSentence(toWeekTone(p2Raw).replace(/^Over the next 7 days:\s*/i, "Mid-week: "), 170)
+        );
 
-  {Array.isArray(dailyHighlights) && dailyHighlights.length ? (
-    (() => {
-      const next7 = dailyHighlights.slice(0, 7);
-      const theme =
-        String(takeN(ev.transit, 1)[0] || takeN(ev.dasha, 1)[0] || next7[0]?.text || "")
-          .trim()
-          .slice(0, 220);
+        return [p1, p2];
+      })();
 
-      const p1 = String(next7[0]?.text || "").trim().slice(0, 140) || "Keep one priority active all week.";
-      const p2 = String(next7[1]?.text || "").trim().slice(0, 140) || "Make steady progress through routine.";
-      const caution = String(takeN(ev.cautions, 1)[0] || "Avoid impulsive decisions when you feel rushed.").trim();
+      const weeklyCaution = (() => {
+        const base =
+          clean(cautionNotes[0]) ||
+          "Avoid impulsive decisions when you feel rushed. Slow down and verify.";
+        return sentenceCase(trimToSentence(toWeekTone(base).replace(/^Over the next 7 days:\s*/i, "Watch for: "), 190));
+      })();
 
+      // Next 4–6 weeks: build a strategic “phase” box
+      const phase = (() => {
+        const theme = sentenceCase(trimToSentence(toPhaseTone(clean(weekTheme) || weekThemeBase), 240));
+
+        const w12Raw =
+          clean(transitNotes[1]) ||
+          clean(dashaNotes[1]) ||
+          "Simplify commitments, reset routines, and reduce distractions.";
+        const w34Raw =
+          clean(transitNotes[2]) ||
+          clean(dashaNotes[2]) ||
+          "Follow-through wins: make one decision and stick to it.";
+
+        const w12 = sentenceCase(trimToSentence(toPhaseTone(`Weeks 1–2: ${w12Raw}`), 200));
+        const w34 = sentenceCase(trimToSentence(toPhaseTone(`Weeks 3–4: ${w34Raw}`), 200));
+
+        const meaningfulMoveRaw =
+          clean(focusNotes[0]) ||
+          clean(dailyHighlights?.[0]?.text) ||
+          "Choose one outcome that matters and complete the first measurable milestone.";
+        const meaningfulMove = sentenceCase(trimToSentence(toPhaseTone(meaningfulMoveRaw), 190));
+
+        const watchOutRaw =
+          clean(cautionNotes[0]) ||
+          "Overcommitting, reactive decisions, and spreading effort too thin.";
+        const watchOut = sentenceCase(trimToSentence(toPhaseTone(watchOutRaw), 190));
+
+        return { theme, w12, w34, meaningfulMove, watchOut };
+      })();
+
+     // Timing Intelligence (today → next 72 hours): crisp + premium + no repetition
+const timing = (() => {
+  const pick = (k: "morning" | "midday" | "evening") => {
+    const arr = (notificationsPreview as any)?.[k] || [];
+    const raw = clean(arr?.[0]?.text || "");
+    return stripRepeats(raw);
+  };
+
+  const oneWhy = (s: string) => {
+    const t = sentenceCase(trimToSentence(clean(s), 160));
+    if (!t) return "";
+    return t
+      .replace(/\bToday\b/gi, "In this window")
+      .replace(/\bthis week\b/gi, "over the next few days");
+  };
+
+  const windows = [
+    {
+      key: "morning",
+      label: "Morning",
+      bestFor: "High-impact work, planning, key conversations",
+      oneAction: "Lock 25–40 minutes on the hardest task and start without switching.",
+      avoid: "Multitasking or starting too many threads",
+      why: oneWhy(pick("morning")),
+    },
+    {
+      key: "midday",
+      label: "Midday",
+      bestFor: "Admin, follow-ups, low-risk decisions, money hygiene",
+      oneAction: "Do a 5-minute check (spend/commitments/messages), then act only on basics.",
+      avoid: "Big spends, rushed commitments, impulsive trades",
+      why: oneWhy(pick("midday")),
+    },
+    {
+      key: "evening",
+      label: "Evening",
+      bestFor: "Closing loops, family/home, light creative work, reflection",
+      oneAction: "Close one open loop and do a 10-minute wind-down reset.",
+      avoid: "Heavy debates or emotionally loaded decisions",
+      why: oneWhy(pick("evening")),
+    },
+  ].map((w) => ({ ...w, why: w.why || "" }));
+
+  const cautions =
+    cautionNotes.length
+      ? cautionNotes
+          .map((x) => sentenceCase(trimToSentence(toTodayTone(clean(x)), 150)))
+          .filter(Boolean)
+          .slice(0, 3)
+      : [
+          "Avoid impulsive decisions during the afternoon dip.",
+          "Avoid heavy conversations late at night.",
+        ].map((x) => sentenceCase(x));
+
+  return { windows, cautions };
+})();
+
+
+      // Next 12 months: same logic you built, but with better explanation and “what to do”
+      const planetMeaning: Record<
+        string,
+        { theme: string; expect: string[]; do: string[]; avoid: string[] }
+      > = {
+        Sun: {
+          theme: "Identity, leadership, visibility.",
+          expect: ["Clear decisions become important", "Pressure to own outcomes"],
+          do: ["Take ownership", "Commit to fewer priorities", "Lead with clarity"],
+          avoid: ["Ego battles", "Overpromising"],
+        },
+        Moon: {
+          theme: "Emotions, home, inner stability.",
+          expect: ["Mood sensitivity increases", "Home/family themes rise"],
+          do: ["Protect routine & sleep", "Communicate gently", "Stabilize habits"],
+          avoid: ["Deciding from mood", "Overreacting"],
+        },
+        Mars: {
+          theme: "Action, drive, conflict/competition.",
+          expect: ["Faster pace", "Higher urgency"],
+          do: ["Channel energy into one hard task", "Move quickly on small decisions"],
+          avoid: ["Impulsive conflict", "Risk without plan"],
+        },
+        Mercury: {
+          theme: "Learning, communication, deals.",
+          expect: ["More conversations/options", "Better outcomes with data"],
+          do: ["Write plans", "Clarify expectations", "Negotiate cleanly"],
+          avoid: ["Overthinking", "Too many parallel tasks"],
+        },
+        Jupiter: {
+          theme: "Growth, support, long-term wins.",
+          expect: ["Mentors/support improve", "Bigger opportunities appear"],
+          do: ["Invest in skills", "Build credibility", "Play long-term"],
+          avoid: ["Overconfidence", "Ignoring details"],
+        },
+        Venus: {
+          theme: "Harmony, relationships, comfort, money flow.",
+          expect: ["Ease in connections", "Desire for stability/quality"],
+          do: ["Strengthen key ties", "Upgrade systems", "Prioritize balance"],
+          avoid: ["Overindulgence", "Avoiding tough talks"],
+        },
+        Saturn: {
+          theme: "Discipline, structure, durable progress.",
+          expect: ["More responsibility", "Slow wins that reward persistence"],
+          do: ["Routine + consistency", "Close old duties", "Stay patient"],
+          avoid: ["Cutting corners", "Quitting too soon"],
+        },
+        Rahu: {
+          theme: "Ambition, experimentation, visibility.",
+          expect: ["Restlessness / hunger for change", "New networks and unusual paths"],
+          do: ["Calculated risks", "Expand reach strategically", "Stay curious, stay grounded"],
+          avoid: ["Chasing hype", "Overextending"],
+        },
+        Ketu: {
+          theme: "Detachment, simplification, clarity.",
+          expect: ["Less interest in distractions", "Pruning and redefining priorities"],
+          do: ["Reduce noise", "End what drains you", "Refine direction"],
+          avoid: ["Cutting ties impulsively", "Withdrawing too much"],
+        },
+      };
+
+      const meaningFor = (p: any) => planetMeaning[clean(p)] || null;
+
+      const md = clean(ap?.mahadasha?.lord);
+      const ad = clean(ap?.antardasha?.subLord);
+      const pd = clean(ap?.pratyantardasha?.subLord);
+
+      const mdInfo = meaningFor(md);
+      const adInfo = meaningFor(ad);
+      const nextAdInfo = meaningFor(nextAD?.lord);
+      const nextMdInfo = meaningFor(nextMD?.planet);
+
+      // -------------------------
+      // UI
+      // -------------------------
       return (
-        <div className="mt-3 grid gap-3 md:grid-cols-2">
-          <div className="rounded-xl border border-white/10 bg-indigo-950/40 p-3 md:col-span-2">
-            <div className="text-xs font-semibold uppercase tracking-wide text-white/60">Theme</div>
-            <div className="mt-1 text-sm text-white/85 leading-relaxed">{theme || "Steady progress beats intensity this week."}</div>
+        <>
+          {/* Header */}
+          <div className="rounded-2xl border border-white/15 bg-white/5 p-4">
+            <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+              Full plan • explain + act
+            </div>
+            <div className="mt-1 text-lg font-semibold text-slate-100">
+              A clear plan for today — and the direction your next months are moving toward
+            </div>
+            <div className="mt-1 text-sm text-white/70">
+              Built from your report signals (dasha + transits) and translated into actions.
+            </div>
           </div>
 
-          <div className="rounded-xl border border-emerald-400/20 bg-emerald-500/10 p-3">
-            <div className="text-xs font-semibold uppercase tracking-wide text-emerald-100/90">Priorities</div>
-            <ul className="mt-2 list-disc pl-4 text-sm text-white/80 space-y-1">
-              <li>{p1}</li>
-              <li>{p2}</li>
-            </ul>
+          {/* 1) TODAY */}
+          <div className="rounded-2xl border border-white/15 bg-white/5 p-4">
+            <div className="text-sm font-semibold text-slate-100">Today: your 3 biggest drivers</div>
+            <div className="mt-1 text-sm text-white/70">
+              Keep these in mind all day — they explain why your mood, focus, and timing feel the way they do.
+            </div>
+
+            <div className="mt-3 grid gap-3 md:grid-cols-3">
+              {driversToday.map((t, idx) => (
+                <div key={idx} className="rounded-xl border border-white/10 bg-indigo-950/40 p-3">
+                  <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+                    Driver {idx + 1}
+                  </div>
+                  <div className="mt-2 text-sm text-white/85 leading-relaxed">{t}</div>
+                </div>
+              ))}
+            </div>
           </div>
 
-          <div className="rounded-xl border border-red-400/20 bg-red-500/10 p-3">
-            <div className="text-xs font-semibold uppercase tracking-wide text-red-100/90">Caution</div>
-            <div className="mt-2 text-sm text-white/80">{caution}</div>
-          </div>
-        </div>
-      );
-    })()
-  ) : (
-    <div className="mt-3 text-xs text-white/60">Weekly insight will appear once your next few days are available.</div>
-  )}
-</div>
+          {/* 2) Timing Intelligence (today → next 72 hours) */}
+<details className="rounded-2xl border border-white/15 bg-indigo-950/40 p-4 backdrop-blur-md" open>
+  <summary className="cursor-pointer list-none">
+    <div className="text-sm font-semibold text-slate-100">Today’s Energy Windows</div>
+    <div className="mt-1 text-xs text-white/60">
+      When to act, when to pause — based on today’s planetary rhythm.
+    </div>
+  </summary>
 
+  <div className="mt-4 space-y-3">
+    <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-white/75">
+      Use this like a GPS: <span className="text-white/85">do high-impact work in “best windows”</span>, and keep
+      “caution windows” for low-risk tasks (admin, cleanup, light workouts).
+    </div>
 
-      {/* Day-by-day plan */}
-      <div className="rounded-2xl border border-white/15 bg-white/5 p-4">
-        <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
-          Day-by-day action plan (next few days)
+    <div className="grid gap-3 md:grid-cols-2">
+      {/* Best windows */}
+      <div className="rounded-xl border border-emerald-400/20 bg-emerald-500/10 p-3">
+        <div className="text-xs font-semibold uppercase tracking-wide text-emerald-100/90">
+          Best windows (today)
         </div>
 
         <div className="mt-3 space-y-3">
-          {!dailyLoading && !dailyError && Array.isArray(dailyHighlights) && dailyHighlights.length > 0 ? (
-            dailyHighlights.slice(0, 3).map((h: any, idx: number) => (
-              <div key={idx} className="rounded-xl border border-white/10 bg-indigo-950/40 p-3">
-                <div className="text-[11px] font-semibold uppercase tracking-wide text-white/60">{h.dateISO}</div>
-                <div className="mt-1 text-sm text-white/80 leading-relaxed">{h.text}</div>
-              </div>
-            ))
+          {Array.isArray(timing.windows) && timing.windows.length ? (
+            timing.windows.map((w: any) => {
+              // Prefer w.why (new model), fallback to w.text (old model)
+              const whyLine = clean(w.why || w.text || "");
+              return (
+                <div key={w.key} className="rounded-lg border border-white/10 bg-white/5 p-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="text-sm font-semibold text-slate-100">{w.label}</div>
+                      <div className="mt-1 text-sm text-white/85">
+                        <span className="text-white/60 text-[11px] uppercase tracking-wide mr-2">Best for</span>
+                        {w.bestFor}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Optional "Why" (1 short line) */}
+                  {clean(w.why) ? (
+  <div className="mt-2 rounded-md border border-white/10 bg-white/5 p-2 text-sm text-white/75 leading-relaxed">
+    <span className="text-white/60 text-[11px] uppercase tracking-wide mr-2">Why</span>
+    {w.why}
+  </div>
+) : null}
+
+                  {/* One action (always shown) */}
+                  <div className="mt-2 rounded-md border border-emerald-400/20 bg-emerald-500/10 p-2 text-sm text-white/85">
+                    <span className="text-emerald-100/90 font-semibold">One action:</span> {w.oneAction}
+                  </div>
+
+                  <div className="mt-2 text-xs text-white/60">
+                    Avoid: {w.avoid}
+                  </div>
+                </div>
+              );
+            })
           ) : (
-            <div className="text-xs text-white/60">No daily plan available yet.</div>
+            <div className="text-xs text-white/70">
+              Windows will appear once schedule insights are available — until then, use the default actions above.
+            </div>
           )}
         </div>
       </div>
-    </div>
-  );
-};
 
+      {/* Caution windows */}
+      <div className="rounded-xl border border-red-400/20 bg-red-500/10 p-3">
+        <div className="text-xs font-semibold uppercase tracking-wide text-red-100/90">
+          Caution windows
+        </div>
+
+        <div className="mt-3 space-y-2">
+          {(Array.isArray(timing.cautions) && timing.cautions.length ? timing.cautions : []).map((c: string, i: number) => (
+            <div key={i} className="rounded-lg border border-white/10 bg-white/5 p-3 text-sm text-white/85">
+              {c}
+            </div>
+          ))}
+
+          {!timing.cautions?.length ? (
+            <div className="rounded-lg border border-white/10 bg-white/5 p-3 text-sm text-white/70">
+              No caution notes detected — still avoid rushed commitments when you feel pressured.
+            </div>
+          ) : null}
+        </div>
+
+        <div className="mt-3 rounded-lg border border-red-400/20 bg-red-500/10 p-3 text-sm text-white/85">
+          <span className="font-semibold text-red-100/90">Rule of thumb:</span> during caution windows, do low-stakes tasks
+          and delay big conversations, spends, or commitments.
+        </div>
+      </div>
+    </div>
+  </div>
+</details>
+
+          {/* 3) Next 3–5 days (optional but premium) */}
+          <details className="rounded-2xl border border-white/15 bg-white/5 p-4">
+            <summary className="cursor-pointer list-none">
+              <div className="text-sm font-semibold text-slate-100">Next 3 days</div>
+              <div className="mt-1 text-xs text-white/60">
+                 A short runway showing how momentum unfolds over the next few days.
+              </div>
+            </summary>
+
+            <div className="mt-4 space-y-3">
+              {!dailyLoading && !dailyError && Array.isArray(dailyHighlights) && dailyHighlights.length > 0 ? (
+                dailyHighlights.slice(0, 3).map((h: any, idx: number) => (
+                  <div key={idx} className="rounded-xl border border-white/10 bg-indigo-950/40 p-3">
+                    <div className="text-[11px] font-semibold uppercase tracking-wide text-white/60">
+                      {h.dateISO}
+                    </div>
+                    <div className="mt-1 text-sm text-white/80 leading-relaxed">
+                      {sentenceCase(trimToSentence(stripRepeats(clean(h.text)), 220))}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-xs text-white/60">No short plan available yet.</div>
+              )}
+            </div>
+          </details>
+
+          {/* 4) Weekly insight */}
+          <details className="rounded-2xl border border-white/15 bg-white/5 p-4">
+            <summary className="cursor-pointer list-none">
+              <div className="text-sm font-semibold text-slate-100">This week (next 7 days)</div>
+              <div className="mt-1 text-xs text-white/60">One theme + two priorities + one watch-out</div>
+            </summary>
+
+            <div className="mt-4 grid gap-3 md:grid-cols-2">
+              <div className="rounded-xl border border-white/10 bg-indigo-950/40 p-3 md:col-span-2">
+                <div className="text-xs font-semibold uppercase tracking-wide text-white/60">Theme</div>
+                <div className="mt-1 text-sm text-white/85 leading-relaxed">{weekThemeNice}</div>
+              </div>
+
+              <div className="rounded-xl border border-emerald-400/20 bg-emerald-500/10 p-3">
+                <div className="text-xs font-semibold uppercase tracking-wide text-emerald-100/90">Priorities</div>
+                <ul className="mt-2 list-disc pl-4 text-sm text-white/80 space-y-1">
+                  <li>{weeklyPriorities[0]}</li>
+                  <li>{weeklyPriorities[1]}</li>
+                </ul>
+              </div>
+
+              <div className="rounded-xl border border-red-400/20 bg-red-500/10 p-3">
+                <div className="text-xs font-semibold uppercase tracking-wide text-red-100/90">Watch-out</div>
+                <div className="mt-2 text-sm text-white/80">{weeklyCaution}</div>
+              </div>
+            </div>
+          </details>
+
+          {/* 5) Next 4–6 weeks */}
+          <details className="rounded-2xl border border-white/15 bg-white/5 p-4">
+            <summary className="cursor-pointer list-none">
+              <div className="text-sm font-semibold text-slate-100">Next 4–6 weeks</div>
+              <div className="mt-1 text-xs text-white/60">The broader direction your energy is moving toward — not daily noise.</div>
+            </summary>
+
+            <div className="mt-4 space-y-3">
+              <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                <div className="text-xs font-semibold uppercase tracking-wide text-white/60">Core direction</div>
+                <div className="mt-1 text-sm text-white/85 leading-relaxed">{coreDirective}</div>
+              </div>
+
+              <div className="rounded-xl border border-white/10 bg-indigo-950/40 p-3">
+                <div className="text-xs font-semibold uppercase tracking-wide text-white/60">Theme</div>
+                <div className="mt-1 text-sm text-white/85 leading-relaxed">{phase.theme}</div>
+              </div>
+
+              <div className="grid gap-3 md:grid-cols-2">
+                <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                  <div className="text-xs font-semibold uppercase tracking-wide text-white/60">Weeks 1–2</div>
+                  <div className="mt-1 text-sm text-white/80 leading-relaxed">
+                    {phase.w12.replace(/^Weeks 1–2:\s*/i, "")}
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                  <div className="text-xs font-semibold uppercase tracking-wide text-white/60">Weeks 3–4</div>
+                  <div className="mt-1 text-sm text-white/80 leading-relaxed">
+                    {phase.w34.replace(/^Weeks 3–4:\s*/i, "")}
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid gap-3 md:grid-cols-2">
+                <div className="rounded-xl border border-emerald-400/20 bg-emerald-500/10 p-3">
+                  <div className="text-xs font-semibold uppercase tracking-wide text-emerald-100/90">
+                    Most meaningful move
+                  </div>
+                  <div className="mt-2 text-sm text-white/80 leading-relaxed">{phase.meaningfulMove}</div>
+                </div>
+
+                <div className="rounded-xl border border-red-400/20 bg-red-500/10 p-3">
+                  <div className="text-xs font-semibold uppercase tracking-wide text-red-100/90">Watch-out</div>
+                  <div className="mt-2 text-sm text-white/80 leading-relaxed">{phase.watchOut}</div>
+                </div>
+              </div>
+            </div>
+          </details>
+
+          {/* 6) Next 12 months */}
+          <details className="rounded-2xl border border-white/15 bg-indigo-950/40 p-4 backdrop-blur-md">
+            <summary className="cursor-pointer list-none">
+              <div className="text-sm font-semibold text-slate-100">Next 12 months</div>
+              <div className="mt-1 text-xs text-white/60">
+                What changes + what it means (in plain English)
+              </div>
+            </summary>
+
+            <div className="mt-4 space-y-3">
+              <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-white/75">
+                <span className="text-white/85 font-semibold">How to read this:</span> Mahadasha is your big life chapter (years),
+                Antardasha is the sub-chapter (months/years). The most noticeable shift inside the next 12 months is usually
+                the next Antardasha change.
+              </div>
+
+              {(md || ad || pd) ? (
+                <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                  <div className="text-xs font-semibold uppercase tracking-wide text-white/60">Current cycle</div>
+
+                  <div className="mt-2 text-sm text-white/85">
+                    {md ? `Big chapter (MD): ${md}` : "Big chapter (MD): —"}
+                    {ad ? ` • Sub-chapter (AD): ${ad}` : ""}
+                    {pd ? ` • Short phase (PD): ${pd}` : ""}
+                  </div>
+
+                  <div className="mt-1 text-xs text-white/60">
+                    {ap?.antardasha?.start && ap?.antardasha?.end
+                      ? `${String(ap.antardasha.start).slice(0, 10)} → ${String(ap.antardasha.end).slice(0, 10)}`
+                      : ""}
+                  </div>
+
+                  <div className="mt-3 grid gap-3 md:grid-cols-2">
+                    <div className="rounded-lg border border-white/10 bg-indigo-950/40 p-3">
+                      <div className="text-xs font-semibold uppercase tracking-wide text-white/60">What it means</div>
+                      <div className="mt-2 text-sm text-white/80 leading-relaxed">
+                        {sentenceCase(
+                          mdInfo?.theme
+                            ? `MD ${md}: ${mdInfo.theme}`
+                            : "Your current chapter sets the overall tone — focus on steady, intentional progress."
+                        )}
+                      </div>
+                      {adInfo?.theme ? (
+                        <div className="mt-2 text-sm text-white/75 leading-relaxed">
+                          {sentenceCase(`AD ${ad}: ${adInfo.theme}`)}
+                        </div>
+                      ) : null}
+                    </div>
+
+                    <div className="rounded-lg border border-emerald-400/20 bg-emerald-500/10 p-3">
+                      <div className="text-xs font-semibold uppercase tracking-wide text-emerald-100/90">How to use this</div>
+                      <ul className="mt-2 list-disc pl-4 text-sm text-white/80 space-y-1">
+                        {(adInfo?.do?.length ? adInfo.do : mdInfo?.do?.length ? mdInfo.do : ["Pick 1 priority and finish it", "Keep routine strong", "Avoid reactive decisions"])
+                          .slice(0, 3)
+                          .map((x) => <li key={x}>{x}</li>)}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+
+              <div className="grid gap-3 md:grid-cols-2">
+                {nextAD ? (
+                  <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+                      Next shift (Antardasha)
+                    </div>
+                    <div className="mt-1 text-sm font-semibold text-slate-100">AD: {nextAD.lord}</div>
+                    <div className="mt-1 text-xs text-white/60">{nextAD.start} → {nextAD.end}</div>
+
+                    <div className="mt-3 rounded-lg border border-white/10 bg-indigo-950/40 p-3">
+                      <div className="text-xs font-semibold uppercase tracking-wide text-white/60">What you may notice</div>
+                      <ul className="mt-2 list-disc pl-4 text-sm text-white/80 space-y-1">
+                        {(nextAdInfo?.expect?.length ? nextAdInfo.expect : ["A noticeable change in motivation/focus", "Different kinds of opportunities/pressure show up"])
+                          .slice(0, 3)
+                          .map((x) => <li key={x}>{x}</li>)}
+                      </ul>
+                    </div>
+
+                    <div className="mt-3 rounded-lg border border-emerald-400/20 bg-emerald-500/10 p-3">
+                      <div className="text-xs font-semibold uppercase tracking-wide text-emerald-100/90">
+                        Best way to prepare
+                      </div>
+                      <ul className="mt-2 list-disc pl-4 text-sm text-white/80 space-y-1">
+                        {(nextAdInfo?.do?.length ? nextAdInfo.do : ["Close open loops", "Simplify commitments", "Make a simple plan"])
+                          .slice(0, 3)
+                          .map((x) => <li key={x}>{x}</li>)}
+                      </ul>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-white/70">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-white/60">Next shift (Antardasha)</div>
+                    No Antardasha boundary inside the next 12 months — the theme stays consistent. Focus on execution and compounding.
+                  </div>
+                )}
+
+                {nextMD?.start ? (
+                  <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+                      Major shift (Mahadasha) — longer term
+                    </div>
+                    <div className="mt-1 text-sm font-semibold text-slate-100">MD: {nextMD.planet}</div>
+                    <div className="mt-1 text-xs text-white/60">{nextMD.start} → {nextMD.end}</div>
+
+                    <div className="mt-3 text-sm text-white/80 leading-relaxed">
+                      {sentenceCase(
+                        nextMdInfo?.theme
+                          ? `This begins a bigger life chapter: ${nextMdInfo.theme}`
+                          : "This is a bigger turning-point chapter — your priorities and direction can shift more noticeably."
+                      )}
+                    </div>
+
+                    <div className="mt-3 rounded-lg border border-red-400/20 bg-red-500/10 p-3">
+                      <div className="text-xs font-semibold uppercase tracking-wide text-red-100/90">Avoid</div>
+                      <ul className="mt-2 list-disc pl-4 text-sm text-white/80 space-y-1">
+                        {(nextMdInfo?.avoid?.length ? nextMdInfo.avoid : ["Big reactive decisions without a plan", "Burning bridges impulsively"])
+                          .slice(0, 2)
+                          .map((x) => <li key={x}>{x}</li>)}
+                      </ul>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          </details>
+
+          {/* 7) Deep dive: Soul Alignment */}
+          <details className="rounded-2xl border border-white/15 bg-indigo-950/40 p-4 backdrop-blur-md">
+            <summary className="cursor-pointer list-none">
+              <div className="text-sm font-semibold text-slate-100">Soul Alignment Index — explained</div>
+              <div className="mt-1 text-xs text-white/60">Why each score is high/low + do/avoid + evidence</div>
+            </summary>
+
+            <div className="mt-4 grid gap-4 md:grid-cols-2">
+              {drivers.map((d) => (
+                <div key={d.key} className="rounded-2xl border border-white/15 bg-white/5 p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-white/60">{d.key}</div>
+                    <div className="text-sm font-semibold text-slate-100">{Number(d.score)}</div>
+                  </div>
+
+                  <div className="mt-2 text-sm text-white/80 leading-relaxed">
+                    {sentenceCase(trimToSentence(clean(d.why), 220))}
+                  </div>
+
+                  <div className="mt-3 rounded-xl border border-white/10 bg-white/5 p-3">
+                    <div className="text-[11px] font-semibold uppercase tracking-wide text-white/60">Evidence</div>
+                    <ul className="mt-2 list-disc pl-4 text-sm text-white/75 space-y-1">
+                      {(Array.isArray((d as any).evidence) && (d as any).evidence.length
+                        ? (d as any).evidence.slice(0, 3)
+                        : ["Evidence is being computed…"]
+                      ).map((x: string) => (
+                        <li key={x}>{sentenceCase(trimToSentence(clean(x), 140))}</li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div className="mt-3 grid gap-3 md:grid-cols-2">
+                    <div className="rounded-xl border border-emerald-400/25 bg-emerald-500/10 p-3">
+                      <div className="text-xs font-semibold uppercase tracking-wide text-emerald-100/90">Do</div>
+                      <ul className="mt-2 list-disc pl-4 text-sm text-white/80 space-y-1">
+                        {d.do.map((x) => <li key={x}>{sentenceCase(trimToSentence(clean(x), 110))}</li>)}
+                      </ul>
+                    </div>
+
+                    <div className="rounded-xl border border-red-400/20 bg-red-500/10 p-3">
+                      <div className="text-xs font-semibold uppercase tracking-wide text-red-100/90">Avoid</div>
+                      <ul className="mt-2 list-disc pl-4 text-sm text-white/80 space-y-1">
+                        {d.avoid.map((x) => <li key={x}>{sentenceCase(trimToSentence(clean(x), 110))}</li>)}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </details>
+        </>
+      );
+    })()}
+  </div>
+);
+};
 
 
 export default LifeReportShell;
