@@ -1760,7 +1760,205 @@ if (strong) {
 
   return out;
 }
+function decodeJsonString(s: string) {
+  try {
+    // handles escaped quotes, \n, etc.
+    return JSON.parse(`"${String(s).replace(/"/g, '\\"')}"`);
+  } catch {
+    return s;
+  }
+}
 
+function extractTimelineText(raw: any): string {
+  const t = String(raw ?? "").trim();
+  if (!t) return "";
+
+  // If it *looks* like JSON or contains JSON keys, try to parse
+  const looksJson =
+    /^[\[{]/.test(t) || /"title"\s*:|"text"\s*:|"nextStep"\s*:|"source"\s*:/.test(t);
+
+  if (looksJson) {
+    // 1) Try JSON.parse first
+    try {
+      const obj = JSON.parse(t);
+
+      // If server returned { text: "..." }
+      if (obj && typeof obj === "object" && typeof (obj as any).text === "string") {
+        return String((obj as any).text);
+      }
+
+      // If server returned { narrative: "...", windows: [...] }
+      if (obj && typeof obj === "object" && typeof (obj as any).narrative === "string") {
+        return String((obj as any).narrative);
+      }
+
+      // If server returned array of blocks
+      if (Array.isArray(obj)) {
+        const joined = obj
+          .map((x) => (typeof x === "string" ? x : x?.text || x?.title || ""))
+          .filter(Boolean)
+          .join(" ");
+        if (joined.trim()) return joined.trim();
+      }
+
+      // Fallback: if it's still an object, try common fields
+      if (obj && typeof obj === "object") {
+        const parts: string[] = [];
+        const o: any = obj;
+        if (o.title) parts.push(String(o.title));
+        if (o.text) parts.push(String(o.text));
+        if (o.nextStep) parts.push(String(o.nextStep));
+        if (Array.isArray(o.items)) {
+          parts.push(
+            o.items
+              .map((it: any) => it?.text || it?.title || "")
+              .filter(Boolean)
+              .join(" ")
+          );
+        }
+        if (parts.join(" ").trim()) return parts.join(" ").trim();
+      }
+    } catch {
+      // 2) If JSON.parse fails, regex-pull the "text":"..." fields
+      const chunks: string[] = [];
+      const re = /"text"\s*:\s*"([^"]+)"/g;
+      let m: RegExpExecArray | null;
+      while ((m = re.exec(t))) {
+        chunks.push(decodeJsonString(m[1]));
+      }
+      const joined = chunks.map((x) => x.trim()).filter(Boolean).join(" ");
+      if (joined.trim()) return joined.trim();
+    }
+  }
+
+  // Not JSON: return as-is
+  return t;
+}
+
+function sentenceCase(s: string) {
+  const t = String(s ?? "").trim();
+  if (!t) return "";
+  return t.charAt(0).toUpperCase() + t.slice(1);
+}
+
+// Keep a string to a max length, end at a clean boundary when possible
+function trimToSentence(s: string, maxLen = 180) {
+  const t = String(s ?? "").replace(/\s+/g, " ").trim();
+  if (!t) return "";
+  if (t.length <= maxLen) return t;
+
+  const cut = t.slice(0, maxLen);
+
+  // Prefer ending at punctuation
+  const lastPunct = Math.max(
+    cut.lastIndexOf("."),
+    cut.lastIndexOf("!"),
+    cut.lastIndexOf("?")
+  );
+  if (lastPunct > 80) return cut.slice(0, lastPunct + 1).trim();
+
+  // Else end at last space
+  const lastSpace = cut.lastIndexOf(" ");
+  if (lastSpace > 80) return cut.slice(0, lastSpace).trim() + "…";
+
+  return cut.trim() + "…";
+}
+
+function parseTimelineWindows(raw: string) {
+  const text = String(raw ?? "")
+    .replace(/\u0000/g, "")
+    .replace(/\u2022/g, "•") // normalize bullets
+    .replace(/\s+\n/g, "\n")
+    .trim();
+
+  const windows: Array<{
+    label: string;
+    start: string;
+    end: string;
+    domain?: string;
+  }> = [];
+
+  // 1) Primary: bullet lines that contain a date range in parentheses
+  // Supports: →, ->, —, –, to
+  // Example:
+  // • Jupiter → Moon (2026-01-01 → 2026-02-15) [career]
+  const reRange =
+    /(?:^|\n)\s*•\s*([^\n(]+?)\s*\(\s*(\d{4}-\d{2}-\d{2})\s*(?:→|->|—|–|to)\s*(\d{4}-\d{2}-\d{2})\s*\)\s*(?:\[\s*([^\]]+?)\s*\])?\s*(?=\n|$)/gi;
+
+  let m: RegExpExecArray | null;
+  while ((m = reRange.exec(text))) {
+    const label = (m[1] ?? "").trim();
+    const start = (m[2] ?? "").trim();
+    const end = (m[3] ?? "").trim();
+    const domain = (m[4] ?? "").trim() || undefined;
+
+    if (label && start && end) {
+      windows.push({ label, start, end, domain });
+    }
+  }
+
+  // 2) Secondary: if your text has "Window: YYYY-MM-DD → YYYY-MM-DD"
+  // (helps when GPT output format changes)
+  const reInline =
+    /(?:window|period|phase)\s*[:\-]\s*([^\n:]+?)\s*(\d{4}-\d{2}-\d{2})\s*(?:→|->|—|–|to)\s*(\d{4}-\d{2}-\d{2})/gi;
+
+  while ((m = reInline.exec(text))) {
+    const label = (m[1] ?? "").trim();
+    const start = (m[2] ?? "").trim();
+    const end = (m[3] ?? "").trim();
+    if (label && start && end) windows.push({ label, start, end });
+  }
+
+  // Remove parsed window lines from narrative so we don’t show them twice
+  const narrative = text
+    .replace(reRange, "\n")
+    .replace(reInline, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+
+  return { windows, narrative };
+}
+
+function toShortBullets(narrative: string) {
+  const s = String(narrative ?? "").replace(/\s+/g, " ").trim();
+  if (!s) return [];
+
+  // Split into sentences
+  const sentences = s
+    .split(/(?<=[.!?])\s+/)
+    .map((x) => x.trim())
+    .filter(Boolean);
+
+  if (!sentences.length) return [];
+
+  // Strong preference for "action + clarity" lines
+  const score = (x: string) => {
+    let v = 0;
+
+    // action cues
+    if (/(pick|choose|do|act|start|plan|delay|avoid|focus|protect|simplify|commit|negotiate|close|reset)/i.test(x)) v += 3;
+
+    // structure cues: “Next step”, “Rule”, “Use”
+    if (/(next step|rule of thumb|use this|best window|caution|during stronger windows)/i.test(x)) v += 2;
+
+    // penalty: overly vague filler
+    if (/(in this phase|push you|asks you|more awareness|background storyline)/i.test(x)) v -= 1;
+
+    // penalty: too long
+    if (x.length > 220) v -= 1;
+
+    return v;
+  };
+
+  const ranked = [...sentences].sort((a, b) => score(b) - score(a));
+
+  const chosen = ranked.slice(0, 3);
+
+  return chosen
+    .map((x) => sentenceCase(trimToSentence(x, 170)))
+    .filter(Boolean);
+}
 
 // ---------------- Daily highlights helper (client-side) ----------------
 
@@ -3881,24 +4079,63 @@ const TabAdvanced: React.FC<{
 }> = ({ report, mounted, timelineSummary, dashaTransitSummary }) => {
   if (!mounted) return null;
 
-  const r: any = report || {};
+  // ✅ IMPORTANT: if no report yet, show clean empty-state (no demo data)
+  if (!report) {
+    return (
+      <div className="space-y-6">
+        <div className="rounded-2xl border border-white/15 bg-white/5 p-4">
+           Advanced • Your deeper map          <div className="mt-1 text-sm text-white/70">
+            Enter your birth details above and click{" "}
+            <span className="text-white/90 font-semibold">Generate / Refresh Report</span>{" "}
+            to see your Advanced insights.
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-white/15 bg-indigo-950/40 p-5 backdrop-blur-md shadow-xl shadow-[0_0_30px_rgba(99,102,241,0.10)]">
+          <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+            Preview
+          </div>
+          <div className="mt-2 text-sm text-white/80 leading-relaxed">
+            This section unlocks once your report is generated. It will show:
+          </div>
+
+          <div className="mt-4 grid gap-3 md:grid-cols-3">
+            {["Core pattern", "Soul alignment index", "Decision intelligence"].map((t) => (
+              <div
+                key={t}
+                className="rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-white/80"
+              >
+                {t}
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-4 text-xs text-white/60">
+            Tip: If you see old data, change any input slightly (time/place) and regenerate.
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ✅ Compute ONLY when report exists
+  const r: any = report;
   const corePattern = buildCorePattern(r);
   const patterns = pickDeepPatterns(r);
   const buckets = buildDecisionBuckets(r);
   const align = computeAlignment(r);
 
   const Locked: React.FC<{ title: string; children: React.ReactNode }> = ({
-  title,
-  children,
-}) => (
-  <div className="overflow-hidden rounded-2xl border border-white/15 bg-indigo-950/40 p-4 backdrop-blur-md shadow-xl shadow-[0_0_30px_rgba(99,102,241,0.10)]">
-    <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
-      {title}
+    title,
+    children,
+  }) => (
+    <div className="overflow-hidden rounded-2xl border border-white/15 bg-indigo-950/40 p-4 backdrop-blur-md shadow-xl shadow-[0_0_30px_rgba(99,102,241,0.10)]">
+      <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+        {title}
+      </div>
+      <div className="mt-3">{children}</div>
     </div>
-    <div className="mt-3">{children}</div>
-  </div>
-);
-
+  );
 
   return (
     <div className="space-y-6">
@@ -3911,8 +4148,7 @@ const TabAdvanced: React.FC<{
           Patterns, timing, and decision intelligence — with wisdom and clarity.
         </div>
         <div className="mt-1 text-sm text-white/70">
-          This is a high-level preview. Your full Sarathi plan unlocks exact
-          windows and deeper personalization.
+          This is a high-level preview. Your full Sārathi plan unlocks exact windows and deeper personalization.
         </div>
       </div>
 
@@ -3921,64 +4157,71 @@ const TabAdvanced: React.FC<{
         {/* Core Pattern */}
         <div className="md:col-span-2 rounded-2xl border border-white/15 bg-indigo-950/40 p-4 backdrop-blur-md shadow-xl shadow-[0_0_30px_rgba(99,102,241,0.10)]">
           <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
-            Your core pattern
-          </div>
-          <p className="mt-2 text-sm text-white/80 leading-relaxed">
-            {corePattern}
-          </p>
+  Core Pattern
+</div>
 
-          <div className="mt-3 rounded-xl bg-white/5 px-3 py-3 text-sm">
-            <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
-              One next step
-            </div>
-            <div className="mt-1 text-slate-100">
-              Choose one area to simplify today — reduce noise, then take one
-              deliberate action.
-            </div>
-          </div>
+<p className="mt-2 text-sm text-white/80 leading-relaxed">
+  This phase reflects how you naturally initiate, respond, and stabilize momentum.
+  It describes the 'style' in which growth happens for you right now — not pressure, but direction.
+</p>
+
+<div className="mt-3 rounded-xl bg-white/5 p-3">
+  <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+    Key focus
+  </div>
+  <div className="mt-1 text-sm text-white/90">
+    {corePattern}
+  </div>
+</div>
+
         </div>
 
         {/* Alignment Index */}
-        <div className="rounded-2xl border border-white/15 bg-white/5 p-4">
+        <div className="rounded-2xl border border-white/15 bg-indigo-950/40 p-4 backdrop-blur-md shadow-xl shadow-[0_0_30px_rgba(99,102,241,0.10)]">
           <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
             Soul alignment index
           </div>
 
           <div className="mt-3 space-y-2 text-xs text-white/80">
-            {[
-              ["Mind", align.mind],
-              ["Emotions", align.emotions],
-              ["Direction", align.direction],
-              ["Energy", align.energy],
-              ["External support", align.support],
-            ].map(([label, score]) => (
-              <div key={String(label)} className="space-y-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-white/80">{label}</span>
-                  <span className="font-semibold text-slate-100">
-                    {Number(score)}
-                  </span>
+            {(
+              [
+                ["Mind", align.mind],
+                ["Emotions", align.emotions],
+                ["Direction", align.direction],
+                ["Energy", align.energy],
+                ["External support", align.support],
+              ] as Array<[string, number]>
+            ).map(([label, score]) => {
+              const n = Number.isFinite(Number(score)) ? Number(score) : 0;
+              const clamped = Math.max(0, Math.min(100, n));
+              return (
+                <div key={label} className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-white/80">{label}</span>
+                    <span className="font-semibold text-slate-100">
+                      {clamped}
+                    </span>
+                  </div>
+                  <div className="h-2 w-full rounded-full bg-white/10">
+                    <div
+                      className="h-2 rounded-full bg-white/40"
+                      style={{ width: `${clamped}%` }}
+                    />
+                  </div>
                 </div>
-                <div className="h-2 w-full rounded-full bg-white/10">
-                  <div
-                    className="h-2 rounded-full bg-white/40"
-                    style={{ width: `${Number(score)}%` }}
-                  />
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           <div className="mt-3 text-xs text-white/60">
-            Full version explains 'why' these scores move — and what to do
-            day-by-day.
+            Full version explains why these scores move — and what to do day-by-day.
           </div>
         </div>
       </div>
 
       {/* Deep Patterns */}
       <div className="grid gap-4 md:grid-cols-3">
-        {patterns.map((p) => (
+        {patterns.map((p: any) => (
           <div
             key={p.title}
             className="rounded-2xl border border-white/15 bg-white/5 p-4"
@@ -3993,36 +4236,140 @@ const TabAdvanced: React.FC<{
         ))}
       </div>
 
-      {/* Life Timeline preview (locked) */}
-      <Locked title="Your life timeline (preview)">
-        <div className="text-sm text-white/80 leading-relaxed">
-          <div className="font-semibold text-slate-100">
-            Past - Present - Upcoming
-          
-          </div>
-          <div className="mt-2">
-            {cleanMd(safeStr(dashaTransitSummary, "The full timeline links dasha phases with transit triggers — so you know when to act and when to wait."))}
+     {/* Life Timeline preview (free, cleaner) */}
+<Locked title="Your life timeline (preview)">
+  {(() => {
+    const rawText = extractTimelineText(
+  safeStr(
+    dashaTransitSummary,
+    "This phase combines your current dasha with active transit windows, asking for steadier, more conscious choices."
+  )
+);
 
+
+    const safe = (s: any) =>
+      String(s ?? "")
+        .replace(/\u0000/g, "")
+        .replace(/\s+/g, " ")
+        .trim();
+
+    const { windows, narrative } = parseTimelineWindows(safe(rawText));
+    const bullets = toShortBullets(narrative || rawText);
+
+    // Split into Past / Present / Next (simple heuristic so it feels intentional)
+    const pick = (arr: string[], i: number, fallback: string) =>
+      arr[i] ? arr[i] : fallback;
+
+    const pastSummary = pick(
+      bullets,
+      0,
+      "Your recent pattern shows what you’ve been learning the hard way — through repetition, pressure, and refinement."
+    );
+
+    const currentSummary = pick(
+      bullets,
+      1,
+      "Right now is about stabilising: doing fewer things, but doing them cleanly — with structure and steadier choices."
+    );
+
+    const futureSummary = pick(
+      bullets,
+      2,
+      "Next opens opportunities to act with more clarity — choose one meaningful move, and let momentum compound."
+    );
+
+    return (
+      <div className="space-y-4">
+        <div className="text-sm text-white/80 leading-relaxed">
+          <div className="font-semibold text-white/90">Your life timeline</div>
+
+          <div className="mt-2 space-y-3">
+            <div>
+              <div className="text-sm font-semibold text-white/80">
+                Past influence
+              </div>
+              <p className="text-sm text-white/70">{pastSummary}</p>
+            </div>
+
+            <div>
+              <div className="text-sm font-semibold text-white/80">
+                Current focus
+              </div>
+              <p className="text-sm text-white/70">{currentSummary}</p>
+            </div>
+
+            <div>
+              <div className="text-sm font-semibold text-white/80">
+                What’s opening next
+              </div>
+              <p className="text-sm text-white/70">{futureSummary}</p>
+            </div>
           </div>
         </div>
-      </Locked>
+
+        {/* Key windows */}
+        {Array.isArray(windows) && windows.length > 0 ? (
+          <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+            <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+              Key windows (preview)
+            </div>
+
+            <div className="mt-3 grid gap-3 md:grid-cols-2">
+              {windows.slice(0, 6).map((w, idx) => (
+                <div
+                  key={`${w.label}-${idx}`}
+                  className="rounded-xl border border-white/10 bg-indigo-950/30 p-3"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="text-sm font-semibold text-slate-100 leading-snug">
+                      {String(w.label || "").trim()}
+                    </div>
+
+                    {w.domain ? (
+                      <span className="shrink-0 rounded-full border border-white/15 bg-white/5 px-2 py-0.5 text-[11px] text-white/70">
+                        {w.domain}
+                      </span>
+                    ) : null}
+                  </div>
+
+                  <div className="mt-2 text-xs text-white/70">
+                    {w.start} → {w.end}
+                  </div>
+
+                  <div className="mt-2 text-xs text-white/60">
+                    One move: pick one concrete action you’ll take inside this window.
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-3 text-xs text-white/60">
+              (Preview) Full version can later add “why” + day-by-day guidance for each window.
+            </div>
+          </div>
+        ) : null}
+      </div>
+    );
+  })()}
+</Locked>
 
       {/* Decision Intelligence */}
       <div className="rounded-2xl border border-white/15 bg-indigo-950/40 p-4 backdrop-blur-md shadow-xl shadow-[0_0_30px_rgba(99,102,241,0.10)]">
-        <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
-          Decision intelligence
-        </div>
-        <div className="mt-1 text-sm font-semibold text-slate-100">
-          Where your energy is best spent right now
-        </div>
+      <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+  Decision intelligence
+</div>
+<div className="mt-1 text-sm text-white/70">
+  Where to lean in, where to maintain balance, and where to pause.
+</div>
+
 
         <div className="mt-3 grid gap-3 md:grid-cols-3">
           <div className="rounded-xl border border-emerald-400/25 bg-emerald-500/10 p-3">
             <div className="text-xs font-semibold uppercase tracking-wide text-emerald-200">
-              Supportive
+              Favorable
             </div>
             <ul className="mt-2 list-disc pl-4 text-xs text-white/80 space-y-1">
-              {buckets.supportive.slice(0, 4).map((s, i) => (
+              {(buckets.supportive || []).slice(0, 4).map((s: string, i: number) => (
                 <li key={i}>{s}</li>
               ))}
             </ul>
@@ -4030,10 +4377,10 @@ const TabAdvanced: React.FC<{
 
           <div className="rounded-xl border border-amber-400/25 bg-amber-500/10 p-3">
             <div className="text-xs font-semibold uppercase tracking-wide text-amber-200">
-              Neutral
+               Maintain
             </div>
             <ul className="mt-2 list-disc pl-4 text-xs text-white/80 space-y-1">
-              {buckets.neutral.slice(0, 4).map((s, i) => (
+              {(buckets.neutral || []).slice(0, 4).map((s: string, i: number) => (
                 <li key={i}>{s}</li>
               ))}
             </ul>
@@ -4041,10 +4388,10 @@ const TabAdvanced: React.FC<{
 
           <div className="rounded-xl border border-red-400/25 bg-red-500/10 p-3">
             <div className="text-xs font-semibold uppercase tracking-wide text-red-200">
-              Avoid
+              Proceed with care
             </div>
             <ul className="mt-2 list-disc pl-4 text-xs text-white/80 space-y-1">
-              {buckets.avoid.slice(0, 4).map((s, i) => (
+              {(buckets.avoid || []).slice(0, 4).map((s: string, i: number) => (
                 <li key={i}>{s}</li>
               ))}
             </ul>
@@ -4052,8 +4399,7 @@ const TabAdvanced: React.FC<{
         </div>
 
         <div className="mt-3 text-xs text-white/60">
-          Pro unlock adds: exact dates/windows + why each bucket is active for
-          you.
+          Pro unlock adds: exact dates/windows + why each bucket is active for you.
         </div>
       </div>
 
@@ -4063,8 +4409,7 @@ const TabAdvanced: React.FC<{
           Want the complete picture?
         </div>
         <div className="mt-1 text-sm text-white/70">
-          Unlock deeper timing, relationship patterns, and personalized action
-          plans across life areas.
+          Unlock deeper timing, relationship patterns, and personalized action plans across life areas.
         </div>
         <div className="mt-3 flex flex-col gap-2 sm:flex-row">
           <Link href="/sarathi/upgrade" className="w-full sm:w-auto">
@@ -4080,9 +4425,14 @@ const TabAdvanced: React.FC<{
           </Link>
         </div>
       </div>
+      <div className="mt-6 text-center text-xs text-white/50">
+  This guidance evolves as your cycles shift. Revisit anytime to realign with what matters most.
+</div>
+
     </div>
   );
 };
+
 type TabFullPlanProps = {
   report: LifeReportView | null;
   mounted: boolean;
@@ -5320,46 +5670,45 @@ setDailyError(null);
           console.error("ai-transits error", err);
         }
 
-        // 2) Dasha ? Transits fusion
-        try {
-          const fusionRes = await fetch("/api/ai-dasha-transits", {
-            method: "POST",
-            headers: { "content-type": "application/json" },
-            body: JSON.stringify({
-              profile: {
-                name: next.name,
-                birthDateISO: next.birthDateISO,
-                birthTime: next.birthTime,
-                birthTz: next.birthTz,
-              },
-              dashaLayers: {
-                md,
-                ad,
-                pd,
-                timeline: next.dashaTimeline ?? null,
-              },
-              transits: hitList,
-              lifeMilestones: next.lifeMilestones,
-            }),
-          });
+       // 2) Dasha → Transits fusion
+try {
+  const fusionRes = await fetch("/api/ai-dasha-transits", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      profile: {
+        name: next.name,
+        birthDateISO: next.birthDateISO,
+        birthTime: next.birthTime,
+        birthTz: next.birthTz,
+      },
+      // ✅ what the new endpoint expects
+      mdad: {
+        md: md ?? null,
+        ad: ad ?? null,
+      },
+      transits: hitList,
+    }),
+  });
 
-          const fusionJson = await fusionRes
-            .json()
-            .catch(() => ({} as any));
+  const fusionJson = await fusionRes.json().catch(() => ({} as any));
 
-          if (fusionRes.ok) {
-  const fusionText = (fusionJson as any)?.text ?? "";
-  setDashaTransitSummary(fusionText);
+  if (fusionRes.ok) {
+    // ✅ New structured response
+    // We'll store it as JSON string so TabAdvanced can parse & render it nicely
+    const asStr =
+      typeof fusionJson === "string" ? fusionJson : JSON.stringify(fusionJson);
 
-  // reuse the same text as fallback life story overview
-  setTimelineSummary(fusionText);
-} else {
-  console.error("ai-dasha-transits failed", fusionRes.status, fusionJson);
+    setDashaTransitSummary(asStr);
+
+    // reuse as fallback life story overview
+    setTimelineSummary(asStr);
+  } else {
+    console.error("ai-dasha-transits failed", fusionRes.status, fusionJson);
+  }
+} catch (err) {
+  console.error("ai-dasha-transits error", err);
 }
-
-        } catch (err) {
-          console.error("ai-dasha-transits error", err);
-        }
 
         // 3) Monthly guidance (AI)
         try {
@@ -6971,86 +7320,55 @@ const TabFullPlan: React.FC<TabFullPlanProps> = ({
   notificationsPreview,
   dashaTimeline,
 }) => {
+   const isPreview = !isPro;
   if (!mounted) {
     return (
       <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-white/70">
         Loading Full Plan…
       </div>
+      
     );
   }
+ 
 
-  if (!isPro) {
-    return (
-      <div className="rounded-2xl border border-white/15 bg-indigo-950/40 p-5 backdrop-blur-md">
-        <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
-          Full Plan 🔒 (Pro)
-        </div>
-        <div className="mt-1 text-lg font-semibold text-slate-100">
-          Unlock Full Version
-        </div>
-        <div className="mt-2 text-sm text-white/70 leading-relaxed">
-          Get the reasons behind your alignment scores, timing windows, and a 3-day action runway.
-        </div>
-
-        <div className="mt-4 grid gap-3 md:grid-cols-3">
-          {["Why scores move", "Timing windows", "Daily action plan"].map((t) => (
-            <div
-              key={t}
-              className="rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-white/80"
-            >
-              {t}
-            </div>
-          ))}
-        </div>
-
-        <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div className="text-xs text-white/60">
-            Dev: set{" "}
-            <span className="text-white/80">
-              localStorage.sarathi_plan="pro"
-            </span>
-          </div>
-          <Button size="sm" className="w-full sm:w-auto">
-            Upgrade to Pro
-          </Button>
-        </div>
-      </div>
-    );
-  }
   // -------------------------
   // BLANK STATE: no report yet
   // -------------------------
   const r: any = report ?? null;
 
   const hasReport =
-    !!r &&
-    typeof r === "object" &&
-    // pick any 1–2 stable fields your report always has:
+  !!r &&
+  typeof r === "object" &&
+  (
     (Array.isArray(r?.planets) && r.planets.length > 0) ||
     (Array.isArray(r?.core?.houses) && r.core.houses.length > 0) ||
     !!r?.ascSign ||
-    !!r?.meta?.birthDateISO;
+    !!r?.meta?.birthDateISO
+  );
+
 
   if (!hasReport) {
-    return (
-      <div className="rounded-2xl border border-white/15 bg-white/5 p-5">
-        <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
-          Full plan
-        </div>
-        <div className="mt-1 text-lg font-semibold text-slate-100">
-          Enter birth details to generate your Full Plan
-        </div>
-        <div className="mt-2 text-sm text-white/70 leading-relaxed">
-          This section becomes personalized only after you generate your report.
-        </div>
-
-        <div className="mt-4 rounded-xl border border-white/10 bg-indigo-950/40 p-3 text-sm text-white/75">
-          Tip: Fill your birth details above and click{" "}
-          <span className="text-white/90 font-medium">Generate / Refresh Report</span>.
-        </div>
+  return (
+    <div className="rounded-2xl border border-white/15 bg-white/5 p-5">
+      <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+        Full plan
       </div>
-    );
-  }
+
+      <div className="mt-1 text-lg font-semibold text-slate-100">
+        Enter birth details to generate your Full Plan
+      </div>
+
+      <div className="mt-2 text-sm text-white/70 leading-relaxed">
+        This section becomes personalized only after you generate your report.
+      </div>
+
+      <div className="mt-4 rounded-xl border border-white/10 bg-indigo-950/40 p-3 text-sm text-white/75">
+        Tip: Fill your birth details above and click{" "}
+        <span className="text-white/90 font-medium">Generate / Refresh Report</span>.
+      </div>
+    </div>
+  );
+}
 
   
 const ap = r?.activePeriods as any;
@@ -7663,7 +7981,7 @@ const timing = (() => {
           {Array.isArray(timing.windows) && timing.windows.length ? (
             timing.windows.map((w: any) => {
               // Prefer w.why (new model), fallback to w.text (old model)
-              const whyLine = clean(w.why || w.text || "");
+              const whyLine = stripRepeats(String(w.why || w.text || "")).trim();
               return (
                 <div key={w.key} className="rounded-lg border border-white/10 bg-white/5 p-3">
                   <div className="flex items-start justify-between gap-3">
@@ -7972,47 +8290,32 @@ const timing = (() => {
             </summary>
 
             <div className="mt-4 grid gap-4 md:grid-cols-2">
-              {drivers.map((d) => (
-                <div key={d.key} className="rounded-2xl border border-white/15 bg-white/5 p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="text-xs font-semibold uppercase tracking-wide text-white/60">{d.key}</div>
-                    <div className="text-sm font-semibold text-slate-100">{Number(d.score)}</div>
-                  </div>
+  {(Array.isArray(timing?.windows) ? timing.windows : []).slice(0, 3).map((w: any, i: number) => (
+    <div key={w.key ?? i} className="rounded-xl border border-white/10 bg-white/5 p-4">
+      <div className="text-sm font-semibold text-slate-100">{w.label}</div>
 
-                  <div className="mt-2 text-sm text-white/80 leading-relaxed">
-                    {sentenceCase(trimToSentence(clean(d.why), 220))}
-                  </div>
+      <div className="mt-1 text-xs text-white/70">
+        {w.bestFor ? `Best for: ${w.bestFor}` : "Best for: —"}
+      </div>
 
-                  <div className="mt-3 rounded-xl border border-white/10 bg-white/5 p-3">
-                    <div className="text-[11px] font-semibold uppercase tracking-wide text-white/60">Evidence</div>
-                    <ul className="mt-2 list-disc pl-4 text-sm text-white/75 space-y-1">
-                      {(Array.isArray((d as any).evidence) && (d as any).evidence.length
-                        ? (d as any).evidence.slice(0, 3)
-                        : ["Evidence is being computed…"]
-                      ).map((x: string) => (
-                        <li key={x}>{sentenceCase(trimToSentence(clean(x), 140))}</li>
-                      ))}
-                    </ul>
-                  </div>
+      <div className="mt-2 rounded-lg border border-white/10 bg-white/5 p-3 text-sm text-white/80">
+        <span className="text-white/60 text-[11px] uppercase tracking-wide mr-2">One action</span>
+        {w.oneAction || "Pick one meaningful action and finish it."}
+      </div>
 
-                  <div className="mt-3 grid gap-3 md:grid-cols-2">
-                    <div className="rounded-xl border border-emerald-400/25 bg-emerald-500/10 p-3">
-                      <div className="text-xs font-semibold uppercase tracking-wide text-emerald-100/90">Do</div>
-                      <ul className="mt-2 list-disc pl-4 text-sm text-white/80 space-y-1">
-                        {d.do.map((x) => <li key={x}>{sentenceCase(trimToSentence(clean(x), 110))}</li>)}
-                      </ul>
-                    </div>
+      <div className="mt-2 text-xs text-white/60">
+        Avoid: {w.avoid || "Rushed commitments."}
+      </div>
+    </div>
+  ))}
 
-                    <div className="rounded-xl border border-red-400/20 bg-red-500/10 p-3">
-                      <div className="text-xs font-semibold uppercase tracking-wide text-red-100/90">Avoid</div>
-                      <ul className="mt-2 list-disc pl-4 text-sm text-white/80 space-y-1">
-                        {d.avoid.map((x) => <li key={x}>{sentenceCase(trimToSentence(clean(x), 110))}</li>)}
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+  {!timing?.windows?.length ? (
+    <div className="rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-white/70 md:col-span-2">
+      No windows available yet. Generate/refresh the report to compute timing windows.
+    </div>
+  ) : null}
+</div>
+
           </details>
         </>
       );

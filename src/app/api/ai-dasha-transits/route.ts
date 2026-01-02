@@ -1,8 +1,8 @@
 // FILE: src/app/api/ai-dasha-transits/route.ts
-export const runtime = "nodejs";
-
 import "server-only";
 import { NextResponse } from "next/server";
+
+export const runtime = "nodejs";
 
 type TransitWindow = {
   title?: string;
@@ -30,78 +30,117 @@ type ReqBody = {
   transits?: TransitWindow[];
 };
 
-function buildFallbackDashaTransits(
+function safeStr(v: any) {
+  return String(v ?? "").replace(/\s+/g, " ").trim();
+}
+
+function fmtWindow(t: TransitWindow) {
+  const label =
+    safeStr(t.title) ||
+    safeStr(`${t.planet ?? "Planet"} → ${t.target ?? ""}`) ||
+    "Transit window";
+
+  const when =
+    safeStr(t.startISO) && safeStr(t.endISO)
+      ? `${safeStr(t.startISO)} → ${safeStr(t.endISO)}`
+      : safeStr(t.startISO) || safeStr(t.endISO) || "Timing: soon";
+
+  const category = safeStr(t.category);
+  const strength =
+    typeof t.strength === "number" && isFinite(t.strength)
+      ? Math.max(0, Math.min(1, t.strength))
+      : undefined;
+
+  return {
+    label,
+    when,
+    category: category || undefined,
+    strength,
+  };
+}
+
+function buildStructuredDashaTransits(
   profile: ReqBody["profile"],
   mdad: MdAdInfo | null,
   transits: TransitWindow[]
-): string {
-  const name = (profile?.name || "you").trim() || "you";
+) {
+  const name = safeStr(profile?.name) || "you";
 
-  const md = mdad?.md?.planet || "";
-  const ad = mdad?.ad?.planet || "";
+  const md = safeStr(mdad?.md?.planet);
+  const ad = safeStr(mdad?.ad?.planet);
+
   const dashaLine =
     md && ad
-      ? `You are currently moving through a **${md} Mahadasha** with a **${ad} Antardasha** active.`
+      ? `Current cycle: ${md} MD + ${ad} AD`
       : md
-      ? `You are currently moving through a **${md} Mahadasha**.`
-      : `The current dasha period is about consolidating lessons and making steadier choices.`;
+      ? `Current cycle: ${md} MD`
+      : "Current cycle: steady consolidation + cleaner choices";
 
-  const bullets =
-    Array.isArray(transits) && transits.length
-      ? transits
-          .slice(0, 6)
-          .map((t) => {
-            const label = t.title || `${t.planet ?? "Planet"} → ${t.target ?? ""}`.trim();
-            const when =
-              t.startISO && t.endISO
-                ? `${t.startISO} → ${t.endISO}`
-                : t.startISO || t.endISO || "timing window";
-            const cat = t.category ? ` [${t.category}]` : "";
-            return `• ${label} (${when})${cat}`;
-          })
-          .join("\n")
-      : "• No specific transit windows were provided, so this stays general.";
+  // Sort “best” windows first if strength exists; otherwise keep order
+  const windows = (Array.isArray(transits) ? transits : [])
+    .map(fmtWindow)
+    .sort((a, b) => (b.strength ?? -1) - (a.strength ?? -1))
+    .slice(0, 6);
 
-  return [
-    `### How your current dasha + transits are working together for ${name}`,
-    ``,
-    `${dashaLine} This sets the *background storyline* for this phase of life – what life is asking you to learn, stabilise, or grow into.`,
-    ``,
-    `Looking at the key transit windows layered on top of this dasha, a few patterns stand out:`,
-    ``,
-    bullets,
-    ``,
-    `**Career & practical life:**`,
-    `During stronger windows, you may notice chances to push projects, negotiate better, or step into more responsibility. Use those windows to take intentional steps forward, not random risks.`,
-    ``,
-    `**Relationships & support system:**`,
-    `Some transits emphasise communication and emotional honesty. When you feel friction, treat it as a signal to slow down, listen better, and clarify needs rather than reacting from stress.`,
-    ``,
-    `**Inner growth & mindset:**`,
-    `Dasha + transits together push you to respond with more awareness. Notice when you feel rushed, anxious or over-excited—that is where Rahu/Saturn/Ketu-type energies are asking for grounding, simplicity and clear boundaries.`,
-    ``,
-    `**Next step:**`,
-    `Pick one upcoming window from the list above and decide *in advance* how you want to use it—career push, honest conversation, or inner reset. When the window arrives, act with calm, not compulsion.`,
-  ].join("\n");
+  // Compact “patterns” (these are still fallback, but crisp)
+  const patterns = [
+    {
+      title: "Career & direction",
+      text:
+        "Use stronger windows for one meaningful push (project, negotiation, responsibility). Avoid random risks.",
+    },
+    {
+      title: "Relationships & support",
+      text:
+        "Choose clarity over reaction. If friction shows up, slow down and tighten communication.",
+    },
+    {
+      title: "Inner stability",
+      text:
+        "When you feel rushed or edgy, simplify. One priority. One grounded action.",
+    },
+  ];
+
+  const nextStep =
+    windows.length > 0
+      ? "Pick ONE upcoming window and decide in advance how you’ll use it (push / clarify / reset)."
+      : "Pick ONE area to simplify this week (work, health, relationships) and apply steady effort.";
+
+  return {
+    headline: `Past • Present • Upcoming — ${name}`,
+    dashaLine,
+    windows,
+    patterns,
+    nextStep,
+    source: "fallback_rules", // important: tells UI this is not GPT
+  };
 }
 
 export async function POST(req: Request) {
   try {
     const body = (await req.json().catch(() => ({}))) as ReqBody;
+
     const profile = body.profile ?? {};
     const mdad = body.mdad ?? null;
     const transits = Array.isArray(body.transits) ? body.transits : [];
 
-    const text = buildFallbackDashaTransits(profile, mdad, transits);
+    const structured = buildStructuredDashaTransits(profile, mdad, transits);
 
-    return NextResponse.json({ text }, { status: 200 });
+    return NextResponse.json(structured, { status: 200 });
   } catch (e) {
     console.error("[api/ai-dasha-transits] error", e);
-    // absolute last-resort fallback
     return NextResponse.json(
       {
-        text:
-          "This phase combines your current dasha with active transit windows, asking for steadier, more conscious choices in work, relationships and daily habits.",
+        headline: "Past • Present • Upcoming",
+        dashaLine: "Current cycle: steady consolidation + cleaner choices",
+        windows: [],
+        patterns: [
+          { title: "Career & direction", text: "Make one steady move; avoid impulsive leaps." },
+          { title: "Relationships & support", text: "Communicate clearly; don’t react fast." },
+          { title: "Inner stability", text: "Simplify: one priority, one grounded action." },
+        ],
+        nextStep: "Pick one area to simplify this week and apply steady effort.",
+        source: "fallback_rules",
       },
       { status: 200 }
     );
