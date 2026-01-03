@@ -102,16 +102,6 @@ export default function SarathiHome() {
               </span>
             </div>
 
-            <div className="mt-6 flex flex-wrap gap-2">
-              {["About", "My Story", "Why Sārathi", "FAQs"].map((t) => (
-                <span
-                  key={t}
-                  className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/70"
-                >
-                  {t}
-                </span>
-              ))}
-            </div>
           </div>
 
           {/* Right: "What you get in minutes" card */}
@@ -414,7 +404,7 @@ export default function SarathiHome() {
               <Link className="hover:text-white" href="/sarathi/about">
                 About
               </Link>
-              <Link className="hover:text-white" href="/sarathi/faqs">
+              <Link className="hover:text-white" href="/faqs">
                 FAQs
               </Link>
               <Link className="hover:text-white" href="/sarathi/privacy">
