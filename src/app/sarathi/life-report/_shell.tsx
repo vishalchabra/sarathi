@@ -1103,6 +1103,12 @@ function normalizeDateToISO(input: string): string {
 
   return s; // fallback (won't crash)
 }
+function cap1(s: any) {
+  const t = String(s ?? "").trim();
+  if (!t) return "";
+  return t.charAt(0).toUpperCase() + t.slice(1);
+}
+
 function cleanText(input: string): string {
   if (!input) return "";
 
@@ -1388,6 +1394,68 @@ function stripNakshatraClaims(s: string) {
 
 
 /* ---------------- Monthly highlights helper (client-side) ---------------- */
+function cleanMoodText(mood: string, moodText: string) {
+  const m = String(mood || "").trim().toLowerCase();
+  let t = String(moodText || "").trim();
+
+  // remove leading "Balanced..." / "Uplifting..." etc
+  const leading = new RegExp(`^\\s*${m}\\s*(and\\s+[a-z]+)?\\s*[-—:]*\\s*`, "i");
+  t = t.replace(leading, "");
+
+  // also remove common repeated phrases
+  t = t.replace(/^balanced and practical\s*[-—:]*\s*/i, "");
+  t = t.replace(/^neutral mood\s*[-—:]*\s*/i, "");
+
+  return t.trim();
+}
+function hashToIndex(key: string, mod: number) {
+  let h = 0;
+  for (let i = 0; i < key.length; i++) {
+    h = (h * 31 + key.charCodeAt(i)) >>> 0;
+  }
+  return mod ? h % mod : 0;
+}
+function pick<T>(arr: T[], idx: number) {
+  return arr[idx % arr.length];
+}
+function pickKey<T>(arr: T[], key: string) {
+  const idx = hashToIndex(String(key ?? ""), arr.length);
+  return pick(arr, idx);
+}
+
+function dailyFlavorExtras(key: string) {
+  const colors = [
+    "Blue",
+    "Green",
+    "Yellow",
+    "White",
+    "Light Pink",
+    "Sky Blue",
+    "Earthy Brown",
+    "Soft Orange",
+  ];
+
+  const times = [
+    "Early morning",
+    "Mid-morning",
+    "Late morning",
+    "Early afternoon",
+    "Mid-afternoon",
+    "Early evening",
+    "Late evening",
+  ];
+
+  return {
+    color: pickKey(colors, key),
+    luckyNumber: (hashToIndex(key, 9) + 1),
+    bestTime: pickKey(times, key + "::time"),
+  };
+}
+
+function pickDifferent<T>(arr: T[], idx: number, avoid: string) {
+  const a = arr.filter((x) => String(x).toLowerCase() !== String(avoid).toLowerCase());
+  return pick(a.length ? a : arr, idx);
+}
 
 type MonthlyHighlight = { label: string; text: string };
 
@@ -1589,6 +1657,362 @@ function shortCategoryLabel(
       return "your general life direction";
   }
 }
+function hashStr(s: string) {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return Math.abs(h);
+}
+
+function pick2<T>(arr: T[], key: string) {
+  if (!arr.length) return arr[0] as any;
+  const idx = hashStr(key) % arr.length;
+  return arr[idx];
+}
+
+function normFocus2(focus: string) {
+  const x = (focus || "").toLowerCase();
+  if (x.includes("relationship")) return "relationships";
+  if (x.includes("career")) return "career";
+  if (x.includes("health")) return "health";
+  if (x.includes("inner")) return "inner";
+  return "general";
+}
+
+function inferMoodFromMoonFrom(moonFrom: number | null) {
+  // classic intensity houses (private logic; we never show the number)
+  if (moonFrom === 6 || moonFrom === 8 || moonFrom === 12) return "heavy";
+  if (moonFrom === 1 || moonFrom === 5 || moonFrom === 9) return "uplifting";
+  if (moonFrom === 3 || moonFrom === 11) return "social";
+  if (moonFrom === 2 || moonFrom === 10) return "focused";
+  return "balanced";
+}
+
+function buildMoodLineText(mood: string, key: string) {
+  const m = String(mood || "balanced").toLowerCase();
+
+  const pools: Record<string, string[]> = {
+    balanced: [
+      "A steady, normal-feeling day — you’ll do best with a simple, clean plan.",
+      "Your mood is stable today. Small wins will feel surprisingly satisfying.",
+      "Nothing dramatic emotionally — the day rewards consistency over intensity.",
+      "You’ll feel most grounded when you keep things practical and uncluttered.",
+      "Steady inner weather. If you keep the pace calm, the day stays smooth.",
+      "Emotionally even — you can get a lot done without overthinking it.",
+      "Balanced tone today. Decisions feel easier when you keep them simple.",
+      "Quietly productive energy — one clean action unlocks the next.",
+    ],
+
+    uplifting: [
+      "Lighter mood today — you may feel more hopeful and open than usual.",
+      "You’ll feel encouraged today. Use that momentum for one meaningful step.",
+      "A slightly brighter inner tone — conversations can flow more easily.",
+      "Good emotional lift today. Don’t waste it on small irritations.",
+      "You may feel more confident today — act on one thing you’ve been delaying.",
+      "It’s easier to stay positive. Keep the day moving and don’t overanalyze.",
+      "Warm, upbeat energy — people respond well when you keep it simple.",
+      "A nice emotional tailwind — do one thing that makes you proud.",
+    ],
+
+    heavy: [
+      "Sensitive day — you may take things personally. Slow down your reactions.",
+      "Emotions may feel louder today. Give yourself space before you respond.",
+      "A heavier inner tone — don’t force big decisions. Keep it gentle.",
+      "You may feel more reactive. Protect your peace with fewer conversations.",
+      "Emotionally dense day — do less, but do it with care and calm.",
+      "If something stings today, pause. Don’t reply in the first wave.",
+      "You might feel low tolerance. Keep your circle small and your tasks simple.",
+      "More sensitive than usual — softness and pacing will help a lot.",
+    ],
+
+    restless: [
+      "Restless energy today — attention can jump. Keep tasks small and clear.",
+      "Your mind may race a bit. Short sprints work better than long pushes.",
+      "You may feel impatient. Don’t multitask — it will scatter the day.",
+      "Busy inner buzz — write the next step down so you don’t spin.",
+      "A little restless today. Movement helps you settle quickly.",
+      "If you feel pulled in many directions, pick one lane and stay there.",
+      "Your attention may wander — simplify your to-do list on purpose.",
+      "Fast mental energy — channel it into one finish, not many starts.",
+    ],
+
+    clear: [
+      "Clear-headed day — you’ll see what matters quickly. Keep it decisive.",
+      "Mentally sharp today. One clean decision can remove a lot of noise.",
+      "Clarity is available — do the thing you’ve been avoiding.",
+      "You’ll think more cleanly today. Don’t dilute it with distractions.",
+      "Good mental clarity — you can solve a problem faster than expected.",
+      "It’s easier to stay objective today. Use it to close something pending.",
+      "Clear mind, steady hands — a great day for tidy execution.",
+      "You’ll feel more certain today. Take one direct step forward.",
+    ],
+
+    introspective: [
+      "Inward day — you may want quiet. Don’t over-socialize if it drains you.",
+      "More reflective mood — journaling or a short walk will feel grounding.",
+      "You may feel inward. Keep conversations fewer, but more meaningful.",
+      "A thoughtful day — clarity comes after you sit with it for a moment.",
+      "Inner processing day — don’t rush your feelings; name them, then act.",
+      "You may prefer solitude today. That’s fine — protect that space.",
+      "Quiet inner tone — one small grounding routine will help a lot.",
+      "Reflective energy — don’t force speed; let the day unfold calmly.",
+    ],
+  };
+
+  const fallback = pools.balanced;
+  const arr = pools[m] || fallback;
+
+  // rotate by date/key so it doesn't repeat every day
+  return pickKey(arr, key + "::mood");
+}
+
+
+function transitFlavorFromFacts(facts: string[]) {
+  // We DO NOT show these strings — only use them to vary output.
+  const s = facts.join(" | ").toLowerCase();
+
+  if (s.includes("strongest transit: venus")) return "venus";
+  if (s.includes("strongest transit: mars")) return "mars";
+  if (s.includes("strongest transit: saturn")) return "saturn";
+  if (s.includes("strongest transit: jupiter")) return "jupiter";
+  if (s.includes("strongest transit: mercury")) return "mercury";
+  if (s.includes("strongest transit: rahu") || s.includes("strongest transit: ketu")) return "nodes";
+
+  return "generic";
+}
+
+function guidanceLine(focus: string, mood: string, flavor: string, key: string) {
+  const pools: Record<string, string[]> = {
+    relationships: [
+      "Choose warmth over precision. One clear conversation beats ten half-replies.",
+      "Ask one direct question instead of assuming the answer.",
+      "If something feels off, pause — then speak calmly and clearly.",
+    ],
+    career: [
+      "Structure wins today. Finish one thing completely before starting another.",
+      "Do the hard thing first — the rest becomes easy.",
+      "Clean execution beats big planning. Ship one small output.",
+    ],
+    health: [
+      "Protect energy. Keep routine clean, meals lighter, and sleep respected.",
+      "Move a little, hydrate, and avoid overstimulation.",
+      "Don’t push intensity — consistency is the win today.",
+    ],
+    inner: [
+      "Name one emotion, then take one small grounded action.",
+      "If your mind loops, write it down once and return to the next step.",
+      "Quiet progress is progress — don’t force clarity.",
+    ],
+    general: [
+      "Keep it simple: one priority, one clean action.",
+      "Choose the smallest useful step and do it fully.",
+      "Reduce noise. Do less, but do it properly.",
+    ],
+  };
+
+  // Add a small overlay based on “flavor”
+  const overlay: Record<string, string[]> = {
+    venus: [
+      "Make things smoother: fix tone, aesthetics, or harmony in one place.",
+      "Choose diplomacy. A softer approach gets better results.",
+      "Nudge life toward balance — don’t push.",
+    ],
+    mars: [
+      "Channel urgency into one controlled task — avoid sharp reactions.",
+      "Act, but don’t explode. Precision beats force.",
+      "Cut one problem at the root instead of fighting everything.",
+    ],
+    saturn: [
+      "Do the responsible thing first. Discipline is your advantage today.",
+      "Simplify and follow the process. Consistency wins.",
+      "Avoid shortcuts — do it cleanly once.",
+    ],
+    jupiter: [
+      "Think long-term. Make one wise decision you’ll respect later.",
+      "Good day to learn, plan, or mentor — keep ego out.",
+      "Choose meaning over speed.",
+    ],
+    mercury: [
+      "Communicate clearly: shorter messages, sharper intent.",
+      "Double-check details. One mistake can create extra work.",
+      "Have one focused conversation; don’t multitask talk.",
+    ],
+    nodes: [
+      "Keep choices simple — avoid extremes and overthinking.",
+      "If something feels obsessive, step back and reset.",
+      "Don’t chase noise. Stick to what matters.",
+    ],
+    generic: ["", "", ""],
+  };
+
+const basePool = pools[focus] || pools.general;
+const addPool = overlay[flavor] || overlay.generic;
+
+const base = pickKey(basePool, key + "::base");
+const add = pickKey(addPool, key + "::overlay");
+
+  return add ? `${base} ${add}` : base;
+}
+// Deterministic "pick" from an array using a string key
+function pickKeyed<T>(arr: T[], key: string): T {
+  if (!arr.length) throw new Error("pickKeyed: empty array");
+  let h = 0;
+  for (let i = 0; i < key.length; i++) {
+    h = (h * 31 + key.charCodeAt(i)) >>> 0; // uint32 hash
+  }
+  return arr[h % arr.length];
+}
+
+// Pick 2 distinct items deterministically
+function pick2Keyed(arr: string[], key: string): [string, string] {
+  const first = pickKeyed(arr, key + "::1");
+  const rest = arr.filter((x) => x !== first);
+  const second = pickKeyed(rest.length ? rest : arr, key + "::2");
+  return [first, second];
+}
+
+// Normalizes focus flags so includes() works reliably
+function normFocus(focus: any) {
+  const f = String(focus ?? "").toLowerCase();
+  return {
+    rel: f.includes("relationships"),
+    career: f.includes("career"),
+    health: f.includes("health"),
+    inner: f.includes("inner"),
+  };
+}
+function isGenericMoodText(s: string) {
+  const t = String(s || "").trim().toLowerCase();
+  if (!t) return true;
+
+  // Known generic / repetitive lines (add more if you see them)
+  const GENERIC = [
+    "even-paced day — small improvements compound.",
+    "steady effort wins today.",
+    "keep it clean and consistent.",
+    "balanced and practical.",
+    "neutral mood — keep it clean and consistent.",
+  ];
+
+  if (GENERIC.includes(t)) return true;
+
+  // Also treat super-short or low-signal lines as generic
+  if (t.length < 18) return true;
+
+  return false;
+}
+
+
+export function doAvoidLists(focus: string, mood: string, key: string) {
+  const DO_REL = [
+    "Listen fully before replying",
+    "Speak calmly and directly",
+    "Send one thoughtful message",
+    "Clarify one misunderstanding early",
+  ];
+  const AVOID_REL = [
+    "Reacting instantly",
+    "Assuming intentions",
+    "Passive aggression",
+    "Overexplaining",
+  ];
+
+  const DO_CAREER = [
+    "Close one pending task",
+    "Send one clear update / follow-up",
+    "Write a short next-step list",
+    "Finish what you start",
+  ];
+  const AVOID_CAREER = [
+    "Multitasking",
+    "Starting new distractions",
+    "Overpromising",
+    "Rushing without checking",
+  ];
+
+  const DO_HEALTH = [
+    "10–20 minutes movement",
+    "Hydrate + lighter meals",
+    "Early night / low screens",
+    "A short walk after meals",
+  ];
+  const AVOID_HEALTH = [
+    "Skipping sleep",
+    "Overdoing stimulation",
+    "Heavy late meals",
+    "Too much caffeine",
+  ];
+
+  const DO_INNER = [
+    "Write down 1 worry, then 1 next step",
+    "Do one grounding task (walk / tidy / shower)",
+    "Breathe 2 minutes before decisions",
+    "Reduce inputs (noise / scrolling)",
+  ];
+  const AVOID_INNER = [
+    "Doom-scrolling",
+    "Reading too much into small things",
+    "Replaying old conversations",
+    "Decision-making when emotional",
+  ];
+
+  const DO_GEN = [
+    "Finish one small pending thing",
+    "Keep your plan simple",
+    "Do one thing properly",
+    "Slow down your pace",
+  ];
+  const AVOID_GEN = [
+    "Overthinking",
+    "Trying to do too much",
+    "Reacting from urgency",
+    "Scattered attention",
+  ];
+
+  // Mood bias: if heavy/restless, prefer calming actions
+  const m = (mood || "").toLowerCase();
+  const CALM_DO = ["Pause before replying", "Keep things simple", "Take a short walk", "Breathe slowly for 2 minutes"];
+  const CALM_AVOID = ["Escalating quickly", "Overloading your schedule", "Making big decisions emotionally", "Too much stimulation"];
+
+  const flags = normFocus(focus);
+
+  let doPool = flags.rel
+    ? DO_REL
+    : flags.career
+    ? DO_CAREER
+    : flags.health
+    ? DO_HEALTH
+    : flags.inner
+    ? DO_INNER
+    : DO_GEN;
+
+  let avoidPool = flags.rel
+    ? AVOID_REL
+    : flags.career
+    ? AVOID_CAREER
+    : flags.health
+    ? AVOID_HEALTH
+    : flags.inner
+    ? AVOID_INNER
+    : AVOID_GEN;
+
+  // If mood is "heavy" or "restless", blend in calming options
+  if (m.includes("heavy") || m.includes("restless") || m.includes("sensitive")) {
+    doPool = [...doPool, ...CALM_DO];
+    avoidPool = [...avoidPool, ...CALM_AVOID];
+  }
+
+  const [d1, d2] = pick2Keyed(doPool, key + "::do");
+  const [a1, a2] = pick2Keyed(avoidPool, key + "::avoid");
+
+  return {
+    do: [d1, d2],
+    avoid: [a1, a2],
+  };
+}
+
 
 function chooseStrongTransitForDay(
   dateISO: string,
@@ -1785,6 +2209,19 @@ function decodeJsonString(s: string) {
     return s;
   }
 }
+function hideMathyDailyEvidence(raw: string) {
+  const s = String(raw ?? "");
+
+  // Remove common “evidence” prefixes if the AI echoes them
+  return s
+    .replace(/Transit Moon nakshatra:\s*[^.]+\.?\s*/gi, "")
+    .replace(/Transit Moon is\s*\d+\s*from natal Moon\.?\s*/gi, "")
+    .replace(/Strongest transit:\s*[^.]+\.?\s*/gi, "")
+    .replace(/Transit strength:\s*\d+%\.?\s*/gi, "")
+    .replace(/Focus area:\s*[^.]+\.?\s*/gi, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
 
 function extractTimelineText(raw: any): string {
   const t = String(raw ?? "").trim();
@@ -1978,6 +2415,149 @@ function toShortBullets(narrative: string) {
 }
 
 // ---------------- Daily highlights helper (client-side) ----------------
+function relatableMoodText(mood: string, key: string) {
+  const m = String(mood || "balanced").toLowerCase();
+  const lines: Record<string, string[]> = {
+    uplifting: [
+      "You’ll feel lighter and more open today — things don’t feel as heavy.",
+      "Confidence is easier to access today. You’ll want to move forward.",
+      "Mood lifts when you keep things simple — don’t overcomplicate it.",
+    ],
+    heavy: [
+      "You may feel more sensitive than usual — small things can feel bigger.",
+      "Emotions may run closer to the surface today. Give yourself space.",
+      "If you feel irritated, it’s likely overstimulation — slow down your pace.",
+    ],
+    restless: [
+      "Your mind may jump between tasks — focus will need intention.",
+      "You might feel impatient today. Reduce distractions and keep it clean.",
+      "Restlessness fades when you commit to one thing at a time.",
+    ],
+    introspective: [
+      "You’ll want quiet and fewer people today — protect your mental space.",
+      "You may reflect more than usual. Don’t force answers — observe.",
+      "Good day for inner clarity — choose depth over noise.",
+    ],
+    clear: [
+      "You’ll feel clear-headed — decisions become simpler today.",
+      "Good day to organize thoughts and act with precision.",
+      "Clarity grows when you do one thing properly from start to finish.",
+    ],
+    balanced: [
+      "Even-paced day — nothing extreme, but small wins compound.",
+      "Steady mood today. You’ll do best with a simple, clean plan.",
+      "Neutral energy — consistency will carry you.",
+    ],
+  };
+
+  const pool = lines[m] || lines.balanced;
+  return pickKey(pool, key + "::mood");
+}
+
+function relatableGuidanceText(focusLower: string, mood: string, flavor: string, key: string) {
+  const f = String(focusLower || "").toLowerCase();
+  const m = String(mood || "balanced").toLowerCase();
+
+  // Relationship style
+  const rel = [
+    "Today you may notice you’re reading people more deeply — don’t assume, ask.",
+    "If something feels off, say it softly. Clarity beats silent overthinking.",
+    "One calm message can change the whole day. Keep it simple and kind.",
+    "If you feel reactive, pause 3 seconds before replying — it prevents regret.",
+  ];
+
+  // Career style
+  const career = [
+    "You’ll feel better after completing one task fully — finish something end-to-end.",
+    "Don’t try to do everything. Pick the hardest thing first and close it cleanly.",
+    "A short update to the right person will unblock your day — send it early.",
+    "Avoid scattered effort today. One finished task beats five started.",
+  ];
+
+  // Health style
+  const health = [
+    "Your body will ask for simplicity today — lighter food, more water, less noise.",
+    "Energy improves fast if you move a bit. Even a short walk resets you.",
+    "If you feel tired, don’t push harder — reduce stimulation and pace yourself.",
+    "Keep the day gentle. Your system responds better to calm routines today.",
+  ];
+
+  // Inner style
+  const inner = [
+    "You may feel thoughts looping today — name one worry, then take one small action.",
+    "If you feel stuck, do something physical (walk / tidy / shower) — it clears the mind.",
+    "Don’t chase certainty today. One grounded step is enough.",
+    "If emotions rise, pause, breathe, then act. Clarity comes after the pause.",
+  ];
+
+  const general = [
+    "Keep it simple today: one priority, one clean action — you’ll feel more in control.",
+    "Small improvements compound today. Do one thing properly and stop.",
+    "If you feel pulled in many directions, choose one lane and stay there.",
+    "Steady day — don’t rush. Nudge things forward gently and consistently.",
+  ];
+
+  const pool =
+    f.includes("relationships") ? rel :
+    f.includes("career") ? career :
+    f.includes("health") ? health :
+    f.includes("inner") ? inner :
+    general;
+
+  // small overlay if transit flavor suggests pressure
+  const overlays: Record<string, string[]> = {
+    intense: [
+      "If pressure builds, reduce talking and increase action.",
+      "Strong day — avoid impulsive decisions. Slow is smart.",
+    ],
+    soft: [
+      "Soft day — warmth works better than force.",
+      "Gentle tone wins today — let things unfold naturally.",
+    ],
+    generic: [""],
+  };
+
+  const base = pickKey(pool, key + "::guide");
+  const add = pickKey(overlays[flavor] || overlays.generic, key + "::overlay");
+  return add ? `${base} ${add}` : base;
+}
+
+function inferMoodFromFacts(facts: string[], confidence: "high" | "medium" | "low") {
+  const focusRaw =
+    facts.find((x) => x.toLowerCase().includes("focus area:")) || "";
+  const focus = focusRaw.split(":").slice(1).join(":").trim().toLowerCase();
+
+  const strengthRaw =
+    facts.find((x) => x.toLowerCase().includes("transit strength:")) || "";
+  const pct = Number((strengthRaw.match(/(\d+)%/) || [])[1] || 0);
+
+  // Simple, user-friendly emotional weather rules
+  if (pct >= 75) {
+    if (focus.includes("relationships"))
+      return { mood: "Emotionally charged", moodText: "You may feel reactive or extra sensitive — respond slowly." };
+    if (focus.includes("career"))
+      return { mood: "Intense but productive", moodText: "Pressure is higher, but you can make real progress." };
+    if (focus.includes("health"))
+      return { mood: "Body-first day", moodText: "Energy fluctuates — keep routine clean and steady." };
+    return { mood: "High signal day", moodText: "You’ll feel the day strongly — keep choices simple and conscious." };
+  }
+
+  if (pct >= 55) {
+    if (focus.includes("relationships"))
+      return { mood: "Warm + social", moodText: "Good for conversations — clarity comes from listening first." };
+    if (focus.includes("career"))
+      return { mood: "Focused", moodText: "A steady, get-things-done mood — avoid distractions." };
+    if (focus.includes("health"))
+      return { mood: "Resetting", moodText: "Good for cleanup habits — small improvements help a lot." };
+    return { mood: "Balanced", moodText: "Not heavy, not flat — best used for simple wins." };
+  }
+
+  // low strength / low signal days
+  if (confidence === "low")
+    return { mood: "Low signal", moodText: "Nothing major — keep it light and avoid overthinking." };
+
+  return { mood: "Calm", moodText: "A quieter day emotionally — perfect for consistency." };
+}
 
 type DailyHighlight = { dateISO: string; text: string; doLine?: string; dontLine?: string };
 
@@ -3129,8 +3709,9 @@ const TabTransits: React.FC<TabTransitsProps> = memo(
               Today &amp; next few days
             </CardTitle>
             <div className="text-xs text-white/70">
-              Short, practical highlights. No heavy technical dump.
-            </div>
+  Personalized from your natal Moon + current transits. 
+</div>
+
           </CardHeader>
 
           <CardContent className="space-y-3">
@@ -3178,13 +3759,29 @@ const TabTransits: React.FC<TabTransitsProps> = memo(
 
       // --- text pipeline ---
       const rawText = String((d as any)?.text ?? "");
+const moodText = String((d as any)?.moodText ?? "").trim();
+const mood = String((d as any)?.mood ?? "").trim();
 
-      // 1) remove any wrong “Moon in XYZ” claims (AI hallucinations)
-      // 2) normalize + de-duplicate repetitive endings via idx rotation
-      const finalLine = normalizeHighlightText(
-        stripNakshatraClaims(rawText),
-        idx
-      );
+const headline = String((d as any)?.headline ?? "").trim();
+const conf = String((d as any)?.confidence ?? "").trim(); // "high" | "medium" | "low"
+const doList = Array.isArray((d as any)?.do) ? (d as any).do : [];
+const avoidList = Array.isArray((d as any)?.avoid) ? (d as any).avoid : [];
+
+// Keep your safety cleanup for any AI text
+// ✅ If text already contains moodText, remove it to avoid repetition
+const textNoMood = moodText ? rawText.replace(moodText, "").trim() : rawText;
+const finalLine = normalizeHighlightText(stripNakshatraClaims(textNoMood), idx);
+
+
+const confLabel =
+  conf === "high" ? "High" : conf === "low" ? "Low" : "Medium";
+
+const confClass =
+  conf === "high"
+    ? "border-emerald-400/25 bg-emerald-500/10 text-emerald-200"
+    : conf === "low"
+    ? "border-amber-400/25 bg-amber-500/10 text-amber-200"
+    : "border-indigo-400/25 bg-indigo-500/10 text-indigo-200";
 
       return (
         <div
@@ -3202,28 +3799,155 @@ const TabTransits: React.FC<TabTransitsProps> = memo(
               )}
             </div>
 
-            <span className="inline-flex items-center gap-1 rounded-full border border-indigo-400/20 bg-indigo-500/10 px-2 py-0.5 text-[11px] font-semibold text-indigo-200">
-              Next few days
-            </span>
+           <span
+  className={
+    "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold " +
+    confClass
+  }
+>
+  Confidence: {confLabel}
+</span>
+
           </div>
 
-          {/* Main message */}
-          <div className="mt-3 text-sm leading-relaxed text-slate-200 whitespace-pre-wrap">
-            {finalLine || "—"}
-          </div>
+ {/* Emotional weather + guidance (deduped) */}
+{(() => {
+  const mood = String((d as any)?.mood ?? "").trim();
+  const moodTextRaw = String((d as any)?.moodText ?? "").trim();
+  const moodText = cleanMoodText(mood, moodTextRaw);
+
+  // If moodText became too short / redundant, don't show it.
+  const redundant =
+    !moodText ||
+    moodText.toLowerCase() === mood.toLowerCase() ||
+    moodText.toLowerCase().startsWith(mood.toLowerCase());
+
+  // Build guidance-only text:
+  // - start from d.text
+  // - remove moodTextRaw / moodText if they are embedded
+  // - remove leading "mood:" prefix if present
+  const raw = String((d as any)?.text ?? "");
+  let guidance = raw;
+
+  if (moodTextRaw) guidance = guidance.replace(moodTextRaw, "").trim();
+  if (moodText) guidance = guidance.replace(moodText, "").trim();
+
+  if (mood) {
+    const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const re = new RegExp("^\\s*" + esc(mood) + "[\\s:–—-]*", "i");
+    guidance = guidance.replace(re, "").trim();
+  }
+
+  guidance = cleanText(guidance).trim();
+
+  return (
+    <>
+      {(() => {
+  const moodRaw = String((d as any)?.mood ?? "").trim();
+  const moodLabel = moodRaw
+    ? moodRaw.charAt(0).toUpperCase() + moodRaw.slice(1)
+    : "";
+
+  return moodLabel ? (
+    <div className="mt-3 text-sm font-semibold text-slate-100">
+      {moodLabel}
+    </div>
+  ) : null;
+})()}
+
+
+
+      {!redundant && (
+        <div className="mt-1 text-xs text-white/70">
+          {moodText}
+        </div>
+      )}
+
+      {/* Main guidance (now deduped) */}
+      <div className="mt-3 text-sm leading-relaxed text-slate-200 whitespace-pre-wrap">
+        {guidance || "—"}
+      </div>
+    </>
+  );
+})()}
+
+
+{/* Theme (tiny) */}
+{(d as any)?.theme && (
+  <div className="mt-1 text-[11px] text-white/55">
+    Theme: {cleanText(String((d as any).theme))}
+  </div>
+)}
+
 
           {/* Footer tags */}
-          <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] text-white/60">
-            <span className="rounded-md border border-white/10 bg-white/5 px-2 py-0.5">
-              Priority: 1 thing
-            </span>
-            <span className="rounded-md border border-white/10 bg-white/5 px-2 py-0.5">
-              Action: 1 step
-            </span>
-            <span className="rounded-md border border-white/10 bg-white/5 px-2 py-0.5">
-              Avoid overthinking
-            </span>
-          </div>
+          {(doList.length > 0 || avoidList.length > 0) && (
+  <div className="mt-3 grid gap-3 md:grid-cols-2">
+    {doList.length > 0 && (
+      <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+        <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/60">
+          Do
+        </div>
+        <ul className="mt-2 space-y-1 text-[12px] text-slate-200">
+          {doList.slice(0, 3).map((x: string, i: number) => (
+            <li key={i}>• {cleanText(String(x))}</li>
+          ))}
+        </ul>
+      </div>
+    )}
+
+    {avoidList.length > 0 && (
+      <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+        <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/60">
+          Avoid
+        </div>
+        <ul className="mt-2 space-y-1 text-[12px] text-slate-200">
+          {avoidList.slice(0, 3).map((x: string, i: number) => (
+            <li key={i}>• {cleanText(String(x))}</li>
+          ))}
+        </ul>
+      </div>
+    )}
+  </div>
+)}
+{/* Daily extras */}
+{((d as any)?.color || (d as any)?.luckyNumber || (d as any)?.bestTime) && (
+  <div className="mt-4 grid grid-cols-3 gap-3 text-center">
+    {(d as any)?.color && (
+      <div className="rounded-lg border border-white/10 bg-white/5 p-2">
+        <div className="text-[11px] uppercase tracking-wide text-white/50">
+          Color
+        </div>
+        <div className="mt-1 text-sm font-semibold text-slate-100">
+          {(d as any).color}
+        </div>
+      </div>
+    )}
+
+    {(d as any)?.luckyNumber && (
+      <div className="rounded-lg border border-white/10 bg-white/5 p-2">
+        <div className="text-[11px] uppercase tracking-wide text-white/50">
+          Lucky No.
+        </div>
+        <div className="mt-1 text-sm font-semibold text-slate-100">
+          {(d as any).luckyNumber}
+        </div>
+      </div>
+    )}
+
+    {(d as any)?.bestTime && (
+      <div className="rounded-lg border border-white/10 bg-white/5 p-2">
+        <div className="text-[11px] uppercase tracking-wide text-white/50">
+          Best Time
+        </div>
+        <div className="mt-1 text-sm font-semibold text-slate-100">
+          {(d as any).bestTime}
+        </div>
+      </div>
+    )}
+  </div>
+)}
+
         </div>
       );
     })}
@@ -4584,7 +5308,25 @@ useEffect(() => {
   const [weeklyLoading, setWeeklyLoading] = useState(false);
   const [weeklyError, setWeeklyError] = useState<string | null>(null);
 
-      type DailyHighlightLocal = { dateISO: string; text: string };
+      type DailyHighlightLocal = {
+  dateISO: string;
+  headline?: string;
+  mood?: string;        // short: “Uplifting”, “Emotionally heavy”, etc.
+  moodText?: string;    // one-line description of how it feels
+  text: string;
+  color?: string;
+luckyNumber?: number;
+bestTime?: string;
+  // optional bullets
+  do?: string[];
+  avoid?: string[];
+  confidence?: "high" | "medium" | "low";
+  facts?: string[];
+};
+
+
+
+
   const [dailyHighlights, setDailyHighlights] = useState<DailyHighlightLocal[]>([]);
   const [dailyLoading, setDailyLoading] = useState<boolean>(false);
   const [dailyError, setDailyError] = useState<string | null>(null);
@@ -5414,282 +6156,540 @@ if (Array.isArray(next.dashaTimeline) && next.dashaTimeline.length > 0) {
     const pd =
       mainDasha?.pd ?? (mainDasha as any)?.pratyantardasha ?? null;
 
-        // ---------- 4) TRANSITS + AI LAYERS ----------
-    const loadTransitsAndInsights = async () => {
-      try {
-        setTransitsLoading(true);
-        setTransitsError(null);
+    // ---------- 4) TRANSITS + AI LAYERS ----------
+const loadTransitsAndInsights = async () => {
+  try {
+    setTransitsLoading(true);
+    setTransitsError(null);
 
-        // birth object for transits API
-        const birth = {
-          dateISO: next.birthDateISO,
-          time: next.birthTime,
-          tz: next.birthTz,
-          lat: next.birthLat ?? payload.lat,
-          lon: next.birthLon ?? payload.lon,
-        };
+    const birth = {
+      dateISO: next.birthDateISO,
+      time: next.birthTime,
+      tz: next.birthTz,
+      lat: next.birthLat ?? payload.lat,
+      lon: next.birthLon ?? payload.lon,
+    };
 
-        const tRes = await fetch("/api/transits", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            birth,
-            horizonDays: 365,
-          }),
-        });
+    const tRes = await fetch("/api/transits", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ birth, horizonDays: 365 }),
+    });
 
-        const tJson = await tRes.json().catch(() => ({} as any));
+    const tJson = await tRes.json().catch(() => ({} as any));
 
-        if (!tRes.ok || !Array.isArray(tJson?.transits)) {
-          console.error("transits API failed", tRes.status, tJson);
-          setTransits([]);
-          setTransitsError("Could not load upcoming transits.");
-          return;
-        }
-
-        const hitList = tJson.transits as TransitHit[];
-
-        type DailyMoonRowClient = {
-          dateISO: string;
-          moonNakshatra: string | null;
-          houseFromMoon?: number | null;
-        };
-
-        const dailyMoon: DailyMoonRowClient[] = Array.isArray(tJson.dailyMoon)
-          ? (tJson.dailyMoon as DailyMoonRowClient[])
-          : [];
-
-        setTransits(hitList);
-
-        if (hitList.length === 0 && dailyMoon.length === 0) {
-          // nothing meaningful to show
-          return;
-        }
-
-        const todayISO = new Date().toISOString().slice(0, 10);
-
-        // 5) Daily highlights ? Moon + strongest transit, with Mars?Ketu special handling
-        try {
-          setDailyLoading(true);
-          setDailyError(null);
-          setDailyHighlights([]);
-
-          // Moon + transits ? structured facts
-          const dailyFacts = buildDailyFacts(
-            dailyMoon as any,
-            hitList,
-            todayISO,
-            7
-          );
-
-          function isMarsKetuFact(f: DailyFact): boolean {
-            const tr = f.strongestTransit;
-            if (!tr) return false;
-
-            const planet = (tr.planet || "").toString().toLowerCase();
-            const target = (tr.target || "").toString().toLowerCase();
-
-            return (
-              planet === "mars" &&
-              /conjunction\s+natal\s+ketu/i.test(target)
-            );
-          }
-const describeNakshatraFocus = (nak: string): string => {
-  const n = nak.toLowerCase();
-
-  if (n.includes("ardra")) {
-    return "This Ardra Moon highlights emotional intensity, catharsis and the need to process what's been building beneath the surface.";
-  }
-
-  if (n.includes("punarvasu")) {
-    return "This Punarvasu Moon supports renewal and reset energy, returning to what matters and starting again with a lighter touch.";
-  }
-
-  if (n.includes("pushya")) {
-    return "This Pushya Moon is nurturing and stabilising, good for caring for yourself, family and the foundations of your life.";
-  }
-
-  if (n.includes("ashlesha")) {
-    return "This Ashlesha Moon can bring up tangled feelings or attachments, honesty with yourself goes further than quick fixes.";
-  }
-
-  if (n.includes("jyeshtha")) {
-    return "This Jyeshtha Moon can spotlight power dynamics, responsibility and how you handle pressure or leadership energy.";
-  }
-
-  // Default fallback
-  return "This Moon position invites a bit more awareness than usual in how you respond, not just how you react.";
-};
-
-          // Slightly varied sentence templates so the week doesn't feel copy-pasted
-const templates: Array<(area: string) => string> = [
-  (area) =>
-    `Your attention naturally settles on ${area} today. Notice one situation where a small adjustment would genuinely help.`,
-  (area) =>
-    `Today carries a calm, observant tone around ${area}. Keep it simple and intentional rather than trying to do everything at once.`,
-  (area) =>
-    `${area} comes into focus today. Use this as a chance to clear one small pending thing and move forward steadily.`,
-  (area) =>
-    `Be steady and responsive around ${area}. Avoid reacting from urgency — you’ll get better results with patience.`,
-];
-
-
-
-const safeDailyFacts = Array.isArray(dailyFacts) ? dailyFacts : [];
-
-const highlights: DailyHighlightLocal[] = safeDailyFacts.map((f, idx) => {
-  // Only override nakshatra from Panchang for *today*;
-  // for future days, keep whatever came in f.moonNakshatra.
-  const isToday =
-    typeof f.dateISO === "string" &&
-    f.dateISO.slice(0, 10) === todayISO;
-
-  // We intentionally DO NOT use nakshatra here.
-// Daily guidance must remain neutral and behavior-based.
-const nak = null;
-
-  const nakStr = String(nak);
-
-  // Optional: if you already have describeNakshatraFocus(nakStr) defined above, keep using it.
-  const nakFlavor = describeNakshatraFocus
-    ? describeNakshatraFocus(nakStr)
-    : "";
-
-  const cat = f.strongestTransit?.category;
-
-  // Base area from category
-  let area =
-    cat === "career"
-      ? "career, responsibilities and long-term direction"
-      : cat === "relationships"
-      ? "relationships, conversations and close people"
-      : cat === "health"
-      ? "health, energy and daily routines"
-      : cat === "inner"
-      ? "inner emotional climate and mindset"
-      : "your regular routines and overall balance";
-
-  // Tiny variation so a long career stretch doesn't read *exactly* the same
-  if (cat === "career" && idx % 3 === 1) {
-    area = "the balance between outer responsibilities and your inner life";
-  } else if (cat === "career" && idx % 3 === 2) {
-    area =
-      "your long-term direction and how daily choices support it";
-  }
-const DAILY_TONES = [
-  "slow and observant",
-  "practical and grounded",
-  "emotionally aware",
-  "reflective and inward",
-  "decisive but calm",
-  "light and adaptive",
-  "focused on completion",
-];
-
-  const safeNak = (nak && typeof nak === "string" ? nak : "the Moon");
-const tone = DAILY_TONES[idx % DAILY_TONES.length];
-
-const coreLine = templates[idx % templates.length](area);
-const closers = [
-  "Small, steady choices will go further than big reactions.",
-  "Focus on what you can gently improve today.",
-  "Let awareness guide action rather than urgency.",
-  "Choose simplicity over overthinking.",
-];
-
-const finalLine =
-  coreLine + " " + closers[idx % closers.length];
-
-
-  const base = coreLine;
-
-  const tr = f.strongestTransit;
-  let transitHook = "";
-
-  if (tr && (tr.strength ?? 0) >= 0.65) {
-    const planet = tr.planet;
-    const target = tr.target || "a key natal point";
-
-    if (isMarsKetuFact(f)) {
-      if (idx === 0) {
-        // Only the FIRST day gets the full Mars?Ketu emphasis
-        transitHook =
-          " This Mars?Ketu phase is loud today; use any spikes in emotion or urgency as a reminder to slow down and choose one grounded action.";
-      } else {
-        // Other days: rotate a few softer background wordings
-        const mkVariants = [
-          " In the background, the Mars-Ketu thread keeps humming; if you feel rushed or irritable, pause and come back to small, deliberate steps.",
-          " Mars-Ketu is still active in the background today; notice any urge to overreact and turn it into one small, conscious adjustment instead.",
-          " This Mars?Ketu backdrop continues quietly; protect your energy by choosing one or two clear priorities rather than scattering yourself.",
-        ];
-        transitHook = mkVariants[idx % mkVariants.length];
-      }
-    } else {
-      // Generic strong-transit wording for non Mars?Ketu days
-      transitHook =
-        ` A noticeable transit from ${planet} to ${target} is active ? ` +
-        `treat it as a nudge for small, conscious adjustments rather than big, impulsive moves.`;
+    if (!tRes.ok || !Array.isArray(tJson?.transits)) {
+      console.error("transits API failed", tRes.status, tJson);
+      setTransits([]);
+      setTransitsError("Could not load upcoming transits.");
+      return;
     }
-  }
+
+    const hitList = tJson.transits as TransitHit[];
+
+    type DailyMoonRowClient = {
+      dateISO: string;
+      moonNakshatra: string | null;
+      houseFromMoon?: number | null;
+    };
+
+    const dailyMoon: DailyMoonRowClient[] = Array.isArray(tJson.dailyMoon)
+      ? (tJson.dailyMoon as DailyMoonRowClient[])
+      : [];
+
+    setTransits(hitList);
+
+    const todayISO = new Date().toISOString().slice(0, 10);
+
+    // -------------------------
+// 5) Daily highlights (meaningful, no calculations shown)
+// -------------------------
+try {
+  setDailyLoading(true);
+  setDailyError(null);
+  setDailyHighlights([]);
+
+  const dailyFacts = buildDailyFacts(dailyMoon as any, hitList, todayISO, 7);
+  const safeDailyFacts = Array.isArray(dailyFacts) ? dailyFacts : [];
+
+  // Build “facts” per day (internal), but do NOT show them in UI
+  const dayInputs = safeDailyFacts.slice(0, 6).map((f: any) => {
+    const tr = f.strongestTransit;
+    const facts: string[] = [];
+
+    if (f.moonNakshatra) facts.push(`Transit Moon nakshatra: ${f.moonNakshatra}`);
+    if (typeof f.houseFromMoon === "number")
+      facts.push(`Transit Moon is ${f.houseFromMoon} from natal Moon`);
+    if (tr?.planet) facts.push(`Strongest transit: ${tr.planet} → ${tr.target || "natal point"}`);
+    if (typeof tr?.strength === "number")
+      facts.push(`Transit strength: ${Math.round(tr.strength * 100)}%`);
+    if (tr?.category) facts.push(`Focus area: ${tr.category}`);
+
+    const strength = typeof tr?.strength === "number" ? tr.strength : 0;
+    const confidence: "high" | "medium" | "low" =
+      strength >= 0.72 ? "high" : strength >= 0.55 ? "medium" : "low";
+
+    return {
+      dateISO: String(f.dateISO ?? ""),
+      facts: facts.filter(Boolean),
+      confidence,
+    };
+  });
+
+  // Try AI (optional). If it fails, fallback will still be good.
+  try {
+    const aiDailyRes = await fetch("/api/ai-daily-highlights", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        profile: {
+          name: next.name,
+          birthDateISO: next.birthDateISO,
+          birthTime: next.birthTime,
+          birthTz: next.birthTz,
+        },
+        days: dayInputs,
+      }),
+    });
+
+    const aiDailyJson = await aiDailyRes.json().catch(() => ({} as any));
+    const outDays = Array.isArray(aiDailyJson?.days) ? aiDailyJson.days : [];
+
+    if (aiDailyRes.ok && outDays.length) {
+      setDailyHighlights(
+  outDays.map((d: any, idx: number) => {
+    const facts = Array.isArray(dayInputs?.[idx]?.facts)
+      ? (dayInputs[idx].facts as string[])
+      : [];
+
+    const conf: "high" | "medium" | "low" =
+      d.confidence === "high" || d.confidence === "low" ? d.confidence : "medium";
+
+    const dateISO = String(d.dateISO ?? "");
+    const extras = dailyFlavorExtras(dateISO || String(idx));
+    const key = `${dateISO}::${idx}::${facts.join("|")}`;
+
+    // ✅ Keep a REAL focus string
+    const focusRaw =
+      facts.find((x: string) => x.toLowerCase().includes("focus area:")) || "";
+    const focusStr = String(focusRaw).split(":").slice(1).join(":").trim();
+    const focusLower = focusStr.toLowerCase();
+
+    const moonFromRaw =
+      facts.find((x: string) => x.toLowerCase().includes("from natal moon")) || "";
+    const moonFrom = (() => {
+      const m = String(moonFromRaw).match(/(\d+)/);
+      return m ? Number(m[1]) : null;
+    })();
+
+ 
+    const moodFromMoon = inferMoodFromMoonFrom(moonFrom);
+const moodFallback = inferMoodFromFacts(facts, conf);
+
+// ✅ single mood declaration (priority: AI mood → fallback → moon → balanced)
+const mood = String(
+  (d.mood ?? "").trim() ||
+  moodFallback.mood ||
+  moodFromMoon ||
+  "balanced"
+);
+
+ const dayKey = dateISO || String(idx);
+
+const moodTextRaw = String(d.moodText ?? "").trim();
+
+// ✅ If AI moodText is generic/repetitive, replace with relatable variation
+const moodText =
+  moodTextRaw && !isGenericMoodText(moodTextRaw)
+    ? moodTextRaw
+    : String(buildMoodLineText(mood, dayKey) || moodFallback.moodText || "");
+
+
+
+    // ✅ Guidance pool based on focus
+    const REL_GUIDES = [
+      "Say the simple truth, kindly. One clear conversation beats ten half-replies.",
+      "Ask one direct question instead of assuming the answer.",
+      "Choose timing and tone first — the message lands better.",
+      "Listen fully, then respond. Don’t rush to fix everything.",
+    ];
+
+    const CAREER_GUIDES = [
+      "Structure wins today. Finish one thing fully, then move to the next.",
+      "Handle one practical task end-to-end — it will unclog the rest.",
+      "Avoid scattered effort. Pick a priority and close it cleanly.",
+      "A short, clear update beats long explanations.",
+    ];
+
+    const HEALTH_GUIDES = [
+      "Protect energy. Keep meals light and routine clean.",
+      "Movement + hydration will stabilize everything else.",
+      "Do less, but do it consistently. Your body responds fast today.",
+      "Avoid overstimulation — keep the day gentle.",
+    ];
+
+    const INNER_GUIDES = [
+      "Name one emotion, then take one small action.",
+      "Don’t overthink signals. Ground yourself in one practical step.",
+      "Keep your mental space clean: one thought, one task, done.",
+      "Pause before reacting — clarity shows up after the pause.",
+    ];
+
+    const GENERAL_GUIDES = [
+      "Keep the day simple: one priority, one clean action.",
+      "Even-paced day — small improvements compound.",
+      "Steady effort wins. Don’t push; nudge things forward.",
+      "Keep it calm and consistent. Simple choices land best.",
+    ];
+
+    const guidePool =
+      focusLower.includes("relationships") ? REL_GUIDES :
+      focusLower.includes("career") ? CAREER_GUIDES :
+      focusLower.includes("health") ? HEALTH_GUIDES :
+      focusLower.includes("inner") ? INNER_GUIDES :
+      GENERAL_GUIDES;
+
+    // ✅ Varies by date (not by idx)
+   
+    const guidance = pickKey(guidePool, dayKey);
+
+
+    // ✅ Do/Avoid
+    const listKey = `${dateISO}:${focusLower}:${mood}`;
+    const lists = doAvoidLists(focusLower, mood, listKey);
+
+    const headline =
+      focusLower.includes("relationships")
+        ? "Relationships & conversations"
+        : focusLower.includes("career")
+        ? "Work & direction"
+        : focusLower.includes("health")
+        ? "Energy & routine"
+        : focusLower.includes("inner")
+        ? "Mindset & emotions"
+        : "Today’s focus";
+
+    // ✅ If AI repeats or is empty, we still show premium guidance
+    const aiText = String(d.text ?? "").trim();
+    const finalText = aiText ? aiText : `${moodText} ${guidance}`.trim();
+
+
+    return {
+      dateISO,
+      headline,
+      mood,
+      moodText,
+      text: normalizeHighlightText(stripNakshatraClaims(finalText), idx),
+
+      do: Array.isArray(d.do) && d.do.length ? [...d.do] : [...lists.do],
+      avoid: Array.isArray(d.avoid) && d.avoid.length ? [...d.avoid] : [...lists.avoid],
+      color: extras.color,
+      luckyNumber: extras.luckyNumber,
+      bestTime: extras.bestTime,
+      confidence: conf,
+      theme: String(d.theme ?? ""),
+      facts,
+    };
+  })
+);
+
+      setDailyError(null);
+    } else {
+      throw new Error("ai daily returned empty");
+    }
+  } catch {
+    // ✅ Meaningful fallback (varies by focus area + emotional tone)
+const fallback: DailyHighlightLocal[] = dayInputs.map((d: any, idx: number) => {
+  const facts = Array.isArray(d.facts) ? (d.facts as string[]) : [];
+
+  const focusRaw =
+    facts.find((x: string) => x.toLowerCase().includes("focus area:")) || "";
+  const focusStr = String(focusRaw).split(":").slice(1).join(":").trim();
+  const focusLower = focusStr.toLowerCase();
+
+  const moonFromRaw =
+    facts.find((x: string) => x.toLowerCase().includes("from natal moon")) || "";
+  const moonFrom = (() => {
+    const m = String(moonFromRaw).match(/(\d+)/);
+    return m ? Number(m[1]) : null;
+  })();
+
+  const conf: "high" | "medium" | "low" =
+    d.confidence === "high" || d.confidence === "low" ? d.confidence : "medium";
+
+  const dateISO = String(d.dateISO ?? "");
+  const extras = dailyFlavorExtras(dateISO || String(idx));
+
+  const key = `${dateISO}::${idx}::${facts.join("|")}`;
+
+  // Mood signals (fallback-safe)
+  const moodObj = inferMoodFromFacts(facts, conf);
+  const moodFromMoon = inferMoodFromMoonFrom(moonFrom);
+  const mood = String(moodFromMoon || moodObj.mood || "balanced");
+
+// ✅ fallback doesn’t use AI moodText at all — generate relatable mood line
+const moodText = String(relatableMoodText(mood, key) ?? buildMoodLineText(mood, key) ?? "");
+
+
+  // Headline by focus area
+  const headline =
+    focusLower.includes("relationships")
+      ? "Relationships & conversations"
+      : focusLower.includes("career")
+      ? "Work & direction"
+      : focusLower.includes("health")
+      ? "Energy & routine"
+      : focusLower.includes("inner")
+      ? "Mindset & emotions"
+      : "Today’s focus";
+
+  // Guidance pools (varies per day via pick)
+  const REL_GUIDES = [
+    "Say the simple truth, kindly. One clear conversation beats ten half-replies.",
+    "Ask one direct question instead of assuming the answer.",
+    "Choose timing and tone first — the message lands better.",
+    "Listen fully, then respond. Don’t rush to fix everything.",
+  ];
+
+  const CAREER_GUIDES = [
+    "Structure wins today. Finish one thing fully, then move to the next.",
+    "Handle one practical task end-to-end — it will unclog the rest.",
+    "Avoid scattered effort. Pick a priority and close it cleanly.",
+    "A short, clear update beats long explanations.",
+  ];
+
+  const HEALTH_GUIDES = [
+    "Protect energy. Keep meals light and routine clean.",
+    "Movement + hydration will stabilize everything else.",
+    "Do less, but do it consistently. Your body responds fast today.",
+    "Avoid overstimulation — keep the day gentle.",
+  ];
+
+  const INNER_GUIDES = [
+    "Name one emotion, then take one small action.",
+    "Don’t overthink signals. Ground yourself in one practical step.",
+    "Keep your mental space clean: one thought, one task, done.",
+    "Pause before reacting — clarity shows up after the pause.",
+  ];
+
+  const GENERAL_GUIDES = [
+    "Keep the day simple: one priority, one clean action.",
+    "Even-paced day — small improvements compound.",
+    "Steady effort wins. Don’t push; nudge things forward.",
+    "Keep it calm and consistent. Simple choices land best.",
+  ];
+
+  const guidePool =
+    focusLower.includes("relationships")
+      ? REL_GUIDES
+      : focusLower.includes("career")
+      ? CAREER_GUIDES
+      : focusLower.includes("health")
+      ? HEALTH_GUIDES
+      : focusLower.includes("inner")
+      ? INNER_GUIDES
+      : GENERAL_GUIDES;
+
+  // ✅ Varies by dateISO (not only idx)
+  const guideKey = dateISO || String(idx);
+  const guidance = pickKey(guidePool, guideKey);
+
+  // Micro-tip (also varies)
+  const microPool = focusLower.includes("relationships")
+  ? [
+      "If you feel a reaction rising, pause before typing.",
+      "Say less, but say it clearly.",
+      "Assume good intent first — it changes everything.",
+      "Don’t re-read messages looking for hidden meaning.",
+    ]
+  : focusLower.includes("career")
+  ? [
+      "Do the hardest task first — you’ll feel lighter all day.",
+      "Close one loop before starting a new one.",
+      "Keep messages short. Clarity > detail.",
+      "Don’t tweak the plan—execute the plan.",
+    ]
+  : focusLower.includes("health")
+  ? [
+      "Your body will respond fast to small discipline today.",
+      "Hydrate early — energy stays stable.",
+      "Light dinner = better sleep tonight.",
+      "Move a little — it clears the mind too.",
+    ]
+  : [
+      "Don’t rush your day. Slow is smooth.",
+      "One small win will shift your mood.",
+      "Less input (scrolling/news) = more calm.",
+      "Choose one thing and finish it properly.",
+    ];
+
+const dayKey = dateISO || String(idx);
+const microTip = pickKey(microPool, dayKey + "::micro");
+
+
+// ✅ Make it feel like a human reading your day
+const finalText = `${moodText} ${guidance} ${microTip}`.trim();
+
+  // Do/Avoid lists (rotate + stable)
+  const listKey = `${dateISO}:${focusLower}:${mood}`;
+  const lists = doAvoidLists(focusLower, mood, listKey);
+
 
   return {
-    dateISO: f.dateISO,
-    text: base + transitHook,
+    dateISO,
+    headline,
+    mood,
+    moodText,
+    text: normalizeHighlightText(stripNakshatraClaims(finalText), idx),
+    do: [...lists.do],
+    avoid: [...lists.avoid],
+    color: extras.color,
+    luckyNumber: extras.luckyNumber,
+    bestTime: extras.bestTime,
+    confidence: conf,
+    theme: "",
+    facts,
   };
 });
 
-setDailyHighlights(
-  (highlights || []).map((h, idx) => ({
-  ...h,
-  text: normalizeHighlightText(h.text, idx),
-}))
-);
-
+setDailyHighlights(fallback);
 setDailyError(null);
 
-        } catch (err) {
-          console.error("daily highlights fallback failed", err);
-          setDailyError("Could not load daily highlights.");
-        } finally {
-          setDailyLoading(false);
-        }
+    setDailyHighlights(fallback);
+    setDailyError(null);
+  }
+} catch (err) {
+  console.error("daily highlights failed", err);
+  setDailyError("Could not load daily highlights.");
+} finally {
+  setDailyLoading(false);
+}
 
-        // 1) AI summary for transits
-        try {
-          const aiTransitsRes = await fetch("/api/ai-transits", {
-            method: "POST",
-            headers: { "content-type": "application/json" },
-            body: JSON.stringify({
-              profile: {
-                name: next.name,
-                birthDateISO: next.birthDateISO,
-                birthTime: next.birthTime,
-                birthTz: next.birthTz,
-              },
-              transits: hitList,
-            }),
-          });
+    // 1) AI summary for transits
+    try {
+      const aiTransitsRes = await fetch("/api/ai-transits", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          profile: {
+            name: next.name,
+            birthDateISO: next.birthDateISO,
+            birthTime: next.birthTime,
+            birthTz: next.birthTz,
+          },
+          transits: hitList,
+        }),
+      });
 
-          const aiTransitsJson = await aiTransitsRes
-            .json()
-            .catch(() => ({} as any));
+      const aiTransitsJson = await aiTransitsRes.json().catch(() => ({} as any));
+      if (aiTransitsRes.ok && aiTransitsJson?.text) {
+        setTransitSummary(aiTransitsJson.text as string);
+      } else {
+        console.error("ai-transits failed", aiTransitsRes.status, aiTransitsJson);
+      }
+    } catch (err) {
+      console.error("ai-transits error", err);
+    }
 
-          if (aiTransitsRes.ok && aiTransitsJson?.text) {
-            setTransitSummary(aiTransitsJson.text as string);
-          } else {
-            console.error(
-              "ai-transits failed",
-              aiTransitsRes.status,
-              aiTransitsJson
-            );
-          }
-        } catch (err) {
-          console.error("ai-transits error", err);
-        }
+    // 2) Dasha → Transits fusion
+    try {
+      const fusionRes = await fetch("/api/ai-dasha-transits", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          profile: {
+            name: next.name,
+            birthDateISO: next.birthDateISO,
+            birthTime: next.birthTime,
+            birthTz: next.birthTz,
+          },
+          mdad: { md: md ?? null, ad: ad ?? null },
+          transits: hitList,
+        }),
+      });
 
-       // 2) Dasha → Transits fusion
+      const fusionJson = await fusionRes.json().catch(() => ({} as any));
+      if (fusionRes.ok) {
+        const asStr = typeof fusionJson === "string" ? fusionJson : JSON.stringify(fusionJson);
+        setDashaTransitSummary(asStr);
+        setTimelineSummary(asStr);
+      } else {
+        console.error("ai-dasha-transits failed", fusionRes.status, fusionJson);
+      }
+    } catch (err) {
+      console.error("ai-dasha-transits error", err);
+    }
+
+    // 3) Monthly guidance (AI)
+    try {
+      setMonthlyLoading(true);
+      setMonthlyError(null);
+      setMonthlyInsights([]);
+
+      const monthsRes = await fetch("/api/ai-monthly", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          profile: {
+            name: next.name,
+            birthDateISO: next.birthDateISO,
+            birthTime: next.birthTime,
+            birthTz: next.birthTz,
+          },
+          dashaLayers: { md, ad, pd, timeline: next.dashaTimeline ?? null },
+          transits: hitList,
+          startDateISO: todayISO,
+          months: 12,
+        }),
+      });
+
+      const monthsJson = await monthsRes.json().catch(() => ({} as any));
+      if (monthsRes.ok && Array.isArray(monthsJson?.months)) {
+        setMonthlyInsights(monthsJson.months as { label: string; text: string }[]);
+        setMonthlyError(null);
+      } else {
+        console.error("ai-monthly failed", monthsRes.status, monthsJson);
+        setMonthlyError("Could not load monthly guidance.");
+      }
+    } catch (err) {
+      console.error("ai-monthly error", err);
+      setMonthlyError("Could not load monthly guidance.");
+    } finally {
+      setMonthlyLoading(false);
+    }
+
+    // 4) Weekly guidance (AI + fallback + local cache)
 try {
-  const fusionRes = await fetch("/api/ai-dasha-transits", {
+  setWeeklyLoading(true);
+  setWeeklyError(null);
+  setWeeklyInsights([]);
+
+  const cacheKey = `sarathi:ai-weekly:${next.birthDateISO}:${next.birthTime}:${next.birthTz}:${todayISO}:8`;
+  let servedFromCache = false;
+
+  // 4.1 Try cache first
+  try {
+    if (typeof window !== "undefined") {
+      const raw = window.localStorage.getItem(cacheKey);
+      if (raw) {
+        const cached = JSON.parse(raw) as {
+          weeks?: { label: string; text: string }[];
+          ts?: number;
+        };
+
+        if (Array.isArray(cached.weeks) && cached.weeks.length > 0) {
+          setWeeklyInsights(cached.weeks);
+          setWeeklyError(null);
+          servedFromCache = true;
+        }
+      }
+    }
+  } catch {
+    // ignore cache read errors
+  }
+
+  // 4.2 Always hit API for now (keep content fresh)
+  const weeksRes = await fetch("/api/ai-weekly", {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
@@ -5699,191 +6699,61 @@ try {
         birthTime: next.birthTime,
         birthTz: next.birthTz,
       },
-      // ✅ what the new endpoint expects
-      mdad: {
-        md: md ?? null,
-        ad: ad ?? null,
+      dashaLayers: {
+        md,
+        ad,
+        pd,
+        timeline: next.dashaTimeline ?? null,
       },
       transits: hitList,
+      startDateISO: todayISO,
+      weeks: 8,
     }),
   });
 
-  const fusionJson = await fusionRes.json().catch(() => ({} as any));
+  const weeksJson = await weeksRes.json().catch(() => ({} as any));
 
-  if (fusionRes.ok) {
-    // ✅ New structured response
-    // We'll store it as JSON string so TabAdvanced can parse & render it nicely
-    const asStr =
-      typeof fusionJson === "string" ? fusionJson : JSON.stringify(fusionJson);
+  if (weeksRes.ok && Array.isArray(weeksJson?.weeks)) {
+    const weeksArr = weeksJson.weeks as { label: string; text: string }[];
 
-    setDashaTransitSummary(asStr);
+    setWeeklyInsights(weeksArr);
+    setWeeklyError(null);
 
-    // reuse as fallback life story overview
-    setTimelineSummary(asStr);
+    // 4.3 Save to cache
+    try {
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(
+          cacheKey,
+          JSON.stringify({ weeks: weeksArr, ts: Date.now() })
+        );
+      }
+    } catch {
+      // ignore cache write errors
+    }
+  } else if (weeksRes.ok) {
+    const fallbackWeekly = buildWeeklyFromTransits(hitList, todayISO, 8);
+    setWeeklyInsights(fallbackWeekly);
+    setWeeklyError(null);
+    console.warn("ai-weekly returned no weeks; used client-side fallback instead");
   } else {
-    console.error("ai-dasha-transits failed", fusionRes.status, fusionJson);
+    console.error("ai-weekly failed", weeksRes.status, weeksJson);
+    if (!servedFromCache) setWeeklyError("Could not load weekly guidance.");
   }
 } catch (err) {
-  console.error("ai-dasha-transits error", err);
+  console.error("ai-weekly error", err);
+  setWeeklyError("Could not load weekly guidance.");
+} finally {
+  setWeeklyLoading(false);
 }
 
-        // 3) Monthly guidance (AI)
-        try {
-          setMonthlyLoading(true);
-          setMonthlyError(null);
-          setMonthlyInsights([]);
-
-          const monthsRes = await fetch("/api/ai-monthly", {
-            method: "POST",
-            headers: { "content-type": "application/json" },
-            body: JSON.stringify({
-              profile: {
-                name: next.name,
-                birthDateISO: next.birthDateISO,
-                birthTime: next.birthTime,
-                birthTz: next.birthTz,
-              },
-              dashaLayers: {
-                md,
-                ad,
-                pd,
-                timeline: next.dashaTimeline ?? null,
-              },
-              transits: hitList,
-              startDateISO: todayISO,
-              months: 12,
-            }),
-          });
-
-          const monthsJson = await monthsRes
-            .json()
-            .catch(() => ({} as any));
-
-          if (monthsRes.ok && Array.isArray(monthsJson?.months)) {
-            setMonthlyInsights(
-              monthsJson.months as { label: string; text: string }[]
-            );
-            setMonthlyError(null);
-          } else {
-            console.error("ai-monthly failed", monthsRes.status, monthsJson);
-            setMonthlyError("Could not load monthly guidance.");
-          }
-        } catch (err) {
-          console.error("ai-monthly error", err);
-          setMonthlyError("Could not load monthly guidance.");
-        } finally {
-          setMonthlyLoading(false);
-        }
-
-                      // 4) Weekly guidance (AI + fallback + local cache)
-      try {
-        setWeeklyLoading(true);
-        setWeeklyError(null);
-        setWeeklyInsights([]);
-
-        const cacheKey = `sarathi:ai-weekly:${next.birthDateISO}:${next.birthTime}:${next.birthTz}:${todayISO}:8`;
-        let servedFromCache = false;
-
-        // 4.1 Try cache first
-        try {
-          if (typeof window !== "undefined") {
-            const raw = window.localStorage.getItem(cacheKey);
-            if (raw) {
-              const cached = JSON.parse(raw) as {
-                weeks?: { label: string; text: string }[];
-                ts?: number;
-              };
-
-              if (Array.isArray(cached.weeks) && cached.weeks.length > 0) {
-                setWeeklyInsights(cached.weeks);
-                setWeeklyError(null);
-                servedFromCache = true;
-                // We still let it refresh below for now
-              }
-            }
-          }
-        } catch {
-          // ignore cache read errors
-        }
-
-        // 4.2 Always hit API for now (to keep content fresh),
-        // UI already has something if servedFromCache=true.
-        const weeksRes = await fetch("/api/ai-weekly", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            profile: {
-              name: next.name,
-              birthDateISO: next.birthDateISO,
-              birthTime: next.birthTime,
-              birthTz: next.birthTz,
-            },
-            dashaLayers: {
-              md,
-              ad,
-              pd,
-              timeline: next.dashaTimeline ?? null,
-            },
-            transits: hitList,
-            startDateISO: todayISO,
-            weeks: 8,
-          }),
-        });
-
-        const weeksJson = await weeksRes.json().catch(() => ({} as any));
-
-        if (weeksRes.ok && Array.isArray(weeksJson?.weeks)) {
-          const weeksArr = weeksJson.weeks as {
-            label: string;
-            text: string;
-          }[];
-          setWeeklyInsights(weeksArr);
-          setWeeklyError(null);
-
-          // 4.3 Save to cache
-          try {
-            if (typeof window !== "undefined") {
-              window.localStorage.setItem(
-                cacheKey,
-                JSON.stringify({
-                  weeks: weeksArr,
-                  ts: Date.now(),
-                })
-              );
-            }
-          } catch {
-            // ignore cache write errors
-          }
-        } else if (weeksRes.ok) {
-          const fallbackWeekly = buildWeeklyFromTransits(
-            hitList,
-            todayISO,
-            8
-          );
-          setWeeklyInsights(fallbackWeekly);
-          setWeeklyError(null);
-          console.warn(
-            "ai-weekly returned no weeks; used client-side fallback instead"
-          );
-        } else {
-          console.error("ai-weekly failed", weeksRes.status, weeksJson);
-          if (!servedFromCache) {
-            setWeeklyError("Could not load weekly guidance.");
-          }
-        }
-      } catch (err) {
-        console.error("ai-weekly error", err);
-        setWeeklyError("Could not load weekly guidance.");
-      } finally {
-        setWeeklyLoading(false);
-      }
-    } catch (err) {
-      console.error("transits API error", err);
-      setTransitsError("Could not load upcoming transits.");
-    } finally {
-      setTransitsLoading(false);
-    }
-  };
+// ✅ CLOSE the OUTER transits try/catch/finally correctly
+} catch (err) {
+  console.error("transits API error", err);
+  setTransitsError("Could not load upcoming transits.");
+} finally {
+  setTransitsLoading(false);
+}
+};
 
   // fire and forget
   loadTransitsAndInsights();
