@@ -3949,7 +3949,7 @@ const confClass =
     {(d as any)?.luckyNumber && (
       <div className="rounded-lg border border-white/10 bg-white/5 p-2">
         <div className="text-[11px] uppercase tracking-wide text-white/50">
-          Lucky No.
+          Supportive number
         </div>
         <div className="mt-1 text-sm font-semibold text-slate-100">
           {(d as any).luckyNumber}
@@ -3960,7 +3960,7 @@ const confClass =
     {(d as any)?.bestTime && (
       <div className="rounded-lg border border-white/10 bg-white/5 p-2">
         <div className="text-[11px] uppercase tracking-wide text-white/50">
-          Best Time
+          Best flow window
         </div>
         <div className="mt-1 text-sm font-semibold text-slate-100">
           {(d as any).bestTime}
