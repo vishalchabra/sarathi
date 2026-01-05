@@ -1394,6 +1394,28 @@ function stripNakshatraClaims(s: string) {
 
 
 /* ---------------- Monthly highlights helper (client-side) ---------------- */
+function stripMoodPrefix(main: string, moodText: string) {
+  const t = String(main || "").trim();
+  const m = String(moodText || "").trim();
+  if (!t || !m) return t;
+
+  const tL = t.toLowerCase();
+  const mL = m.toLowerCase();
+
+  // If main starts with moodText (exact or near-exact), remove it.
+  if (tL.startsWith(mL)) {
+    return t.slice(m.length).trim().replace(/^[-–—:]\s*/, "");
+  }
+
+  // Also handle cases like "Steady mood today. Steady mood today..."
+  const doubled = `${mL} ${mL}`;
+  if (tL.startsWith(doubled)) {
+    return t.slice(m.length).trim().replace(/^[-–—:]\s*/, "");
+  }
+
+  return t;
+}
+
 function cleanMoodText(mood: string, moodText: string) {
   const m = String(mood || "").trim().toLowerCase();
   let t = String(moodText || "").trim();
@@ -6528,7 +6550,9 @@ const microTip = pickKey(microPool, dayKey + "::micro");
 
 
 // ✅ Make it feel like a human reading your day
-const finalText = `${moodText} ${guidance} ${microTip}`.trim();
+const composed = `${guidance} ${microTip}`.trim();
+const finalText = stripMoodPrefix(composed, moodText);
+
 
   // Do/Avoid lists (rotate + stable)
   const listKey = `${dateISO}:${focusLower}:${mood}`;
