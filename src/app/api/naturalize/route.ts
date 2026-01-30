@@ -1,4 +1,4 @@
-export const runtime = "nodejs";
+﻿export const runtime = "nodejs";
 
 import "server-only";
 import { NextResponse } from "next/server";
@@ -134,7 +134,7 @@ const raw = useStructuredPrompt
 
     // If this came from astro-chat (structured), we want a FULL answer, not a "cleaner".
     const systemPromptStructured =
-  "You are SÄrathi, an astrology guidance assistant. " +
+  "You are SÃ„Ârathi, an astrology guidance assistant. " +
   "You will receive an INPUT_BUNDLE that may include: USER_QUESTION, topic, mood hints, ASTRO_FACTS_JSON, EVIDENCE_BULLETS_JSON, and FORMAT_TIER/FORMAT_RULES. " +
   "Your job is to answer the USER_QUESTION using the formatting instructions in FORMAT_RULES. " +
   "If FORMAT_RULES is present, it overrides any default structure. " +
@@ -146,7 +146,7 @@ const raw = useStructuredPrompt
 
     // Your original text-cleaner prompt (keep it intact)
     const systemPromptCleaner =
-      "You are SÄrathi's language cleaner. " +
+      "You are SÃ„Ârathi's language cleaner. " +
       "Your job is to gently rewrite short texts so they sound natural, clear, and human. " +
       "Keep the meaning the same, just smoother and easier to read. " +
       "No emojis, no hashtags, no bullet lists unless the input already uses them. " +
@@ -190,9 +190,9 @@ const formatRules =
       if (!isNonEmptyString(rawA) && hasStructured) {
         const uq = String(body?.userQuestion ?? "").trim();
         const fallback =
-          (uq ? `I hear you. Here™s a grounded next step: ` : "") +
+          (uq ? `I hear you. Hereâ„¢s a grounded next step: ` : "") +
           "Focus on one small, practical action today, and avoid making irreversible decisions from a spike in emotion. " +
-          "If you want, tell me what outcome you want in the next 7 days, and I™ll shape a clear plan.";
+          "If you want, tell me what outcome you want in the next 7 days, and Iâ„¢ll shape a clear plan.";
         return okJson({ text: fallback, modelUsed: `${GPT_MODEL} (fallback-local)` });
       }
 
@@ -212,3 +212,4 @@ const formatRules =
     );
   }
 }
+

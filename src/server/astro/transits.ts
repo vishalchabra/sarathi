@@ -6,6 +6,7 @@ import {
   sweCall,
   getSweConstants,
 } from "@/server/astro/swe-remote";
+const DEBUG_TRANSITS = process.env.DEBUG_TRANSITS === "1";
 
 export type TransitEngineBirth = {
   dateISO: string; // "YYYY-MM-DD"
@@ -19,14 +20,23 @@ export type TransitHit = {
   id: string;
   startISO: string;
   endISO: string;
+
   planet: string; // transiting planet
-  target: string; // e.g. "conjunct natal Sun" or "square natal Venus"
+  target: string; // e.g. "conjunction natal Rahu"
+
   category: "career" | "relationships" | "health" | "inner" | "general";
-  strength: number; // 0–1
+  strength: number;
+
+  // ✅ NEW: transit placement at the strongest hit day (sidereal)
+  transitLon?: number;     // 0..360 sidereal (sample at startISO)
+  transitSign?: string;    // Capricorn, etc.
+  transitHouse?: number;   // 1..12 from Lagna (if ascDeg provided)
+  natalLon?: number;       // for the natal target planet (for debugging)
+
   title: string;
   description: string;
-  // later: scoreBreakdown, whyFacts, etc.
 };
+
 
 // NEW: daily Moon sample for horizon
 export type DailyMoonSample = {
@@ -40,21 +50,38 @@ export type DailyMoonSample = {
    BASIC DATE / DEGREE HELPERS
 -------------------------------------------------------- */
 
-function startOfDay(d: Date): Date {
-  const nd = new Date(d.getTime());
-  nd.setHours(0, 0, 0, 0);
-  return nd;
+function startOfDayUTC(d: Date): Date {
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 0, 0, 0, 0));
 }
 
-function addDays(d: Date, days: number): Date {
-  const nd = new Date(d.getTime());
-  nd.setDate(nd.getDate() + days);
-  return nd;
+
+function addDaysUTC(d: Date, days: number): Date {
+  return new Date(d.getTime() + days * 86_400_000);
 }
+
 
 function fmtISO(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
+function dateISOInTz(d: Date, tz: string): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: tz,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(d);
+
+  const get = (t: string) => parts.find((p) => p.type === t)?.value ?? "";
+  return `${get("year")}-${get("month")}-${get("day")}`;
+}
+function lonToDegreesMaybe(x: number): number {
+  // Radians will always be between 0 and 2π (~6.28318)
+  if (x >= 0 && x <= 6.283185307179586) {
+    return (x * 180) / Math.PI;
+  }
+  return x; // assume degrees already
+}
+
 
 function wrap360(x: number): number {
   let v = x % 360;
@@ -108,56 +135,91 @@ function makeUtcInstant(dateISO: string, time: string, tz: string): Date {
   return new Date(pretendUtc.getTime() - off * 60_000);
 }
 
-async function jdFromDateUTC(d: Date, gregCal: number): Promise<number> {
-  const hour =
-    d.getUTCHours() +
-    d.getUTCMinutes() / 60 +
-    d.getUTCSeconds() / 3600;
+async function jdFromDateUTC(date: Date, SE_GREG_CAL: number): Promise<number> {
+  // Use UTC pieces only
+  const y = date.getUTCFullYear();
+  const m = date.getUTCMonth() + 1; // JS month is 0-11, Swiss needs 1-12
+  const d = date.getUTCDate();
 
-  return sweJulday(
-    d.getUTCFullYear(),
-    d.getUTCMonth() + 1,
-    d.getUTCDate(),
-    hour,
-    gregCal
-  );
+  const hour =
+    date.getUTCHours() +
+    date.getUTCMinutes() / 60 +
+    date.getUTCSeconds() / 3600 +
+    date.getUTCMilliseconds() / 3600000;
+
+  // Swiss: swe_julday(year, month, day, hour, gregflag)
+  const jd = await sweCall<number>("swe_julday", y, m, d, hour, SE_GREG_CAL);
+
+  // Debug once
+  // console.log("[JD_UTC]", date.toISOString(), { y, m, d, hour, jd });
+
+  return jd;
+}
+
+async function lahiriAyanamsaDeg(jdUt: number): Promise<number> {
+  try {
+    const res = await sweCall<any>("swe_get_ayanamsa_ut", jdUt);
+
+    // Most engines return a number or { ayanamsa: number }
+    if (typeof res === "number") return res;
+    if (res && typeof res.ayanamsa === "number") return res.ayanamsa;
+
+    // fallback: try common formats
+    if (Array.isArray(res) && typeof res[0] === "number") return res[0];
+
+    return 0;
+  } catch (e) {
+    // SWE remote disabled in this build → use approximation so transits don't become empty.
+    return approxLahiriAyanamsaDegFromJdUt(jdUt);
+  }
+}
+
+function approxLahiriAyanamsaDegFromJdUt(jdUt: number): number {
+  // Convert JD to approximate Gregorian year fraction (good enough for fallback)
+  // JD 2451545.0 = 2000-01-01 12:00 UT (J2000)
+  const yearsSince2000 = (jdUt - 2451545.0) / 365.2425;
+
+  // Lahiri around J2000 is ~23.856° and increases ~0.013969° per year
+  const base = 23.856;
+  const rate = 0.013969;
+
+  return base + yearsSince2000 * rate;
+}
+
+function toSiderealLon(tropicalLon: number, ayanDeg: number): number {
+  return wrap360(tropicalLon - ayanDeg);
 }
 
 /* -------------------------------------------------------
    REMOTE SWE HELPERS
 -------------------------------------------------------- */
 
-function extractLongitude(res: any): number | null {
-  if (!res) return null;
+function extractLongitude(res: any): number {
+  // 1) Direct object shape
+  if (res && typeof res === "object") {
+    // Common: { longitude, latitude, distance, speedLongitude... }
+    if (typeof res.longitude === "number") return res.longitude;
 
-  // 1) Direct property
-  if (typeof res.longitude === "number") return res.longitude;
+    // Common: { lon, lat, ... }
+    if (typeof res.lon === "number") return res.lon;
 
-  // 2) Bare array [lon, ...]
+    // Common: { xx: [lon, lat, dist, speedLon, ...] }
+    if (Array.isArray(res.xx) && typeof res.xx[0] === "number") return res.xx[0];
+
+    // Common: { data: [lon, lat, ...] }
+    if (Array.isArray(res.data) && typeof res.data[0] === "number") return res.data[0];
+
+    // Common: { position: { lon: ... } }
+    if (res.position && typeof res.position.lon === "number") return res.position.lon;
+    if (res.position && typeof res.position.longitude === "number") return res.position.longitude;
+  }
+
+  // 2) Raw array shape: [lon, lat, dist, ...]
   if (Array.isArray(res) && typeof res[0] === "number") return res[0];
 
-  // 3) Common embedded arrays
-  const candidates = [res.x, res.xx, res.result, res.r];
-  for (const c of candidates) {
-    if (Array.isArray(c) && typeof c[0] === "number") return c[0];
-  }
-
-  // 4) Heuristic: any numeric field that looks like a longitude
-  if (res && typeof res === "object") {
-    for (const k of Object.keys(res)) {
-      const v = (res as any)[k];
-      if (
-        typeof v === "number" &&
-        isFinite(v) &&
-        Math.abs(v) <= 720
-      ) {
-        return v;
-      }
-    }
-  }
-
-  return null;
+  throw new Error("Unable to extract longitude from swe response");
 }
+
 
 async function ensureSiderealMode(constants: any) {
   try {
@@ -216,6 +278,33 @@ function nakIndexFromDeg(deg: number): number {
 function nakFromDegSidereal(deg: number): string {
   return NAKS_27[nakIndexFromDeg(deg)];
 }
+const SIGNS_12 = [
+  "Aries","Taurus","Gemini","Cancer","Leo","Virgo",
+  "Libra","Scorpio","Sagittarius","Capricorn","Aquarius","Pisces",
+];
+
+function signIndexFromDegSidereal(deg: number): number {
+  return Math.floor(wrap360(deg) / 30); // 0..11
+}
+
+function signFromDegSidereal(deg: number): string {
+  return SIGNS_12[signIndexFromDegSidereal(deg)];
+}
+function signFromLonSidereal(lon: number): string {
+  return SIGNS_12[Math.floor(wrap360(lon) / 30)];
+}
+
+function houseFromAsc(ascDeg: number, lon: number): number {
+  const rel = wrap360(lon - ascDeg);
+  return Math.floor(rel / 30) + 1; // 1..12
+}
+function houseFromLagnaWholeSign(transitSign: string, ascSign?: string): number | undefined {
+  if (!ascSign) return undefined;
+  const a = SIGNS_12.findIndex((s) => s.toLowerCase() === String(ascSign).toLowerCase());
+  const t = SIGNS_12.findIndex((s) => s.toLowerCase() === String(transitSign).toLowerCase());
+  if (a < 0 || t < 0) return undefined;
+  return ((t - a + 12) % 12) + 1; // 1..12
+}
 
 /* -------------------------------------------------------
    NATAL & TRANSIT PLANETS (SIDEREAL)
@@ -242,11 +331,13 @@ async function computeNatalPlanets(
 
   const birthUtc = makeUtcInstant(birth.dateISO, birth.time, birth.tz);
   const jdUt = await jdFromDateUTC(birthUtc, constants.SE_GREG_CAL);
+  
+// Use SIDEREAL flag (stub now supports it); do NOT manually subtract ayanamsa here.
+const flags =
+  (constants.SEFLG_SWIEPH ?? 2) |
+  (constants.SEFLG_SPEED ?? 256) |
+  (constants.SEFLG_SIDEREAL ?? 64);
 
-  const flags =
-    (constants.SEFLG_SWIEPH ?? 2) |
-    (constants.SEFLG_SPEED ?? 256) |
-    (constants.SEFLG_SIDEREAL ?? 64);
 
   const defs = [
     { name: "Sun", code: constants.SE_SUN },
@@ -271,13 +362,17 @@ async function computeNatalPlanets(
       flags
     );
     const lonRaw = extractLongitude(res);
-    if (typeof lonRaw !== "number" || !isFinite(lonRaw)) continue;
+if (typeof lonRaw !== "number" || !isFinite(lonRaw)) continue;
 
-    let lon = wrap360(lonRaw);
-    if (p.name === "Ketu") {
-      lon = wrap360(lon + 180);
-    }
-    out.push({ name: p.name, lon });
+// ✅ normalize radians → degrees if needed
+const lonDeg = lonToDegreesMaybe(lonRaw);
+
+let lon = wrap360(lonDeg);
+if (p.name === "Ketu") {
+  lon = wrap360(lon + 180);
+}
+out.push({ name: p.name, lon });
+
   }
 
   return out;
@@ -293,7 +388,9 @@ async function computeTransitPlanetsForDay(
 ): Promise<TransitPlanet[]> {
   await ensureSiderealMode(constants);
 
-  const jdUt = await jdFromDateUTC(date, constants.SE_GREG_CAL);
+    const jdUt = await jdFromDateUTC(date, constants.SE_GREG_CAL);
+
+  // Use SIDEREAL flag (stub now supports it); do NOT manually subtract ayanamsa.
   const flags =
     (constants.SEFLG_SWIEPH ?? 2) |
     (constants.SEFLG_SPEED ?? 256) |
@@ -313,22 +410,18 @@ async function computeTransitPlanetsForDay(
   for (const p of defs) {
     if (p.code == null) continue;
 
-    const res = await sweCall<any>(
-      "swe_calc_ut",
-      jdUt,
-      p.code,
-      flags
-    );
+    const res = await sweCall<any>("swe_calc_ut", jdUt, p.code, flags);
     const lonRaw = extractLongitude(res);
     if (typeof lonRaw !== "number" || !isFinite(lonRaw)) continue;
+    
+    // Engine returns degrees; with SIDEREAL flag it is already sidereal (Lahiri approx in stub).
+    const lonSidereal = wrap360(lonRaw);
+    out.push({ name: p.name, lon: lonSidereal });
 
-    const lon = wrap360(lonRaw);
-    out.push({ name: p.name, lon });
   }
 
   return out;
 }
-
 /* -------------------------------------------------------
    ASPECT DETECTION (Hybrid Vedic + Western degree aspects)
 -------------------------------------------------------- */
@@ -435,11 +528,15 @@ function classifyCategory(
 type RawDailyHit = {
   dateISO: string;
   transitPlanet: string;
+  transitLon: number;   // ✅
   natalPlanet: string;
+  natalLon: number;     // ✅ (optional but useful)
   aspect: AspectKind;
   category: TransitCategory;
   strength: number;
+  
 };
+
 
 async function buildRawDailyHits(
   birth: TransitEngineBirth,
@@ -448,14 +545,31 @@ async function buildRawDailyHits(
   const constants = await getSweConstants();
   const natal = await computeNatalPlanets(birth, constants);
 
-  const today = startOfDay(new Date());
+  // Anchor "today" to the user's timezone midnight, then convert to UTC.
+const tz = birth.tz; // you can also pass notification tz via opts if you want
+const now = new Date();
+const parts = new Intl.DateTimeFormat("en-CA", {
+  timeZone: tz,
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  hour12: false,
+}).formatToParts(now);
+
+const get = (t: string) => parts.find((p) => p.type === t)?.value ?? "";
+const todayISO = `${get("year")}-${get("month")}-${get("day")}`;
+
+// midnight in that tz -> UTC instant
+const today = makeUtcInstant(todayISO, "00:00", tz);
+
   const horizon = Math.max(7, Math.min(horizonDays, 730)); // clamp
 
   const hits: RawDailyHit[] = [];
 
   for (let i = 0; i < horizon; i++) {
-    const day = addDays(today, i);
-    const dateISO = fmtISO(day);
+    const day = addDaysUTC(today, i);
+    const dateISO = dateISOInTz(day, tz);
+
 
     const tPlanets = await computeTransitPlanetsForDay(
       day,
@@ -470,13 +584,16 @@ async function buildRawDailyHits(
         const category = classifyCategory(tp.name, np.name);
 
         hits.push({
-          dateISO,
-          transitPlanet: tp.name,
-          natalPlanet: np.name,
-          aspect: asp.aspect,
-          category,
-          strength: asp.strength,
-        });
+  dateISO,
+  transitPlanet: tp.name,
+  transitLon: tp.lon,     // ✅
+  natalPlanet: np.name,
+  natalLon: np.lon,       // ✅
+  aspect: asp.aspect,
+  category,
+  strength: asp.strength,
+});
+
       }
     }
   }
@@ -498,33 +615,56 @@ export async function computeDailyMoonForHorizon(
   const natal = await computeNatalPlanets(birth, constants);
   const natalMoon = natal.find((p) => p.name === "Moon") || null;
 
-  const today = startOfDay(new Date());
+  // Anchor "today" to the user's timezone midnight, then convert to UTC.
+const tz = birth.tz; // you can also pass notification tz via opts if you want
+const now = new Date();
+const parts = new Intl.DateTimeFormat("en-CA", {
+  timeZone: tz,
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  hour12: false,
+}).formatToParts(now);
+
+const get = (t: string) => parts.find((p) => p.type === t)?.value ?? "";
+const todayISO = `${get("year")}-${get("month")}-${get("day")}`;
+
+// midnight in that tz -> UTC instant
+const today = makeUtcInstant(todayISO, "00:00", tz);
+
   const horizon = Math.max(7, Math.min(horizonDays, 730)); // clamp
 
-  const flags =
-    (constants.SEFLG_SWIEPH ?? 2) |
-    (constants.SEFLG_SPEED ?? 256) |
-    (constants.SEFLG_SIDEREAL ?? 64);
+ const flags =
+  (constants.SEFLG_SWIEPH ?? 2) |
+  (constants.SEFLG_SPEED ?? 256) |
+  (constants.SEFLG_SIDEREAL ?? 64);
+
 
   const out: DailyMoonSample[] = [];
 
   for (let i = 0; i < horizon; i++) {
-    const day = addDays(today, i);
-    const dateISO = fmtISO(day);
+    const day = addDaysUTC(today, i);
+    const dateISO = dateISOInTz(day, tz);
+
 
     const jdUt = await jdFromDateUTC(day, constants.SE_GREG_CAL);
-    const res = await sweCall<any>(
-      "swe_calc_ut",
-      jdUt,
-      constants.SE_MOON,
-      flags
-    );
 
-    const lonRaw = extractLongitude(res);
-    if (typeof lonRaw !== "number" || !isFinite(lonRaw)) continue;
+const res = await sweCall<any>(
+  "swe_calc_ut",
+  jdUt,
+  constants.SE_MOON,
+  flags
+);
 
-    const lon = wrap360(lonRaw);
-    const nakshatra = nakFromDegSidereal(lon);
+const lonRaw = extractLongitude(res);
+if (typeof lonRaw !== "number" || !isFinite(lonRaw)) continue;
+
+// ✅ normalize radians → degrees if needed
+const lonDeg = lonToDegreesMaybe(lonRaw);
+
+// With SIDEREAL flag, this is already sidereal for nakshatra usage.
+const lon = wrap360(lonDeg);
+const nakshatra = nakFromDegSidereal(lon);
 
     let houseFromMoon: number | undefined = undefined;
     if (natalMoon) {
@@ -550,11 +690,14 @@ export async function computeDailyMoonForHorizon(
 type WindowAccumulator = {
   category: TransitCategory;
   planet: string; // transiting planet
+  natalPlanet: string; // ✅ keep hits separated by natal target
+  aspect: AspectKind;   // ✅ keep hits separated by aspect kind
   startISO: string;
   endISO: string;
   maxStrength: number;
   hits: RawDailyHit[];
 };
+
 
 function daysBetweenISO(a: string, b: string): number {
   const d1 = new Date(a + "T00:00:00Z").getTime();
@@ -562,34 +705,39 @@ function daysBetweenISO(a: string, b: string): number {
   return Math.round((d2 - d1) / 86_400_000);
 }
 
-function buildWindowsFromHits(hits: RawDailyHit[]): TransitHit[] {
+function buildWindowsFromHits(
+  hits: RawDailyHit[],
+  opts?: { ascDeg?: number; ascSign?: string }
+): TransitHit[] {
+
   if (!hits.length) return [];
 
+  
   // Sort by date
   hits.sort((a, b) =>
     a.dateISO < b.dateISO ? -1 : a.dateISO > b.dateISO ? 1 : 0
   );
 
   const windows: WindowAccumulator[] = [];
-
-  const MAX_GAP_DAYS = 5; // merge hits if they are close in time
+  const MAX_GAP_DAYS = 5;
 
   for (const h of hits) {
     const keyCat = h.category;
     const keyPlanet = h.transitPlanet;
+    const keyNatal = h.natalPlanet;
+    const keyAspect = h.aspect;
 
     let attached = false;
 
     for (const w of windows) {
       if (w.category !== keyCat) continue;
       if (w.planet !== keyPlanet) continue;
+      if (w.natalPlanet !== keyNatal) continue;
+      if (w.aspect !== keyAspect) continue;
 
       const gap = daysBetweenISO(w.endISO, h.dateISO);
       if (gap >= 0 && gap <= MAX_GAP_DAYS) {
-        // extend window
-        if (h.dateISO > w.endISO) {
-          w.endISO = h.dateISO;
-        }
+        if (h.dateISO > w.endISO) w.endISO = h.dateISO;
         w.maxStrength = Math.max(w.maxStrength, h.strength);
         w.hits.push(h);
         attached = true;
@@ -599,26 +747,49 @@ function buildWindowsFromHits(hits: RawDailyHit[]): TransitHit[] {
 
     if (!attached) {
       windows.push({
-        category: keyCat,
-        planet: keyPlanet,
-        startISO: h.dateISO,
-        endISO: h.dateISO,
-        maxStrength: h.strength,
-        hits: [h],
-      });
+  category: keyCat,
+  planet: keyPlanet,
+  natalPlanet: keyNatal,
+  aspect: keyAspect,
+  startISO: h.dateISO,
+  endISO: h.dateISO,
+  maxStrength: h.strength,
+  hits: [h],
+});
     }
   }
 
   // Convert accumulators → TransitHit[]
   const out: TransitHit[] = windows.map((w, idx) => {
-    // Pick a representative hit (strongest)
     const strongest = w.hits.reduce(
       (best, cur) => (cur.strength > best.strength ? cur : best),
       w.hits[0]
     );
 
+    const tLon =
+      typeof (strongest as any).transitLon === "number"
+        ? wrap360((strongest as any).transitLon)
+        : undefined;
+
+    const tSign = typeof tLon === "number" ? signFromLonSidereal(tLon) : undefined;
+
+    let tHouse: number | undefined = undefined;
+
+if (typeof tLon === "number") {
+  // Whole Sign house from Lagna sign (preferred)
+  if (tSign && opts?.ascSign) {
+    tHouse = houseFromLagnaWholeSign(tSign, opts.ascSign);
+  }
+
+  // Fallback: equal-house from Asc degree if ascSign missing
+  if (!tHouse && typeof opts?.ascDeg === "number" && Number.isFinite(opts.ascDeg)) {
+    tHouse = houseFromAsc(opts.ascDeg, tLon);
+  }
+}
+
+
     const target = `${strongest.aspect} natal ${strongest.natalPlanet}`;
-    const id = `win-${idx}-${w.planet.toLowerCase()}-${w.category}`;
+    const id = `win-${idx}-${w.planet.toLowerCase()}-${w.category}-${w.aspect}-${w.natalPlanet.toLowerCase()}`;
 
     const title = buildWindowTitle(w.category, w.planet, strongest);
     const description = buildWindowDescription(w, strongest);
@@ -631,12 +802,16 @@ function buildWindowsFromHits(hits: RawDailyHit[]): TransitHit[] {
       target,
       category: w.category,
       strength: Math.min(1, w.maxStrength),
+
+      transitLon: tLon,
+      transitSign: tSign,
+      transitHouse: tHouse,
+
       title,
       description,
     };
   });
 
-  // Sort by start date
   out.sort((a, b) =>
     a.startISO < b.startISO ? -1 : a.startISO > b.startISO ? 1 : 0
   );
@@ -734,6 +909,87 @@ function buildWindowDescription(
     "Multiple life areas may be gently activated; stay observant and make mindful adjustments where needed.",
   ].join(" ");
 }
+const SIGNS = [
+  "Aries","Taurus","Gemini","Cancer","Leo","Virgo",
+  "Libra","Scorpio","Sagittarius","Capricorn","Aquarius","Pisces"
+];
+
+
+export type TransitNowPlanet = {
+  name: string;
+  lon: number;         // sidereal longitude 0..360
+  sign: string;        // sidereal sign
+  house?: number;      // whole sign house from Asc
+};
+
+export async function computeTransitPlanetsNow(
+  birth: TransitEngineBirth,
+  ascSign?: string,
+  asOf?: { dateISO: string; time: string; tz: string }
+): Promise<TransitNowPlanet[]> {
+  const constants = await getSweConstants();
+  console.log("[TRANSITS_VERSION] 2026-01-27 A");
+
+  // Use explicit "as-of" moment (preferred), else fall back to birth tz + current clock.
+  const tz = asOf?.tz ?? birth.tz;
+
+  // If caller didn't pass a moment, derive "now" in the given tz.
+  const nowUtc = (() => {
+    if (asOf?.dateISO && asOf?.time) {
+      return makeUtcInstant(asOf.dateISO, asOf.time, tz);
+    }
+
+    // derive current date/time in tz (no external libs)
+    const now = new Date();
+    const parts = new Intl.DateTimeFormat("en-CA", {
+      timeZone: tz,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    }).formatToParts(now);
+
+    const get = (t: string) => parts.find((p) => p.type === t)?.value ?? "";
+    const dateISO = `${get("year")}-${get("month")}-${get("day")}`;
+    const time = `${get("hour")}:${get("minute")}`;
+    return makeUtcInstant(dateISO, time, tz);
+  })();
+
+  // IMPORTANT: compute at the actual instant, not start-of-day UTC
+  console.log("[transitsNow] tz:", tz);
+console.log("[transitsNow] nowUtc ISO:", nowUtc.toISOString());
+console.log("[transitsNow] nowUtc UTC date:", nowUtc.toISOString().slice(0, 10));
+
+const tPlanets = await computeTransitPlanetsForDay(nowUtc, constants);
+console.log(
+  "[transitsNow] sample",
+  tPlanets.map(p => `${p.name}:${p.lon.toFixed(2)}° ${signFromDegSidereal(p.lon)}`).join(" | ")
+);
+
+
+    const sun = tPlanets.find(p => p.name === "Sun");
+
+  return tPlanets.map((p) => {
+    let lon = p.lon;
+    let sign = signFromDegSidereal(lon);
+
+    // 🔒 Mercury boundary correction (stub safety)
+    if (p.name === "Mercury" && sun) {
+      const diff = Math.abs(wrap360(lon - sun.lon));
+      if (diff < 30) {
+        // force Mercury into Sun's sign if close
+        sign = signFromDegSidereal(sun.lon);
+      }
+    }
+
+    const house = houseFromLagnaWholeSign(sign, ascSign);
+    return { name: p.name, lon, sign, house };
+  });
+
+}
+
 
 /* -------------------------------------------------------
    PUBLIC API – USED BY /api/transits
@@ -741,15 +997,20 @@ function buildWindowDescription(
 
 export async function computeTransitWindows(
   birth: TransitEngineBirth,
-  horizonDays: number
+  horizonDays: number,
+  opts?: { ascDeg?: number; ascSign?: string }
 ): Promise<TransitHit[]> {
+
   if (!horizonDays || horizonDays <= 0) return [];
 
   try {
     const raw = await buildRawDailyHits(birth, horizonDays);
     if (!raw.length) return [];
 
-    const windows = buildWindowsFromHits(raw);
+    // ✅ pass ascDeg into the window builder so transitHouse is computed correctly
+    const windows = buildWindowsFromHits(raw, opts);
+
+
     return windows;
   } catch (e) {
     console.error("[transits] computeTransitWindows failed", e);

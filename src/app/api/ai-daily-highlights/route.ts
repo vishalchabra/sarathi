@@ -19,8 +19,12 @@ type DayOutput = {
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-function safeArr(x: any): string[] {
+function safeStrArr(x: any): string[] {
   return Array.isArray(x) ? x.map((v) => String(v)).filter(Boolean) : [];
+}
+
+function safeObjArr(x: any): any[] {
+  return Array.isArray(x) ? x.filter((v) => v && typeof v === "object") : [];
 }
 
 export async function POST(req: Request) {
@@ -33,14 +37,20 @@ export async function POST(req: Request) {
       return Response.json({ days: [] }, { status: 200 });
     }
 
-    // System: astrologer voice + must use facts
+    // Helpful env checks (will show you WHY it’s 500)
+    console.log("[ai-daily-highlights] model:", process.env.OPENAI_MODEL_DAILY || "gpt-4o-mini");
+    console.log("[ai-daily-highlights] has key:", !!process.env.OPENAI_API_KEY);
+    console.log("[ai-daily-highlights] days:", days.length);
+
     const sys = [
-      "You are a Vedic astrologer writing concise daily guidance.",
-      "Do NOT sound like ChatGPT. No generic motivational language.",
-      "You MUST base every day strictly on the provided facts.",
-      "Do not invent planets, nakshatras, houses, yogas, or aspects.",
-      "Keep it short, grounded, and human.",
-    ].join(" ");
+  "You are a Vedic astrologer writing concise daily guidance.",
+  "Return ONLY valid JSON (no markdown, no backticks, no extra text).",
+  "Do NOT sound like ChatGPT. No generic motivational language.",
+  "You MUST base every day strictly on the provided facts.",
+  "Do not invent planets, nakshatras, houses, yogas, or aspects.",
+  "Keep it short, grounded, and human.",
+].join(" ");
+
 
     const user = {
       profile: {
@@ -50,7 +60,8 @@ export async function POST(req: Request) {
         birthTz: String(profile?.birthTz ?? ""),
       },
       instruction:
-        "For each day: write (1) a 4–7 word headline, (2) 60–90 words of guidance, (3) 2–3 DO bullets, (4) 2–3 AVOID bullets. Use at least 2 facts verbatim (or near-verbatim).",
+  "Return a JSON object only. For each day: write (1) a 4–7 word headline, (2) 60–90 words of guidance, (3) 2–3 DO bullets, (4) 2–3 AVOID bullets. Use at least 2 facts verbatim (or near-verbatim).",
+
       days,
       outputFormat: {
         days: [
@@ -77,14 +88,29 @@ export async function POST(req: Request) {
     });
 
     const raw = resp.choices?.[0]?.message?.content ?? "{}";
-    const parsed = JSON.parse(raw);
+    console.log("[ai-daily-highlights] raw length:", raw.length);
+    // console.log("[ai-daily-highlights] raw:", raw); // uncomment temporarily if needed
 
-    const out: DayOutput[] = safeArr(parsed?.days).map((d: any) => ({
+    let parsed: any = {};
+    try {
+      parsed = JSON.parse(raw);
+    } catch (e: any) {
+      console.error("[ai-daily-highlights] JSON.parse failed:", e?.message);
+      return new Response(
+        JSON.stringify({
+          error: "ai-daily-highlights invalid JSON from model",
+          rawPreview: raw.slice(0, 500),
+        }),
+        { status: 500, headers: { "content-type": "application/json" } }
+      );
+    }
+
+    const out: DayOutput[] = safeObjArr(parsed?.days).map((d: any) => ({
       dateISO: String(d?.dateISO ?? ""),
       headline: String(d?.headline ?? "").trim(),
       text: String(d?.text ?? "").trim(),
-      do: safeArr(d?.do).slice(0, 3),
-      avoid: safeArr(d?.avoid).slice(0, 3),
+      do: safeStrArr(d?.do).slice(0, 3),
+      avoid: safeStrArr(d?.avoid).slice(0, 3),
       confidence:
         d?.confidence === "high" || d?.confidence === "low"
           ? d.confidence
@@ -92,10 +118,24 @@ export async function POST(req: Request) {
     }));
 
     return Response.json({ days: out }, { status: 200 });
-  } catch (e: any) {
-    return Response.json(
-      { error: e?.message || "ai daily failed" },
-      { status: 500 }
-    );
-  }
+  } catch (err: any) {
+  console.error("[ai-daily-highlights] ERROR message:", err?.message ?? err);
+  console.error("[ai-daily-highlights] ERROR status:", err?.status);
+  console.error("[ai-daily-highlights] ERROR code:", err?.code);
+  console.error("[ai-daily-highlights] ERROR type:", err?.type);
+  console.error("[ai-daily-highlights] ERROR stack:", err?.stack ?? "");
+  console.error("[ai-daily-highlights] ERROR full:", err);
+
+  return new Response(
+    JSON.stringify({
+      error: "ai-daily-highlights failed",
+      message: String(err?.message ?? err),
+      status: err?.status ?? null,
+      code: err?.code ?? null,
+      type: err?.type ?? null,
+    }),
+    { status: 500, headers: { "content-type": "application/json" } }
+  );
+}
+
 }

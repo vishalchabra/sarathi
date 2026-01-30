@@ -2,18 +2,16 @@
 import "server-only";
 
 /**
- * SWE-REMOTE STUB
+ * SWE-REMOTE STUB (Improved)
  *
- * Originally this file proxied to a separate Swiss Ephemeris engine
- * over HTTP (ENGINE_URL /swe, /constants). That doesn't work on Vercel
- * when pointing to localhost, and we've removed all real SWE/WASM usage
- * from the app.
+ * This is still NOT Swiss Ephemeris accuracy, but it's no longer "0° at J2000".
+ * We add:
+ *  - Approx J2000 base longitudes per planet
+ *  - Mean-motion advance from J2000
+ *  - Optional SIDEREAL flag support (Lahiri approx)
+ *  - swe_get_ayanamsa_ut implemented (approx Lahiri)
  *
- * This module now provides:
- * - A local `sweJulday` (no network, no SWE)
- * - A stub `swe_calc_ut` implemented via simple mean motions
- * - A generic `sweCall` dispatcher
- * - Stub constants so legacy callers compile
+ * Goal: stable + believable sign/house placements for UI, Vercel-safe.
  */
 
 // ---------------------------------------------------------------------
@@ -36,6 +34,9 @@ export type SweConstants = {
   SEFLG_SWIEPH: number;
   SEFLG_SIDEREAL: number;
   SEFLG_SPEED: number;
+
+  // optional sidereal mode id
+  SE_SIDM_LAHIRI?: number;
 };
 
 // ---------------------------------------------------------------------
@@ -47,7 +48,6 @@ let cachedConstants: SweConstants | null = null;
 export async function getSweConstants(): Promise<SweConstants> {
   if (cachedConstants) return cachedConstants;
 
-  // Placeholder IDs & flags so legacy code can still refer to them.
   cachedConstants = {
     SE_GREG_CAL: 1,
     SE_SUN: 0,
@@ -62,14 +62,34 @@ export async function getSweConstants(): Promise<SweConstants> {
     SEFLG_SWIEPH: 2,
     SEFLG_SIDEREAL: 64,
     SEFLG_SPEED: 256,
+
+    // for compatibility with code that checks this
+    SE_SIDM_LAHIRI: 1,
   };
 
   return cachedConstants;
 }
 
-// Convenience accessor so callers can do:
-//   const { SE_SUN, ... } = await getSweConstants();
 export type { SweConstants as SweConstantsType };
+
+// ---------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------
+
+function wrap360(x: number): number {
+  let v = x % 360;
+  if (v < 0) v += 360;
+  return v;
+}
+
+// Approx Lahiri ayanamsa from JD (same model you already used elsewhere)
+function approxLahiriAyanamsaDegFromJdUt(jdUt: number): number {
+  // JD 2451545.0 = 2000-01-01 12:00 UT (J2000)
+  const yearsSince2000 = (jdUt - 2451545.0) / 365.2425;
+  const base = 23.856; // approx Lahiri around J2000
+  const rate = 0.013969; // deg/year
+  return base + yearsSince2000 * rate;
+}
 
 // ---------------------------------------------------------------------
 // Local Julian Day calculator (no SWE, no network)
@@ -82,8 +102,6 @@ function computeJulday(
   hour: number,
   gregFlag = 1
 ): number {
-  // Standard astronomical JD formula; gregFlag is kept for API parity
-  // but not treated differently here (we assume Gregorian dates).
   let Y = year;
   let M = month;
   let D = day + hour / 24;
@@ -107,14 +125,13 @@ function computeJulday(
 }
 
 // ---------------------------------------------------------------------
-// Very rough swe_calc_ut substitute (mean motions)
+// Mean-motion substitute with J2000 base longitudes
 // ---------------------------------------------------------------------
 
-function computePlanetLongitude(jdUt: number, ipl: number): number {
-  // Use J2000.0 as reference
+function computePlanetLongitudeTropical(jdUt: number, ipl: number): number {
   const daysFromJ2000 = jdUt - 2451545.0;
 
-  // Simple mean daily motions (deg/day), VERY approximate:
+  // Very rough mean daily motions (deg/day)
   const meanMotions: Record<number, number> = {
     0: 0.985647, // Sun
     1: 13.176358, // Moon
@@ -124,15 +141,27 @@ function computePlanetLongitude(jdUt: number, ipl: number): number {
     5: 0.083056, // Jupiter
     6: 0.033477, // Saturn
     10: -0.052954, // Mean Node (retrograde)
-    11: -0.052954, // True Node (retrograde-ish)
+    11: -0.052954, // True Node (approx retrograde)
+  };
+
+  // Approx J2000 tropical ecliptic longitudes (deg)
+  // These are not perfect; they just prevent "everything starts at 0°"
+  const baseLonJ2000: Record<number, number> = {
+    0: 280.1470, // Sun approx
+    1: 218.3160, // Moon mean lon
+    2: 252.2500, // Mercury approx
+    3: 181.9798, // Venus approx
+    4: 355.4330, // Mars approx
+    5: 34.3515, // Jupiter approx
+    6: 50.0774, // Saturn approx
+    10: 125.0445, // Mean node approx
+    11: 125.0445, // True node approx
   };
 
   const motion = meanMotions[ipl] ?? 0.5;
-  const baseLon = motion * daysFromJ2000;
+  const base0 = baseLonJ2000[ipl] ?? 0;
 
-  // Just wrap into 0..360; we don't bother with proper starting phases.
-  const lon = ((baseLon % 360) + 360) % 360;
-  return lon;
+  return wrap360(base0 + motion * daysFromJ2000);
 }
 
 // ---------------------------------------------------------------------
@@ -153,26 +182,42 @@ async function callSwe<T = any>(payload: SweCallPayload): Promise<T> {
     return computeJulday(y, m, d, h, gregFlag ?? 1) as T;
   }
 
+  // Implement ayanamsa call so callers can rely on it
+  if (method === "swe_get_ayanamsa_ut") {
+    const [jdUt] = args as [number];
+    return approxLahiriAyanamsaDegFromJdUt(jdUt) as T;
+  }
+
+  // Sidereal mode setter (best-effort no-op for compatibility)
+  if (method === "swe_set_sid_mode") {
+    return (true as unknown) as T;
+  }
+
   if (method === "swe_calc_ut") {
-    const [jdUt, ipl] = args as [number, number, number?];
-    const lon = computePlanetLongitude(jdUt, ipl);
-    // Shape modeled after common swisseph bindings: { longitude: number }
+    // Args: jdUt, ipl, flags?
+    const [jdUt, ipl, flags] = args as [number, number, number?];
+
+    let lon = computePlanetLongitudeTropical(jdUt, ipl);
+
+    // If SIDEREAL flag is set, apply approximate Lahiri
+    const SIDEREAL = 64;
+    if (((flags ?? 0) & SIDEREAL) !== 0) {
+      const ayan = approxLahiriAyanamsaDegFromJdUt(jdUt);
+      lon = wrap360(lon - ayan);
+    }
+
     return { longitude: lon } as T;
   }
 
   if (method === "swe_houses") {
-    // Args: jdUt, lat, lon, hsys
-    const [jdUt, lat, lon] = args as [number, number, number, string?];
+    // Args: jdUt, lat, lon, hsys?
+    const [jdUt, _lat, lon] = args as [number, number, number, string?];
 
-    // Very rough ascendant:
-    // - Use jdUt as time variable
-    // - Add longitude so Eastern places rotate chart a bit
-    const asc = ((jdUt * 0.985647 + lon) % 360 + 360) % 360;
+    // Very rough ascendant proxy:
+    const asc = wrap360(jdUt * 0.985647 + lon);
 
     // Simple 12-house system: each cusp 30° from ascendant
-    const cusps = Array.from({ length: 12 }, (_v, i) =>
-      ((asc + i * 30) % 360 + 360) % 360
-    );
+    const cusps = Array.from({ length: 12 }, (_v, i) => wrap360(asc + i * 30));
 
     const result = {
       ascendant: asc,
@@ -184,17 +229,12 @@ async function callSwe<T = any>(payload: SweCallPayload): Promise<T> {
     return result as T;
   }
 
-  // Any other SWE methods are not supported in this stubbed, SWE-free build.
   throw new Error(
     `remote swisseph is disabled in this Sarathi build; method "${method}" is not supported`
   );
 }
 
-
-export async function sweCall<T = any>(
-  method: string,
-  ...args: any[]
-): Promise<T> {
+export async function sweCall<T = any>(method: string, ...args: any[]): Promise<T> {
   return callSwe<T>({ method, args });
 }
 

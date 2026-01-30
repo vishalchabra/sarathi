@@ -57,6 +57,8 @@ export async function POST(req: NextRequest) {
     }
 
     const client = getOpenAIClient();
+    console.log("[ai-personality] modelUsed:", GPT_MODEL);
+    console.log("[ai-personality] has key:", !!process.env.OPENAI_API_KEY);
 
     // We want a predictable shape for the UI: { text: string[], closing: string }
     const userPrompt = `
@@ -78,15 +80,32 @@ Chart data:
 ${JSON.stringify(report, null, 2)}
 `.trim();
 
-    const completion = await client.chat.completions.create({
-      model: GPT_MODEL,
-      temperature: 0.7,
-      max_tokens: 450,
-      messages: [
-        { role: "system", content: SARATHI_SYSTEM_PROMPT },
-        { role: "user", content: userPrompt },
-      ],
-    });
+    let completion: any = null;
+
+try {
+  completion = await client.chat.completions.create({
+    model: GPT_MODEL,
+    temperature: 0.7,
+    max_tokens: 450,
+    messages: [
+      {
+        role: "system",
+        content:
+          "You are a Vedic astrologer. Respond ONLY in valid JSON. No markdown. Output must be JSON. (json)",
+      },
+      { role: "user", content: userPrompt },
+    ],
+  });
+} catch (err: any) {
+  console.error("[ai-personality] OPENAI ERROR:", err?.message ?? err);
+  return badJson("OpenAI request failed", 502, {
+    message: String(err?.message ?? err),
+    status: err?.status ?? null,
+    type: err?.type ?? null,
+    code: err?.code ?? null,
+  });
+}
+
 
     const raw = completion.choices[0]?.message?.content?.trim() || "";
 
@@ -127,6 +146,7 @@ ${JSON.stringify(report, null, 2)}
         parsedPreview: JSON.stringify(parsed).slice(0, 300),
       });
     }
+
 
     return okJson({
       ok: true,

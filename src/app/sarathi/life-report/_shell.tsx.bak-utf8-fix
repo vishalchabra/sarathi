@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, {
   Suspense,
@@ -45,7 +45,7 @@ import { NAKSHATRA_INFO } from "@/lib/astrology/nakshatraMap";
 const AYANAMSA_LAHIRI_APPROX = 23.85;
 
 
-/* ---------------- Locking city autocomplete (simplified ï¿½ always typeable) ---------------- */
+/* ---------------- Locking city autocomplete (simplified � always typeable) ---------------- */
 
 
 const cityCache = new Map<string, Array<{ name: string; lat: number; lon: number }>>();
@@ -72,16 +72,15 @@ function LockingCityAutocomplete({
   const timerRef = React.useRef<number | null>(null);
   
   // keep input in sync if parent changes value
-React.useEffect(() => {
-  if (value?.name && value.name !== q) {
-    setQ(value.name);
-    return;
-  }
-  if (!value && q !== "") {
-    setQ("");
-  }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-}, [value]);
+  React.useEffect(() => {
+    if (value?.name && value.name !== q) {
+      setQ(value.name);
+    }
+    if (!value && q && !q.trim()) {
+      setQ("");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value]);
 
   // search as user types
   React.useEffect(() => {
@@ -107,11 +106,7 @@ React.useEffect(() => {
         const url = `https://nominatim.openstreetmap.org/search?format=json&limit=8&addressdetails=1&q=${encodeURIComponent(
           query
         )}`;
-        const res = await fetch(url, {
-  headers: { "Accept-Language": "en" },
-  referrerPolicy: "no-referrer",
-});
-
+        const res = await fetch(url, { headers: { "Accept-Language": "en" } });
         const json = (await res.json()) as any[];
         const out = json.map((r) => {
           const city =
@@ -211,7 +206,7 @@ React.useEffect(() => {
           aria-label="Clear"
           title="Clear"
         >
-          x
+          ?
         </button>
       )}
 
@@ -276,7 +271,7 @@ type PanchangInfo = {
   moonset?: string | null;
   moonsetISO?: string | null;
 
-  //  Kaal windows (we?ll still show ?? ï¿½ ?? until backend sends structured ranges)
+  //  Kaal windows (we?ll still show ?? � ?? until backend sends structured ranges)
   rahuKaal?: any;
   gulikaKaal?: any;
   abhijit?: any;
@@ -424,7 +419,7 @@ function buildMonthFromDaily(dailyHighlights: any) {
   const weeks = weekChunks.map((chunk, i) => {
     const start = String(chunk?.[0]?.dateISO || "");
     const end = String(chunk?.[chunk.length - 1]?.dateISO || "");
-    const label = start && end ? `${start} - ${end}` : `Week ${i + 1}`;
+    const label = start && end ? `${start} ? ${end}` : `Week ${i + 1}`;
 
 
     // Make a short meaty summary from headlines/text
@@ -434,7 +429,7 @@ function buildMonthFromDaily(dailyHighlights: any) {
       .slice(0, 3);
 
     const text = lines.length
-  ? lines.map((s) => `ï¿½ ${s}`).join("\n")
+  ? lines.map((s) => `� ${s}`).join("\n")
   : "No guidance available for this week yet.";
 
     return { label, text, days: chunk };
@@ -566,7 +561,7 @@ function toNum(x: any): number | undefined {
 return Number.isFinite(n) ? (n as number) : undefined;
 }
 
-// --- Yoga / Karana from sidereal ï¿½ & ï¿½ ---
+// --- Yoga / Karana from sidereal � & � ---
 
 const KARANA_MOVABLE = [
   "Bava",
@@ -606,7 +601,7 @@ function computeKaranaName(
   const K = Math.floor(D / 6); // 0..59
 
   // Fixed (sthira) karanas at specific K values:
-  // 57 ï¿½ Shakuni, 58 ï¿½ Chatushpada, 59 ï¿½ Naga, 0 ï¿½ Kimstughna
+  // 57 � Shakuni, 58 � Chatushpada, 59 � Naga, 0 � Kimstughna
   if (K === 57) return "Shakuni";
   if (K === 58) return "Chatushpada";
   if (K === 59) return "Naga";
@@ -673,93 +668,33 @@ function humanizeInsight(base: string): string {
 
   return `${pick(openers)} ${sentence} ${pick(endings)}`;
 }
-function transitRangeISO(t: any): { startISO: string | null; endISO: string | null } {
-  const sRaw = t?.startISO ?? t?.fromISO ?? t?.from ?? t?.start ?? t?.startDate;
-  const eRaw = t?.endISO ?? t?.toISO ?? t?.to ?? t?.end ?? t?.endDate;
-
-  const startISO = toISODate(sRaw);
-  const endISO = toISODate(eRaw);
-
-  return { startISO, endISO };
-}
 
 function primaryCategoryForRange(
   transits: any[] | null | undefined,
   from: Date,
   to: Date
 ): string {
-  if (!Array.isArray(transits) || !transits.length) return "general";
+  if (!Array.isArray(transits) || !transits.length) {
+    return "general";
+  }
 
-  // pick the strongest transit whose window overlaps the range
+  // Very simple logic for now:
+  // pick the strongest transit whose active window overlaps the range
   const overlapping = transits.filter((t: any) => {
-    const { startISO, endISO } = transitRangeISO(t);
-    if (!startISO || !endISO) return false;
-
-    // Use UTC day boundaries consistently
-    const start = new Date(startISO + "T00:00:00.000Z");
-    const end = new Date(endISO + "T23:59:59.999Z");
-
+    if (!t?.from || !t?.to) return false;
+    const start = new Date(t.from);
+    const end = new Date(t.to);
     return end >= from && start <= to;
   });
 
-  const pool = overlapping.length ? overlapping : transits;
-
-  const withStrength = pool.filter((t: any) => typeof t?.strength === "number");
-
-  const primary =
-    withStrength.length
-      ? withStrength
-          .slice()
-          .sort((a: any, b: any) => (b?.strength ?? 0) - (a?.strength ?? 0))[0]
-      : pool[0];
-
-  const cat = String(primary?.category || "general").toLowerCase();
-  if (cat === "career") return "career";
-  if (cat === "relationships") return "relationships";
-  if (cat === "health") return "health";
-  if (cat === "inner") return "inner";
-  return "general";
+  const primary = overlapping[0] ?? transits[0];
+  return primary?.category ?? "general";
 }
-
-
-function strongestTransitForRange(
-  transits: any[] | null | undefined,
-  from: Date,
-  to: Date
-): any | null {
-  if (!Array.isArray(transits) || !transits.length) return null;
-
-  // Filter to only transits that overlap this range
-  const overlapping = transits.filter((t: any) => {
-    const { startISO, endISO } = transitRangeISO(t);
-    if (!startISO || !endISO) return false;
-
-    const start = new Date(startISO + "T00:00:00.000Z");
-    const end = new Date(endISO + "T23:59:59.999Z");
-
-    return end >= from && start <= to;
-  });
-
-  const pool = overlapping.length ? overlapping : transits;
-
-  // Prefer the one with highest "strength" if available
-  const withStrength = pool.filter((t: any) => typeof t?.strength === "number");
-
-  const primary =
-    withStrength.length
-      ? withStrength
-          .slice()
-          .sort((a: any, b: any) => (b?.strength ?? 0) - (a?.strength ?? 0))[0]
-      : pool[0];
-
-  return primary ?? null;
-}
-
 function fmtRange(startISO?: string, endISO?: string) {
   const s = String(startISO || "").slice(5, 10);
   const e = String(endISO || "").slice(5, 10);
   if (!s || !e) return "";
-  return s === e ? s : `${s}–${e}`;
+  return s === e ? s : `${s}?${e}`;
 }
 
 function niceCat(cat: any) {
@@ -785,6 +720,44 @@ function formatTransitChip(t: any): string {
   return range ? `${label}  ${cat}  ${range}` : `${label}  ${cat}`;
 }
 
+function strongestTransitForRange(
+  transits: any[] | null | undefined,
+  from: Date,
+  to: Date
+): any | null {
+  if (!Array.isArray(transits) || !transits.length) {
+    return null;
+  }
+
+
+
+  // Filter to only transits that overlap this range
+  const overlapping = transits.filter((t: any) => {
+    if (!t?.from || !t?.to) return false;
+    const start = new Date(t.from);
+    const end = new Date(t.to);
+    return end >= from && start <= to;
+  });
+
+  const pool = overlapping.length ? overlapping : transits;
+
+  // Prefer the one with highest "strength" if available
+  const withStrength = pool.filter(
+    (t: any) => typeof t?.strength === "number"
+  );
+
+  let primary: any | null = null;
+
+  if (withStrength.length) {
+    primary = withStrength.sort(
+      (a: any, b: any) => (b.strength ?? 0) - (a.strength ?? 0)
+    )[0];
+  } else {
+    primary = pool[0] ?? null;
+  }
+
+  return primary ?? null;
+}
 
 function normalizeDateForBackend(v: string): string | null {
   if (!v) return null;
@@ -1174,7 +1147,7 @@ function parsePersonality(raw: unknown): { bullets: string[]; closing: string } 
     // ignore
   }
 
-  // plain text fallback ï¿½ split into lines if it looks list-y
+  // plain text fallback � split into lines if it looks list-y
   const lines = str
     .split("\n")
     .map((x) => x.trim())
@@ -1206,19 +1179,16 @@ function cap1(s: any) {
 function cleanText(input: string): string {
   if (!input) return "";
 
-  return String(input ?? "")
-  // remove Unicode "replacement character"
-  .replace(/\uFFFD/g, "")
-  // normalize smart quotes to plain quotes
-  .replace(/[“”„‟]/g, '"')
-  .replace(/[‘’‚‛]/g, "'")
-  // normalize dashes to hyphen (safe inside strings)
-  .replace(/[–—]/g, "-")
-  // collapse whitespace
-  .replace(/\s+/g, " ")
-  .trim();
+  return input
+    // Common broken UTF-8 sequences
+    .replace(/\uFFFD/g, "")          // � replacement
+    .replace(/\u00A0/g, " ")         // non-breaking space
+    .replace(/\u2018|\u2019/g, "'")  // smart single quotes
+    .replace(/\u201C|\u201D/g, '"')  // smart double quotes
+    .replace(/\u2013|\u2014/g, "")  // en/em dash
+    .replace(/\s+/g, " ")            // normalize spacing
+    .trim();
 }
-
 function parseAiJson(raw: string) {
   const s0 = (raw ?? "").trim();
   if (!s0) return null;
@@ -1246,12 +1216,12 @@ function fixWeirdEncoding(input: string) {
     .replace(/\uFFFD/g, "")
 
     // 2) Common mojibake sequences
-    .replace(/\u00E2\u0080\u0099/g, "\u2019") // ï¿½
-    .replace(/\u00E2\u0080\u009C/g, "\u201C") // ï¿½
-    .replace(/\u00E2\u0080\u009D/g, "\u201D") // ï¿½
-    .replace(/\u00E2\u0080\u0093/g, "\u2013") // ï¿½
-    .replace(/\u00E2\u0080\u0094/g, "\u2014") // ï¿½
-    .replace(/\u00E2\u0080\u00A6/g, "\u2026") // ï¿½
+    .replace(/\u00E2\u0080\u0099/g, "\u2019") // �
+    .replace(/\u00E2\u0080\u009C/g, "\u201C") // �
+    .replace(/\u00E2\u0080\u009D/g, "\u201D") // �
+    .replace(/\u00E2\u0080\u0093/g, "\u2013") // �
+    .replace(/\u00E2\u0080\u0094/g, "\u2014") // �
+    .replace(/\u00E2\u0080\u00A6/g, "\u2026") // �
     .replace(/\u00E2\u0086\u0092/g, "\u2192") // ?
 
     // 3) Drop stray and NBSP
@@ -1265,23 +1235,23 @@ function fixWeirdEncoding(input: string) {
       "$1'$2"
     )
 
-    // 5) Fix numeric ranges where ï¿½ stands for a dash (do this BEFORE degree fixes)
-    // 1?2 sentence/day/week/month -> 1ï¿½2 sentence/day/week/month
+    // 5) Fix numeric ranges where � stands for a dash (do this BEFORE degree fixes)
+    // 1?2 sentence/day/week/month -> 1�2 sentence/day/week/month
     .replace(
       /(\d)\?(\d)(\s*(?:sentence|sentences|day|days|week|weeks|month|months)\b)/gi,
-      "$1ï¿½$2$3"
+      "$1�$2$3"
     )
 
     // 6) Fix degree symbol corruption (only when it looks like deg+minutes)
-    // 13?20' -> 13ï¿½20'
-    .replace(/(\d{1,2})\?(\d{2})(?=')/g, "$1ï¿½$2")
+    // 13?20' -> 13�20'
+    .replace(/(\d{1,2})\?(\d{2})(?=')/g, "$1�$2")
 
     // Also handle cases like 0?30 (common in astro text)
-    .replace(/(\d{1,2})\?(\d{2})(?!\d)/g, "$1ï¿½$2")
+    .replace(/(\d{1,2})\?(\d{2})(?!\d)/g, "$1�$2")
 
     // 7) Fix separators: "active? treat" or "Retrograde ?"
-    .replace(/([A-Za-z0-9])\?\s+(?=[A-Za-z])/g, "$1 ï¿½ ")
-    .replace(/\s+\?\s+/g, " – ")
+    .replace(/([A-Za-z0-9])\?\s+(?=[A-Za-z])/g, "$1 � ")
+    .replace(/\s+\?\s+/g, " � ")
 
     // 8) Collapse extra spaces
     .replace(/\s{2,}/g, " ")
@@ -1293,14 +1263,14 @@ function sanitizeText(input: string): string {
   if (!input) return "";
 
   return input
-    // remove ï¿½ replacement characters
+    // remove � replacement characters
     .replace(/\uFFFD/g, "")
     // common mojibake fixes
-    .replace(/ï¿½/g, "")
-    .replace(/ï¿½|/g, '"')
-    .replace(/ï¿½|ï¿½/g, "'")
-    .replace(/ï¿½|ï¿½/g, "")
-    .replace(/ï¿½/g, "")
+    .replace(/�/g, "")
+    .replace(/�|?/g, '"')
+    .replace(/�|�/g, "'")
+    .replace(/�|�/g, "")
+    .replace(/�/g, "")
     .replace(/\s+/g, " ")
     .trim();
 }
@@ -1459,181 +1429,6 @@ function norm360(n: number) {
   const x = n % 360;
   return x < 0 ? x + 360 : x;
 }
-function normalizeMojibake(input: any): string {
-  let s = String(input ?? "");
-
-  // Normalize to reduce weird unicode forms
-  try {
-    s = s.normalize("NFKC");
-  } catch {}
-
-  // Remove control chars (keep newline + tab)
-  s = s.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "");
-
-  // Kill common replacement chars / mojibake sequences
-  s = s
-    .replace(/\uFFFD/g, "")        // � replacement char
-    .replace(/ï¿½/g, "")
-    .replace(/â€“/g, "–")
-    .replace(/â€”/g, "—")
-    .replace(/â€˜/g, "‘")
-    .replace(/â€™/g, "’")
-    .replace(/â€œ/g, "“")
-    .replace(/â€/g, "”")
-    .replace(/â€¦/g, "…")
-    .replace(/Â/g, "")
-    .replace(/ΓÇÖ/g, "’")
-    .replace(/ΓÇô/g, "–")
-    .replace(/ΓÇö/g, "—");
-
-  // Remove bidi / zero-width / direction marks that can create visual garbage
-  s = s.replace(/[\u200B-\u200F\u202A-\u202E\u2066-\u2069]/g, "");
-
-  // ✅ Remove box drawing + block elements + geometric shapes
-  // (this is exactly the “line garbage” in your screenshot)
-  s = s.replace(/[\u2500-\u257F\u2580-\u259F\u25A0-\u25FF]/g, "");
-
-  // Collapse whitespace
-  s = s.replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
-
-  // ✅ Hard guard 1: if it STILL contains box/block chars, drop it
-  if (/[\u2500-\u257F\u2580-\u259F\u25A0-\u25FF]/.test(s)) return "";
-
-  // ✅ Hard guard 2: repeated-glyph runs like "──────" or "██████" patterns
-  // (helps even when chars aren’t in the exact ranges above)
-  if (/(.)\1{10,}/.test(s)) return "";
-
-  // ✅ Junk ratio: tighten a bit so it gets discarded earlier
-  const total = s.length || 1;
-  const good =
-    (s.match(/[A-Za-z0-9\u0600-\u06FF\u0900-\u097F ,.'"“”‘’\-–—:;!?()\n]/g) ??
-      []).length;
-
-  const junkRatio = 1 - good / total;
-
-    // ✅ Keep text unless it's clearly the box/block gibberish
-  // If text is extremely short after cleanup, it's not useful.
-  if (s.length < 2) return "";
-
-  return s;
-
-}
-function pickKey<T>(arr: T[], key: string): T {
-  if (!arr.length) return arr[0] as T;
-  let h = 0;
-  for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) >>> 0;
-  return arr[h % arr.length];
-}
-
-function extractFocusFromFacts(facts: string[]): string {
-  const focusRaw = facts.find((x) => x.toLowerCase().includes("focus area:")) || "";
-  return String(focusRaw).split(":").slice(1).join(":").trim();
-}
-
-function extractMoonFromNatalMoonHouse(facts: string[]): number | null {
-  const moonFromRaw = facts.find((x) => x.toLowerCase().includes("from natal moon")) || "";
-  const m = String(moonFromRaw).match(/(\d+)/);
-  return m ? Number(m[1]) : null;
-}
-
-function buildMoonGuidedFallbackText(opts: {
-  dateISO: string;
-  idx: number;
-  facts: string[];
-  conf: string;
-}): string {
-  const { dateISO, idx, facts } = opts;
-
-  const focusLower = extractFocusFromFacts(facts).toLowerCase();
-  const moonFrom = extractMoonFromNatalMoonHouse(facts); // 1..12 or null
-
-  // Very light Moon steering (restore variation)
-  const moonTone =
-    moonFrom === 6 || moonFrom === 10
-      ? "Practical and productive."
-      : moonFrom === 7 || moonFrom === 11
-      ? "Social and collaborative."
-      : moonFrom === 8 || moonFrom === 12
-      ? "Quiet and reflective."
-      : moonFrom === 4
-      ? "Home and foundations."
-      : "Steady and balanced.";
-
-  const REL = [
-    "Choose timing and tone first; your message lands better.",
-    "Ask one direct question instead of assuming the answer.",
-    "Say the simple truth kindly; clarity beats over-explaining.",
-  ];
-
-  const CAREER = [
-    "Finish one thing fully, then move to the next.",
-    "Keep updates short and clear; execute the plan.",
-    "Pick one priority and close the loop cleanly.",
-  ];
-
-  const HEALTH = [
-    "Protect energy: hydrate early and keep the day simple.",
-    "Do less, but do it consistently; routines win today.",
-    "Avoid overstimulation; steady habits stabilize everything.",
-  ];
-
-  const INNER = [
-    "Pause before reacting; clarity shows up after the pause.",
-    "Name one emotion, then take one small practical step.",
-    "Reduce inputs; your mind settles when you simplify.",
-  ];
-
-  const GENERAL = [
-    "One priority, one clean action — keep distractions low.",
-    "Small improvements compound; finish what you start.",
-    "Stay consistent; don’t chase intensity today.",
-  ];
-
-  const pool = focusLower.includes("relationship")
-    ? REL
-    : focusLower.includes("career") || focusLower.includes("work")
-    ? CAREER
-    : focusLower.includes("health")
-    ? HEALTH
-    : focusLower.includes("inner") || focusLower.includes("mind")
-    ? INNER
-    : GENERAL;
-
-  const key = `${dateISO || idx}::${moonFrom ?? "x"}::${focusLower}`;
-  const guidance = pickKey(pool, key);
-
-  return `${moonTone} ${guidance}`.trim();
-}
-
-// Keep your wrapper
-function safeText(x: any): string {
-  return cleanText(normalizeMojibake(x));
-}
-function isMostlyGarbage(input: string): boolean {
-  const s = String(input ?? "").trim();
-  if (!s) return true;
-
-  // Quick catches for common mojibake / replacement-char spam
-  if (s.includes("�") || s.includes("ï¿½") || s.includes("Ã") || s.includes("Â")) return true;
-
-  // Remove whitespace for ratio checks
-  const compact = s.replace(/\s+/g, "");
-  if (compact.length < 8) return false;
-
-  // Count "non-normal" characters (symbols/box-drawing/etc.)
-  // Allow normal punctuation + letters/numbers.
-  const weird = compact.match(/[^a-zA-Z0-9.,!?'"():;\-–—/%&@#]/g)?.length ?? 0;
-
-  // If too many weird chars, it's likely garbage
-  const ratio = weird / compact.length;
-  return ratio > 0.22; // tune if needed
-}
-
-function apiPath(p: string) {
-  const base = (process.env.NEXT_PUBLIC_BASE_PATH || "").replace(/\/$/, "");
-  const path = p.startsWith("/") ? p : `/${p}`;
-  return `${base}${path}`;
-}
 
 function nakshatraFromDegASCII(deg: number) {
   const d = norm360(deg);
@@ -1728,7 +1523,10 @@ function hashToIndex(key: string, mod: number) {
 function pick<T>(arr: T[], idx: number) {
   return arr[idx % arr.length];
 }
-
+function pickKey<T>(arr: T[], key: string) {
+  const idx = hashToIndex(String(key ?? ""), arr.length);
+  return pick(arr, idx);
+}
 
 function dailyFlavorExtras(key: string) {
   const colors = [
@@ -1779,17 +1577,6 @@ type MonthlyFeature = {
     strength: number;
   } | null;
 };
-function todayISOInTz(tz?: string) {
-  const safeTz = tz && String(tz).trim() ? String(tz).trim() : "Asia/Dubai";
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: safeTz,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(new Date());
-  const get = (t: string) => parts.find((p) => p.type === t)?.value ?? "";
-  return `${get("year")}-${get("month")}-${get("day")}`;
-}
 
 function buildMonthlyFeaturesFromTransits(
   transits: TransitHit[],
@@ -2234,7 +2021,7 @@ function isGenericMoodText(s: string) {
 }
 
 
-function doAvoidLists(focus: string, mood: string, key: string) {
+export function doAvoidLists(focus: string, mood: string, key: string) {
   const DO_REL = [
     "Listen fully before replying",
     "Speak calmly and directly",
@@ -2262,7 +2049,7 @@ function doAvoidLists(focus: string, mood: string, key: string) {
   ];
 
   const DO_HEALTH = [
-    "10-20 minutes movement",
+    "1020 minutes movement",
     "Hydrate + lighter meals",
     "Early night / low screens",
     "A short walk after meals",
@@ -2451,7 +2238,7 @@ if (Number.isFinite(moonSidDeg)) {
 }
 
 
-    // ?? This was missing ï¿½ define relHouse safely from any of the fields
+    // ?? This was missing � define relHouse safely from any of the fields
     const relHouse =
       typeof (m as any)?.relativeHouseFromMoon === "number"
         ? (m as any).relativeHouseFromMoon
@@ -2664,10 +2451,10 @@ function parseTimelineWindows(raw: string) {
   // 1) Primary: bullet lines that contain a date range in parentheses
   // Supports: ?, ->, , , to
   // Example:
-  // - Jupiter ï¿½ Moon (2026-01-01 -> 2026-02-15) [career]
+  // - Jupiter � Moon (2026-01-01 -> 2026-02-15) [career]
 
   const reRange =
-  /(?:^|\n)\s*[-ï¿½*]?\s*([^\n(]+?)\s*\(\s*(\d{4}-\d{2}-\d{2})\s*(?:\?|->|ï¿½|ï¿½|to)\s*(\d{4}-\d{2}-\d{2})\s*\)\s*(?:\[\s*([^\]]+?)\s*\])?\s*(?=\n|$)/gi;
+  /(?:^|\n)\s*[-�*]?\s*([^\n(]+?)\s*\(\s*(\d{4}-\d{2}-\d{2})\s*(?:\?|->|�|�|to)\s*(\d{4}-\d{2}-\d{2})\s*\)\s*(?:\[\s*([^\]]+?)\s*\])?\s*(?=\n|$)/gi;
 
   let m: RegExpExecArray | null;
   while ((m = reRange.exec(text))) {
@@ -2681,10 +2468,10 @@ function parseTimelineWindows(raw: string) {
     }
   }
 
-  // 2) Secondary: if your text has "Window: YYYY-MM-DD ï¿½ YYYY-MM-DD"
+  // 2) Secondary: if your text has "Window: YYYY-MM-DD � YYYY-MM-DD"
   // (helps when GPT output format changes)
   const reInline =
-  /(?:window|period|phase)\s*[:\-]\s*([^\n:]+?)\s*(\d{4}-\d{2}-\d{2})\s*(?:\?|->|ï¿½|ï¿½|to)\s*(\d{4}-\d{2}-\d{2})/gi;
+  /(?:window|period|phase)\s*[:\-]\s*([^\n:]+?)\s*(\d{4}-\d{2}-\d{2})\s*(?:\?|->|�|�|to)\s*(\d{4}-\d{2}-\d{2})/gi;
 
   while ((m = reInline.exec(text))) {
     const label = (m[1] ?? "").trim();
@@ -2957,15 +2744,6 @@ function parseISODateLoose(s?: string | null): Date | null {
   if (!m) return null;
   return new Date(Date.UTC(+m[1], +m[2] - 1, +m[3]));
 }
-function coerceTz(value: any, fallback: string): string {
-  // Accept IANA TZ ("Asia/Dubai") or GMT offsets ("+04:00")
-  if (typeof value === "string") {
-    const s = value.trim();
-    if (s) return s;
-  }
-  return fallback;
-}
-
 
 // Add N days to a Date and return a new Date
 function addDaysLoose(d: Date, days: number): Date {
@@ -3223,7 +3001,7 @@ const guessSiderealDegFrom = (pl: PlanetRow): number | undefined => {
     return sidGuess;
   }
 
-  // If we can't be clever, still return the guess ï¿½ better than nothing
+  // If we can't be clever, still return the guess � better than nothing
   return sidGuess;
 };
 const PLANET_PRACTICE: Record<
@@ -3432,7 +3210,7 @@ function nakTheme(name?: string | null) {
   return map[name] ?? null;
 }
 
-/* ---- zodiac helpers for House ï¿½ Sign legend ---- */
+/* ---- zodiac helpers for House � Sign legend ---- */
 
 function wrapIndex(i: number) {
   return ((i % 12) + 12) % 12;
@@ -3563,8 +3341,8 @@ function PlanetWheelSVG({
           return (
             <g key={`${h}-${p.name}-${idx}`}>
               <title>{`${p.name}${
-                p.sign ? ` ï¿½ ${p.sign}` : ""
-              }${p.house ? ` ï¿½ House ${p.house}` : ""}`}</title>
+                p.sign ? ` � ${p.sign}` : ""
+              }${p.house ? ` � House ${p.house}` : ""}`}</title>
               <circle cx={x} cy={y} r={8} fill="currentColor" fillOpacity="0.1" />
               <circle
                 cx={x}
@@ -3710,7 +3488,7 @@ function buildPersonality(
     out.push({
       headline: `Ascendant  ${asc.sign}${
         asc.house ? `  House ${asc.house}` : ""
-      }${ascNakshatra ? ` ï¿½ ${ascNakshatra}` : ""}`,
+      }${ascNakshatra ? ` � ${ascNakshatra}` : ""}`,
       bullets: [
         d.theme
           ? `Core vibe: ${d.theme}.`
@@ -4019,10 +3797,11 @@ const cleanTransitText = (raw: string) => {
 };
 
 /* ---------- Individual tab components ---------- */
+
 const TabTransits: React.FC<TabTransitsProps> = memo(
   ({
     loading, // unused here now (12-month removed)
-    error, // unused here now (12-month removed)
+    error,   // unused here now (12-month removed)
     transitSummary, // unused here now (12-month removed)
     dailyHighlights,
     dailyLoading: dailyLoadingProp,
@@ -4030,27 +3809,9 @@ const TabTransits: React.FC<TabTransitsProps> = memo(
     mounted,
   }) => {
     const list = Array.isArray(dailyHighlights) ? dailyHighlights : [];
+
+    // Only show a few cards to keep it clean
     const visible = list.slice(0, 6);
-
-    // Local guard: treat any “mostly junk” strings as unusable
-    function isMostlyGarbage(s: string): boolean {
-      const t = safeText(s);
-      if (!t) return true;
-
-      // if box/block chars somehow survive, treat as garbage
-      if (/[\u2500-\u257F\u2580-\u259F\u25A0-\u25FF]/.test(t)) return true;
-
-      // long repeated glyphs often indicate corruption
-      if (/(.)\1{10,}/.test(t)) return true;
-
-      const total = t.length || 1;
-      const good =
-        (t.match(/[A-Za-z0-9\u0600-\u06FF\u0900-\u097F]/g) ?? []).length;
-      const ratioGood = good / total;
-
-      // if very few letters/numbers, it’s probably junk
-      return ratioGood < 0.35;
-    }
 
     return (
       <div
@@ -4062,11 +3823,12 @@ const TabTransits: React.FC<TabTransitsProps> = memo(
         <Card className="rounded-2xl border border-indigo-400/15 bg-indigo-950/40 backdrop-blur-md shadow-xl shadow-[0_0_30px_rgba(99,102,241,0.10)]">
           <CardHeader className="pb-3">
             <CardTitle className="text-lg font-semibold !text-slate-100">
-              Today & next few days
+              Today &amp; next few days
             </CardTitle>
             <div className="text-xs text-white/70">
-              Personalized from your natal Moon + current transits.
-            </div>
+  Personalized from your natal Moon + current transits. 
+</div>
+
           </CardHeader>
 
           <CardContent className="space-y-3">
@@ -4080,7 +3842,7 @@ const TabTransits: React.FC<TabTransitsProps> = memo(
             {/* Error */}
             {!dailyLoadingProp && dailyErrorProp && (
               <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-3 py-2 text-xs text-red-200">
-                {safeText(dailyErrorProp)}
+                {dailyErrorProp}
               </div>
             )}
 
@@ -4090,58 +3852,43 @@ const TabTransits: React.FC<TabTransitsProps> = memo(
                 No strong highlights for the next few days.
               </div>
             )}
+{/* Cards */}
+{!dailyLoadingProp && !dailyErrorProp && visible.length > 0 && (
+  <div className="space-y-3">
+    {visible.map((d, idx) => {
+      const dateISO = String(d.dateISO ?? "").trim();
 
-            {/* Cards */}
-            {!dailyLoadingProp && !dailyErrorProp && visible.length > 0 && (
-              <div className="space-y-3">
-                {visible.map((d, idx) => {
-                  const dateISO = String(d.dateISO ?? "").trim();
+      const dateLabel = (() => {
+        try {
+          if (!dateISO) return "";
+          const dt = new Date(dateISO + "T00:00:00");
+          if (Number.isNaN(dt.getTime())) return dateISO;
+          return dt.toLocaleDateString(undefined, {
+            weekday: "short",
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+          });
+        } catch {
+          return dateISO || "";
+        }
+      })();
 
-                  const dateLabel = (() => {
-                    try {
-                      if (!dateISO) return "";
-                      const dt = new Date(dateISO + "T00:00:00");
-                      if (Number.isNaN(dt.getTime())) return dateISO;
-                      return dt.toLocaleDateString(undefined, {
-                        weekday: "short",
-                        day: "2-digit",
-                        month: "short",
-                        year: "numeric",
-                      });
-                    } catch {
-                      return dateISO || "";
-                    }
-                  })();
+      // --- text pipeline ---
+      const rawText = String((d as any)?.text ?? "");
+const moodText = String((d as any)?.moodText ?? "").trim();
+const mood = String((d as any)?.mood ?? "").trim();
 
-                  // --- Pull + sanitize fields ---
-const rawText = safeText((d as any)?.text ?? "");
-const moodText = safeText((d as any)?.moodText ?? "");
-
-// Headline fallback
-const headlineRaw = safeText((d as any)?.headline ?? "");
-const headline = headlineRaw || "Steady focus & small wins";
-
+const headline = String((d as any)?.headline ?? "").trim();
 const conf = String((d as any)?.confidence ?? "").trim(); // "high" | "medium" | "low"
-const doListRaw = Array.isArray((d as any)?.do) ? (d as any).do : [];
-const avoidListRaw = Array.isArray((d as any)?.avoid) ? (d as any).avoid : [];
+const doList = Array.isArray((d as any)?.do) ? (d as any).do : [];
+const avoidList = Array.isArray((d as any)?.avoid) ? (d as any).avoid : [];
 
-const doList = doListRaw.map(safeText).filter(Boolean);
-const avoidList = avoidListRaw.map(safeText).filter(Boolean);
+// Keep your safety cleanup for any AI text
+// � If text already contains moodText, remove it to avoid repetition
+const textNoMood = moodText ? rawText.replace(moodText, "").trim() : rawText;
+const finalLine = normalizeHighlightText(stripNakshatraClaims(textNoMood), idx);
 
-// Remove moodText if it appears inside raw text (prevents repetition)
-const textNoMood =
-  moodText && rawText ? safeText(rawText.replace(moodText, "")) : rawText;
-
-// Build a cleaned line from AI/local text
-const finalLineRaw = safeText(
-  normalizeHighlightText(stripNakshatraClaims(textNoMood), idx)
-);
-
-// ✅ final guard: if still garbage, force a clean fallback
-const finalLine =
-  !finalLineRaw || isMostlyGarbage(finalLineRaw)
-    ? (moodText || "A steady day: keep it simple, choose one priority, and close loops.")
-    : finalLineRaw;
 
 const confLabel =
   conf === "high" ? "High" : conf === "low" ? "Low" : "Medium";
@@ -4153,94 +3900,184 @@ const confClass =
     ? "border-amber-400/25 bg-amber-500/10 text-amber-200"
     : "border-indigo-400/25 bg-indigo-500/10 text-indigo-200";
 
-                  return (
-                    <div
-                      key={dateISO || idx}
-                      className="rounded-2xl border border-white/10 bg-white/5 p-4"
-                    >
-                      {/* Header */}
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <div className="text-sm font-semibold text-slate-100">
-                            {safeText(dateLabel)}
-                          </div>
-                          {dateISO && (
-                            <div className="text-[11px] text-white/50">
-                              {dateISO}
-                            </div>
-                          )}
-                        </div>
-
-                        <span
-                          className={
-                            "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold " +
-                            confClass
-                          }
-                        >
-                          Confidence: {confLabel}
-                        </span>
-                      </div>
-
-                      {/* Headline */}
-                      {headline && (
-                        <div className="mt-2 text-sm font-semibold text-white/90">
-                          {headline}
-                        </div>
-                      )}
-
-                      {/* Main line */}
-                      <div className="mt-2 text-sm leading-relaxed text-white/75">
-                        {finalLine}
-                      </div>
-
-                      {/* Do / Avoid */}
-                      {(doList.length > 0 || avoidList.length > 0) && (
-                        <div className="mt-3 grid gap-2 md:grid-cols-2">
-                          {doList.length > 0 && (
-                            <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-                              <div className="text-[11px] font-semibold text-white/70">
-                                DO
-                              </div>
-                              <ul className="mt-2 space-y-1 text-xs text-white/70">
-                                {doList.slice(0, 4).map((x: string, i: number) => (
-                                  <li key={i} className="flex gap-2">
-                                    <span className="mt-[2px] h-1.5 w-1.5 rounded-full bg-white/40" />
-                                    <span>{x}</span>
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                          )}
-
-                          {avoidList.length > 0 && (
-                            <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-                              <div className="text-[11px] font-semibold text-white/70">
-                                AVOID
-                              </div>
-                              <ul className="mt-2 space-y-1 text-xs text-white/70">
-                                {avoidList.slice(0, 4).map((x: string, i: number) => (
-                                  <li key={i} className="flex gap-2">
-                                    <span className="mt-[2px] h-1.5 w-1.5 rounded-full bg-white/40" />
-                                    <span>{x}</span>
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+      return (
+        <div
+          key={dateISO || idx}
+          className="rounded-2xl border border-white/10 bg-white/5 p-4"
+        >
+          {/* Header */}
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <div className="text-sm font-semibold text-slate-100">
+                {cleanText(dateLabel)}
               </div>
-            )}
+              {dateISO && (
+                <div className="text-[11px] text-white/50">{dateISO}</div>
+              )}
+            </div>
+
+           <span
+  className={
+    "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold " +
+    confClass
+  }
+>
+  Confidence: {confLabel}
+</span>
+
+          </div>
+
+ {/* Emotional weather + guidance (deduped) */}
+{(() => {
+  const mood = String((d as any)?.mood ?? "").trim();
+  const moodTextRaw = String((d as any)?.moodText ?? "").trim();
+  const moodText = cleanMoodText(mood, moodTextRaw);
+
+  // If moodText became too short / redundant, don't show it.
+  const redundant =
+    !moodText ||
+    moodText.toLowerCase() === mood.toLowerCase() ||
+    moodText.toLowerCase().startsWith(mood.toLowerCase());
+
+  // Build guidance-only text:
+  // - start from d.text
+  // - remove moodTextRaw / moodText if they are embedded
+  // - remove leading "mood:" prefix if present
+  const raw = String((d as any)?.text ?? "");
+  let guidance = raw;
+
+  if (moodTextRaw) guidance = guidance.replace(moodTextRaw, "").trim();
+  if (moodText) guidance = guidance.replace(moodText, "").trim();
+
+  if (mood) {
+    const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const re = new RegExp("^\\s*" + esc(mood) + "[\\s:-]*", "i");
+    guidance = guidance.replace(re, "").trim();
+  }
+
+  guidance = cleanText(guidance).trim();
+
+  return (
+    <>
+      {(() => {
+  const moodRaw = String((d as any)?.mood ?? "").trim();
+  const moodLabel = moodRaw
+    ? moodRaw.charAt(0).toUpperCase() + moodRaw.slice(1)
+    : "";
+
+  return moodLabel ? (
+    <div className="mt-3 text-sm font-semibold text-slate-100">
+      {moodLabel}
+    </div>
+  ) : null;
+})()}
+
+
+
+      {!redundant && (
+        <div className="mt-1 text-xs text-white/70">
+          {moodText}
+        </div>
+      )}
+
+      {/* Main guidance (now deduped) */}
+      <div className="mt-3 text-sm leading-relaxed text-slate-200 whitespace-pre-wrap">
+        {guidance || ""}
+      </div>
+    </>
+  );
+})()}
+
+
+{/* Theme (tiny) */}
+{(d as any)?.theme && (
+  <div className="mt-1 text-[11px] text-white/55">
+    Theme: {cleanText(String((d as any).theme))}
+  </div>
+)}
+
+
+          {/* Footer tags */}
+          {(doList.length > 0 || avoidList.length > 0) && (
+  <div className="mt-3 grid gap-3 md:grid-cols-2">
+    {doList.length > 0 && (
+      <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+        <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/60">
+          Do
+        </div>
+        <ul className="mt-2 space-y-1 text-[12px] text-slate-200">
+          {doList.slice(0, 3).map((x: string, i: number) => (
+            <li key={i}> {cleanText(String(x))}</li>
+          ))}
+        </ul>
+      </div>
+    )}
+
+    {avoidList.length > 0 && (
+      <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+        <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/60">
+          Avoid
+        </div>
+        <ul className="mt-2 space-y-1 text-[12px] text-slate-200">
+          {avoidList.slice(0, 3).map((x: string, i: number) => (
+            <li key={i}> {cleanText(String(x))}</li>
+          ))}
+        </ul>
+      </div>
+    )}
+  </div>
+)}
+{/* Daily extras */}
+{((d as any)?.color || (d as any)?.luckyNumber || (d as any)?.bestTime) && (
+  <div className="mt-4 grid grid-cols-3 gap-3 text-center">
+    {(d as any)?.color && (
+      <div className="rounded-lg border border-white/10 bg-white/5 p-2">
+        <div className="text-[11px] uppercase tracking-wide text-white/50">
+          Color
+        </div>
+        <div className="mt-1 text-sm font-semibold text-slate-100">
+          {(d as any).color}
+        </div>
+      </div>
+    )}
+
+    {(d as any)?.luckyNumber && (
+      <div className="rounded-lg border border-white/10 bg-white/5 p-2">
+        <div className="text-[11px] uppercase tracking-wide text-white/50">
+          Supportive number
+        </div>
+        <div className="mt-1 text-sm font-semibold text-slate-100">
+          {(d as any).luckyNumber}
+        </div>
+      </div>
+    )}
+
+    {(d as any)?.bestTime && (
+      <div className="rounded-lg border border-white/10 bg-white/5 p-2">
+        <div className="text-[11px] uppercase tracking-wide text-white/50">
+          Best flow window
+        </div>
+        <div className="mt-1 text-sm font-semibold text-slate-100">
+          {(d as any).bestTime}
+        </div>
+      </div>
+    )}
+  </div>
+)}
+
+        </div>
+      );
+    })}
+  </div>
+)}
+
+
           </CardContent>
         </Card>
       </div>
     );
   }
 );
-
 const TabMonthly: React.FC<TabMonthlyProps> = memo(
   ({ monthlyInsights, loading, error, mounted }) => {
     const hasData = Array.isArray(monthlyInsights) && monthlyInsights.length > 0;
@@ -4453,7 +4290,7 @@ function buildTodaysFocusV2(opts: {
 
   const finalCat: Cat = dashaFlavour ?? cat;
 
-  // 3) Map category ï¿½ text
+  // 3) Map category � text
   if (finalCat === "career") {
     return {
       area: "Career & long-term direction",
@@ -5036,7 +4873,7 @@ function toISODate(v: any): string | null {
 // ===================== Advanced Pro: degree + nakshatra intelligence =====================
 
 // Lahiri-ish sidereal: you already store siderealDeg in [0..360).
-// Convert absolute degree ï¿½ degree within sign (0..30)
+// Convert absolute degree � degree within sign (0..30)
 function degInSignX(absDeg: any): number | null {
   const n = Number(absDeg);
   if (!Number.isFinite(n)) return null;
@@ -5496,20 +5333,11 @@ const isoDay = (d: Date) => d.toISOString().slice(0, 10);
 const TabAdvanced: React.FC<{
   report: LifeReportView | null;
   mounted: boolean;
-  isPro: boolean; // … Tier-2: Advanced Pro
+  isPro: boolean; // � Tier-2: Advanced Pro
   timelineSummary?: string | null;
   dashaTransitSummary?: string | null;
   transits?: TransitHit[];
-  transitNow?: any[]; // ✅ ADD
-}> = ({
-  report,
-  mounted,
-  isPro,
-  timelineSummary,
-  dashaTransitSummary,
-  transits,
-  transitNow, // ✅ ADD
-}) => {
+}> = ({ report, mounted, isPro, timelineSummary, dashaTransitSummary, transits }) => {
   if (!mounted) return null;
   // --- Transits source of truth (prefer prop; fallback to report) ---
 const hits: TransitHit[] = Array.isArray(transits)
@@ -5518,22 +5346,7 @@ const hits: TransitHit[] = Array.isArray(transits)
   ? ((report as any).transits as TransitHit[])
   : [];
 
- if (!mounted) return null;
-const todayISO = (() => {
-  const tz =
-  (report as any)?.meta?.birthTz ??
-  "Asia/Dubai";
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: tz,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(new Date());
-
-  const get = (t: string) => parts.find((p) => p.type === t)?.value ?? "";
-  return `${get("year")}-${get("month")}-${get("day")}`;
-})();
-
+const todayISO = new Date().toISOString().slice(0, 10);
 
 const hitsN: TransitHit[] = (Array.isArray(hits) ? hits : [])
   .map((h: any) => {
@@ -5547,7 +5360,7 @@ const hitsN: TransitHit[] = (Array.isArray(hits) ? hits : [])
   })
   .filter((h: any) => !!h?.startISO && !!h?.endISO);
 
-// For today ï¿½ next 2 weeks chips
+// For today � next 2 weeks chips
 const addDaysISO = (iso: string, days: number) => {
   const d = new Date(iso + "T00:00:00.000Z");
   d.setUTCDate(d.getUTCDate() + days);
@@ -5611,7 +5424,7 @@ const parsedFusion: any = (() => {
 
 
 
-  // IMPORTANT: if no report yet, show clean empty-state (no demo data)
+  // � IMPORTANT: if no report yet, show clean empty-state (no demo data)
   if (!report) {
     return (
       <div className="space-y-6">
@@ -5684,13 +5497,13 @@ const parsedFusion: any = (() => {
     );
   }
 
-  // Compute ONLY when report exists
+  // � Compute ONLY when report exists
   const r: any = report;
   console.log("[TabAdvanced] prop transits len:", Array.isArray(transits) ? transits.length : "not-array", transits);
 console.log("[TabAdvanced] report.transits len:", Array.isArray((r as any)?.transits) ? (r as any).transits.length : "not-array", (r as any)?.transits);
 
 console.log("[TabAdvanced] planets[0]", report?.planets?.[0]);
-{/* ï¿½ TODAYS STRONG TRANSITS (from /api/transits) */}
+{/* � TODAYS STRONG TRANSITS (from /api/transits) */}
 <div className="rounded-2xl border border-white/15 bg-white/5 p-5">
   <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
     Todays strong transits
@@ -5792,7 +5605,7 @@ const moonHouse =
 }
 
 
-// ===================== Advanced Pro: no-generic builders (WHY ï¿½ SO WHAT ï¿½ HOW) =====================
+// ===================== Advanced Pro: no-generic builders (WHY � SO WHAT � HOW) =====================
 
 function getP_X(report: any, name: string) {
   const planets = Array.isArray(report?.planets) ? report.planets : [];
@@ -6118,7 +5931,7 @@ if (Number.isFinite(moonHouseN) && moonHouseN >= 1 && moonHouseN <= 12) {
       ) : null}
 
       {/* Pro content */}
-      {isPro ? (
+      {isPro (
         <>
           {/* Current activations */}
           <Locked title="Current activations (chart-specific)">
@@ -6157,22 +5970,6 @@ if (Number.isFinite(moonHouseN) && moonHouseN >= 1 && moonHouseN <= 12) {
   <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
     Now and next 3 days
   </div>
- {Array.isArray(transitNow) && transitNow.length > 0 && (
-  <div className="mt-3 rounded-xl border border-white/10 bg-white/5 p-3">
-    <div className="text-[11px] font-semibold uppercase tracking-wide text-white/60">
-      Transit snapshot (what’s active)
-    </div>
-    <ul className="mt-2 list-disc pl-5 text-sm text-white/85">
-      {transitNow.slice(0, 6).map((p: any, i: number) => (
-        <li key={i}>
-          {p?.name} in {p?.sign}
-          {p?.house ? ` (H${p.house})` : ""}
-        </li>
-      ))}
-    </ul>
-  </div>
-)}
-
 
   {/* Focus areas (like 14d cards) */}
   {Array.isArray(plan.now3Days.focusAreas) && plan.now3Days.focusAreas.length > 0 && (
@@ -6547,7 +6344,7 @@ if (Number.isFinite(moonHouseN) && moonHouseN >= 1 && moonHouseN <= 12) {
 
           </div>
        </>
-      ) : null}
+      )}
 
       {/* Final CTA */}
       <div className="rounded-2xl border border-white/15 bg-white/5 p-4">
@@ -6701,7 +6498,6 @@ useEffect(() => {
   const [transitsLoading, setTransitsLoading] = useState(false);
   const [transitsError, setTransitsError] = useState<string | null>(null);
   const [transitSummary, setTransitSummary] = useState<string>("");
-  const [transitNow, setTransitNow] = useState<any[]>([]);
 
   type MonthlyInsight = { label: string; text: string };
   const [monthlyInsights, setMonthlyInsights] = useState<MonthlyInsight[]>([]);
@@ -6904,7 +6700,7 @@ const todaysFocus = useMemo(
   }
   
   const trimmedName = (name || "").trim() || "Default";
-  const profileId = `${trimmedName} ï¿½ ${dateISO}`;
+  const profileId = `${trimmedName} � ${dateISO}`;
 
   // Shape that Life Report / SavedProfile uses
   const savedProfile: SavedProfile = {
@@ -7088,17 +6884,18 @@ if (!d) {
   return;
 }
 
-// --- validate time (always end up with a string HH:MM or exit early) ---
-const rawTime = (typeof time === "string" ? time : "").trim();
-
+// --- validate time ---
+const rawTime = (time || "").trim();
 if (!rawTime) {
   setError("Please enter your birth time.");
   setLoading(false);
   return;
 }
 
-const normalized = normalizeTimeForBackend(rawTime);
-const t: string | null = /^\d{2}:\d{2}$/.test(rawTime) ? rawTime : normalized;
+const t =
+  /^\d{2}:\d{2}$/.test(rawTime)
+     rawTime
+    : normalizeTimeForBackend(rawTime);
 
 if (!t) {
   setError("Birth time must be in HH:MM format.");
@@ -7106,11 +6903,12 @@ if (!t) {
   return;
 }
 
-const dISO = String(d);
 
-if (!place?.lat || !place?.lon) {
+    if (!place?.lat || !place?.lon) {
       throw new Error("Pick a birth place from the dropdown.");
     }
+    const dISO = String(d);
+
     const payload = {
       name: name || "User",
       birthDateISO: dISO,
@@ -7155,27 +6953,38 @@ console.log("[life-report] response status", res.status);
     clearTimeout(timeout);
 
    if (!res.ok) {
-  const raw = await res.text().catch(() => "");
-  let msg = raw;
+  let json: any = null;
 
+  // Try to parse JSON error from the API
   try {
-    const j = raw ? JSON.parse(raw) : null;
-    msg =
-      j?.marker
-        ? `${j.marker}\n${j.message || ""}\n${j.stack || ""}`.trim()
-        : j?.message || j?.error || j?.details || raw || `Server returned ${res.status}`;
+    json = await res.json();
   } catch {
-    msg = raw || `Server returned ${res.status}`;
+    // fall back to text below
+  }
+  
+  // ?? Special case: our life-report API says swisseph / engine is unavailable
+  if (json?.error === "astro_engine_unavailable") {
+    const msg =
+      json?.message ||
+      "High-precision Life Report engine is not available on this server environment yet.";
+    setEngineUnavailable(msg);
+    setError(null);      // clear any generic error
+    setLoading(false);   // stop the spinner
+    return;              // IMPORTANT: don't throw, just exit handler
   }
 
-  console.error("[life-report] API failed:", res.status, msg);
-  throw new Error(typeof msg === "string" && msg.trim() ? msg : `Server returned ${res.status}`);
-}
+  // Generic error path
+  const fallbackText =
+    (typeof json === "string" ? json : "") ||
+    (await res.text().catch(() => "")) ||
+    `Server returned ${res.status}`;
 
+  throw new Error(fallbackText);
+}
 
 const envelope: any = await res.json();
 
-// ï¿½ Unwrap: get the ACTUAL report object that contains nowPlan/nowNearFuture
+// � Unwrap: get the ACTUAL report object that contains nowPlan/nowNearFuture
 const data: any =
   envelope?.report ??
   envelope?.lifeReport ??
@@ -7195,7 +7004,7 @@ console.log(
 );
 console.log("[life-report] headline:", data?.nowPlan?.headline);
 
-// ï¿½ IMPORTANT: from this point forward, use `data` as your life report object
+// � IMPORTANT: from this point forward, use `data` as your life report object
 
 
 // ?? STEP 2: call /api/ai-personality using the REAL life-report payload
@@ -7245,7 +7054,7 @@ try {
   setAiSummary(`(DEBUG) ai-personality crashed: ${e?.message ?? String(e)}`);
 }
 
-    // ?? Notifications from API ï¿½ state (all 3 buckets)
+    // ?? Notifications from API � state (all 3 buckets)
     const anyData = data as any;
     const preview = anyData.previewNotifications ?? null;
     if (preview && typeof preview === "object") {
@@ -7263,38 +7072,12 @@ try {
     );
 
     // --- normalize planet & aspect data ---
-        const planets = pickPlanets(data);
+    const planets = pickPlanets(data);
     const aspects = pickAspects(data);
 
-    const timeStr =
-  typeof t === "string"
-    ? t
-    : typeof (data as any)?.meta?.birthTime === "string"
-      ? (data as any).meta.birthTime
-      : typeof (data as any)?.birth?.time === "string"
-        ? (data as any).birth.time
-        : typeof (data as any)?.profile?.birthTime === "string"
-          ? (data as any).profile.birthTime
-          : "06:00"; // safe fallback
-
-const birthInstant = makeUtcInstant(
-  d,
-  timeStr,
-  coerceTz(
-    (data as any)?.meta?.tz ??
-      (data as any)?.meta?.timezone ??
-      (data as any)?.birth?.tz ??
-      (data as any)?.profile?.birthTz,
-    "Asia/Dubai"
-  )
-);
-
-
+    const birthInstant = makeUtcInstant(d, t, tz);
     const rawPlanets: any[] =
-  (data as any)?.raw?.planets ??
-  (data as any)?.rawPlanets ??
-  (data as any)?.planets ??
-  [];
+      (data as any).raw.planets ?? (data as any)?.planets ?? [];
 
     function siderealFromRaw(label: "sun" | "moon"): number | undefined {
       const r = rawPlanets.find(
@@ -7366,7 +7149,7 @@ const birthInstant = makeUtcInstant(
     const next: LifeReportView = {
       name: payload.name || "",
       birthDateISO: d,
-      birthTime: timeStr,
+      birthTime: t,
       birthTz: payload.birthTz,
       birthLat: payload.lat,
       birthLon: payload.lon,
@@ -7395,7 +7178,7 @@ const birthInstant = makeUtcInstant(
       activePeriods: data?.activePeriods,
       lifeMilestones: data?.lifeMilestones,
       dashaTimeline: data?.dashaTimeline,
-      // ï¿½ Paid plan blocks from API
+      // � Paid plan blocks from API
   nowPlan: (data as any)?.nowPlan ?? (data as any)?.nowNearFuture ?? undefined,
   nowNearFuture: (data as any)?.nowNearFuture ?? (data as any)?.nowPlan ?? undefined,
 
@@ -7449,24 +7232,7 @@ let pdStart: string | null = null;
 let pdEnd: string | null = null;
 
 if (Array.isArray(next.dashaTimeline) && next.dashaTimeline.length > 0) {
-     const todayISO = (() => {
-  const tz =
-    (next as any)?.birthTz ??
-    (payload as any)?.tz ??
-    (report as any)?.meta?.birthTz ??
-    "UTC";
-
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: tz,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(new Date());
-
-  const get = (t: string) => parts.find((p) => p.type === t)?.value ?? "";
-  return `${get("year")}-${get("month")}-${get("day")}`;
-})();
-
+     const todayISO = new Date().toISOString().slice(0, 10);
    const activeRow =
     (next.dashaTimeline as any[]).find((r: any) => {
       const from = (
@@ -7559,22 +7325,10 @@ const loadTransitsAndInsights = async () => {
     const tRes = await fetch("/api/transits", {
       method: "POST",
       headers: { "content-type": "application/json" },
-     body: JSON.stringify({
-  birth,
-  horizonDays: 365,
-  // pass Lagna so server can compute transitHouse + transitNow.house correctly
-  ascDeg: (next as any)?.core?.ascDeg ?? (next as any)?.ascDeg ?? null,
-  ascSign: (next as any)?.core?.ascSign ?? (next as any)?.ascSign ?? null,
-}),
-
+      body: JSON.stringify({ birth, horizonDays: 365 }),
     });
 
     const tJson = await tRes.json().catch(() => ({} as any));
-    setTransitNow(Array.isArray(tJson?.transitNow) ? tJson.transitNow : []);
-
-    console.log("[transits] debug:", tJson?._debug);
-console.log("[transits] transitNow sample:", tJson?.transitNow?.[0]);
-console.log("[transits] first transit sample:", tJson?.transits?.[0]);
 
     if (!tRes.ok || !Array.isArray(tJson?.transits)) {
       console.error("transits API failed", tRes.status, tJson);
@@ -7597,19 +7351,7 @@ console.log("[transits] first transit sample:", tJson?.transits?.[0]);
 
     setTransits(hitList);
 
-    const todayISO = (() => {
-  const tz = next?.birthTz || "UTC";
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: tz,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(new Date());
-
-  const get = (t: string) => parts.find((p) => p.type === t)?.value ?? "";
-  return `${get("year")}-${get("month")}-${get("day")}`;
-})();
-
+    const todayISO = new Date().toISOString().slice(0, 10);
 
     // -------------------------
 // 5) Daily highlights (meaningful, no calculations shown)
@@ -7630,7 +7372,7 @@ try {
     if (f.moonNakshatra) facts.push(`Transit Moon nakshatra: ${f.moonNakshatra}`);
     if (typeof f.houseFromMoon === "number")
       facts.push(`Transit Moon is ${f.houseFromMoon} from natal Moon`);
-    if (tr?.planet) facts.push(`Strongest transit: ${tr.planet} ï¿½ ${tr.target || "natal point"}`);
+    if (tr?.planet) facts.push(`Strongest transit: ${tr.planet} � ${tr.target || "natal point"}`);
     if (typeof tr?.strength === "number")
       facts.push(`Transit strength: ${Math.round(tr.strength * 100)}%`);
     if (tr?.category) facts.push(`Focus area: ${tr.category}`);
@@ -7679,7 +7421,7 @@ try {
     const extras = dailyFlavorExtras(dateISO || String(idx));
     const key = `${dateISO}::${idx}::${facts.join("|")}`;
 
-    // ï¿½ Keep a REAL focus string
+    // � Keep a REAL focus string
     const focusRaw =
       facts.find((x: string) => x.toLowerCase().includes("focus area:")) || "";
     const focusStr = String(focusRaw).split(":").slice(1).join(":").trim();
@@ -7696,7 +7438,7 @@ try {
     const moodFromMoon = inferMoodFromMoonFrom(moonFrom);
 const moodFallback = inferMoodFromFacts(facts, conf);
 
-// ï¿½ single mood declaration (priority: AI mood ï¿½ fallback ï¿½ moon ï¿½ balanced)
+// � single mood declaration (priority: AI mood � fallback � moon � balanced)
 const mood = String(
   (d.mood ?? "").trim() ||
   moodFallback.mood ||
@@ -7708,7 +7450,7 @@ const mood = String(
 
 const moodTextRaw = String(d.moodText ?? "").trim();
 
-// ï¿½ If AI moodText is generic/repetitive, replace with relatable variation
+// � If AI moodText is generic/repetitive, replace with relatable variation
 const moodText =
   moodTextRaw && !isGenericMoodText(moodTextRaw)
     ? moodTextRaw
@@ -7716,7 +7458,7 @@ const moodText =
 
 
 
-    // ï¿½ Guidance pool based on focus
+    // � Guidance pool based on focus
     const REL_GUIDES = [
       "Say the simple truth, kindly. One clear conversation beats ten half-replies.",
       "Ask one direct question instead of assuming the answer.",
@@ -7759,12 +7501,12 @@ const moodText =
       focusLower.includes("inner") ? INNER_GUIDES :
       GENERAL_GUIDES;
 
-    // ï¿½ Varies by date (not by idx)
+    // � Varies by date (not by idx)
    
     const guidance = pickKey(guidePool, dayKey);
 
 
-    // ï¿½ Do/Avoid
+    // � Do/Avoid
     const listKey = `${dateISO}:${focusLower}:${mood}`;
     const lists = doAvoidLists(focusLower, mood, listKey);
 
@@ -7779,47 +7521,9 @@ const moodText =
         ? "Mindset & emotions"
         : "Todays focus";
 
-   // 1) Clean AI text first
-const aiTextRaw = String(d.text ?? "").trim();
-const aiTextClean = safeText(
-  normalizeHighlightText(stripNakshatraClaims(aiTextRaw), idx)
-);
-
-// 2) Decide if AI text is usable
-const aiOk = !!aiTextClean && !isMostlyGarbage(aiTextClean);
-
-// 3) Deterministic Moon-guided guidance (KEEP Moon movement + do NOT strip nakshatra claims here)
-const moonWhy =
-  typeof moonFrom === "number"
-    ? `Moon is ${moonFrom}th from your natal Moon today — that sets the emotional tone.`
-    : "";
-
-const strongestRaw =
-  facts.find((x: string) => x.toLowerCase().includes("strongest transit:")) || "";
-
-const moonNakRaw =
-  facts.find((x: string) => x.toLowerCase().includes("transit moon nakshatra:")) || "";
-
-const moonGuidedComposed = safeText(
-  [
-    moodText,                                // already computed by you
-    moonNakRaw ? moonNakRaw.replace(/^transit\s+/i, "") + "." : "",  // "Moon nakshatra: X."
-    moonWhy,
-    strongestRaw ? strongestRaw + "." : "",
-    guidance,                                // your focus-based guidance pool line
-  ]
-    .filter(Boolean)
-    .join(" ")
-    .trim()
-);
-
-// IMPORTANT: normalize + safeText, but DO NOT stripNakshatraClaims here
-const moonGuidedText = safeText(
-  normalizeHighlightText(moonGuidedComposed, idx)
-);
-
-// 4) Final decision (AI text has already been stripped + cleaned; fallback keeps Moon logic)
-const finalText = aiOk ? aiTextClean : moonGuidedText;
+    // � If AI repeats or is empty, we still show premium guidance
+    const aiText = String(d.text ?? "").trim();
+    const finalText = aiText ? aiText : `${moodText} ${guidance}`.trim();
 
 
     return {
@@ -7827,7 +7531,7 @@ const finalText = aiOk ? aiTextClean : moonGuidedText;
       headline,
       mood,
       moodText,
-      text: finalText,
+      text: normalizeHighlightText(stripNakshatraClaims(finalText), idx),
 
       do: Array.isArray(d.do) && d.do.length ? [...d.do] : [...lists.do],
       avoid: Array.isArray(d.avoid) && d.avoid.length ? [...d.avoid] : [...lists.avoid],
@@ -7846,7 +7550,7 @@ const finalText = aiOk ? aiTextClean : moonGuidedText;
       throw new Error("ai daily returned empty");
     }
   } catch {
-    // ï¿½ Meaningful fallback (varies by focus area + emotional tone)
+    // � Meaningful fallback (varies by focus area + emotional tone)
 const fallback: DailyHighlightLocal[] = dayInputs.map((d: any, idx: number) => {
   const facts = Array.isArray(d.facts) ? (d.facts as string[]) : [];
 
@@ -7875,7 +7579,7 @@ const fallback: DailyHighlightLocal[] = dayInputs.map((d: any, idx: number) => {
   const moodFromMoon = inferMoodFromMoonFrom(moonFrom);
   const mood = String(moodFromMoon || moodObj.mood || "balanced");
 
-// ï¿½ fallback doesnt use AI moodText at all  generate relatable mood line
+// � fallback doesnt use AI moodText at all  generate relatable mood line
 const moodText = String(relatableMoodText(mood, key) ?? buildMoodLineText(mood, key) ?? "");
 
 
@@ -7938,7 +7642,7 @@ const moodText = String(relatableMoodText(mood, key) ?? buildMoodLineText(mood, 
       ? INNER_GUIDES
       : GENERAL_GUIDES;
 
-  // ï¿½ Varies by dateISO (not only idx)
+  // � Varies by dateISO (not only idx)
   const guideKey = dateISO || String(idx);
   const guidance = pickKey(guidePool, guideKey);
 
@@ -7972,29 +7676,25 @@ const moodText = String(relatableMoodText(mood, key) ?? buildMoodLineText(mood, 
     ];
 
 const dayKey = dateISO || String(idx);
+const microTip = pickKey(microPool, dayKey + "::micro");
 
-// micro-tip (also varies)
-const microTip = safeText(pickKey(microPool, dayKey + "::micro"));
 
-// guidance already comes from your pool — sanitize it too
-const guidanceClean = safeText(guidance);
-
-// Compose + sanitize again (final guard)
-const composed = safeText(`${guidanceClean} ${microTip}`.trim());
-
-// Remove mood prefix if it repeats
+// � Make it feel like a human reading your day
+const composed = `${guidance} ${microTip}`.trim();
 const finalText = stripMoodPrefix(composed, moodText);
 
-// Do/Avoid lists (rotate + stable)
-const listKey = `${dateISO}:${focusLower}:${mood}`;
-const lists = doAvoidLists(focusLower, mood, listKey);
+
+  // Do/Avoid lists (rotate + stable)
+  const listKey = `${dateISO}:${focusLower}:${mood}`;
+  const lists = doAvoidLists(focusLower, mood, listKey);
+
 
   return {
     dateISO,
     headline,
     mood,
     moodText,
-    text: safeText(normalizeHighlightText(finalText, idx)),
+    text: normalizeHighlightText(stripNakshatraClaims(finalText), idx),
     do: [...lists.do],
     avoid: [...lists.avoid],
     color: extras.color,
@@ -8043,7 +7743,7 @@ const lists = doAvoidLists(focusLower, mood, listKey);
       console.error("ai-transits error", err);
     }
 
-    // 2) Dasha ï¿½ Transits fusion
+    // 2) Dasha � Transits fusion
     try {
       const fusionRes = await fetch("/api/ai-dasha-transits", {
         method: "POST",
@@ -8198,7 +7898,7 @@ try {
   setWeeklyLoading(false);
 }
 
-// ï¿½ CLOSE the OUTER transits try/catch/finally correctly
+// � CLOSE the OUTER transits try/catch/finally correctly
 } catch (err) {
   console.error("transits API error", err);
   setTransitsError("Could not load upcoming transits.");
@@ -8889,22 +8589,7 @@ const TabTimeline: React.FC<TabTimelineProps> = memo(
   
 const hits = Array.isArray((report as any)?.transits) ? (report as any).transits : [];
 
-const todayISO = (() => {
-  const tz =
-  (report as any)?.meta?.birthTz ??
-  "Asia/Dubai";
-
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: tz,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(new Date());
-
-  const get = (t: string) => parts.find((p) => p.type === t)?.value ?? "";
-  return `${get("year")}-${get("month")}-${get("day")}`;
-})();
-
+const todayISO = new Date().toISOString().slice(0, 10);
 
 
     const ap = report.activePeriods as any;
@@ -9496,7 +9181,7 @@ useEffect(() => {
     };
 
     
-    // ï¿½ NO HIDING: disable chat cache while we debug houses/asc
+    // � NO HIDING: disable chat cache while we debug houses/asc
 window.localStorage.removeItem("sarathi.lifeReportCache.v2");
 // console.log("[life-report] chat cache disabled");
 
@@ -9712,8 +9397,7 @@ router.replace(`${pathname}?${sp.toString()}`, { scroll: false });
     isPro={isPro}
     timelineSummary={timelineSummary}
     dashaTransitSummary={dashaTransitSummary}
-    transits={(report as any).transits ?? transits ?? []}
-    transitNow={transitNow}
+    transits={(report as any)?.transits ?? transits ?? []}
   />
 )}
 
@@ -9803,25 +9487,12 @@ const ap = r?.activePeriods as any;
 
 
 
-const todayISO = (() => {
-  const tz = (r as any)?.meta?.birthTz ?? "Asia/Dubai";
-
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: tz,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(new Date());
-  const get = (t: string) => parts.find((p) => p.type === t)?.value ?? "";
-  return `${get("year")}-${get("month")}-${get("day")}`;
-})();
-
-
+const todayISO = new Date().toISOString().slice(0, 10);
 const horizonISO = new Date(Date.now() + 365 * 24 * 3600 * 1000)
   .toISOString()
   .slice(0, 10);
 
-// ï¿½ define FIRST
+// � define FIRST
 const toISODate = (v: any): string => {
   const s = String(v || "").trim();
   if (!s) return "";
@@ -9899,7 +9570,7 @@ const adEndN = dayNum(adEndISO);
 // +/- 1 day tolerance (handles timezone shifts)
 const oneDay = 24 * 60 * 60 * 1000;
 
-  // ï¿½ transits array to use everywhere in TabAdvanced
+  // � transits array to use everywhere in TabAdvanced
 const hits = Array.isArray((report as any)?.transits) ? (report as any).transits : [];
 
 
@@ -10484,7 +10155,7 @@ const timing = (() => {
             </div>
           </div>
 
-          {/* 2) Timing Intelligence (today ï¿½ next 72 hours) */}
+          {/* 2) Timing Intelligence (today � next 72 hours) */}
 <details className="rounded-2xl border border-white/15 bg-indigo-950/40 p-4 backdrop-blur-md" open>
   <summary className="cursor-pointer list-none">
     <div className="text-sm font-semibold text-slate-100">Todays Energy Windows</div>
@@ -10775,7 +10446,7 @@ const timing = (() => {
 
                   <div className="mt-1 text-xs text-white/60">
                     {ap?.antardasha?.start && ap?.antardasha?.end
-                      ? `${String(ap.antardasha.start).slice(0, 10)} ï¿½ ${String(ap.antardasha.end).slice(0, 10)}`
+                      ? `${String(ap.antardasha.start).slice(0, 10)} � ${String(ap.antardasha.end).slice(0, 10)}`
                       : ""}
                   </div>
 
@@ -10815,7 +10486,7 @@ const timing = (() => {
                       Next shift (Antardasha)
                     </div>
                     <div className="mt-1 text-sm font-semibold text-slate-100">AD: {nextAD.lord}</div>
-                    <div className="mt-1 text-xs text-white/60">{nextAD.start} ï¿½ {nextAD.end}</div>
+                    <div className="mt-1 text-xs text-white/60">{nextAD.start} � {nextAD.end}</div>
 
                     <div className="mt-3 rounded-lg border border-white/10 bg-indigo-950/40 p-3">
                       <div className="text-xs font-semibold uppercase tracking-wide text-white/60">What you may notice</div>
@@ -10850,7 +10521,7 @@ const timing = (() => {
                       Major shift (Mahadasha)  longer term
                     </div>
                     <div className="mt-1 text-sm font-semibold text-slate-100">MD: {nextMD.planet}</div>
-                    <div className="mt-1 text-xs text-white/60">{nextMD.start} ï¿½ {nextMD.end}</div>
+                    <div className="mt-1 text-xs text-white/60">{nextMD.start} � {nextMD.end}</div>
 
                     <div className="mt-3 text-sm text-white/80 leading-relaxed">
                       {sentenceCase(
@@ -10942,5 +10613,4 @@ export default LifeReportShell;
 // }
 //
 // export default LifeReportInnerWithPrefill;
-
 

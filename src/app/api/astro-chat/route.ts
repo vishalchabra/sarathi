@@ -285,12 +285,13 @@ function reassureUser(topic: string): string {
     return "You're not failing. This timing is slow-build, not dead. The chart is saying 'stack proof and be seen', not 'you're done'.";
   if (topic === "health")
     return "Your chart does not say permanent damage. It says 'watch stress load, protect sleep, don't self-abandon'.";
-  if (topic === "relationship")
+  if (topic === "relationship" || topic === "relationships")
     return "This isn't 'you're unlovable'. It's a boundary-and-truth chapter, not permanent loneliness.";
   if (topic === "money")
     return "This is 'delayed inflow', not 'no inflow'. It's timing, not doom.";
   return "I can feel how heavy this is. This is shaping energy, not punishment. You're not broken.";
 }
+
 function isMicroIntentQuestion(q: string): boolean {
   const l = (q || "").toLowerCase().trim();
 

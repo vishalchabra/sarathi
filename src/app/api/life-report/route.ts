@@ -11,22 +11,28 @@ import type { CoreSignals } from "@/server/guides/types";
 import { buildDailyGuideFromCore } from "@/server/guides/daily-core";
 import { todayISOForNotificationTz } from "@/server/notifications/today";
 import { openai, GPT_MODEL } from "@/lib/ai";
+import type { TransitHit, DailyMoonRow } from "@/app/api/transits/route";
+
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 /* -------------------------------------------------------
-   Enrich with MD / AD / PD
-------------------------------------------------------- */
+   Text cleanup helpers
+-------------------------------------------------------- */
+function errToJson(err: any) {
+  return {
+    error: "internal_error",
+    message: String(err?.message || err || "Unknown error"),
+    stack: err?.stack ? String(err.stack) : undefined,
+    name: err?.name ? String(err.name) : undefined,
+  };
+}
+
 function normalizeWeirdText(s: string) {
   return (s ?? "")
-    // Fix common broken apostrophes: you?re -> you're, don?t -> don't
     .replace(/(\w)\?(\w)/g, "$1'$2")
-
-    // Replace separator " ? " used as a divider (NOT real questions)
     .replace(/\s\?\s/g, " — ")
-
-    // Optional: collapse accidental doubles
     .replace(/\s—\s—\s/g, " — ");
 }
 
@@ -40,35 +46,53 @@ function deepCleanStrings<T>(value: T): T {
   }
   return value;
 }
+
 function fixWeirdEncoding(input: string) {
   const s = String(input ?? "");
-
   return s
-    // 1) Kill the Unicode replacement char (often rendered as �)
     .replace(/\uFFFD/g, "")
-
-    // 2) Common mojibake sequences (as literal unicode codepoints)
-    .replace(/\u00E2\u0080\u0099/g, "\u2019") // â€™ -> ’
-    .replace(/\u00E2\u0080\u009C/g, "\u201C") // â€œ -> “
-    .replace(/\u00E2\u0080\u009D/g, "\u201D") // â€� -> ”
-    .replace(/\u00E2\u0080\u0093/g, "\u2013") // â€“ -> –
-    .replace(/\u00E2\u0080\u0094/g, "\u2014") // â€” -> —
-    .replace(/\u00E2\u0080\u00A6/g, "\u2026") // â€¦ -> …
-    .replace(/\u00E2\u0086\u0092/g, "\u2192") // â†’ -> →
-
-    // 3) Drop stray Â and NBSP
+    .replace(/\u00E2\u0080\u0099/g, "\u2019")
+    .replace(/\u00E2\u0080\u009C/g, "\u201C")
+    .replace(/\u00E2\u0080\u009D/g, "\u201D")
+    .replace(/\u00E2\u0080\u0093/g, "\u2013")
+    .replace(/\u00E2\u0080\u0094/g, "\u2014")
+    .replace(/\u00E2\u0080\u00A6/g, "\u2026")
+    .replace(/\u00E2\u0086\u0092/g, "\u2192")
     .replace(/\u00C2/g, "")
     .replace(/\u00A0/g, " ")
-
-    // 4) Fix separators and broken apostrophes
-    .replace(/\s\?\s/g, " — ")          // " ? " divider -> em dash
-    .replace(/(\w)\?(\w)/g, "$1'$2")    // you?re -> you're
-
-    // 5) Collapse accidental doubles
+    .replace(/\s\?\s/g, " — ")
+    .replace(/(\w)\?(\w)/g, "$1'$2")
     .replace(/\s—\s—\s/g, " — ");
 }
 
+function stripJsonFences(s: string) {
+  return (s ?? "")
+    .trim()
+    .replace(/^```json\s*/i, "")
+    .replace(/^```\s*/i, "")
+    .replace(/```$/i, "")
+    .trim();
+}
 
+function safeParseJson(s: string): any | null {
+  const t = stripJsonFences(s);
+  try {
+    return JSON.parse(t);
+  } catch {}
+  const first = t.indexOf("{");
+  const last = t.lastIndexOf("}");
+  if (first >= 0 && last > first) {
+    const sliced = t.slice(first, last + 1);
+    try {
+      return JSON.parse(sliced);
+    } catch {}
+  }
+  return null;
+}
+
+/* -------------------------------------------------------
+   Enrich with MD / AD / PD
+-------------------------------------------------------- */
 function enrichWithActivePeriods(report: any) {
   if (!report) return report;
 
@@ -137,11 +161,19 @@ function enrichWithActivePeriods(report: any) {
     activePeriods,
   };
 }
-async function buildLifeGuidanceSummary(enriched: any) {
+
+/* -------------------------------------------------------
+   Now/Near-future plan (AI)
+   IMPORTANT: does NOT compute transits itself.
+   It only uses enriched.transits, enriched.dailyMoon, enriched.transitPlanets.
+-------------------------------------------------------- */
+async function buildNowNearFuturePlan(enriched: any) {
   try {
     const asc = enriched?.core?.ascSign ?? enriched?.ascSign ?? "Unknown";
     const moon = enriched?.moonSign ?? enriched?.core?.moonSign ?? "Unknown";
     const sun = enriched?.sunSign ?? enriched?.core?.sunSign ?? "Unknown";
+    const moonNakshatraToday = enriched?.moonNakshatraTodayFact ?? null;
+    const moonTodayFact = enriched?.moonTodayFact ?? null;
 
     const md = enriched?.activePeriods?.mahadasha?.lord ?? "Unknown";
     const ad =
@@ -149,160 +181,400 @@ async function buildLifeGuidanceSummary(enriched: any) {
       enriched?.activePeriods?.antardasha?.lord ??
       "Unknown";
 
-    const today = enriched?.panchangToday ?? enriched?.panchang ?? {};
+    // -------------------------
+    // Dasha focus (MD/AD/PD → natal houses)
+    // -------------------------
+    const planetsArr = Array.isArray(enriched?.planets) ? enriched.planets : [];
+
+    const findHouseOf = (planetName: string): number | null => {
+      const p = planetsArr.find(
+        (x: any) =>
+          String(x?.name ?? "").toLowerCase() ===
+          String(planetName ?? "").toLowerCase()
+      );
+      const h = Number(p?.house);
+      return Number.isFinite(h) ? h : null;
+    };
+
+    const pd =
+      enriched?.activePeriods?.pratyantardasha?.lord ??
+      enriched?.activePeriods?.pratyantardasha?.antarLord ??
+      "Unknown";
+
+    const dashaFocus = {
+      md: { planet: md, house: findHouseOf(md) },
+      ad: { planet: ad, house: findHouseOf(ad) },
+      pd: { planet: pd, house: findHouseOf(pd) },
+    };
+
     const daily = enriched?.dailyGuide ?? {};
 
-const prompt = `
-You are Sārathi — the charioteer guiding how a person should LIVE during this phase of life.
-You are not predicting events.
-You are identifying patterns, risks, and the right way to respond.
+    const transits = Array.isArray(enriched?.topTransits) ? enriched.topTransits : [];
+    const dailyMoon = Array.isArray(enriched?.dailyMoon) ? enriched.dailyMoon : [];
 
-Write a LIFE GUIDANCE BRIEF that feels unmistakably personal.
 
-Return STRICT JSON ONLY in this exact structure (no extra keys, no markdown):
+    // Top transit windows
+    const topTransits = transits
+      .slice()
+      .sort((a: any, b: any) => Number(b?.strength ?? 0) - Number(a?.strength ?? 0))
+      .slice(0, 12)
+      .map((t: any) => ({
+        planet: t?.planet,
+        target: t?.target,
+        category: t?.category,
+        strength: t?.strength,
+        startISO: t?.startISO,
+        endISO: t?.endISO,
+        title: t?.title,
+      }));
 
-{
-  "headline": "6-10 words, specific to THIS phase (not generic)",
-  "posture": "2-3 sentences: the inner posture + the core lesson of the current MD/AD",
-  "deepInsight": "2-3 sentences: a specific blind-spot/pattern + the cost + the correction",
-  "evidence": "1 short line quoting the most specific astro signals used (MD/AD + 1-2 chart facts)",
+    // Natal anchors (background only)
+    const anchors = (enriched?.planets ?? [])
+      .slice(0, 10)
+      .map((p: any) => ({
+        name: p?.name,
+        sign: p?.sign,
+        house: p?.house,
+        nakshatra: p?.nakshatra,
+      }))
+      .filter((x: any) => x?.name);
 
-  "nonNegotiables": [
-    "5 bullets. Each must be measurable and realistic for the next 14 days. Not generic motivation."
-  ],
+    const anchorsUsed = anchors.map((a: any) => {
+      const h = typeof a.house === "number" ? `H${a.house}` : "";
+      const s = a.sign ? `${a.sign}` : "";
+      return `Natal ${a.name}${h ? " " + h : ""}${s ? " (" + s + ")" : ""}`.trim();
+    });
 
-  "now": [
-    "3 bullets for next 7 days: actions + what to avoid. Must reflect current timing (MD/AD)."
-  ],
+    // Current transit planets today (computed in POST; do NOT compute here)
+    const transitNow = Array.isArray(enriched?.transitNow)
+  ? enriched.transitNow
+  : Array.isArray(enriched?.transitPlanets)
+  ? enriched.transitPlanets
+  : [];
+    const transitNowFacts = transitNow
+  .filter((p: any) => p?.name && p?.sign)
+  .map((p: any) => {
+    const h = Number(p?.house);
+    if (Number.isFinite(h)) return `${p.name} in ${p.sign} (H${h})`;
+    return `${p.name} in ${p.sign}`;
+  });
 
-  "next30": [
-    "3 bullets for next 30-60 days: focus areas + how to win. Must be coherent with the same timing."
-  ],
-
-  "do": [
-    "3 bullets: what to lean into (practical, specific)."
-  ],
-
-  "dont": [
-    "3 bullets: what to avoid (behavioral and practical)."
-  ],
-
-  "remedies": {
-    "daily": [
-      "3 bullets: simple daily remedies (mantra/charity/discipline/breathwork) with <=10 min each"
-    ],
-    "shortTerm": [
-      "3 bullets: for 7-14 days (fasting/light food, routine change, declutter, digital discipline etc.)"
-    ],
-    "longTerm": [
-      "3 bullets: for 40-90 days (habit/system changes)."
-    ],
-    "optional": [
-      "2 bullets: OPTIONAL colour / fasting day / donation type. Must not be risky."
-    ]
-  },
-
-  "closing": "1 calm line that feels personal, not generic"
+  const transitSnapshotHard = transitNowFacts.slice(0, 3);
+  const whyAnchorFacts = transitNowFacts.slice(0, 5);
+  console.log("[life-report] transitNow raw:", transitNow);
+  console.log("[life-report] transitNowFacts:", transitNowFacts);
+  
+   // -------------------------
+// Transit → Natal impact facts (easy-to-use bridge for AI)
+// -------------------------
+const natalPlanets = Array.isArray(enriched?.planets) ? enriched.planets : [];
+const natalByName = new Map<string, any>();
+for (const p of natalPlanets) {
+  const k = String(p?.name ?? "").toLowerCase();
+  if (k) natalByName.set(k, p);
 }
 
-Hard rules:
-- Use ONLY the facts you are given. Do not invent birth facts or events.
-- Make it precise enough that it feels written for one person.
-- No fear language, no fatalism. Actionable guidance only.
-- If you cannot support a claim from facts, keep it general and say 'may' or 'likely'.
+// Convert transit windows into "impact facts" that reference natal targets
+const transitImpactFacts = topTransits
+  .map((t: any) => {
+    const tp = String(t?.planet ?? "").trim();
+    const cat = String(t?.category ?? "").trim();      // ✅ was missing
+    const ttitle = String(t?.title ?? "").trim();      // ✅ was missing
+    const targetRaw = String(t?.target ?? "").trim();
 
-USER CONTEXT (DO NOT REPEAT VERBATIM):
-- Core nature: Asc ${asc}, Moon ${moon}, Sun ${sun}
-- Current life phase: ${md}/${ad}
-- Major life themes: ${JSON.stringify(
-  (enriched?.dashaTimeline ??
-    enriched?.lifeMilestones ??
-    []).slice(0, 6)
-)}
-- Current emotional & practical signals: ${JSON.stringify({
-  emotional: daily?.emotionalWeather?.summary ?? null,
-  money: daily?.moneyTip?.summary ?? null,
-  food: daily?.food?.headline ?? null,
-})}
+    // Extract natal planet from strings like: "conjunction natal Rahu"
+    const m = /natal\s+([A-Za-z]+)/i.exec(targetRaw);
+    const targetPlanet = (m?.[1] ?? "").trim(); // e.g. "Rahu"
 
-Remember:
-You are speaking to one person, not an audience.
-Make it precise enough that it could only apply to them.
-`;
+    const natalTarget = targetPlanet
+      ? natalByName.get(targetPlanet.toLowerCase())
+      : null;
 
+    const natalTag =
+      natalTarget && Number.isFinite(Number(natalTarget?.house))
+        ? `natal ${targetPlanet} (H${Number(natalTarget.house)})`
+        : targetRaw
+        ? `target: ${targetRaw}`
+        : "";
+
+    const win = t?.startISO && t?.endISO ? `${t.startISO} → ${t.endISO}` : "";
+
+    const label = ttitle || `${tp} ${cat ? "(" + cat + ")" : ""}`.trim();
+
+    return [label, natalTag ? `• ${natalTag}` : "", win ? `• ${win}` : ""]
+      .filter(Boolean)
+      .join(" ");
+  })
+  .slice(0, 10);
+
+
+    console.log("[nowPlan] topTransits sample:", topTransits.slice(0, 4));
+    console.log("[nowPlan] anchorsUsed sample:", anchorsUsed.slice(0, 6));
+    console.log("[nowPlan] transitNow sample:", transitNow.slice(0, 6));
+    console.log("[nowPlan] TransitNowFacts:", transitNowFacts);
+    console.log("[nowPlan] keys:", Object.keys(enriched || {}));
+    console.log("[nowPlan] enriched.transitNow?", enriched?.transitNow?.slice?.(0,3));
+    console.log("[nowPlan] enriched.transitPlanets?", enriched?.transitPlanets?.slice?.(0,3));
+    console.log("[nowPlan] enriched.topTransits?", enriched?.topTransits?.slice?.(0,3));
+    console.log("[nowPlan] enriched.transits?", enriched?.transits?.slice?.(0,3));
+
+    const prompt = `
+You are Sārathi — a paid, practical Vedic guide.
+You may describe "likely scenarios" and "areas activated", but you must NOT claim certainty or guarantee events.
+
+Return STRICT JSON ONLY (one JSON object). No markdown. No extra keys. No commentary.
+
+SCHEMA (output must match exactly):
+{
+  "headline": "",
+  "astroDrivers": [
+    {"driver":"","meaning":"","howItShowsUp":""},
+    {"driver":"","meaning":"","howItShowsUp":""},
+    {"driver":"","meaning":"","howItShowsUp":""}
+  ],
+  "now3Days": {
+    "transitSnapshot": [],
+    "focusAreas": [{"area":"","why":""}],
+    "themes": [],
+    "likelyScenarios": [],
+    "do": [],
+    "avoid": [],
+    "remedies": []
+  },
+  "next14Days": {
+    "areasActivated": [{"area":"","why":""}],
+    "likelyScenarios": [],
+    "steeringPlan": [],
+    "timing": [{"window":"","note":""}],
+    "remedies": []
+  },
+  "next30Days": {
+    "areasActivated": [{"area":"","why":""}],
+    "runway": [
+      {"label":"Weeks 1–2","focus":"","likely":[]},
+      {"label":"Weeks 3–4","focus":"","likely":[]},
+      {"label":"By day 30","focus":"","likely":[]}
+    ],
+    "priorityWins": [],
+    "watchouts": [],
+    "systemToInstall": []
+  },
+  "evidence": {
+    "phase": "",
+    "transitsUsed": [],
+    "anchorsUsed": [],
+    "transitNowFactsUsed": [],
+    "impactFactsUsed": []
+  },
+  "closing": ""
+}
+
+ABSOLUTE OUTPUT RULES (do not break):
+
+1) Tone & realism
+- Write in second person ("you"). Be direct, clear, calm.
+- Every bullet must be concrete and observable in real life (meeting, call, decision, paperwork, delay, spend, follow-up, travel, sleep/motivation shift).
+- Do NOT invent big life events (job loss, marriage, pregnancy, diagnosis, legal outcomes). Keep it realistic and plausible.
+- Keep everything crisp. No long paragraphs. No poetic language.
+
+2) Astrology source-of-truth
+- Only reference planets present in FACTS. Only use: Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Rahu, Ketu.
+- Never describe natal anchors as "current transits". Natal anchors are ONLY background context.
+- In now3Days and next14Days: you MAY reference natal targets ONLY as activations (e.g., "a transit activates natal Venus themes").
+- Do NOT state natal placements as positions (avoid "natal Mars in H2" style).
+- Natal anchors may only appear in evidence. Do not use anchorsUsed in visible guidance sections.
+
+3) Allowed inputs only (do not assume anything else)
+- Use ONLY these inputs: (1) TransitNowFacts (today), (2) TransitSnapshotHard (today), (3) topTransits windows, (4) TransitImpactFacts, (5) dailyMoon, and (6) dashaFocus as secondary context.
+
+4) Hard anchoring (this creates premium quality)
+- now3Days.transitSnapshot MUST equal TransitSnapshotHard exactly (copy verbatim).
+- Do NOT write "No major current transits". Always list what IS active today.
+- In now3Days.focusAreas[].why: MUST include ONE EXACT TransitNowFacts string copied verbatim (example: "Mercury in Capricorn (H5)").
+- Do NOT write generic why-lines like "emotional climate is workable" without that TransitNowFacts anchor.
+- If a planet is not present in TransitNowFacts, DO NOT mention its house.
+- If TransitNowFacts is empty, then set now3Days.focusAreas[].why to "Transit data missing today." (do not improvise).
+- In now3Days.focusAreas[].why: MUST include ONE EXACT string copied from WhyAnchorFacts.
+
+5) Dasha handling (background only)
+- Do NOT show MD/AD/PD as the main visible label.
+- Do NOT begin focusAreas[].why with "Dasha" or "MD/AD/PD".
+- If you reference dasha, put it at the end as a short modifier in parentheses (e.g., "(Ketu AD tone)").
+
+6) Time-window discipline
+- For now3Days: only use transit windows whose date range overlaps today → today+3d.
+- Ignore transit windows far in the future.
+
+7) Moon / nakshatra anti-hallucination rule
+- You may mention Moon nakshatra ONLY if you copy it exactly from MoonTodayNakshatraFact (today) or from dailyMoon rows (future days).
+- If MoonTodayNakshatraFact is null, do NOT mention any nakshatra by name.
+- Do NOT invent nakshatra names.
+
+8) 14 days & 30 days anchoring
+- In next14Days.areasActivated[].why: MUST reference either a topTransits/TransitImpactFacts item OR a dailyMoon shift cue.
+- In next14Days.timing[].note: MUST reference either a topTransits/TransitImpactFacts window OR a dailyMoon change.
+- In next30Days.runway[].focus: MUST reference at least one driver from topTransits or TransitImpactFacts (no generic "stay disciplined" without citing a driver).
+
+9) Astro drivers (premium reasoning)
+- astroDrivers: exactly 3 items.
+- Each astroDrivers item MUST be grounded in either:
+  (a) ONE EXACT TransitNowFacts string (planet in sign + H#), OR
+  (b) a dated window from topTransits/TransitImpactFacts.
+- Do not write generic psychology in astroDrivers.
+
+
+HARD LIMITS (enforce strictly):
+- headline: max 120 characters
+- now3Days.focusAreas: exactly 3 items
+- now3Days.themes: 3–4 items
+- now3Days.likelyScenarios: 4–6 items
+- now3Days.do: 4–6 items
+- now3Days.avoid: 3–5 items
+- now3Days.remedies: 2–4 items (<=10 min each)
+- next14Days.areasActivated: 4–6 items
+- next14Days.likelyScenarios: 5–8 items
+- next14Days.steeringPlan: 5–8 items
+- next14Days.timing: 3–6 items
+- next14Days.remedies: 2–4 items
+- next30Days.areasActivated: 4–6 items
+- next30Days.runway: exactly 3 items (keep labels as given)
+  - each runway.focus: max 140 characters
+  - each runway.likely: 3–5 items
+- next30Days.priorityWins: 4–6 items
+- next30Days.watchouts: 4–6 items
+- next30Days.systemToInstall: 3–5 items
+- closing: max 240 characters
+- astroDrivers: exactly 3 items
+- driver: max 80 chars
+- meaning: max 140 chars
+- howItShowsUp: max 140 chars
+
+
+EVIDENCE (for debugging, keep short):
+- evidence.phase: one line describing the core phase in plain English (max 120 chars).
+- evidence.transitsUsed: list 3–6 short strings from topTransits (use planet+target or title).
+- evidence.anchorsUsed: list 3–6 short strings from Natal anchors.
+
+FACTS (use only these inputs — do not assume anything else):
+- Asc: ${asc}, Moon: ${moon}, Sun: ${sun}
+- Current phase (MD/AD): ${md}/${ad}
+- Dasha focus houses: ${JSON.stringify(dashaFocus)}
+- Natal anchors (top): ${JSON.stringify(anchorsUsed)}
+- Current transit planets (today): ${JSON.stringify(transitNow)}
+- Top transit windows (sorted): ${JSON.stringify(topTransits)}
+- TransitImpactFacts (transit→natal bridge): ${JSON.stringify(transitImpactFacts)}
+- Daily Moon (next 14 days): ${JSON.stringify(dailyMoon)}
+- TransitNowFacts (MUST COPY EXACTLY when mentioning houses): ${JSON.stringify(transitNowFacts)}
+- MoonTodayNakshatraFact (MUST COPY EXACTLY if mentioning nakshatra): ${JSON.stringify(moonNakshatraToday)}
+- MoonTodayNakshatraFact (MUST COPY EXACTLY if mentioning nakshatra): ${JSON.stringify(moonTodayFact)}
+- TransitSnapshotHard (must use exactly these 3 lines): ${JSON.stringify(transitSnapshotHard)}
+- WhyAnchorFacts (copy exactly in focusAreas.why): ${JSON.stringify(whyAnchorFacts)}
+
+- Daily signals: ${JSON.stringify({
+      emotional: daily?.emotionalWeather?.summary ?? null,
+      money: daily?.moneyTip?.summary ?? null,
+      food: daily?.food?.headline ?? null,
+    })}
+
+Now produce the JSON.
+`.trim();
 
     const completion = await openai.chat.completions.create({
-  model: GPT_MODEL,
-  messages: [
-    { role: "system", content: "You output only valid JSON." },
-    { role: "user", content: prompt },
-  ],
-  temperature: 0.5,
-});
+      model: GPT_MODEL,
+      temperature: 0.3,
+      messages: [
+        {
+          role: "system",
+          content: "Return ONLY valid JSON for the schema. No markdown, no commentary, no extra text.",
+        },
+        { role: "user", content: prompt },
+      ],
+      response_format: { type: "json_object" },
+    });
 
-const raw = fixWeirdEncoding(completion.choices?.[0]?.message?.content ?? "");
-return normalizeWeirdText(raw);
+    const raw = completion.choices?.[0]?.message?.content ?? "{}";
+    const cleaned = normalizeWeirdText(fixWeirdEncoding(raw));
 
-  } catch {
-    return "";
+    const obj = safeParseJson(cleaned);
+    if (!obj) {
+      console.warn("[nowPlan] safeParseJson failed. head:", cleaned.slice(0, 250));
+      console.warn("[nowPlan] safeParseJson failed. tail:", cleaned.slice(-220));
+      return null;
+    }
+
+    return obj;
+  } catch (e) {
+    console.warn("[nowPlan] buildNowNearFuturePlan failed:", e);
+    return null;
   }
 }
 
 /* -------------------------------------------------------
    Route
-------------------------------------------------------- */
+-------------------------------------------------------- */
+export async function GET(req: Request) {
+  console.warn("[api/life-report] GET hit:", req.url, {
+    referer: req.headers.get("referer"),
+    ua: req.headers.get("user-agent"),
+  });
+  return Response.json(
+    { ok: false, error: "Use POST /api/life-report with JSON body" },
+    { status: 200 }
+  );
+}
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();
 
-    // Defensive coercion (avoid "string" lat/lon bugs)
-    // Accept BOTH schemas:
-// - old: { lat, lon, name }
-// - new: { birthLat, birthLon, placeName }
-const rawLat = body.birthLat ?? body.lat;
-const rawLon = body.birthLon ?? body.lon;
+    // ----------------------------
+    // 1) Parse location (support old + new schema)
+    // ----------------------------
+    const rawLat = body.birthLat ?? body.lat;
+    const rawLon = body.birthLon ?? body.lon;
 
-const lat = typeof rawLat === "string" ? Number(rawLat) : Number(rawLat);
-const lon = typeof rawLon === "string" ? Number(rawLon) : Number(rawLon);
+    const lat = typeof rawLat === "string" ? Number(rawLat) : Number(rawLat);
+    const lon = typeof rawLon === "string" ? Number(rawLon) : Number(rawLon);
 
-if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
-  throw new Error("Invalid latitude/longitude. Please pick a place from dropdown.");
-}
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+      throw new Error("Invalid latitude/longitude. Please pick a place from dropdown.");
+    }
 
+    // ----------------------------
+    // 2) Cache keys
+    // ----------------------------
     const cacheBuster = 0;
-    // Cache key: tie to birth details + engine version
-    // IMPORTANT: bump this when astro engine changes so we don't serve stale charts
-   const baseKey = makeCacheKey({
-  name: body.name ?? body.placeName ?? "User",
-  birthDateISO: body.birthDateISO,
-  birthTime: body.birthTime,
-  birthTz: body.birthTz,
-  lat,
-  lon,
-  version: "engine-v2b-asc-sidereal-1",
-  cacheBuster,
-});
 
-const cacheKey = `v2:${baseKey}`;
+    const baseKey = makeCacheKey({
+      name: body.name ?? body.placeName ?? "User",
+      birthDateISO: body.birthDateISO,
+      birthTime: body.birthTime,
+      birthTz: body.birthTz,
+      lat,
+      lon,
+      version: "engine-v2b-asc-sidereal-2",
+      cacheBuster,
+    });
 
+    const cacheKey = `v2:${baseKey}`;
 
-
+    // ----------------------------
+    // 3) Build or load life report
+    // ----------------------------
     let report: any;
     let cacheFlag: "hit" | "miss" | "miss-dev" = "miss";
 
-    // ?? DEV: always rebuild so fixes show immediately
     if (process.env.NODE_ENV !== "production") {
       report = await buildLifeReport({
         name: body.name ?? body.placeName,
         birthDateISO: body.birthDateISO,
         birthTime: body.birthTime,
         birthTz: body.birthTz,
-        lat, // ?? use coerced values
-        lon, // ?? use coerced values
+        lat,
+        lon,
       });
       cacheFlag = "miss-dev";
     } else {
-      // ?? PROD: use cache
       const cached = await cacheGet<any>(cacheKey);
       if (cached) {
         report = cached;
@@ -313,35 +585,125 @@ const cacheKey = `v2:${baseKey}`;
           birthDateISO: body.birthDateISO,
           birthTime: body.birthTime,
           birthTz: body.birthTz,
-          lat, // ?? use coerced values
-          lon, // ?? use coerced values
+          lat,
+          lon,
         });
-        await cacheSet(cacheKey, report, 60 * 60); // 1 hour
+        await cacheSet(cacheKey, report, 60 * 60);
         cacheFlag = "miss";
       }
     }
 
+    // ----------------------------
+    // 4) Enrich report with active periods
+    // ----------------------------
     const enriched = enrichWithActivePeriods(report);
 
-    // Pull asc sign from the correct place (life-engine returns it under core)
     const lagnaSign =
       (enriched as any)?.core?.ascSign ?? (enriched as any)?.ascSign ?? undefined;
 
-    // ---------- Build CoreSignals for Daily Guide ----------
+    // ----------------------------
+    // 5) Shared birth payload for transit engines
+    // ----------------------------
+    const birthForTransits = {
+      dateISO: body.birthDateISO,
+      time: body.birthTime,
+      tz: body.birthTz,
+      lat,
+      lon,
+    };
+
+    // ----------------------------
+// 6) Helper: call /api/transits (SOURCE OF TRUTH)
+// ----------------------------
+function getServerBaseUrl() {
+  // Prefer explicit env var
+  const explicit = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL;
+  if (explicit) return explicit.replace(/\/$/, "");
+
+  // Vercel runtime
+  const vercel = process.env.VERCEL_URL;
+  if (vercel) return `https://${vercel}`.replace(/\/$/, "");
+
+  // Local dev
+  return "http://localhost:3000";
+}
+
+async function fetchTransitsForLifeReport(payload: any) {
+  const base = getServerBaseUrl();
+  const res = await fetch(`${base}/api/transits`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+    // IMPORTANT on server: avoid cached fetch behavior
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    console.warn("[life-report] /api/transits non-200:", res.status, text.slice(0, 200));
+    return null;
+  }
+
+  return res.json();
+}
+
+// ----------------------------
+// 7) Get transit windows + dailyMoon + transitNow from /api/transits
+// ----------------------------
+const transitsData = await fetchTransitsForLifeReport({
+  birth: birthForTransits,
+  horizonDays: 365,
+  ascDeg: report?.core?.ascDeg,
+  ascSign: lagnaSign,
+});
+
+const transits: TransitHit[] = Array.isArray(transitsData?.transits)
+  ? transitsData.transits
+  : [];
+
+const topTransits: TransitHit[] = Array.isArray(transitsData?.topTransits)
+  ? transitsData.topTransits
+  : transits
+      .slice()
+      .sort((a: any, b: any) => Number(b?.strength ?? 0) - Number(a?.strength ?? 0))
+      .slice(0, 12);
+
+const dailyMoon: DailyMoonRow[] = Array.isArray(transitsData?.dailyMoon)
+  ? transitsData.dailyMoon
+  : [];
+
+const transitNow: any[] = Array.isArray(transitsData?.transitNow)
+  ? transitsData.transitNow
+  : [];
+
+// ----------------------------
+// 8) Attach canonical keys used by nowPlan + UI
+// ----------------------------
+(enriched as any).topTransits = topTransits;
+(enriched as any).dailyMoon = dailyMoon;
+
+// IMPORTANT: buildNowNearFuturePlan prefers enriched.transitNow first
+(enriched as any).transitNow = transitNow;
+
+// Keep legacy UI key working (your UI reads transitPlanets)
+(enriched as any).transitPlanets = transitNow;
+
+console.log("[life-report] transits:", transits.length);
+console.log("[life-report] topTransits:", topTransits.length, topTransits?.[0]);
+console.log("[life-report] transitNow:", transitNow.length, transitNow?.[0]);
+console.log("[life-report] dailyMoon:", dailyMoon.length, dailyMoon?.[0]);
+
+
+    // ----------------------------
+    // 9) Daily Guide (uses transits windows)
+    // ----------------------------
     const core: CoreSignals = {
-      birth: {
-        dateISO: body.birthDateISO, // ?? keep birth date as birth date
-        time: body.birthTime,
-        tz: body.birthTz,
-        lat,
-        lon,
-      },
-      lagnaSign, // ?? put at top-level (more consistent with rest of engine)
+      birth: birthForTransits,
+      lagnaSign,
       dashaStack: [],
-      transits: [],
+      transits: topTransits,
       moonToday: {
         sign: (enriched as any).moonSign ?? "Unknown",
-        // Prefer today's Panchang nakshatra (transit) over natal
         nakshatra:
           (enriched as any).panchang?.moonNakshatraName ??
           (enriched as any).panchangToday?.nakshatraName ??
@@ -356,15 +718,47 @@ const cacheKey = `v2:${baseKey}`;
     if (ap?.antardasha) core.dashaStack.push(ap.antardasha as any);
     if (ap?.pratyantardasha) core.dashaStack.push(ap.pratyantardasha as any);
 
-    // Build Daily Guide (it internally uses "today" + panchang; no need to mutate birth date)
     const dailyGuide = await buildDailyGuideFromCore(core);
 
+    // ----------------------------
+    // 10) Moon nakshatra "today fact" (from dailyMoon rows)
+    // ----------------------------
+    const notificationTzTmp = body.notificationTz || body.birthTz || "Asia/Dubai";
+    const todayISOTmp = todayISOForNotificationTz(notificationTzTmp);
+
+    const moonTodayRow: any =
+      (Array.isArray(dailyMoon)
+        ? (dailyMoon as any[]).find(
+            (r: any) => String(r?.dateISO ?? r?.date ?? "") === String(todayISOTmp)
+          )
+        : null) ?? (Array.isArray(dailyMoon) ? (dailyMoon as any[])[0] : null);
+
+    const moonNakshatraTodayFact =
+      moonTodayRow?.moonNakshatra
+        ? `Moon nakshatra today: ${moonTodayRow.moonNakshatra}`
+        : null;
+
+    // ----------------------------
+    // 11) Build enrichedWithDaily for nowPlan
+    // ----------------------------
     const enrichedWithDaily = {
-      ...enriched,
-      dailyGuide,
-    };
-const aiSummary = await buildLifeGuidanceSummary(enrichedWithDaily);
-    // ---------- Notifications ----------
+  ...enriched,
+  dailyGuide,
+  topTransits, // nowPlan reads enriched.topTransits
+  dailyMoon,   // nowPlan reads enriched.dailyMoon
+
+  // ✅ SOURCE OF TRUTH = what we computed RIGHT NOW
+transitNow: transitNow,
+transitPlanets: transitNow, // keep legacy UI key working
+
+  moonNakshatraTodayFact,
+};
+
+
+
+    // ----------------------------
+    // 12) Notifications (unchanged)
+    // ----------------------------
     const notificationTz = body.notificationTz || body.birthTz || "Asia/Dubai";
     const todayISO = todayISOForNotificationTz(notificationTz);
 
@@ -375,40 +769,40 @@ const aiSummary = await buildLifeGuidanceSummary(enrichedWithDaily);
       fasting: dailyGuide?.fasting ?? null,
       food: dailyGuide?.food ?? null,
       panchang: report.panchangToday ?? report.panchang ?? null,
-      transits: report.transits ?? [],
+      transits: topTransits,
     };
 
     const userId = undefined;
+    const notificationFacts = buildNotificationFactsFromDailyGuide(dailyForNotifications, userId);
 
-    const notificationFacts = buildNotificationFactsFromDailyGuide(
-      dailyForNotifications,
-      userId
-    );
-
-    const morningCtx: NotificationContext = {
-      timeOfDay: "morning",
-      facts: notificationFacts,
-    };
-    const middayCtx: NotificationContext = {
-      timeOfDay: "midday",
-      facts: notificationFacts,
-    };
-    const eveningCtx: NotificationContext = {
-      timeOfDay: "evening",
-      facts: notificationFacts,
-    };
+    const morningCtx: NotificationContext = { timeOfDay: "morning", facts: notificationFacts };
+    const middayCtx: NotificationContext = { timeOfDay: "midday", facts: notificationFacts };
+    const eveningCtx: NotificationContext = { timeOfDay: "evening", facts: notificationFacts };
 
     const previewNotifications = {
       morning: pickNotificationsForMoment(morningCtx, { maxPerBatch: 3 }),
       midday: pickNotificationsForMoment(middayCtx, { maxPerBatch: 2 }),
       evening: pickNotificationsForMoment(eveningCtx, { maxPerBatch: 2 }),
     };
- 
-        const payload = {
+
+    // ----------------------------
+    // 13) Now/Near-future plan (AI)
+    // ----------------------------
+    const nowPlan = await buildNowNearFuturePlan(enrichedWithDaily);
+    console.log("[life-report] nowPlan generated?", !!nowPlan, "headline:", nowPlan?.headline);
+
+    // ----------------------------
+    // 14) Response payload
+    // ----------------------------
+    const payload = {
       ...enrichedWithDaily,
-      aiSummary,
+
+      nowNearFuture: nowPlan,
+      nowPlan,
+
       notificationFacts,
       previewNotifications,
+
       _cache: cacheFlag,
       _debugAsc: {
         ascDeg: report?.core?.ascDeg,
@@ -416,34 +810,13 @@ const aiSummary = await buildLifeGuidanceSummary(enrichedWithDaily);
       },
     };
 
-    // ✅ IMPORTANT: clean all strings (even nested ones)
     return NextResponse.json(deepCleanStrings(payload));
-
-
-// ✅ sanitize EVERY string in the entire response
-const cleaned = deepCleanStrings(payload);
-
-return NextResponse.json(cleaned);
   } catch (e: any) {
     console.error("life-report API error:", e);
     const msg = String(e?.message ?? e);
 
-    if (msg.includes("swisseph unavailable")) {
-      return NextResponse.json(
-        {
-          error: "astro_engine_unavailable",
-          message:
-            "High-precision chart engine is not available on this server environment yet. Full Life Report will be enabled soon.",
-        },
-        { status: 503 }
-      );
-    }
-
     return NextResponse.json(
-      {
-        error: "internal_error",
-        message: msg || "Unknown error",
-      },
+      { error: "internal_error", message: msg || "Unknown error" },
       { status: 500 }
     );
   }
