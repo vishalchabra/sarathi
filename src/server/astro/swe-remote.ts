@@ -75,6 +75,22 @@ export type { SweConstants as SweConstantsType };
 // ---------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------
+// ---------------------------------------------------------------------
+// Calibration offsets (degrees)
+// ---------------------------------------------------------------------
+// This stub is mean-motion only; fast planets drift. These offsets keep
+// sign placements "believable" for UI. Tune if needed.
+const PLANET_OFFSET_DEG: Record<number, number> = {
+  2: -30, // Mercury: biggest drift in mean-motion stub
+  3: +6,  // Venus: mild drift
+  4: 0,   // Mars
+  0: 0,   // Sun
+  1: 0,   // Moon (already rough)
+  5: 0,   // Jupiter
+  6: 0,   // Saturn
+  10: 0,  // Mean node
+  11: 0,  // True node
+};
 
 function wrap360(x: number): number {
   let v = x % 360;
@@ -160,8 +176,15 @@ function computePlanetLongitudeTropical(jdUt: number, ipl: number): number {
 
   const motion = meanMotions[ipl] ?? 0.5;
   const base0 = baseLonJ2000[ipl] ?? 0;
+  // add a tiny periodic wobble so fast planets don't look perfectly linear
+const wobble =
+  ipl === 2 ? 6 * Math.sin(daysFromJ2000 / 12) : // Mercury
+  ipl === 3 ? 3 * Math.sin(daysFromJ2000 / 30) : // Venus
+  0;
 
-  return wrap360(base0 + motion * daysFromJ2000);
+  const offset = PLANET_OFFSET_DEG[ipl] ?? 0;
+return wrap360(base0 + motion * daysFromJ2000 + wobble + offset);
+
 }
 
 // ---------------------------------------------------------------------

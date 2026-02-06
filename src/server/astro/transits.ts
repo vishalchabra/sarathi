@@ -1,11 +1,7 @@
 // FILE: src/server/astro/transits.ts
 
 import "server-only";
-import {
-  sweJulday,
-  sweCall,
-  getSweConstants,
-} from "@/server/astro/swe-remote";
+import { sweCall, getSweConstants } from "@/server/astro/swe-remote";
 const DEBUG_TRANSITS = process.env.DEBUG_TRANSITS === "1";
 
 export type TransitEngineBirth = {
@@ -74,19 +70,14 @@ function dateISOInTz(d: Date, tz: string): string {
   const get = (t: string) => parts.find((p) => p.type === t)?.value ?? "";
   return `${get("year")}-${get("month")}-${get("day")}`;
 }
-function lonToDegreesMaybe(x: number): number {
-  // Radians will always be between 0 and 2π (~6.28318)
-  if (x >= 0 && x <= 6.283185307179586) {
-    return (x * 180) / Math.PI;
-  }
-  return x; // assume degrees already
-}
 
 
-function wrap360(x: number): number {
-  let v = x % 360;
-  if (v < 0) v += 360;
-  return v;
+
+
+export function wrap360(deg: number): number {
+  let x = deg % 360;
+  if (x < 0) x += 360;
+  return x;
 }
 
 // smallest angular distance between two longitudes, 0..180
@@ -186,8 +177,14 @@ function approxLahiriAyanamsaDegFromJdUt(jdUt: number): number {
   return base + yearsSince2000 * rate;
 }
 
-function toSiderealLon(tropicalLon: number, ayanDeg: number): number {
-  return wrap360(tropicalLon - ayanDeg);
+export function toSiderealLon(tropicalDeg: number, ayanDeg: number): number {
+  return wrap360(tropicalDeg - ayanDeg);
+}
+function tropicalToSidereal(lonDegTropical: number, ayanDeg: number): number {
+  return wrap360(lonDegTropical - ayanDeg);
+}
+function baseSweFlags(constants: any): number {
+  return (constants.SEFLG_SWIEPH ?? 2) | (constants.SEFLG_SPEED ?? 256);
 }
 
 /* -------------------------------------------------------
@@ -327,17 +324,18 @@ async function computeNatalPlanets(
   birth: TransitEngineBirth,
   constants: any
 ): Promise<NatalPlanet[]> {
+  // NOTE: with your current swe-remote stub, swe_set_sid_mode is a no-op.
+  // We do manual tropical->sidereal conversion consistently below.
   await ensureSiderealMode(constants);
 
   const birthUtc = makeUtcInstant(birth.dateISO, birth.time, birth.tz);
   const jdUt = await jdFromDateUTC(birthUtc, constants.SE_GREG_CAL);
-  
-// Use SIDEREAL flag (stub now supports it); do NOT manually subtract ayanamsa here.
-const flags =
-  (constants.SEFLG_SWIEPH ?? 2) |
-  (constants.SEFLG_SPEED ?? 256) |
-  (constants.SEFLG_SIDEREAL ?? 64);
 
+  const flags =
+    (constants.SEFLG_SWIEPH ?? 2) |
+    (constants.SEFLG_SPEED ?? 256); // NO SIDEREAL FLAG (we convert ourselves)
+
+  const ayanDeg = await lahiriAyanamsaDeg(jdUt);
 
   const defs = [
     { name: "Sun", code: constants.SE_SUN },
@@ -352,28 +350,23 @@ const flags =
   ];
 
   const out: NatalPlanet[] = [];
-
+  const seen = new Set<string>();
   for (const p of defs) {
     if (p.code == null) continue;
-    const res = await sweCall<any>(
-      "swe_calc_ut",
-      jdUt,
-      p.code,
-      flags
-    );
+
+    const res = await sweCall<any>("swe_calc_ut", jdUt, p.code, flags);
     const lonRaw = extractLongitude(res);
 if (typeof lonRaw !== "number" || !isFinite(lonRaw)) continue;
 
-// ✅ normalize radians → degrees if needed
-const lonDeg = lonToDegreesMaybe(lonRaw);
+const lonDeg = wrap360(lonRaw);
+let lonSid = toSiderealLon(lonDeg, ayanDeg);
 
-let lon = wrap360(lonDeg);
-if (p.name === "Ketu") {
-  lon = wrap360(lon + 180);
-}
-out.push({ name: p.name, lon });
+if (p.name === "Ketu") lonSid = wrap360(lonSid + 180);
 
+out.push({ name: p.name, lon: lonSid });
   }
+  // (guard must live INSIDE the defs loop, because it uses `p`)
+
 
   return out;
 }
@@ -388,13 +381,15 @@ async function computeTransitPlanetsForDay(
 ): Promise<TransitPlanet[]> {
   await ensureSiderealMode(constants);
 
-    const jdUt = await jdFromDateUTC(date, constants.SE_GREG_CAL);
+  const jdUt = await jdFromDateUTC(date, constants.SE_GREG_CAL);
 
-  // Use SIDEREAL flag (stub now supports it); do NOT manually subtract ayanamsa.
+  // IMPORTANT: assume swe returns TROPICAL unless you fully trust the sidereal flag.
+  // So do manual sidereal conversion consistently.
   const flags =
     (constants.SEFLG_SWIEPH ?? 2) |
-    (constants.SEFLG_SPEED ?? 256) |
-    (constants.SEFLG_SIDEREAL ?? 64);
+    (constants.SEFLG_SPEED ?? 256); // <- notice: NO SIDEREAL FLAG here
+
+  const ayanDeg = await lahiriAyanamsaDeg(jdUt);
 
   const defs = [
     { name: "Sun", code: constants.SE_SUN },
@@ -411,12 +406,32 @@ async function computeTransitPlanetsForDay(
     if (p.code == null) continue;
 
     const res = await sweCall<any>("swe_calc_ut", jdUt, p.code, flags);
-    const lonRaw = extractLongitude(res);
-    if (typeof lonRaw !== "number" || !isFinite(lonRaw)) continue;
-    
-    // Engine returns degrees; with SIDEREAL flag it is already sidereal (Lahiri approx in stub).
-    const lonSidereal = wrap360(lonRaw);
-    out.push({ name: p.name, lon: lonSidereal });
+
+if (p.name === "Mercury") {
+  console.log("[DBG Mercury] jdUt:", jdUt);
+  console.log("[DBG Mercury] code:", p.code);
+  console.log("[DBG Mercury] flags:", flags);
+  console.log("[DBG Mercury] res:", res);
+}
+
+const lonRaw = extractLongitude(res);
+
+if (p.name === "Mercury") {
+  console.log("[DBG Mercury] lonRaw:", lonRaw);
+  console.log("[DBG Mercury] lonRaw type:", typeof lonRaw);
+}
+
+if (typeof lonRaw !== "number" || !isFinite(lonRaw)) continue;
+
+const lonDeg = wrap360(Number(lonRaw));
+if (p.name === "Mercury") {
+  console.log("[DBG Mercury] lonDeg(after wrap360):", lonDeg, "ayan:", ayanDeg);
+}
+
+const lonSid = toSiderealLon(lonDeg, ayanDeg);     // tropical -> sidereal
+
+
+out.push({ name: p.name, lon: lonSid });
 
   }
 
@@ -636,8 +651,7 @@ const today = makeUtcInstant(todayISO, "00:00", tz);
 
  const flags =
   (constants.SEFLG_SWIEPH ?? 2) |
-  (constants.SEFLG_SPEED ?? 256) |
-  (constants.SEFLG_SIDEREAL ?? 64);
+  (constants.SEFLG_SPEED ?? 256); // ✅ NO SIDEREAL flag (we’ll convert ourselves)
 
 
   const out: DailyMoonSample[] = [];
@@ -659,11 +673,12 @@ const res = await sweCall<any>(
 const lonRaw = extractLongitude(res);
 if (typeof lonRaw !== "number" || !isFinite(lonRaw)) continue;
 
-// ✅ normalize radians → degrees if needed
-const lonDeg = lonToDegreesMaybe(lonRaw);
+const lonDeg = wrap360(Number(lonRaw)); // radians-safe
 
-// With SIDEREAL flag, this is already sidereal for nakshatra usage.
-const lon = wrap360(lonDeg);
+// ✅ convert tropical -> sidereal (Lahiri) same as the rest of engine
+const ayanDeg = await lahiriAyanamsaDeg(jdUt);
+const lon = toSiderealLon(lonDeg, ayanDeg);
+
 const nakshatra = nakFromDegSidereal(lon);
 
     let houseFromMoon: number | undefined = undefined;
@@ -909,10 +924,6 @@ function buildWindowDescription(
     "Multiple life areas may be gently activated; stay observant and make mindful adjustments where needed.",
   ].join(" ");
 }
-const SIGNS = [
-  "Aries","Taurus","Gemini","Cancer","Leo","Virgo",
-  "Libra","Scorpio","Sagittarius","Capricorn","Aquarius","Pisces"
-];
 
 
 export type TransitNowPlanet = {
@@ -929,6 +940,8 @@ export async function computeTransitPlanetsNow(
 ): Promise<TransitNowPlanet[]> {
   const constants = await getSweConstants();
   console.log("[TRANSITS_VERSION] 2026-01-27 A");
+  console.log("[SWE CONST] SE_MERCURY=", constants.SE_MERCURY, "SE_VENUS=", constants.SE_VENUS, "SE_SUN=", constants.SE_SUN);
+console.log("[SWE CONST] SEFLG_SWIEPH=", constants.SEFLG_SWIEPH, "SEFLG_SPEED=", constants.SEFLG_SPEED, "SEFLG_SIDEREAL=", constants.SEFLG_SIDEREAL);
 
   // Use explicit "as-of" moment (preferred), else fall back to birth tz + current clock.
   const tz = asOf?.tz ?? birth.tz;
@@ -965,29 +978,27 @@ console.log("[transitsNow] nowUtc UTC date:", nowUtc.toISOString().slice(0, 10))
 const tPlanets = await computeTransitPlanetsForDay(nowUtc, constants);
 console.log(
   "[transitsNow] sample",
-  tPlanets.map(p => `${p.name}:${p.lon.toFixed(2)}° ${signFromDegSidereal(p.lon)}`).join(" | ")
+  tPlanets
+    .map((p) => `${p.name}:${p.lon.toFixed(2)}° ${signFromLonSidereal(p.lon)}`)
+    .join(" | ")
 );
 
+return tPlanets.map((p) => {
+  const sidLon = p.lon; // ✅ already sidereal now
+  const sign = signFromLonSidereal(sidLon);
+  const house = houseFromLagnaWholeSign(sign, ascSign);
+if (process.env.NODE_ENV !== "production") {
+  const m = tPlanets.find(p => p.name === "Mercury");
+  if (m) console.log("[sanity] Mercury sidereal lon:", m.lon);
+}
 
-    const sun = tPlanets.find(p => p.name === "Sun");
-
-  return tPlanets.map((p) => {
-    let lon = p.lon;
-    let sign = signFromDegSidereal(lon);
-
-    // 🔒 Mercury boundary correction (stub safety)
-    if (p.name === "Mercury" && sun) {
-      const diff = Math.abs(wrap360(lon - sun.lon));
-      if (diff < 30) {
-        // force Mercury into Sun's sign if close
-        sign = signFromDegSidereal(sun.lon);
-      }
-    }
-
-    const house = houseFromLagnaWholeSign(sign, ascSign);
-    return { name: p.name, lon, sign, house };
-  });
-
+  return {
+    name: p.name,
+    lon: sidLon, // ✅ store sidereal lon (consistent with the rest of the engine)
+    sign,
+    house,
+  };
+});
 }
 
 

@@ -414,37 +414,7 @@ const PLANET_ORDER = [
   "Rahu",
   "Ketu",
 ];
-function buildMonthFromDaily(dailyHighlights: any) {
-  const days = Array.isArray(dailyHighlights) ? dailyHighlights.slice(0, 30) : [];
 
-
-  const weekChunks: any[][] = [];
-  for (let i = 0; i < days.length; i += 7) weekChunks.push(days.slice(i, i + 7));
-
-  const weeks = weekChunks.map((chunk, i) => {
-    const start = String(chunk?.[0]?.dateISO || "");
-    const end = String(chunk?.[chunk.length - 1]?.dateISO || "");
-    const label = start && end ? `${start} - ${end}` : `Week ${i + 1}`;
-
-
-    // Make a short meaty summary from headlines/text
-    const lines = chunk
-      .map((d: any) => String(d?.headline || "").trim() || String(d?.text || "").trim())
-      .filter(Boolean)
-      .slice(0, 3);
-
-    const text = lines.length
-  ? lines.map((s) => `ï¿½ ${s}`).join("\n")
-  : "No guidance available for this week yet.";
-
-    return { label, text, days: chunk };
-  });
-
-  return { days, weekChunks, weeks };
-}
-
-
-/* === Sidereal alignment helpers (Lahiri) === */
 
 function mod360(n: number) {
   return ((n % 360) + 360) % 360;
@@ -918,89 +888,211 @@ type DailyFact = {
     endISO: string;
   } | null;
 };
+type StrongTransitCategory = "career" | "relationships" | "health" | "inner" | "general";
+
+type StrongTransitLite = {
+  planet: string;
+  target: string; // must be required (NOT optional) because UI/types expect string
+  category: "career" | "relationships" | "health" | "inner" | "general";
+  strength: number;
+  startISO: string;
+  endISO: string;
+};
+
+function toStrongTransitCategory(x: any): StrongTransitCategory {
+  return x === "career" || x === "relationships" || x === "health" || x === "inner"
+    ? x
+    : "general";
+}
+function transitLineGold(
+  strongest: StrongTransitLite | null,
+  idx: number,
+  prevKey?: string
+): { key: string; line: string } {
+  if (!strongest) return { key: "", line: "" };
+
+  const planet = String(strongest.planet ?? "").trim() || "A transit";
+  const target = String(strongest.target ?? "").trim() || "a key point";
+  const cat =
+    (strongest.category as any) === "career" ||
+    (strongest.category as any) === "relationships" ||
+    (strongest.category as any) === "health" ||
+    (strongest.category as any) === "inner"
+      ? (strongest.category as any)
+      : "general";
+
+  const key = `${planet}|${target}|${cat}`;
+
+  // If same transit repeats day-to-day, don't repeat the same sentence.
+  const sameAsYesterday = !!prevKey && prevKey === key;
+
+  // Show full “planet+target” line on day 1 or when it changes
+  if (!sameAsYesterday) {
+    const full =
+      cat === "career"
+        ? `Career is louder — ${planet} touching ${target} can bring a message, decision, or visibility moment.`
+        : cat === "relationships"
+        ? `Relationships are sensitive — ${planet} touching ${target} can highlight a conversation or boundary.`
+        : cat === "health"
+        ? `Energy needs care — ${planet} touching ${target} rewards pacing, sleep, and clean routine.`
+        : cat === "inner"
+        ? `Inner noise rises — ${planet} touching ${target} is best used for reflection, not reaction.`
+        : `Background influence — ${planet} touching ${target}.`;
+    return { key, line: full };
+  }
+
+  // Otherwise rotate a short “supporting” variation so it doesn't feel cloned
+  const variations = [
+    `Keep actions factual; let the transit do its work without forcing outcomes.`,
+    `Stay steady — small choices compound more than big pushes today.`,
+    `Don’t over-interpret signals. One clean step is enough.`,
+    `Use the energy quietly: finish, follow through, and close loops.`,
+  ];
+
+  return { key, line: variations[idx % variations.length] };
+}
+
+
 function buildDayGuidance(
   dateISO: string,
   relHouse: number | null,
-  strongest: TransitHit | null,
-  idx: number
+  strongest: StrongTransitLite | null,
+  idx: number,
+  moonNakshatra?: string
 ): { expect: string; doLine: string; dontLine: string } {
+
   const houseText = houseFocusFromMoon(
     typeof relHouse === "number" ? relHouse : undefined
   );
 
-  // Rotate tone a bit so it doesn't feel cloned
+  // Keep the opening rotation, but make them “human”
   const openings = [
-    "Expect a steady day where small moves matter.",
-    "Expect a practical, results-first day.",
-    "Expect emotions to be noticeableuse them as information.",
-    "Expect a slightly sensitive daykeep things simple.",
-    "Expect focus to shift toward whats pending.",
-    "Expect clarity if you slow down and prioritize.",
+    "Expect a steady day where small moves compound.",
+    "Expect a practical day — progress likes structure today.",
+    "Expect emotions to be noticeable; treat them as information, not commands.",
+    "Expect sensitivity — keep things simple and clean.",
+    "Expect attention to drift to what’s pending; close loops.",
+    "Expect clarity when you slow down and choose one priority.",
     "Expect progress through discipline, not intensity.",
   ];
   const opening = openings[idx % openings.length];
 
-  // Base expectation from Moon-house focus
-  let expect = `${opening} Attention naturally goes toward ${houseText}.`;
+  // --- Nakshatra premium layer (short + memorable) ---
+  const nak = String(moonNakshatra ?? "").trim();
+  const nakName = nak ? nak.split("(")[0].trim() : "";
+  const theme = nakName ? String(nakTheme(nakName) || "").trim() : "";
 
-  // Add transit flavor (category + planet/target)
-  if (strongest) {
-    const planet = strongest.planet;
-    const target = strongest.target || "a key natal point";
-    const cat = strongest.category || "general";
+  // Turn theme into a *guidance sentence* (not just keywords)
+  function themeSentence(): string {
+    if (!nakName) return "";
+    const t = theme.toLowerCase();
 
-    if (cat === "career") {
-      expect += ` Career matters are louder today${planet} ${target} can bring a decision, message, or visibility moment.`;
-    } else if (cat === "relationships") {
-      expect += ` Relationships and tone matter${planet} ${target} can highlight a conversation or boundary.`;
-    } else if (cat === "health") {
-      expect += ` Energy and routine need attention${planet} ${target} rewards small corrections (sleep/food/pacing).`;
-    } else if (cat === "inner") {
-      expect += ` Inner noise may rise${planet} ${target} is better used for reflection than reaction.`;
-    } else {
-      expect += ` A subtle background influence is active${planet} ${target}.`;
+    if (t.includes("communication") || t.includes("speaking") || t.includes("learning")) {
+      return `Moon in ${nakName} favors clear communication — say the true thing simply, and write down the next step.`;
     }
+    if (t.includes("service") || t.includes("healing") || t.includes("care")) {
+      return `Moon in ${nakName} supports service and repair — small fixes (body, home, routine) create big relief.`;
+    }
+    if (t.includes("discipline") || t.includes("duty") || t.includes("structure")) {
+      return `Moon in ${nakName} rewards discipline — less drama, more execution.`;
+    }
+    if (t.includes("ambition") || t.includes("drive") || t.includes("leadership")) {
+      return `Moon in ${nakName} boosts ambition — choose one target and move toward it with calm confidence.`;
+    }
+    if (t.includes("relationships") || t.includes("bond") || t.includes("connection")) {
+      return `Moon in ${nakName} highlights relationships — tone matters more than winning today.`;
+    }
+
+    // default (still premium): name + themes
+    return theme
+      ? `Moon in ${nakName} carries themes of ${theme} — use that energy deliberately instead of scattering it.`
+      : `Moon in ${nakName} sets today’s emotional tone — move deliberately, not reactively.`;
   }
 
-  // DO / DON'T suggestions (short, specific)
+  // Base paragraph (2–4 sentences)
+  const lines: string[] = [];
+
+  // 1) opener
+  lines.push(opening);
+
+  // 2) nakshatra layer
+  const nakLine = themeSentence();
+  if (nakLine) lines.push(nakLine);
+
+  // 3) house focus layer
+  // 3) Moon-house focus line (premium, human)
+const moodOpeners = [
+  "Emotionally even, you can get a lot done without overthinking it.",
+  "A calm, practical tone supports progress today.",
+  "Your mind wants clarity — simplicity will feel powerful today.",
+  "A slightly sensitive mood is possible; keep your pace steady.",
+  "Today rewards quiet focus and clean choices.",
+  "Small wins stack up — finish what you start.",
+  "Less noise, more precision: one good decision beats many fast ones.",
+];
+lines.push(moodOpeners[idx % moodOpeners.length]);
+
+lines.push(`Attention naturally goes toward ${houseText}.`);
+
+lines.push("Keep actions simple and intentional: choose one priority, take one clear step, then close the loop.");
+
+    // 4) transit flavor (dedupe so the same “strongest transit” doesn’t repeat daily)
+const prevKey = String((strongest as any)?._prevKey ?? "");
+const tline = transitLineGold(strongest, idx, prevKey);
+if (tline.line) lines.push(tline.line);
+
+  const expect = lines.filter(Boolean).join(" ");
+
+  // DO / DON'T suggestions (keep yours)
   const doBank = [
     "Do: finish one pending task and close it fully.",
     "Do: keep your schedule lighter and protect focus.",
-    "Do: have one honest conversationsoft tone, clear words.",
+    "Do: have one honest conversation — soft tone, clear words.",
     "Do: take 10 minutes for journaling/prayer before decisions.",
-    "Do: simplifychoose one priority and move it forward.",
+    "Do: simplify — choose one priority and move it forward.",
     "Do: handle money/food/routine with care and consistency.",
     "Do: respond slowly; quality > speed.",
   ];
   const dontBank = [
-    "Dont: multitask or start 3 things at once.",
-    "Dont: react instantly to messagespause first.",
-    "Dont: overspend or overcommit to please others.",
-    "Dont: push your body if energy feels low.",
-    "Dont: argue to winaim for clarity instead.",
-    "Dont: make big decisions late at night or in a rush.",
-    "Dont: let small friction turn into a big mood.",
+    "Don’t: multitask or start 3 things at once.",
+    "Don’t: react instantly to messages — pause first.",
+    "Don’t: overspend or overcommit to please others.",
+    "Don’t: push your body if energy feels low.",
+    "Don’t: argue to win — aim for clarity instead.",
+    "Don’t: make big decisions late at night or in a rush.",
+    "Don’t: let small friction turn into a big mood.",
   ];
 
   let doLine = doBank[idx % doBank.length];
   let dontLine = dontBank[idx % dontBank.length];
 
-  // Slightly tune DO/DON'T to category
+  // Tune to category
   if (strongest?.category === "career") {
     doLine = "Do: take one concrete career step (send, submit, schedule, follow up).";
-    dontLine = "Dont: make impulsive job/business calls without checking details.";
+    dontLine = "Don’t: make impulsive job/business calls without checking details.";
   } else if (strongest?.category === "relationships") {
     doLine = "Do: prioritize one relationship action (check-in, clarify, set boundary).";
-    dontLine = "Dont: escalate emotionallykeep tone calm and precise.";
+    dontLine = "Don’t: escalate emotionally — keep tone calm and precise.";
   } else if (strongest?.category === "health") {
     doLine = "Do: support the body (hydration, lighter food, early sleep).";
-    dontLine = "Dont: overtrain or experiment wildly with diet/routine today.";
+    dontLine = "Don’t: overtrain or experiment wildly with diet/routine today.";
   } else if (strongest?.category === "inner") {
-    doLine = "Do: take quiet timereflect before reacting.";
-    dontLine = "Dont: spiral in overthinking; write it down and move on.";
+    doLine = "Do: take quiet time — reflect before reacting.";
+    dontLine = "Don’t: spiral in overthinking; write it down and move on.";
   }
 
   return { expect, doLine, dontLine };
+}
+function isoDateInTz(d: Date, tz: string): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: tz,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(d);
+
+  const get = (t: string) => parts.find((p) => p.type === t)?.value ?? "";
+  return `${get("year")}-${get("month")}-${get("day")}`;
 }
 
 // small helper to generate facts from moon + transits
@@ -1008,8 +1100,10 @@ function buildDailyFacts(
   dailyMoon: DailyMoonEntry[],
   transits: TransitHit[],
   startDateISO: string,
-  days: number
+  days: number,
+  tz: string
 ): DailyFact[] {
+
   const startBase =
     parseISODateLoose(startDateISO) ??
     parseISODateLoose(new Date().toISOString().slice(0, 10)) ??
@@ -1020,9 +1114,14 @@ function buildDailyFacts(
 
   for (let i = 0; i < clampedDays; i++) {
     const day = addDaysLoose(startBase, i);
-    const dateISO = day.toISOString().slice(0, 10);
+    const dateISO = isoDateInTz(day, tz);
 
-    const m = dailyMoon.find((x) => x.dateISO === dateISO);
+    // Try tz date first
+const m =
+  dailyMoon.find((x) => x.dateISO === dateISO) ??
+  // UTC fallback (some sources store dailyMoon in UTC)
+  dailyMoon.find((x) => x.dateISO === day.toISOString().slice(0, 10));
+
 
 // --- 1) Determine Moon nakshatra (SOURCE OF TRUTH) ---
 let moonNakName = "";
@@ -1067,19 +1166,37 @@ const rel =
   null;
 
     // ---- 2) Strongest transit of that day ----
-    const strongest = (() => {
-      const ts = transits.filter((t) => t.startISO <= dateISO && t.endISO >= dateISO);
-      if (!ts.length) return null;
-      const best = ts.reduce((b, c) => (c.strength > b.strength ? c : b));
-      return {
-        planet: best.planet,
-        target: best.target,
-        category: best.category,
-        strength: best.strength,
-        startISO: best.startISO,
-        endISO: best.endISO,
-      };
-    })();
+    const strongest: StrongTransitLite | null = (() => {
+  const ts = (transits ?? []).filter(
+    (t) => (t?.startISO ?? "") <= dateISO && (t?.endISO ?? "") >= dateISO
+  );
+  if (!ts.length) return null;
+
+  const best = ts.reduce((b, c) => ((c?.strength ?? 0) > (b?.strength ?? 0) ? c : b));
+
+  const rawCat = String(best?.category ?? "general").toLowerCase();
+  const category: StrongTransitLite["category"] =
+    rawCat === "career"
+      ? "career"
+      : rawCat === "relationships"
+      ? "relationships"
+      : rawCat === "health"
+      ? "health"
+      : rawCat === "inner"
+      ? "inner"
+      : "general";
+
+  return {
+    planet: String(best?.planet ?? "Transit"),
+    target: String(best?.target ?? best?.title ?? "a key natal point"),
+    category,
+    strength: Number(best?.strength ?? 0),
+    startISO: String(best?.startISO ?? dateISO),
+    endISO: String(best?.endISO ?? dateISO),
+  };
+})();
+
+
 
     // ---- 3) Output ----
     out.push({
@@ -1604,6 +1721,20 @@ function buildMoonGuidedFallbackText(opts: {
 
   return `${moonTone} ${guidance}`.trim();
 }
+function fixQuotedGibberish(input: any) {
+  const s = String(input ?? "");
+  const quoteCount = (s.match(/"/g) || []).length;
+
+  // If the string has an unusually high quote density,
+  // it’s likely the `"E"x"p"...` style corruption.
+  if (quoteCount > Math.max(12, Math.floor(s.length * 0.12))) {
+    return s
+      .replace(/"/g, "")          // remove all double quotes
+      .replace(/\s{2,}/g, " ")    // collapse whitespace
+      .trim();
+  }
+  return s;
+}
 
 // Keep your wrapper
 function safeText(x: any): string {
@@ -1937,6 +2068,29 @@ function describeNakshatra(n: string | undefined) {
   };
 
   return map[n] || null;
+}
+type BulletLike =
+  | string
+  | {
+      text?: unknown;
+      label?: unknown;
+      value?: unknown;
+      title?: unknown;
+    };
+
+function bulletText(x: unknown): string {
+  if (typeof x === "string") return x.trim();
+  if (!x || typeof x !== "object") return String(x ?? "").trim();
+
+  const b = x as BulletLike;
+  const pick =
+    (typeof (b as any).text === "string" && (b as any).text) ||
+    (typeof (b as any).label === "string" && (b as any).label) ||
+    (typeof (b as any).value === "string" && (b as any).value) ||
+    (typeof (b as any).title === "string" && (b as any).title) ||
+    "";
+
+  return String(pick ?? "").trim();
 }
 
 function houseFocusFromMoon(h?: number): string {
@@ -2403,7 +2557,8 @@ function buildDailyFromMoonAndTransits(
   dailyMoon: DailyMoonEntry[],
   transits: TransitHit[],
   startDateISO: string,
-  days: number
+  days: number,
+  tz?: string
 ): DailyHighlight[] {
   const out: DailyHighlight[] = [];
 
@@ -2413,45 +2568,81 @@ function buildDailyFromMoonAndTransits(
     new Date();
 
   const clampedDays = Math.max(1, Math.min(days, 14));
+  const tzSafe = String(tz ?? "Asia/Dubai");
+
+  // track last day's strongest transit key to reduce repetition
+  let lastTransitKey = "";
 
   for (let i = 0; i < clampedDays; i++) {
     const day = addDaysLoose(startBase, i);
-    const dateISO = day.toISOString().slice(0, 10);
 
-    const m = dailyMoon.find((x) => x.dateISO === dateISO);
+    // 1) Date for lookup in correct timezone
+    const dateISO = isoDateInTz(day, tzSafe);
 
-// Deterministic nakshatra if we have a real degree
-let nak = "";
-const moonSidDeg = Number(
-  (m as any)?.siderealLongitude ??
-    (m as any)?.siderealLon ??
-    (m as any)?.siderealDeg ??
-    (m as any)?.moonSiderealLongitude ??
-    (m as any)?.moonSiderealLon ??
-    (m as any)?.moonSiderealDeg ??
-    (m as any)?.moonLonSidereal ??
-    (m as any)?.moonLon ??
-    (m as any)?.lon ??
-    (m as any)?.deg
-);
+    // 2) UTC fallback (some sources may store dailyMoon in UTC)
+    const dateISO_utc = day.toISOString().slice(0, 10);
 
-if (Number.isFinite(moonSidDeg)) {
-  nak = nakshatraFromDegASCII(moonSidDeg).name;
-} else {
-  const fallbackNak =
-    (m as any)?.moonNakshatraName ||
-    (m as any)?.moonNakshatra ||
-    (m as any)?.nakshatraName ||
-    (m as any)?.nakshatra ||
-    null;
+    const m =
+      dailyMoon.find((x) => x.dateISO === dateISO) ??
+      dailyMoon.find((x) => x.dateISO === dateISO_utc);
 
-  if (typeof fallbackNak === "string" && fallbackNak.trim()) {
-    nak = fallbackNak.trim();
-  }
-}
+    // -----------------------------
+    // Deterministic nakshatra (if we have longitude)
+    // -----------------------------
+    let nak = "";
+    const rawLon = Number(
+      (m as any)?.siderealLongitude ??
+        (m as any)?.siderealLon ??
+        (m as any)?.siderealDeg ??
+        (m as any)?.moonSiderealLongitude ??
+        (m as any)?.moonSiderealLon ??
+        (m as any)?.moonSiderealDeg ??
+        (m as any)?.moonLonSidereal ??
+        (m as any)?.moonLon ??
+        (m as any)?.lon ??
+        (m as any)?.deg
+    );
 
+    if (Number.isFinite(rawLon)) {
+      // Guard: if value looks like radians (0..~6.28), convert to degrees
+      const v = rawLon;
+      const deg = v > 0 && v < 7 ? (v * 180) / Math.PI : v;
 
-    // ?? This was missing ï¿½ define relHouse safely from any of the fields
+      // normalize to 0..360
+      const moonDegTropical = ((deg % 360) + 360) % 360;
+
+// If the source field is not explicitly sidereal, convert it
+const cameFromSiderealField =
+  (m as any)?.siderealLongitude != null ||
+  (m as any)?.siderealLon != null ||
+  (m as any)?.siderealDeg != null ||
+  (m as any)?.moonSiderealLongitude != null ||
+  (m as any)?.moonSiderealLon != null ||
+  (m as any)?.moonSiderealDeg != null ||
+  (m as any)?.moonLonSidereal != null;
+
+const moonDeg = cameFromSiderealField
+  ? moonDegTropical
+  : toSidereal(moonDegTropical, day); // IMPORTANT: use the day object you already have in the loop
+
+nak = nakshatraFromDegASCII(moonDeg).name;
+
+    } else {
+      const fallbackNak =
+        (m as any)?.moonNakshatraName ||
+        (m as any)?.moonNakshatra ||
+        (m as any)?.nakshatraName ||
+        (m as any)?.nakshatra ||
+        null;
+
+      if (typeof fallbackNak === "string" && fallbackNak.trim()) {
+        nak = fallbackNak.trim();
+      }
+    }
+
+    // -----------------------------
+    // House-from-Moon / relative house (safe)
+    // -----------------------------
     const relHouse =
       typeof (m as any)?.relativeHouseFromMoon === "number"
         ? (m as any).relativeHouseFromMoon
@@ -2462,74 +2653,68 @@ if (Number.isFinite(moonSidDeg)) {
     const houseText = houseFocusFromMoon(
       typeof relHouse === "number" ? relHouse : undefined
     );
-    const houseOrdinal = ordinal(
-      typeof relHouse === "number" ? relHouse : undefined
-    );
 
-    // Base Moon sentence
+    // -----------------------------
+    // Base day text (varied)
+    // -----------------------------
     const openers = [
-  `Keep choices simple today  one priority, one action.`,
-  `Move slower than usual and notice what truly needs attention.`,
-  `A good day to tidy something small that has been pending.`,
-  `Stay present in conversations; soft tone will go further than force.`,
-  `Focus on steady progress, not speed  small steps compound.`,
-  `Protect your energy: fewer tasks, cleaner boundaries.`,
-  `Ground yourself first, then respond  dont react.`,
-];
+      "Keep choices simple today — one priority, one action.",
+      "Move a little slower than usual and notice what truly needs attention.",
+      "A good day to tidy something small that has been pending.",
+      "Stay present in conversations; a soft tone goes further than force.",
+      "Focus on steady progress, not speed — small steps compound.",
+      "Protect your energy: fewer tasks, cleaner boundaries.",
+      "Ground yourself first, then respond — don’t react.",
+    ];
 
-const tips = [
-  `Choose one thing to finish, then stop.`,
-  `Say less, listen more.`,
-  `Avoid rushing decisions.`,
-  `Keep spending conservative and practical.`,
-  `Do one body-friendly reset: walk, hydration, early sleep.`,
-  `Handle the most annoying small task first.`,
-  `Simplify your schedule and reduce noise.`,
-];
+    const tips = [
+      "Choose one thing to finish, then stop.",
+      "Say less, listen more.",
+      "Avoid rushing decisions.",
+      "Keep spending conservative and practical.",
+      "Do one body-friendly reset: walk, hydration, early sleep.",
+      "Handle the most annoying small task first.",
+      "Simplify your schedule and reduce noise.",
+    ];
 
-// vary by day index
-const opener = openers[i % openers.length];
-const tip = tips[(i * 2) % tips.length];
+    const opener = openers[i % openers.length];
+    const tip = tips[(i * 2) % tips.length];
 
-// If you want house influence, keep it generic (NO nakshatra mention)
-const houseLine =
-  typeof relHouse === "number" && relHouse >= 1 && relHouse <= 12
-    ? `Emotional focus leans toward ${houseText}.`
-    : `Keep your emotional tone steady and practical.`;
+    const houseLine =
+      typeof relHouse === "number" && relHouse >= 1 && relHouse <= 12
+        ? `Emotional focus leans toward ${houseText}.`
+        : "Keep your emotional tone steady and practical.";
 
-// Base text (varied)
-let text = `${opener} ${houseLine} ${tip}`;
+    // Premium nakshatra micro-layer (short + optional)
+    const nakLine = nak ? `Moon is in ${nak} — keep your choices clean and intentional.` : "";
 
+    let text = [opener, houseLine, nakLine, tip].filter(Boolean).join(" ");
 
-    // Overlay strongest transit for that day, if any
-  // Overlay strongest transit for that day, but avoid repeating the exact same ending daily
-let lastTransitKey = "";
-const strong = chooseStrongTransitForDay(dateISO, transits);
+    // -----------------------------
+    // Strongest transit overlay (reduce repetition)
+    // IMPORTANT: use dateISO (tz-safe) for matching
+    // -----------------------------
+    const strong = chooseStrongTransitForDay(dateISO, transits);
 
-if (strong) {
-  const key = `${strong.planet}|${strong.target}|${strong.category}`;
+    if (strong) {
+      const key = `${strong.planet}|${strong.target}|${strong.category}`;
+      const sameAsYesterday = key === lastTransitKey;
 
-  // If the SAME transit is active multiple days in a row,
-  // alternate between full line and a shorter theme line.
-  const sameAsYesterday = key === lastTransitKey;
+      if (sameAsYesterday) {
+        text += " Keep actions simple — you can get a lot done without overthinking it.";
+      } else {
+        text += ` ${buildTransitLine(i, strong, dateISO)}`;
+      }
 
-  if (sameAsYesterday) {
-    // short variant (no repeated noticeable transit  sentence)
-    text += ` Keep it simple: one priority, one action.`;
-  } else {
-    text += ` ${buildTransitLine(i, strong, dateISO)}`;
-  }
+      lastTransitKey = key;
+    }
 
-  lastTransitKey = key;
-}
-;
-
-      
     out.push({ dateISO, text });
   }
 
   return out;
 }
+
 function decodeJsonString(s: string) {
   try {
     // handles escaped quotes, \n, etc.
@@ -2978,8 +3163,10 @@ function buildDailyFeatures(
   dailyMoon: DailyMoonEntry[],
   transits: TransitHit[],
   startDateISO: string,
-  days: number
+  days: number,
+  tz?: string
 ): DailyFeature[] {
+
   const startBase =
     parseISODateLoose(startDateISO) ??
     parseISODateLoose(new Date().toISOString().slice(0, 10)) ??
@@ -2987,10 +3174,10 @@ function buildDailyFeatures(
 
   const clampedDays = Math.max(1, Math.min(days, 14));
   const out: DailyFeature[] = [];
-
+  const tzSafe = String(tz ?? "Asia/Dubai");
   for (let i = 0; i < clampedDays; i++) {
     const day = addDaysLoose(startBase, i);
-    const dateISO = day.toISOString().slice(0, 10);
+    const dateISO = isoDateInTz(day, tzSafe);
 
     const m = dailyMoon.find((x) => x.dateISO === dateISO);
 
@@ -4030,7 +4217,7 @@ const TabTransits: React.FC<TabTransitsProps> = memo(
     mounted,
   }) => {
     const list = Array.isArray(dailyHighlights) ? dailyHighlights : [];
-    const visible = list.slice(0, 6);
+    const visible = list.slice(0, 7);
 
     // Local guard: treat any “mostly junk” strings as unusable
     function isMostlyGarbage(s: string): boolean {
@@ -4065,8 +4252,12 @@ const TabTransits: React.FC<TabTransitsProps> = memo(
               Today & next few days
             </CardTitle>
             <div className="text-xs text-white/70">
-              Personalized from your natal Moon + current transits.
-            </div>
+  Personalized from your natal Moon + current transits.
+  <div className="text-xs text-white/60 mt-1">
+    Guidance tuned for today — based on Moon placement + the strongest active transit.
+  </div>
+</div>
+
           </CardHeader>
 
           <CardContent className="space-y-3">
@@ -4095,7 +4286,9 @@ const TabTransits: React.FC<TabTransitsProps> = memo(
             {!dailyLoadingProp && !dailyErrorProp && visible.length > 0 && (
               <div className="space-y-3">
                 {visible.map((d, idx) => {
-                  const dateISO = String(d.dateISO ?? "").trim();
+ const dateISO = String((d as any)?.dateISO ?? "").trim();
+
+
 
                   const dateLabel = (() => {
                     try {
@@ -4125,23 +4318,39 @@ const conf = String((d as any)?.confidence ?? "").trim(); // "high" | "medium" |
 const doListRaw = Array.isArray((d as any)?.do) ? (d as any).do : [];
 const avoidListRaw = Array.isArray((d as any)?.avoid) ? (d as any).avoid : [];
 
-const doList = doListRaw.map(safeText).filter(Boolean);
-const avoidList = avoidListRaw.map(safeText).filter(Boolean);
+const pickText = (v: any) => {
+  if (typeof v === "string") return safeText(v);
+  if (v && typeof v === "object") {
+    const t = (v.text ?? v.label ?? v.value ?? v.title ?? "") as any;
+    if (typeof t === "string") return safeText(t);
+  }
+  return "";
+};
+
+const doList = doListRaw.map(pickText).filter(Boolean);
+const avoidList = avoidListRaw.map(pickText).filter(Boolean);
 
 // Remove moodText if it appears inside raw text (prevents repetition)
 const textNoMood =
   moodText && rawText ? safeText(rawText.replace(moodText, "")) : rawText;
 
 // Build a cleaned line from AI/local text
-const finalLineRaw = safeText(
+const finalLineRaw = fixQuotedGibberish(safeText(
   normalizeHighlightText(stripNakshatraClaims(textNoMood), idx)
-);
+));
+
+const looksLikeInternalFacts = (s: string) =>
+  /transit moon nakshatra:|strongest transit:|transit strength:|focus area:|from natal moon/i.test(s);
+
+const finalLineCandidate =
+  finalLineRaw && looksLikeInternalFacts(finalLineRaw) ? "" : finalLineRaw;
 
 // ✅ final guard: if still garbage, force a clean fallback
 const finalLine =
-  !finalLineRaw || isMostlyGarbage(finalLineRaw)
+  !finalLineCandidate || isMostlyGarbage(finalLineCandidate)
     ? (moodText || "A steady day: keep it simple, choose one priority, and close loops.")
-    : finalLineRaw;
+    : finalLineCandidate;
+
 
 const confLabel =
   conf === "high" ? "High" : conf === "low" ? "Low" : "Medium";
@@ -4155,7 +4364,7 @@ const confClass =
 
                   return (
                     <div
-                      key={dateISO || idx}
+                      key={`${dateISO || "day"}-${idx}`}
                       className="rounded-2xl border border-white/10 bg-white/5 p-4"
                     >
                       {/* Header */}
@@ -4187,7 +4396,7 @@ const confClass =
                           {headline}
                         </div>
                       )}
-
+                     
                       {/* Main line */}
                       <div className="mt-2 text-sm leading-relaxed text-white/75">
                         {finalLine}
@@ -6222,9 +6431,9 @@ if (Number.isFinite(moonHouseN) && moonHouseN >= 1 && moonHouseN <= 12) {
         Do now
       </div>
       <ul className="mt-2 list-disc pl-5 text-sm text-white/85">
-        {(plan.now3Days.do ?? []).slice(0, 4).map((x: string, i: number) => (
-          <li key={i}>{x}</li>
-        ))}
+        {(plan.now3Days.do ?? []).slice(0, 4).map((x: unknown, i: number) => (
+  <li key={i}>{bulletText(x)}</li>
+))}
       </ul>
     </div>
 
@@ -6233,9 +6442,9 @@ if (Number.isFinite(moonHouseN) && moonHouseN >= 1 && moonHouseN <= 12) {
         Don't do
       </div>
       <ul className="mt-2 list-disc pl-5 text-sm text-white/85">
-        {(plan.now3Days.avoid ?? []).slice(0, 4).map((x: string, i: number) => (
-          <li key={i}>{x}</li>
-        ))}
+        {(plan.now3Days.avoid ?? []).slice(0, 4).map((x: unknown, i: number) => (
+  <li key={i}>{bulletText(x)}</li>
+))}
       </ul>
     </div>
   </div>
@@ -7556,32 +7765,58 @@ const loadTransitsAndInsights = async () => {
       lon: next.birthLon ?? payload.lon,
     };
 
-    const tRes = await fetch("/api/transits", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-     body: JSON.stringify({
+    const payloadT = {
   birth,
   horizonDays: 365,
   // pass Lagna so server can compute transitHouse + transitNow.house correctly
   ascDeg: (next as any)?.core?.ascDeg ?? (next as any)?.ascDeg ?? null,
   ascSign: (next as any)?.core?.ascSign ?? (next as any)?.ascSign ?? null,
-}),
+};
 
-    });
+let tRes: Response;
+let tText = "";
+let tJson: any = {};
 
-    const tJson = await tRes.json().catch(() => ({} as any));
-    setTransitNow(Array.isArray(tJson?.transitNow) ? tJson.transitNow : []);
+try {
+  tRes = await fetch("/api/transits", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(payloadT),
+  });
 
-    console.log("[transits] debug:", tJson?._debug);
+  tText = await tRes.text().catch(() => "");
+  try {
+    tJson = JSON.parse(tText || "{}");
+  } catch {
+    tJson = { _raw: tText };
+  }
+} catch (e: any) {
+  console.error("[transits] NETWORK FAIL (fetch threw)", e);
+  console.error("[transits] payload:", payloadT);
+  setTransits([]);
+  setTransitNow([]);
+  setTransitsError(
+    "Transits request failed to reach the server (network/route crash). Check terminal logs."
+  );
+  return;
+}
+
+setTransitNow(Array.isArray(tJson?.transitNow) ? tJson.transitNow : []);
+
+console.log("[transits] status:", tRes.status);
+console.log("[transits] debug:", tJson?._debug);
 console.log("[transits] transitNow sample:", tJson?.transitNow?.[0]);
 console.log("[transits] first transit sample:", tJson?.transits?.[0]);
 
-    if (!tRes.ok || !Array.isArray(tJson?.transits)) {
-      console.error("transits API failed", tRes.status, tJson);
-      setTransits([]);
-      setTransitsError("Could not load upcoming transits.");
-      return;
-    }
+if (!tRes.ok || !Array.isArray(tJson?.transits)) {
+  console.error("[transits] API failed", tRes.status, tJson);
+  setTransits([]);
+  setTransitsError(
+    `Could not load upcoming transits. (${tRes.status})`
+  );
+  return;
+}
+
 
     const hitList = tJson.transits as TransitHit[];
 
@@ -7598,7 +7833,7 @@ console.log("[transits] first transit sample:", tJson?.transits?.[0]);
     setTransits(hitList);
 
     const todayISO = (() => {
-  const tz = next?.birthTz || "UTC";
+  const tz = (payload as any)?.tz || next?.birthTz || "Asia/Dubai";
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: tz,
     year: "numeric",
@@ -7619,33 +7854,107 @@ try {
   setDailyError(null);
   setDailyHighlights([]);
 
-  const dailyFacts = buildDailyFacts(dailyMoon as any, hitList, todayISO, 7);
+  const tz = String((payload as any)?.tz ?? (next as any)?.birthTz ?? "Asia/Dubai");
+
+const dailyFacts = buildDailyFromMoonAndTransits(
+  dailyMoon as any,
+  hitList,
+  todayISO,
+  7,
+  tz
+);
+
+
   const safeDailyFacts = Array.isArray(dailyFacts) ? dailyFacts : [];
 
   // Build facts per day (internal), but do NOT show them in UI
-  const dayInputs = safeDailyFacts.slice(0, 6).map((f: any) => {
+  const dayInputs = safeDailyFacts.slice(0, 7).map((f: any) => {
     const tr = f.strongestTransit;
     const facts: string[] = [];
 
     if (f.moonNakshatra) facts.push(`Transit Moon nakshatra: ${f.moonNakshatra}`);
-    if (typeof f.houseFromMoon === "number")
-      facts.push(`Transit Moon is ${f.houseFromMoon} from natal Moon`);
+    const moonFrom =
+  typeof f.relativeHouseFromMoon === "number"
+    ? f.relativeHouseFromMoon
+    : typeof f.relativeHouse === "number"
+    ? f.relativeHouse
+    : typeof f.houseFromMoon === "number"
+    ? f.houseFromMoon
+    : null;
+
+if (typeof moonFrom === "number") {
+  facts.push(`Transit Moon is ${moonFrom} from natal Moon`);
+}
+
     if (tr?.planet) facts.push(`Strongest transit: ${tr.planet} ï¿½ ${tr.target || "natal point"}`);
     if (typeof tr?.strength === "number")
       facts.push(`Transit strength: ${Math.round(tr.strength * 100)}%`);
     if (tr?.category) facts.push(`Focus area: ${tr.category}`);
+    // --- Add driver tags (plain, no jargon in UI) ---
+if (tr?.planet) facts.push(`Driver planet: ${String(tr.planet)}`);
+if (typeof tr?.strength === "number") {
+  const s = tr.strength;
+  facts.push(`Driver intensity: ${s >= 0.65 ? "high" : s >= 0.45 ? "medium" : "low"}`);
+}
+if (typeof moonFrom === "number") facts.push(`Moon pattern: ${moonFrom}`);
 
     const strength = typeof tr?.strength === "number" ? tr.strength : 0;
     const confidence: "high" | "medium" | "low" =
-      strength >= 0.72 ? "high" : strength >= 0.55 ? "medium" : "low";
+      strength >= 0.65 ? "high" : strength >= 0.45 ? "medium" : "low";
 
-    return {
-      dateISO: String(f.dateISO ?? ""),
-      facts: facts.filter(Boolean),
-      confidence,
-    };
+
+    // ---------- derive focusHint ----------
+const factsText = facts.join(" ").toLowerCase();
+
+let focusHint = "work";
+const focusArea =
+  focusHint === "career" || focusHint === "work"
+    ? "Work & direction"
+    : focusHint === "money"
+    ? "Money & decisions"
+    : focusHint === "relationships"
+    ? "Relationships"
+    : focusHint === "home"
+    ? "Home & family"
+    : focusHint === "health"
+    ? "Health & energy"
+    : focusHint === "mind"
+    ? "Mind & emotions"
+    : "Work & direction";
+
+// strongest transit category first (most accurate)
+if (tr?.category) {
+  const c = String(tr.category).toLowerCase();
+  if (c.includes("career")) focusHint = "career";
+  else if (c.includes("relationship")) focusHint = "relationships";
+  else if (c.includes("health")) focusHint = "health";
+  else if (c.includes("inner")) focusHint = "mind";
+}
+
+// moon-from-moon fallback
+if (typeof moonFrom === "number") {
+  if ([2, 11].includes(moonFrom)) focusHint = "money";
+  if ([6, 10].includes(moonFrom)) focusHint = "work";
+  if ([7].includes(moonFrom)) focusHint = "relationships";
+  if ([4].includes(moonFrom)) focusHint = "home";
+  if ([12, 8].includes(moonFrom)) focusHint = "mind";
+}
+
+// keyword fallback
+if (factsText.includes("money") || factsText.includes("budget")) focusHint = "money";
+if (factsText.includes("home") || factsText.includes("family")) focusHint = "home";
+
+return {
+  dateISO: String(f.dateISO ?? ""),
+  facts: facts.filter(Boolean),
+  confidence,
+  focusHint,   // <-- ADD THIS LINE
+  focusArea,
+};
+
   });
-
+  console.log("[ai-daily] dayInputs[0] sample:", dayInputs?.[0]);
+ console.log("DAY INPUTS SAMPLE", dayInputs[0]);
   // Try AI (optional). If it fails, fallback will still be good.
   try {
     const aiDailyRes = await fetch("/api/ai-daily-highlights", {
@@ -7662,184 +7971,143 @@ try {
       }),
     });
 
-    const aiDailyJson = await aiDailyRes.json().catch(() => ({} as any));
-    const outDays = Array.isArray(aiDailyJson?.days) ? aiDailyJson.days : [];
+    const aiJson = await aiDailyRes.json().catch(() => ({} as any));
 
-    if (aiDailyRes.ok && outDays.length) {
-      setDailyHighlights(
-  outDays.map((d: any, idx: number) => {
-    const facts = Array.isArray(dayInputs?.[idx]?.facts)
-      ? (dayInputs[idx].facts as string[])
-      : [];
+const outDays: any[] = Array.isArray(aiJson?.days)
+  ? aiJson.days
+  : Array.isArray(aiJson?.outDays)
+  ? aiJson.outDays
+  : Array.isArray(aiJson)
+  ? aiJson
+  : [];
 
-    const conf: "high" | "medium" | "low" =
-      d.confidence === "high" || d.confidence === "low" ? d.confidence : "medium";
+    console.log("[ai-daily] status=", aiDailyRes.status);
+console.log("[ai-daily] outDays length=", Array.isArray(outDays) ? outDays.length : "NOT_ARRAY", outDays);
+console.log("[ai-daily] dayInputs length=", Array.isArray(dayInputs) ? dayInputs.length : "NOT_ARRAY", dayInputs);
 
-    const dateISO = String(d.dateISO ?? "");
-    const extras = dailyFlavorExtras(dateISO || String(idx));
-    const key = `${dateISO}::${idx}::${facts.join("|")}`;
+    const aiDaysArr = Array.isArray(outDays) ? outDays : [];
 
-    // ï¿½ Keep a REAL focus string
-    const focusRaw =
-      facts.find((x: string) => x.toLowerCase().includes("focus area:")) || "";
-    const focusStr = String(focusRaw).split(":").slice(1).join(":").trim();
-    const focusLower = focusStr.toLowerCase();
+if (aiDailyRes.ok && Array.isArray(dayInputs) && dayInputs.length) {
+  const seen = new Set<string>();
 
-    const moonFromRaw =
-      facts.find((x: string) => x.toLowerCase().includes("from natal moon")) || "";
-    const moonFrom = (() => {
-      const m = String(moonFromRaw).match(/(\d+)/);
-      return m ? Number(m[1]) : null;
-    })();
+function dedupeHeadline(h: string, fallbackTag: string) {
+  const base = (h || "").trim() || "Today’s focus";
+  const key = base.toLowerCase();
+  if (!seen.has(key)) {
+    seen.add(key);
+    return base;
+  }
+  const alt = `${base} — ${fallbackTag}`.trim();
+  const key2 = alt.toLowerCase();
+  if (!seen.has(key2)) {
+    seen.add(key2);
+    return alt;
+  }
+  const alt2 = `${fallbackTag}: ${base}`.trim();
+  seen.add(alt2.toLowerCase());
+  return alt2;
+}
 
- 
-    const moodFromMoon = inferMoodFromMoonFrom(moonFrom);
-const moodFallback = inferMoodFromFacts(facts, conf);
+  setDailyHighlights(
+    dayInputs.map((inp: any, idx: number) => {
+      const d: any = aiDaysArr[idx] ?? {};
 
-// ï¿½ single mood declaration (priority: AI mood ï¿½ fallback ï¿½ moon ï¿½ balanced)
-const mood = String(
-  (d.mood ?? "").trim() ||
-  moodFallback.mood ||
-  moodFromMoon ||
-  "balanced"
-);
+      const dateISO = String(inp?.dateISO ?? d?.dateISO ?? "").trim();
 
- const dayKey = dateISO || String(idx);
+      const facts = Array.isArray(inp?.facts) ? (inp.facts as string[]) : [];
 
-const moodTextRaw = String(d.moodText ?? "").trim();
+      const extras = dailyFlavorExtras(dateISO || String(idx));
 
-// ï¿½ If AI moodText is generic/repetitive, replace with relatable variation
-const moodText =
-  moodTextRaw && !isGenericMoodText(moodTextRaw)
-    ? moodTextRaw
-    : String(buildMoodLineText(mood, dayKey) || moodFallback.moodText || "");
+      const conf: "high" | "medium" | "low" =
+        d?.confidence === "high" || d?.confidence === "low" ? d.confidence : "medium";
+    // ---- Gold paragraph (Moon nakshatra + Moon-from-Moon + strongest transit) ----
+    const df = safeDailyFacts?.[idx] as any;
+
+    const relHouseDay: number | null =
+      typeof df?.relativeHouse === "number"
+        ? df.relativeHouse
+        : typeof df?.relativeHouseFromMoon === "number"
+        ? df.relativeHouseFromMoon
+        : typeof df?.houseFromMoon === "number"
+        ? df.houseFromMoon
+        : null;
+
+    const rawCat = String(df?.strongestTransit?.category ?? "general").toLowerCase();
+    const cat: "career" | "relationships" | "health" | "inner" | "general" =
+      rawCat === "career"
+        ? "career"
+        : rawCat === "relationships"
+        ? "relationships"
+        : rawCat === "health"
+        ? "health"
+        : rawCat === "inner"
+        ? "inner"
+        : "general";
+
+    const strongDay: StrongTransitLite | null = df?.strongestTransit
+      ? {
+          planet: String(df.strongestTransit.planet ?? "Transit"),
+          target: String(df.strongestTransit.target ?? "a key natal point"),
+          category: cat,
+          strength: Number(df.strongestTransit.strength ?? 0),
+          startISO: String(df.strongestTransit.startISO ?? dateISO),
+          endISO: String(df.strongestTransit.endISO ?? dateISO),
+        }
+      : null;
+
+    const moonNak = String(df?.moonNakshatra ?? "");
+    const dg = buildDayGuidance(dateISO, relHouseDay, strongDay, idx, moonNak);
+
+   // ---- headline logic ----
+
+// choose base headline from category
+const baseHeadlineGold =
+  cat === "career"
+    ? "Work & direction"
+    : cat === "relationships"
+    ? "Relationships & tone"
+    : cat === "health"
+    ? "Health & energy"
+    : cat === "inner"
+    ? "Inner clarity"
+    : "Steady focus & small wins";
+
+// fallback tag so duplicates become unique
+const fallbackTag = (dateISO || `Day ${idx + 1}`).toString();
+
+// FINAL headline (deduped)
+const headlineGold = dedupeHeadline(baseHeadlineGold, fallbackTag);
+const rawHeadline = String(d?.headline ?? "").trim() || headlineGold;
+
+// ---- text ----
+const textGold = String(dg?.expect ?? "").trim();
+const text = String(d?.text ?? "").trim() || textGold;
 
 
-
-    // ï¿½ Guidance pool based on focus
-    const REL_GUIDES = [
-      "Say the simple truth, kindly. One clear conversation beats ten half-replies.",
-      "Ask one direct question instead of assuming the answer.",
-      "Choose timing and tone first  the message lands better.",
-      "Listen fully, then respond. Dont rush to fix everything.",
-    ];
-
-    const CAREER_GUIDES = [
-      "Structure wins today. Finish one thing fully, then move to the next.",
-      "Handle one practical task end-to-end  it will unclog the rest.",
-      "Avoid scattered effort. Pick a priority and close it cleanly.",
-      "A short, clear update beats long explanations.",
-    ];
-
-    const HEALTH_GUIDES = [
-      "Protect energy. Keep meals light and routine clean.",
-      "Movement + hydration will stabilize everything else.",
-      "Do less, but do it consistently. Your body responds fast today.",
-      "Avoid overstimulation  keep the day gentle.",
-    ];
-
-    const INNER_GUIDES = [
-      "Name one emotion, then take one small action.",
-      "Dont overthink signals. Ground yourself in one practical step.",
-      "Keep your mental space clean: one thought, one task, done.",
-      "Pause before reacting  clarity shows up after the pause.",
-    ];
-
-    const GENERAL_GUIDES = [
-      "Keep the day simple: one priority, one clean action.",
-      "Even-paced day  small improvements compound.",
-      "Steady effort wins. Dont push; nudge things forward.",
-      "Keep it calm and consistent. Simple choices land best.",
-    ];
-
-    const guidePool =
-      focusLower.includes("relationships") ? REL_GUIDES :
-      focusLower.includes("career") ? CAREER_GUIDES :
-      focusLower.includes("health") ? HEALTH_GUIDES :
-      focusLower.includes("inner") ? INNER_GUIDES :
-      GENERAL_GUIDES;
-
-    // ï¿½ Varies by date (not by idx)
-   
-    const guidance = pickKey(guidePool, dayKey);
-
-
-    // ï¿½ Do/Avoid
-    const listKey = `${dateISO}:${focusLower}:${mood}`;
-    const lists = doAvoidLists(focusLower, mood, listKey);
-
-    const headline =
-      focusLower.includes("relationships")
-        ? "Relationships & conversations"
-        : focusLower.includes("career")
-        ? "Work & direction"
-        : focusLower.includes("health")
-        ? "Energy & routine"
-        : focusLower.includes("inner")
-        ? "Mindset & emotions"
-        : "Todays focus";
-
-   // 1) Clean AI text first
-const aiTextRaw = String(d.text ?? "").trim();
-const aiTextClean = safeText(
-  normalizeHighlightText(stripNakshatraClaims(aiTextRaw), idx)
-);
-
-// 2) Decide if AI text is usable
-const aiOk = !!aiTextClean && !isMostlyGarbage(aiTextClean);
-
-// 3) Deterministic Moon-guided guidance (KEEP Moon movement + do NOT strip nakshatra claims here)
-const moonWhy =
-  typeof moonFrom === "number"
-    ? `Moon is ${moonFrom}th from your natal Moon today — that sets the emotional tone.`
-    : "";
-
-const strongestRaw =
-  facts.find((x: string) => x.toLowerCase().includes("strongest transit:")) || "";
-
-const moonNakRaw =
-  facts.find((x: string) => x.toLowerCase().includes("transit moon nakshatra:")) || "";
-
-const moonGuidedComposed = safeText(
-  [
-    moodText,                                // already computed by you
-    moonNakRaw ? moonNakRaw.replace(/^transit\s+/i, "") + "." : "",  // "Moon nakshatra: X."
-    moonWhy,
-    strongestRaw ? strongestRaw + "." : "",
-    guidance,                                // your focus-based guidance pool line
-  ]
-    .filter(Boolean)
-    .join(" ")
-    .trim()
-);
-
-// IMPORTANT: normalize + safeText, but DO NOT stripNakshatraClaims here
-const moonGuidedText = safeText(
-  normalizeHighlightText(moonGuidedComposed, idx)
-);
-
-// 4) Final decision (AI text has already been stripped + cleaned; fallback keeps Moon logic)
-const finalText = aiOk ? aiTextClean : moonGuidedText;
-
+// fallback mood
+const mood = String((d?.mood ?? "").trim() || "balanced");
+const moodText = String((d?.moodText ?? "").trim() || "");
 
     return {
       dateISO,
-      headline,
+      headline: rawHeadline,
       mood,
       moodText,
-      text: finalText,
+      text,
+      
+      do: Array.isArray(d?.do) && d.do.length ? [...d.do] : [],
+      avoid: Array.isArray(d?.avoid) && d.avoid.length ? [...d.avoid] : [],
 
-      do: Array.isArray(d.do) && d.do.length ? [...d.do] : [...lists.do],
-      avoid: Array.isArray(d.avoid) && d.avoid.length ? [...d.avoid] : [...lists.avoid],
       color: extras.color,
       luckyNumber: extras.luckyNumber,
       bestTime: extras.bestTime,
       confidence: conf,
-      theme: String(d.theme ?? ""),
+      theme: String(d?.theme ?? ""),
       facts,
     };
   })
 );
+
 
       setDailyError(null);
     } else {
@@ -7939,7 +8207,15 @@ const moodText = String(relatableMoodText(mood, key) ?? buildMoodLineText(mood, 
       : GENERAL_GUIDES;
 
   // ï¿½ Varies by dateISO (not only idx)
-  const guideKey = dateISO || String(idx);
+  const guideKey = [
+  dateISO,
+  focusLower,
+  mood,
+  (facts.find((x: string) => x.toLowerCase().includes("transit moon nakshatra:")) || ""),
+  (facts.find((x: string) => x.toLowerCase().includes("transit moon is")) || ""),
+  (facts.find((x: string) => x.toLowerCase().includes("strongest transit:")) || ""),
+].join("|");
+
   const guidance = pickKey(guidePool, guideKey);
 
   // Micro-tip (also varies)
@@ -7971,7 +8247,16 @@ const moodText = String(relatableMoodText(mood, key) ?? buildMoodLineText(mood, 
       "Choose one thing and finish it properly.",
     ];
 
-const dayKey = dateISO || String(idx);
+const dayKey = [
+  dateISO,
+  focusLower,
+  mood,
+  // add a little uniqueness from facts (nakshatra / moon-from-moon / strongest transit)
+  (facts.find((x: string) => x.toLowerCase().includes("transit moon nakshatra:")) || ""),
+  (facts.find((x: string) => x.toLowerCase().includes("transit moon is")) || ""),
+  (facts.find((x: string) => x.toLowerCase().includes("strongest transit:")) || ""),
+].join("|");
+
 
 // micro-tip (also varies)
 const microTip = safeText(pickKey(microPool, dayKey + "::micro"));
@@ -8223,6 +8508,13 @@ setTimelineSummary(
     (next as any)?.lifeStoryOverview ||
     ""
 );
+console.log("[life-report] next core fields", {
+  birthDateISO: next?.birthDateISO,
+  birthTime: next?.birthTime,
+  birthTz: next?.birthTz,
+  birthLat: next?.birthLat,
+  birthLon: next?.birthLon,
+});
 
   setActiveTab("overview");
 } catch (err: any) {
@@ -8887,7 +9179,10 @@ const TabTimeline: React.FC<TabTimelineProps> = memo(
   ({ report, mounted, timelineSummary, dashaTransitSummary }) => {
     if (!report) return null;
   
-const hits = Array.isArray((report as any)?.transits) ? (report as any).transits : [];
+const hits =
+  Array.isArray((report as any)?.transits) ? (report as any).transits :
+  Array.isArray((report as any)?.topTransits) ? (report as any).topTransits :
+  [];
 
 const todayISO = (() => {
   const tz =
@@ -9692,17 +9987,20 @@ router.replace(`${pathname}?${sp.toString()}`, { scroll: false });
 
   {/* NOW & NEAR FUTURE = transits only */}
   {activeTab === "now" && (
-    <TabTransits
-      transits={transits}
-      loading={transitsLoading}
-      error={transitsError}
-      transitSummary={transitSummary}
-      dailyHighlights={dailyHighlights}
-      dailyLoading={dailyLoading}
-      dailyError={dailyError}
-      mounted={mounted}
-    />
-  )}
+  <TabTransits
+    transits={
+      (Array.isArray((report as any)?.topTransits) ? (report as any).topTransits : transits) ?? []
+    }
+    loading={transitsLoading}
+    error={transitsError}
+    transitSummary={transitSummary}
+    dailyHighlights={dailyHighlights}
+    dailyLoading={dailyLoading}
+    dailyError={dailyError}
+    mounted={mounted}
+  />
+)}
+
 
      {/* ADVANCED = premium deep insights (conversion page) */}
   {activeTab === "advanced" && (
@@ -9712,7 +10010,7 @@ router.replace(`${pathname}?${sp.toString()}`, { scroll: false });
     isPro={isPro}
     timelineSummary={timelineSummary}
     dashaTransitSummary={dashaTransitSummary}
-    transits={(report as any).transits ?? transits ?? []}
+    transits={(report as any)?.transits ?? transits ?? []}
     transitNow={transitNow}
   />
 )}
@@ -9757,7 +10055,7 @@ const TabFullPlan: React.FC<TabFullPlanProps> = ({
       
     );
   }
-const month = buildMonthFromDaily(dailyHighlights);
+
 
   // -------------------------
   // BLANK STATE: no report yet
@@ -9900,7 +10198,10 @@ const adEndN = dayNum(adEndISO);
 const oneDay = 24 * 60 * 60 * 1000;
 
   // ï¿½ transits array to use everywhere in TabAdvanced
-const hits = Array.isArray((report as any)?.transits) ? (report as any).transits : [];
+const hits =
+  Array.isArray((report as any)?.transits) ? (report as any).transits :
+  Array.isArray((report as any)?.topTransits) ? (report as any).topTransits :
+  [];
 
 
   const align = computeAlignment(r);
@@ -10044,7 +10345,7 @@ const nextMD = dtMD
   // --------- Transits for "today chips" ----------
   const hitsToday = hits;
 
-  const todayISOTransit = new Date().toISOString().slice(0, 10);
+  const todayISOTransit = todayISO;
 const topToday = topActiveTransitsForToday(hitsToday, todayISOTransit, 5);
 
    return (
@@ -10065,26 +10366,7 @@ const topToday = topActiveTransitsForToday(hitsToday, todayISOTransit, 5);
         return /[.!?]$/.test(out) ? out : out + ".";
       };
 
-      const trimToSentence = (s: string, maxLen: number) => {
-        const t = clean(s);
-        if (!t) return "";
-        if (t.length <= maxLen) return /[.!?]$/.test(t) ? t : t + ".";
-
-        const cut = t.slice(0, maxLen);
-        const lastPunct = Math.max(
-          cut.lastIndexOf("."),
-          cut.lastIndexOf("!"),
-          cut.lastIndexOf("")
-        );
-        if (lastPunct >= Math.max(40, Math.floor(maxLen * 0.5))) {
-          return cut.slice(0, lastPunct + 1);
-        }
-
-        const lastSpace = cut.lastIndexOf(" ");
-        const base = (lastSpace > 40 ? cut.slice(0, lastSpace) : cut).trim();
-        return /[.!?]$/.test(base) ? base : base + ".";
-      };
-
+      
       const stripRepeats = (s: string) => {
         let t = clean(s);
         t = t.replace(/Focus this more around Food\s*&\s*diet focus\.?/gi, "");
@@ -10132,7 +10414,14 @@ const topToday = topActiveTransitsForToday(hitsToday, todayISOTransit, 5);
       };
 
       const safeList = (arr: any, n: number) =>
-        (Array.isArray(arr) ? arr : []).map(clean).filter(Boolean).slice(0, n);
+  (Array.isArray(arr) ? arr : [])
+    .map((x: any) => {
+      if (typeof x === "string") return clean(x);
+      // handle objects like { text, reason } OR { label } OR { value }
+      return clean(x?.text ?? x?.label ?? x?.value ?? "");
+    })
+    .filter(Boolean)
+    .slice(0, n);
 
       // -------------------------
       // Derived text buckets (non-repetitive)
@@ -10205,64 +10494,6 @@ const topToday = topActiveTransitsForToday(hitsToday, todayISOTransit, 5);
           "Avoid impulsive decisions when you feel rushed. Slow down and verify.";
         return sentenceCase(trimToSentence(toWeekTone(base).replace(/^Over the next 7 days:\s*/i, "Watch for: "), 190));
       })();
-{/* 4.5) Next 30 days (4-week view) */}
-<details className="rounded-2xl border border-white/15 bg-white/5 p-4">
-  <summary className="cursor-pointer list-none">
-    <div className="text-sm font-semibold text-slate-100">Next 30 days</div>
-    <div className="mt-1 text-xs text-white/60">
-      Four weekly checkpoints  theme, likely events, do/avoid.
-    </div>
-  </summary>
-
-  <div className="mt-4 grid gap-3 md:grid-cols-2">
-    {(month.weeks || []).map((w: any, i: number) => (
-      <div key={i} className="rounded-xl border border-white/10 bg-indigo-950/40 p-3">
-        <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
-          {w.label}
-        </div>
-
-        <div className="mt-1 text-sm font-semibold text-slate-100">
-          {w.theme}
-        </div>
-
-        <div className="mt-3">
-          <div className="text-[11px] font-semibold uppercase tracking-wide text-white/60">
-            Likely events
-          </div>
-          <ul className="mt-1 list-disc pl-4 text-sm text-white/85 space-y-1">
-            {(w.likely || []).slice(0, 3).map((x: string, k: number) => (
-              <li key={k}>{sentenceCase(trimToSentence(x, 120))}</li>
-            ))}
-          </ul>
-        </div>
-
-        <div className="mt-3 grid gap-2 md:grid-cols-2">
-          <div className="rounded-lg border border-emerald-400/20 bg-emerald-500/10 p-2">
-            <div className="text-[11px] font-semibold uppercase tracking-wide text-emerald-100/90">
-              Do
-            </div>
-            <ul className="mt-1 list-disc pl-4 text-sm text-white/85 space-y-1">
-              {(w.dos || []).slice(0, 3).map((x: string, k: number) => (
-                <li key={k}>{sentenceCase(trimToSentence(x, 90))}</li>
-              ))}
-            </ul>
-          </div>
-
-          <div className="rounded-lg border border-red-400/20 bg-red-500/10 p-2">
-            <div className="text-[11px] font-semibold uppercase tracking-wide text-red-100/90">
-              Avoid
-            </div>
-            <ul className="mt-1 list-disc pl-4 text-sm text-white/85 space-y-1">
-              {(w.avoids || []).slice(0, 3).map((x: string, k: number) => (
-                <li key={k}>{sentenceCase(trimToSentence(x, 90))}</li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      </div>
-    ))}
-  </div>
-</details>
 
       // Next 46 weeks: build a strategic phase box
       const phase = (() => {
@@ -10594,7 +10825,7 @@ const timing = (() => {
       !dailyError &&
       Array.isArray(dailyHighlights) &&
       dailyHighlights.length > 0) ? (
-      dailyHighlights.slice(0, 3).map((h: any, idx: number) => {
+      dailyHighlights.slice(0, 4).map((h: any, idx: number) => {
         const headline = clean(h?.headline || "");
         const likely = safeList(h?.likely, 3);
         const dos = safeList(h?.do, 3);
