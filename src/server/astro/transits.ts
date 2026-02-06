@@ -407,26 +407,13 @@ async function computeTransitPlanetsForDay(
 
     const res = await sweCall<any>("swe_calc_ut", jdUt, p.code, flags);
 
-if (p.name === "Mercury") {
-  console.log("[DBG Mercury] jdUt:", jdUt);
-  console.log("[DBG Mercury] code:", p.code);
-  console.log("[DBG Mercury] flags:", flags);
-  console.log("[DBG Mercury] res:", res);
-}
 
 const lonRaw = extractLongitude(res);
 
-if (p.name === "Mercury") {
-  console.log("[DBG Mercury] lonRaw:", lonRaw);
-  console.log("[DBG Mercury] lonRaw type:", typeof lonRaw);
-}
 
 if (typeof lonRaw !== "number" || !isFinite(lonRaw)) continue;
 
 const lonDeg = wrap360(Number(lonRaw));
-if (p.name === "Mercury") {
-  console.log("[DBG Mercury] lonDeg(after wrap360):", lonDeg, "ayan:", ayanDeg);
-}
 
 const lonSid = toSiderealLon(lonDeg, ayanDeg);     // tropical -> sidereal
 
@@ -939,10 +926,7 @@ export async function computeTransitPlanetsNow(
   asOf?: { dateISO: string; time: string; tz: string }
 ): Promise<TransitNowPlanet[]> {
   const constants = await getSweConstants();
-  console.log("[TRANSITS_VERSION] 2026-01-27 A");
-  console.log("[SWE CONST] SE_MERCURY=", constants.SE_MERCURY, "SE_VENUS=", constants.SE_VENUS, "SE_SUN=", constants.SE_SUN);
-console.log("[SWE CONST] SEFLG_SWIEPH=", constants.SEFLG_SWIEPH, "SEFLG_SPEED=", constants.SEFLG_SPEED, "SEFLG_SIDEREAL=", constants.SEFLG_SIDEREAL);
-
+  
   // Use explicit "as-of" moment (preferred), else fall back to birth tz + current clock.
   const tz = asOf?.tz ?? birth.tz;
 
@@ -971,17 +955,8 @@ console.log("[SWE CONST] SEFLG_SWIEPH=", constants.SEFLG_SWIEPH, "SEFLG_SPEED=",
   })();
 
   // IMPORTANT: compute at the actual instant, not start-of-day UTC
-  console.log("[transitsNow] tz:", tz);
-console.log("[transitsNow] nowUtc ISO:", nowUtc.toISOString());
-console.log("[transitsNow] nowUtc UTC date:", nowUtc.toISOString().slice(0, 10));
-
+  
 const tPlanets = await computeTransitPlanetsForDay(nowUtc, constants);
-console.log(
-  "[transitsNow] sample",
-  tPlanets
-    .map((p) => `${p.name}:${p.lon.toFixed(2)}° ${signFromLonSidereal(p.lon)}`)
-    .join(" | ")
-);
 
 return tPlanets.map((p) => {
   const sidLon = p.lon; // ✅ already sidereal now

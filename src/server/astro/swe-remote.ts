@@ -223,11 +223,10 @@ async function callSwe<T = any>(payload: SweCallPayload): Promise<T> {
     let lon = computePlanetLongitudeTropical(jdUt, ipl);
 
     // If SIDEREAL flag is set, apply approximate Lahiri
-    const SIDEREAL = 64;
-    if (((flags ?? 0) & SIDEREAL) !== 0) {
-      const ayan = approxLahiriAyanamsaDegFromJdUt(jdUt);
-      lon = wrap360(lon - ayan);
-    }
+    // We ALWAYS return tropical.
+// Sidereal conversion is handled in transits.ts.
+// DO NOT apply ayanamsa here.
+
 
     return { longitude: lon } as T;
   }
