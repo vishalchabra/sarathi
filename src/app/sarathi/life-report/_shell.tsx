@@ -1264,6 +1264,38 @@ function classifyBullet(line: string): "strength" | "challenge" | "growth" {
   if (growthHints.some((k) => s.includes(k))) return "growth";
   return "strength";
 }
+function normalizeBullets(input: any, max = 3): string[] {
+  if (!Array.isArray(input)) return [];
+
+  const out: string[] = [];
+
+  for (const v of input) {
+    // If it's already a string
+    if (typeof v === "string") {
+      const s = v.trim();
+      if (s) out.push(s);
+      continue;
+    }
+
+    // If it's an object like { text, reason }
+    if (v && typeof v === "object") {
+      const text = typeof v.text === "string" ? v.text.trim() : "";
+      const reason = typeof v.reason === "string" ? v.reason.trim() : "";
+
+      // choose ONE:
+      // Option A (clean): just text
+      if (text) out.push(text);
+
+      // Option B (slightly richer): include reason
+      // if (text) out.push(reason ? `${text} — ${reason}` : text);
+
+      continue;
+    }
+  }
+
+  return out.filter(Boolean).slice(0, max);
+}
+
 
 function parsePersonality(raw: unknown): { bullets: string[]; closing: string } {
   // raw can be string JSON, plain string, or object
@@ -1489,6 +1521,7 @@ function buildWeeklyFromTransits(
     general:
       "General focus: A balanced week. Clear small pending tasks, keep your schedule simple and move at a steady pace.",
   };
+  
 
   function pickCategory(trans: TransitHit[]): WeeklyCat {
     if (!trans.length) return "general";
@@ -1811,7 +1844,6 @@ function stripNakshatraClaims(s: string) {
     .trim();
 }
 
-
 /* ---------------- Monthly highlights helper (client-side) ---------------- */
 function stripMoodPrefix(main: string, moodText: string) {
   const t = String(main || "").trim();
@@ -1833,6 +1865,52 @@ function stripMoodPrefix(main: string, moodText: string) {
   }
 
   return t;
+}
+function pickTopHints(
+  hints: string[],
+  moonFrom: number | null,
+  strength: number
+) {
+  if (!Array.isArray(hints) || hints.length === 0) return [];
+
+  // 1) Prefer a "day:" flavor first (moon-from-moon themed)
+  const moonHint =
+    hints.find((h) => /message day:/i.test(h)) ||
+    hints.find((h) => /career day:/i.test(h)) ||
+    hints.find((h) => /relationship day:/i.test(h)) ||
+    hints.find((h) => /home\/mind day:/i.test(h)) ||
+    hints.find((h) => /money\/family day:/i.test(h)) ||
+    hints.find((h) => /pressure day:/i.test(h)) ||
+    hints.find((h) => /uncertainty day:/i.test(h)) ||
+    hints.find((h) => /low bandwidth day:/i.test(h)) ||
+    "";
+
+  // 2) Prefer "angle:" next (target nuance) to avoid repeating Jupiter "trigger" daily
+  const angleHint = hints.find((h) => /angle:/i.test(h)) || "";
+
+  // 3) Only then use "trigger:" (planet driver)
+  const triggerHint = hints.find((h) => /trigger:/i.test(h)) || "";
+
+  const selected: string[] = [];
+
+  if (moonHint) selected.push(moonHint);
+
+  // Prefer angle over trigger to reduce repetitive "mentor support / approvals" every day
+  if (angleHint && angleHint !== moonHint) {
+    selected.push(angleHint);
+  } else if (triggerHint && triggerHint !== moonHint) {
+    selected.push(triggerHint);
+  }
+
+  // Fallback: fill up to 2 unique hints
+  if (selected.length < 2) {
+    for (const h of hints) {
+      if (!selected.includes(h)) selected.push(h);
+      if (selected.length >= 2) break;
+    }
+  }
+
+  return selected.slice(0, 2);
 }
 
 function cleanMoodText(mood: string, moodText: string) {
@@ -7853,7 +7931,7 @@ try {
   setDailyLoading(true);
   setDailyError(null);
   setDailyHighlights([]);
-
+  
   const tz = String((payload as any)?.tz ?? (next as any)?.birthTz ?? "Asia/Dubai");
 
 const dailyFacts = buildDailyFromMoonAndTransits(
@@ -7866,435 +7944,736 @@ const dailyFacts = buildDailyFromMoonAndTransits(
 
 
   const safeDailyFacts = Array.isArray(dailyFacts) ? dailyFacts : [];
+  console.log("[ai-daily] dailyMoon length:", (dailyMoon || []).length);
+console.log("[ai-daily] dailyMoon sample:", (dailyMoon || [])[0]);
+console.log("[ai-daily] dailyFacts[0] raw:", safeDailyFacts?.[0]);
 
-  // Build facts per day (internal), but do NOT show them in UI
-  const dayInputs = safeDailyFacts.slice(0, 7).map((f: any) => {
-    const tr = f.strongestTransit;
-    const facts: string[] = [];
-
-    if (f.moonNakshatra) facts.push(`Transit Moon nakshatra: ${f.moonNakshatra}`);
-    const moonFrom =
-  typeof f.relativeHouseFromMoon === "number"
-    ? f.relativeHouseFromMoon
-    : typeof f.relativeHouse === "number"
-    ? f.relativeHouse
-    : typeof f.houseFromMoon === "number"
-    ? f.houseFromMoon
-    : null;
-
-if (typeof moonFrom === "number") {
-  facts.push(`Transit Moon is ${moonFrom} from natal Moon`);
+console.log("[ai-daily] transits count:", (hitList || []).length);
+console.log("[ai-daily] transits sample:", (hitList || [])[0]);
+if (!hitList || hitList.length === 0) {
+  console.log("⛔ Skipping daily highlights: no transits returned from API");
+  // don't return from handleGenerate; just fall back
 }
 
-    if (tr?.planet) facts.push(`Strongest transit: ${tr.planet} ï¿½ ${tr.target || "natal point"}`);
-    if (typeof tr?.strength === "number")
-      facts.push(`Transit strength: ${Math.round(tr.strength * 100)}%`);
-    if (tr?.category) facts.push(`Focus area: ${tr.category}`);
-    // --- Add driver tags (plain, no jargon in UI) ---
-if (tr?.planet) facts.push(`Driver planet: ${String(tr.planet)}`);
-if (typeof tr?.strength === "number") {
-  const s = tr.strength;
-  facts.push(`Driver intensity: ${s >= 0.65 ? "high" : s >= 0.45 ? "medium" : "low"}`);
-}
-if (typeof moonFrom === "number") facts.push(`Moon pattern: ${moonFrom}`);
+const pickStrongestForDate = (hits: any[], dateISO: string) => {
+  if (!Array.isArray(hits) || !dateISO) return null;
 
-    const strength = typeof tr?.strength === "number" ? tr.strength : 0;
-    const confidence: "high" | "medium" | "low" =
-      strength >= 0.65 ? "high" : strength >= 0.45 ? "medium" : "low";
-
-
-    // ---------- derive focusHint ----------
-const factsText = facts.join(" ").toLowerCase();
-
-let focusHint = "work";
-const focusArea =
-  focusHint === "career" || focusHint === "work"
-    ? "Work & direction"
-    : focusHint === "money"
-    ? "Money & decisions"
-    : focusHint === "relationships"
-    ? "Relationships"
-    : focusHint === "home"
-    ? "Home & family"
-    : focusHint === "health"
-    ? "Health & energy"
-    : focusHint === "mind"
-    ? "Mind & emotions"
-    : "Work & direction";
-
-// strongest transit category first (most accurate)
-if (tr?.category) {
-  const c = String(tr.category).toLowerCase();
-  if (c.includes("career")) focusHint = "career";
-  else if (c.includes("relationship")) focusHint = "relationships";
-  else if (c.includes("health")) focusHint = "health";
-  else if (c.includes("inner")) focusHint = "mind";
-}
-
-// moon-from-moon fallback
-if (typeof moonFrom === "number") {
-  if ([2, 11].includes(moonFrom)) focusHint = "money";
-  if ([6, 10].includes(moonFrom)) focusHint = "work";
-  if ([7].includes(moonFrom)) focusHint = "relationships";
-  if ([4].includes(moonFrom)) focusHint = "home";
-  if ([12, 8].includes(moonFrom)) focusHint = "mind";
-}
-
-// keyword fallback
-if (factsText.includes("money") || factsText.includes("budget")) focusHint = "money";
-if (factsText.includes("home") || factsText.includes("family")) focusHint = "home";
-
-return {
-  dateISO: String(f.dateISO ?? ""),
-  facts: facts.filter(Boolean),
-  confidence,
-  focusHint,   // <-- ADD THIS LINE
-  focusArea,
-};
-
+  const pool = hits.filter((h) => {
+    const s = String(h?.startISO || h?.start || "").slice(0, 10);
+    const e = String(h?.endISO || h?.end || "").slice(0, 10);
+    if (!s) return false;
+    if (!e) return s === dateISO;
+    return s <= dateISO && dateISO <= e; // inclusive
   });
-  console.log("[ai-daily] dayInputs[0] sample:", dayInputs?.[0]);
+
+  if (!pool.length) return null;
+  pool.sort((a, b) => (b?.strength ?? 0) - (a?.strength ?? 0));
+  return pool[0] || null;
+};
+function buildEventHintsRealLife(opts: {
+  moonFrom: number | null;
+  planet: string;
+  target: string;
+  strength: number;
+  dayIndex: number;
+}) {
+
+  const moonFrom = opts.moonFrom;
+  const planet = String(opts.planet || "").toLowerCase();
+  const target = String(opts.target || "").toLowerCase();
+  const strength = typeof opts.strength === "number" ? opts.strength : 0;
+
+  const hints: string[] = [];
+
+  // --- Moon-from-Moon = "where life shows up"
+  switch (moonFrom) {
+    case 1:
+      hints.push("your tone/visibility is higher; one small interaction sets the mood");
+      hints.push("someone notices what you say (or don’t say)");
+      break;
+    case 2:
+      hints.push("a money/food/family practical decision comes up");
+      hints.push("a small spend or value discussion needs clarity");
+      break;
+    case 3:
+      hints.push("a message thread or paperwork needs clarification");
+      hints.push("a short errand/call interrupts flow");
+      hints.push("a small domestic detail (repairs/logistics) steals time");
+      break;
+    case 4:
+      hints.push("a home/family request interrupts your plan");
+      hints.push("a comfort or space-related task needs attention");
+      hints.push("a small domestic detail (repairs/logistics) steals time");
+      break;
+    case 5:
+      hints.push("a creative idea or decision needs a clean yes/no");
+      hints.push("avoid overpromising; keep it simple");
+      hints.push("a small domestic detail (repairs/logistics) steals time");
+      break;
+    case 6:
+      hints.push("a task/deadline needs fixing before it moves forward");
+      hints.push("minor criticism or friction is possible if details are missed");
+      hints.push("a small domestic detail (repairs/logistics) steals time");
+      break;
+    case 7:
+      hints.push("a conversation sets relationship tone quickly");
+      hints.push("a reply (or lack of reply) changes the mood");
+      break;
+    case 8:
+      hints.push("a sudden update changes the next step");
+      hints.push("something hidden/unclear surfaces and needs verification");
+      break;
+    case 9:
+      hints.push("plans/travel/learning or a belief-based discussion comes up");
+      hints.push("a guidance moment appears (advice, policy, rule, mentor-type input)");
+      break;
+    case 10:
+      hints.push("a work/client/boss-facing moment needs a clean update");
+      hints.push("a deliverable or decision point becomes visible");
+      break;
+    case 11:
+      hints.push("a lead/approval/invite appears after you follow up");
+      hints.push("networking or a useful connection opens a door");
+      break;
+    case 12:
+      hints.push("low bandwidth: rest/sleep or quiet time is needed");
+      hints.push("avoid overload; one small task is enough");
+      break;
+    default:
+      // keep it neutral
+      hints.push("one small practical task becomes the main thing");
+      hints.push("a message needs a clear response");
+  }
+
+ // --- Planet = what triggers the situation (real-life, non-absolute)
+if (planet === "mercury") {
+  hints.push("communication/admin: a message, number, or detail may need clarification");
+}
+
+else if (planet === "jupiter") {
+  hints.push("a helpful perspective or approval is more available if you ask clearly");
+}
+
+else if (planet === "saturn") {
+  hints.push("structure/test: a delay, checkpoint, or extra scrutiny may require patience and process");
+}
+
+else if (planet === "mars") {
+  hints.push("action/friction: urgency rises — avoid rushed tone or impulsive responses");
+}
+
+else if (planet === "sun") {
+  hints.push("visibility/authority: leadership or ego sensitivity may shape interactions");
+}
+
+else if (planet === "venus") {
+  hints.push("comfort/relationships: spending, expectations, or harmony choices come into focus");
+}
+
+else if (planet === "rahu") {
+  hints.push("noise/overreaction: verify information before acting on it");
+}
+
+else if (planet === "ketu") {
+  hints.push("detachment/reset: interest may drop — keep commitments minimal and clear");
+}
+
+  // --- Target nuance (only if it helps)
+  if (target.includes("moon")) {
+    hints.push("mood is reactive; choose calm timing for conversations");
+  }
+  if (target.includes("mercury")) {
+    hints.push("paperwork/messages matter more than usual");
+  }
+  if (target.includes("venus")) {
+    hints.push("relationship expectations or spending choices are highlighted");
+  }
+  if (target.includes("saturn")) {
+    hints.push("accountability pressure increases; document steps");
+  }
+
+ // --- Strength logic + anti-repeat (VARIETY that stays true)
+let want = 2;
+if (strength >= 0.85) want = 3;
+
+// Split into buckets so we can rotate meaningfully
+const moonHints = hints.slice(0, 2); // first two are always moon-context in your switch
+const restHints = hints.slice(2);    // planet + target nuance etc.
+
+// If Jupiter is weak, don't force its hint
+const filteredRest: string[] = [];
+for (const h of restHints) {
+  const hl = h.toLowerCase();
+  if (planet === "jupiter" && strength < 0.75 && hl.includes("support/expansion")) continue;
+  filteredRest.push(h);
+}
+
+// Deduplicate (moon + rest)
+function dedupe(arr: string[]) {
+  const out: string[] = [];
+  for (const s of arr) {
+    const k = String(s).toLowerCase();
+    if (!out.some(x => x.toLowerCase() === k)) out.push(String(s));
+  }
+  return out;
+}
+
+const moonU = dedupe(moonHints);
+const restU = dedupe(filteredRest);
+
+if (!moonU.length && !restU.length) return [];
+
+// Rotation helper
+function rotate<T>(arr: T[], seed: number) {
+  if (!arr.length) return arr;
+  const start = ((seed % arr.length) + arr.length) % arr.length;
+  return arr.slice(start).concat(arr.slice(0, start));
+}
+
+// Seed by dayIndex heavily (not just moonFrom), so each day changes
+const seed = (opts.dayIndex ?? 0) + Math.floor(strength * 10) + (moonFrom ?? 0);
+
+// Pick rules:
+// - Always 1 moon hint (rotated)
+// - Always 1 “rest” hint if available (rotated)
+// - Third hint (only if want=3) comes from remaining pool, avoiding repeats
+const sel: string[] = [];
+
+const moonPick = rotate(moonU, seed)[0];
+if (moonPick) sel.push(moonPick);
+
+const restRot = rotate(restU, seed + 1);
+if (restRot[0]) sel.push(restRot[0]);
+
+// Optional 3rd hint: pick next best that's not already used
+if (want === 3) {
+  const pool = dedupe([...moonU, ...restU]);
+  const poolRot = rotate(pool, seed + 2);
+  for (const h of poolRot) {
+    if (!sel.some(x => x.toLowerCase() === h.toLowerCase())) {
+      sel.push(h);
+      break;
+    }
+  }
+}
+
+// Final dedupe + cap
+return dedupe(sel).slice(0, want);
+
+
+}
+
+ // Build facts per day (internal), but do NOT show them in UI
+const dayInputs = (dailyMoon || []).slice(0, 7).map((m: any, idx: number) => {
+  const dateISO = String(m?.dateISO || "");
+  const tr = pickStrongestForDate(hitList as any, dateISO);
+
+  const facts: string[] = [];
+
+  // Moon-from-Moon (compute FIRST so we can use it everywhere)
+  const moonFrom =
+    typeof m?.relativeHouseFromMoon === "number"
+      ? m.relativeHouseFromMoon
+      : typeof m?.houseFromMoon === "number"
+      ? m.houseFromMoon
+      : null;
+
+// Facts (for AI input only)
+
+// Moon context (make this impossible to misread)
+if (m?.moonNakshatra) {
+  facts.push(`Transit Moon nakshatra: ${m.moonNakshatra}`);
+}
+
+if (typeof moonFrom === "number") {
+  facts.push(`Moon-from-natal-Moon: ${moonFrom}`); 
+  // <-- clearer label prevents AI from mixing with Jupiter
+}
+
+// Strongest transit (keep this)
+if (tr?.planet) {
+  facts.push(`Strongest transit: ${tr.planet} → ${tr.target || "natal point"}`);
+}
+
+// Strength (keep)
+if (typeof tr?.strength === "number") {
+  facts.push(`Transit strength: ${Math.round(tr.strength * 100)}%`);
+}
+
+// Focus category (keep)
+if (tr?.category) {
+  facts.push(`Focus area: ${tr.category}`);
+}
+
+  const strength = typeof tr?.strength === "number" ? tr.strength : 0;
+
+  // --- confidence (kept believable) ---
+  const moonIntense = moonFrom !== null && [6, 8, 12].includes(moonFrom);
+  let score = 0;
+  if (strength >= 0.65) score += 1;
+  if (strength >= 0.85) score += 1;
+  if (moonIntense) score += 1;
+  const confidence: "high" | "medium" | "low" = score >= 2 ? "high" : score === 1 ? "medium" : "low";
+
+  // --- focus hint (don’t force work daily) ---
+  let focusHint: "work" | "relationships" | "health" | "money" | "inner" | "general" =
+    String(tr?.category || "").toLowerCase() === "relationships"
+      ? "relationships"
+      : String(tr?.category || "").toLowerCase() === "health"
+      ? "health"
+      : String(tr?.category || "").toLowerCase() === "money"
+      ? "money"
+      : ["career", "job", "work"].includes(String(tr?.category || "").toLowerCase())
+      ? "work"
+      : "general";
+
+  // Moon override (keeps it human + varied)
+  if (moonFrom === 2 || moonFrom === 11) focusHint = "money";
+  if (moonFrom === 7) focusHint = "relationships";
+  if (moonFrom === 12 || moonFrom === 8) focusHint = "inner";
+  if (moonFrom === 6) focusHint = "health";
+
+  const focusArea =
+    focusHint === "relationships"
+      ? "Relationships & communication"
+      : focusHint === "health"
+      ? "Health & energy"
+      : focusHint === "money"
+      ? "Money & stability"
+      : focusHint === "work"
+      ? "Work & direction"
+      : focusHint === "inner"
+      ? "Inner balance"
+      : "General flow";
+
+  const eventHints = buildEventHintsRealLife({
+  moonFrom,
+  planet: String(tr?.planet || ""),
+  target: String(tr?.target || ""),
+  strength,
+  dayIndex: idx,
+});
+
+
+  // ✅ CRITICAL: return the object (previously missing)
+  return {
+    dateISO,
+    facts,
+    confidence,
+    focusHint,
+    focusArea,
+    eventHints,
+    moonFrom, // optional but useful for debugging
+    strength, // optional
+  };
+});
+
+console.log("[ai-daily] dayInputs[0] sample:", dayInputs?.[0]);
+console.log("DAY INPUTS SAMPLE", dayInputs[0]);
+
+console.log("[ai-daily] dayInputs[0] sample:", dayInputs?.[0]);
+
  console.log("DAY INPUTS SAMPLE", dayInputs[0]);
   // Try AI (optional). If it fails, fallback will still be good.
   try {
-    const aiDailyRes = await fetch("/api/ai-daily-highlights", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        profile: {
-          name: next.name,
-          birthDateISO: next.birthDateISO,
-          birthTime: next.birthTime,
-          birthTz: next.birthTz,
-        },
-        days: dayInputs,
-      }),
-    });
+    // --- AI daily highlights with timeout (premium UX) ---
+const ctrl = new AbortController();
+const t = setTimeout(() => ctrl.abort(), 40000); // 15s hard cap
 
-    const aiJson = await aiDailyRes.json().catch(() => ({} as any));
+let aiDailyRes: Response | null = null;
+let aiJson: any = {};
 
-const outDays: any[] = Array.isArray(aiJson?.days)
-  ? aiJson.days
-  : Array.isArray(aiJson?.outDays)
-  ? aiJson.outDays
-  : Array.isArray(aiJson)
-  ? aiJson
-  : [];
 
-    console.log("[ai-daily] status=", aiDailyRes.status);
+try {
+  aiDailyRes = await fetch("/api/ai-daily-highlights", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    signal: ctrl.signal,
+    body: JSON.stringify({
+      profile: {
+        name: next.name,
+        birthDateISO: next.birthDateISO,
+        birthTime: next.birthTime,
+        birthTz: next.birthTz,
+      },
+      days: dayInputs,
+    }),
+  });
+
+  // Read as text first so JSON errors don't crash the flow
+  const raw = await aiDailyRes.text().catch(() => "");
+  try {
+    aiJson = JSON.parse(raw || "{}");
+  } catch {
+    aiJson = { _raw: raw };
+  }
+} catch (e: any) {
+  // AbortError or network failure
+  console.warn("[ai-daily] AI daily fetch failed/timeout:", e?.name || e?.message || e);
+  aiDailyRes = null;
+  aiJson = {};
+} finally {
+  clearTimeout(t);
+}
+
+const outDays: any[] =
+  Array.isArray(aiJson?.days) ? aiJson.days :
+  Array.isArray(aiJson?.days?.days) ? aiJson.days.days :
+  Array.isArray(aiJson?.result?.days) ? aiJson.result.days :
+  Array.isArray(aiJson?.data?.days) ? aiJson.data.days :
+  Array.isArray(aiJson?.outDays) ? aiJson.outDays :
+  Array.isArray(aiJson) ? aiJson :
+  [];
+
+
+console.log("[ai-daily] aiDaysArr[0] raw:", (outDays || [])[0]);
+
+    console.log("[ai-daily] status=", aiDailyRes?.status ?? "NO_RESPONSE");
 console.log("[ai-daily] outDays length=", Array.isArray(outDays) ? outDays.length : "NOT_ARRAY", outDays);
 console.log("[ai-daily] dayInputs length=", Array.isArray(dayInputs) ? dayInputs.length : "NOT_ARRAY", dayInputs);
 
     const aiDaysArr = Array.isArray(outDays) ? outDays : [];
+if (aiDailyRes?.ok && Array.isArray(dayInputs) && dayInputs.length && aiDaysArr.length) {
+if (!aiDaysArr.length) {
+  console.warn("[ai-daily] FALLBACK: empty aiDaysArr", {
+    status: aiDailyRes?.status ?? "NO_RESPONSE",
+    keys: aiJson ? Object.keys(aiJson) : null,
+    err: aiJson?._error,
+    rawPreview: (aiJson?._raw || "").slice(0, 200),
+  });
+}
+console.log("[ai-daily] aiDaysArr[0] raw:", aiDaysArr?.[0]);
+console.log("[ai-daily] outDays[0] raw:", (outDays || [])[0]);
 
-if (aiDailyRes.ok && Array.isArray(dayInputs) && dayInputs.length) {
   const seen = new Set<string>();
 
-function dedupeHeadline(h: string, fallbackTag: string) {
-  const base = (h || "").trim() || "Today’s focus";
-  const key = base.toLowerCase();
-  if (!seen.has(key)) {
-    seen.add(key);
-    return base;
+  function dedupeHeadline(h: string, fallbackTag: string) {
+    const base = (h || "").trim() || "Today’s focus";
+    const key = base.toLowerCase();
+    if (!seen.has(key)) {
+      seen.add(key);
+      return base;
+    }
+    const alt = `${base} — ${fallbackTag}`.trim();
+    const key2 = alt.toLowerCase();
+    if (!seen.has(key2)) {
+      seen.add(key2);
+      return alt;
+    }
+    const alt2 = `${fallbackTag}: ${base}`.trim();
+    seen.add(alt2.toLowerCase());
+    return alt2;
   }
-  const alt = `${base} — ${fallbackTag}`.trim();
-  const key2 = alt.toLowerCase();
-  if (!seen.has(key2)) {
-    seen.add(key2);
-    return alt;
-  }
-  const alt2 = `${fallbackTag}: ${base}`.trim();
-  seen.add(alt2.toLowerCase());
-  return alt2;
-}
 
   setDailyHighlights(
     dayInputs.map((inp: any, idx: number) => {
-      const d: any = aiDaysArr[idx] ?? {};
+      const d: any =
+  aiDaysArr.find((x: any) => x?.dateISO === inp?.dateISO) ??
+  aiDaysArr[idx] ??
+  {};
+
 
       const dateISO = String(inp?.dateISO ?? d?.dateISO ?? "").trim();
-
       const facts = Array.isArray(inp?.facts) ? (inp.facts as string[]) : [];
 
       const extras = dailyFlavorExtras(dateISO || String(idx));
 
       const conf: "high" | "medium" | "low" =
-        d?.confidence === "high" || d?.confidence === "low" ? d.confidence : "medium";
-    // ---- Gold paragraph (Moon nakshatra + Moon-from-Moon + strongest transit) ----
-    const df = safeDailyFacts?.[idx] as any;
+        d?.confidence === "high" || d?.confidence === "medium" || d?.confidence === "low"
+          ? d.confidence
+          : (inp?.confidence ?? "medium");
 
-    const relHouseDay: number | null =
-      typeof df?.relativeHouse === "number"
-        ? df.relativeHouse
-        : typeof df?.relativeHouseFromMoon === "number"
-        ? df.relativeHouseFromMoon
-        : typeof df?.houseFromMoon === "number"
-        ? df.houseFromMoon
+      // ---- Gold paragraph (use your deterministic builder) ----
+      const df = (dailyMoon || [])[idx] as any;
+
+      const relHouseDay: number | null =
+        typeof df?.relativeHouse === "number"
+          ? df.relativeHouse
+          : typeof df?.relativeHouseFromMoon === "number"
+          ? df.relativeHouseFromMoon
+          : typeof df?.houseFromMoon === "number"
+          ? df.houseFromMoon
+          : null;
+
+      const strongPicked = pickStrongestForDate(hitList as any, dateISO);
+      const rawCat = String(strongPicked?.category ?? "general").toLowerCase();
+      const cat: "career" | "relationships" | "health" | "inner" | "general" =
+        rawCat === "career"
+          ? "career"
+          : rawCat === "relationships"
+          ? "relationships"
+          : rawCat === "health"
+          ? "health"
+          : rawCat === "inner"
+          ? "inner"
+          : "general";
+
+      const strongDay: StrongTransitLite | null = strongPicked
+        ? {
+            planet: String(strongPicked.planet ?? "Transit"),
+            target: String(strongPicked.target ?? "a key natal point"),
+            category: cat,
+            strength: Number(strongPicked.strength ?? 0),
+            startISO: String(strongPicked.startISO ?? dateISO),
+            endISO: String(strongPicked.endISO ?? dateISO),
+          }
         : null;
 
-    const rawCat = String(df?.strongestTransit?.category ?? "general").toLowerCase();
-    const cat: "career" | "relationships" | "health" | "inner" | "general" =
-      rawCat === "career"
-        ? "career"
-        : rawCat === "relationships"
-        ? "relationships"
-        : rawCat === "health"
-        ? "health"
-        : rawCat === "inner"
-        ? "inner"
-        : "general";
+      const moonNak = String(df?.moonNakshatra ?? "");
+      const dg = buildDayGuidance(dateISO, relHouseDay, strongDay, idx, moonNak);
 
-    const strongDay: StrongTransitLite | null = df?.strongestTransit
-      ? {
-          planet: String(df.strongestTransit.planet ?? "Transit"),
-          target: String(df.strongestTransit.target ?? "a key natal point"),
-          category: cat,
-          strength: Number(df.strongestTransit.strength ?? 0),
-          startISO: String(df.strongestTransit.startISO ?? dateISO),
-          endISO: String(df.strongestTransit.endISO ?? dateISO),
-        }
-      : null;
+      const baseHeadlineGold =
+        cat === "career"
+          ? "Work & direction"
+          : cat === "relationships"
+          ? "Relationships & tone"
+          : cat === "health"
+          ? "Health & energy"
+          : cat === "inner"
+          ? "Inner clarity"
+          : "Steady focus & small wins";
 
-    const moonNak = String(df?.moonNakshatra ?? "");
-    const dg = buildDayGuidance(dateISO, relHouseDay, strongDay, idx, moonNak);
+      const fallbackTag = (dateISO || `Day ${idx + 1}`).toString();
+      const headlineGold = dedupeHeadline(baseHeadlineGold, fallbackTag);
 
-   // ---- headline logic ----
+      const rawHeadline =
+  String(d?.headline ?? "").trim() ||
+  headlineGold;
 
-// choose base headline from category
-const baseHeadlineGold =
-  cat === "career"
-    ? "Work & direction"
-    : cat === "relationships"
-    ? "Relationships & tone"
-    : cat === "health"
-    ? "Health & energy"
-    : cat === "inner"
-    ? "Inner clarity"
-    : "Steady focus & small wins";
+const aiText = String(d?.text ?? "").trim();
+console.log("[AI DAY]", dateISO, "headline=", d?.headline, "aiTextLen=", aiText.length);
 
-// fallback tag so duplicates become unique
-const fallbackTag = (dateISO || `Day ${idx + 1}`).toString();
-
-// FINAL headline (deduped)
-const headlineGold = dedupeHeadline(baseHeadlineGold, fallbackTag);
-const rawHeadline = String(d?.headline ?? "").trim() || headlineGold;
-
-// ---- text ----
-const textGold = String(dg?.expect ?? "").trim();
-const text = String(d?.text ?? "").trim() || textGold;
+const text =
+  aiText.length >= 40
+    ? aiText
+    : String(dg?.expect ?? "").trim();
 
 
-// fallback mood
-const mood = String((d?.mood ?? "").trim() || "balanced");
+
+      const mood = String((d?.mood ?? "").trim() || "balanced");
 const moodText = String((d?.moodText ?? "").trim() || "");
+
+const listKey = `${dateISO}:${cat}:${mood}`;
+const fallbackLists = doAvoidLists(cat, mood, listKey);
+
+const doList = normalizeBullets(d?.do, 3);
+const avoidList = normalizeBullets(d?.avoid, 3);
+
+console.log("AI DAY DO RAW", d?.do);
+console.log("AI DAY AVOID RAW", d?.avoid);
+console.log("AI DAY DO normalized", doList);
+console.log("AI DAY AVOID normalized", avoidList);
+
+return {
+  dateISO,
+  headline: rawHeadline,
+  mood,
+  moodText,
+  text,
+  do: doList.length ? doList : [...fallbackLists.do],
+  avoid: avoidList.length ? avoidList : [...fallbackLists.avoid],
+  color: extras.color,
+  luckyNumber: extras.luckyNumber,
+  bestTime: extras.bestTime,
+  confidence: conf,
+  theme: String(d?.theme ?? ""),
+  facts,
+};
+
+    })
+  );
+
+  setDailyError(null);
+} else {
+  throw new Error("ai daily returned empty");
+}
+  } catch {
+  // ✅ Meaningful fallback (varies by focus area + emotional tone)
+  const fallbackInputs =
+    Array.isArray(dayInputs) && dayInputs.length
+      ? dayInputs.filter(Boolean)
+      : Array.isArray(dailyMoon)
+      ? dailyMoon.slice(0, 7).map((m: any) => ({
+          dateISO: String(m?.dateISO || ""),
+          facts: [] as string[],
+          confidence: "medium" as const,
+          focusHint: "work" as const,
+          focusArea: "Work & direction",
+          eventHints: [] as string[],
+        }))
+      : [];
+
+  const fallback: DailyHighlightLocal[] = fallbackInputs.map((d: any, idx: number) => {
+    const safeD = d && typeof d === "object" ? d : {};
+
+    const facts = Array.isArray(safeD.facts) ? (safeD.facts as string[]) : [];
+
+    const conf: "high" | "medium" | "low" =
+      safeD.confidence === "high" || safeD.confidence === "medium" || safeD.confidence === "low"
+        ? safeD.confidence
+        : "medium";
+
+    const dateISO = String(safeD.dateISO ?? "");
+
+    const extras = dailyFlavorExtras(dateISO || String(idx));
+    const key = `${dateISO}::${idx}::${facts.join("|")}`;
+
+    // ✅ Use focusHint/focusArea FIRST (facts may be empty in fallback)
+    const focusHint = String(safeD.focusHint || "work").toLowerCase();
+    const focusLower =
+      focusHint === "relationships"
+        ? "relationships"
+        : focusHint === "health"
+        ? "health"
+        : focusHint === "money"
+        ? "money"
+        : focusHint === "inner" || focusHint === "mind"
+        ? "inner"
+        : focusHint === "home"
+        ? "home"
+        : focusHint === "purpose"
+        ? "purpose"
+        : focusHint === "creativity"
+        ? "creativity"
+        : "career";
+
+    // Mood signals (fallback-safe)
+    const moodObj = inferMoodFromFacts(facts, conf);
+    const mood = String(moodObj?.mood || "balanced");
+    const moodText = String(relatableMoodText(mood, key) ?? buildMoodLineText(mood, key) ?? "");
+
+    const headline =
+      focusLower === "relationships"
+        ? "Relationships & conversations"
+        : focusLower === "health"
+        ? "Energy & routine"
+        : focusLower === "inner"
+        ? "Mindset & emotions"
+        : focusLower === "money"
+        ? "Money & stability"
+        : focusLower === "home"
+        ? "Home & comfort"
+        : focusLower === "purpose"
+        ? "Purpose & learning"
+        : focusLower === "creativity"
+        ? "Creativity & confidence"
+        : "Work & direction";
+
+    // Guidance pools (varies per day via pick)
+    const REL_GUIDES = [
+      "Say the simple truth, kindly. One clear conversation beats ten half-replies.",
+      "Ask one direct question instead of assuming the answer.",
+      "Choose timing and tone first — the message lands better.",
+      "Listen fully, then respond. Don’t rush to fix everything.",
+    ];
+
+    const CAREER_GUIDES = [
+      "Structure wins today. Finish one thing fully, then move to the next.",
+      "Handle one practical task end-to-end — it will unclog the rest.",
+      "Avoid scattered effort. Pick a priority and close it cleanly.",
+      "A short, clear update beats long explanations.",
+    ];
+
+    const HEALTH_GUIDES = [
+      "Protect energy. Keep meals light and routine clean.",
+      "Movement + hydration will stabilize everything else.",
+      "Do less, but do it consistently. Your body responds fast today.",
+      "Avoid overstimulation — keep the day gentle.",
+    ];
+
+    const INNER_GUIDES = [
+      "Name one emotion, then take one small action.",
+      "Don’t overthink signals. Ground yourself in one practical step.",
+      "Keep your mental space clean: one thought, one task, done.",
+      "Pause before reacting — clarity shows up after the pause.",
+    ];
+
+    const MONEY_GUIDES = [
+      "Keep money moves practical. One clean decision beats multiple small leaks.",
+      "Check numbers once, then act. Avoid impulse spends.",
+      "Follow up on a pending payment/approval and close it.",
+      "Choose stability over speed today.",
+    ];
+
+    const HOME_GUIDES = [
+      "Close one home task end-to-end. It will lift mental load.",
+      "Keep family communication short and clear.",
+      "Fix one small thing — it reduces friction for the rest of the week.",
+      "Don’t multitask across home + work. Sequence it.",
+    ];
+
+    const GENERAL_GUIDES = [
+      "Keep the day simple: one priority, one clean action.",
+      "Even-paced day — small improvements compound.",
+      "Steady effort wins. Don’t push; nudge things forward.",
+      "Keep it calm and consistent. Simple choices land best.",
+    ];
+
+    const guidePool =
+      focusLower === "relationships"
+        ? REL_GUIDES
+        : focusLower === "health"
+        ? HEALTH_GUIDES
+        : focusLower === "inner"
+        ? INNER_GUIDES
+        : focusLower === "money"
+        ? MONEY_GUIDES
+        : focusLower === "home"
+        ? HOME_GUIDES
+        : focusLower === "purpose" || focusLower === "creativity"
+        ? GENERAL_GUIDES
+        : CAREER_GUIDES;
+
+    const guideKey = [dateISO, focusLower, mood, facts.join("|")].join("|");
+    const guidance = pickKey(guidePool, guideKey);
+
+    const microPool =
+      focusLower === "career"
+        ? [
+            "Do the hardest task first — you’ll feel lighter all day.",
+            "Close one loop before starting a new one.",
+            "Keep messages short. Clarity > detail.",
+            "Don’t tweak the plan — execute the plan.",
+          ]
+        : [
+            "Don’t rush your day. Slow is smooth.",
+            "One small win will shift your mood.",
+            "Less input (scrolling/news) = more calm.",
+            "Choose one thing and finish it properly.",
+          ];
+
+    const microTip = safeText(pickKey(microPool, guideKey + "::micro"));
+    const composed = safeText(`${safeText(guidance)} ${microTip}`.trim());
+    const finalText = stripMoodPrefix(composed, moodText);
+
+    const listKey = `${dateISO}:${focusLower}:${mood}`;
+    const lists = doAvoidLists(focusLower, mood, listKey);
+
+    // If AI lists exist, use them; otherwise fallback lists
+    const doList = normalizeBullets(safeD.do, 3);
+    const avoidList = normalizeBullets(safeD.avoid, 3);
 
     return {
       dateISO,
-      headline: rawHeadline,
+      headline,
       mood,
       moodText,
-      text,
-      
-      do: Array.isArray(d?.do) && d.do.length ? [...d.do] : [],
-      avoid: Array.isArray(d?.avoid) && d.avoid.length ? [...d.avoid] : [],
-
+      text: safeText(normalizeHighlightText(finalText, idx)),
+      do: doList.length ? doList : [...lists.do],
+      avoid: avoidList.length ? avoidList : [...lists.avoid],
       color: extras.color,
       luckyNumber: extras.luckyNumber,
       bestTime: extras.bestTime,
       confidence: conf,
-      theme: String(d?.theme ?? ""),
+      theme: "",
       facts,
     };
-  })
-);
+  });
 
+  setDailyHighlights(fallback);
+  setDailyError(null);
+}
 
-      setDailyError(null);
-    } else {
-      throw new Error("ai daily returned empty");
-    }
-  } catch {
-    // ï¿½ Meaningful fallback (varies by focus area + emotional tone)
-const fallback: DailyHighlightLocal[] = dayInputs.map((d: any, idx: number) => {
-  const facts = Array.isArray(d.facts) ? (d.facts as string[]) : [];
-
-  const focusRaw =
-    facts.find((x: string) => x.toLowerCase().includes("focus area:")) || "";
-  const focusStr = String(focusRaw).split(":").slice(1).join(":").trim();
-  const focusLower = focusStr.toLowerCase();
-
-  const moonFromRaw =
-    facts.find((x: string) => x.toLowerCase().includes("from natal moon")) || "";
-  const moonFrom = (() => {
-    const m = String(moonFromRaw).match(/(\d+)/);
-    return m ? Number(m[1]) : null;
-  })();
-
-  const conf: "high" | "medium" | "low" =
-    d.confidence === "high" || d.confidence === "low" ? d.confidence : "medium";
-
-  const dateISO = String(d.dateISO ?? "");
-  const extras = dailyFlavorExtras(dateISO || String(idx));
-
-  const key = `${dateISO}::${idx}::${facts.join("|")}`;
-
-  // Mood signals (fallback-safe)
-  const moodObj = inferMoodFromFacts(facts, conf);
-  const moodFromMoon = inferMoodFromMoonFrom(moonFrom);
-  const mood = String(moodFromMoon || moodObj.mood || "balanced");
-
-// ï¿½ fallback doesnt use AI moodText at all  generate relatable mood line
-const moodText = String(relatableMoodText(mood, key) ?? buildMoodLineText(mood, key) ?? "");
-
-
-  // Headline by focus area
-  const headline =
-    focusLower.includes("relationships")
-      ? "Relationships & conversations"
-      : focusLower.includes("career")
-      ? "Work & direction"
-      : focusLower.includes("health")
-      ? "Energy & routine"
-      : focusLower.includes("inner")
-      ? "Mindset & emotions"
-      : "Todays focus";
-
-  // Guidance pools (varies per day via pick)
-  const REL_GUIDES = [
-    "Say the simple truth, kindly. One clear conversation beats ten half-replies.",
-    "Ask one direct question instead of assuming the answer.",
-    "Choose timing and tone first  the message lands better.",
-    "Listen fully, then respond. Dont rush to fix everything.",
-  ];
-
-  const CAREER_GUIDES = [
-    "Structure wins today. Finish one thing fully, then move to the next.",
-    "Handle one practical task end-to-end  it will unclog the rest.",
-    "Avoid scattered effort. Pick a priority and close it cleanly.",
-    "A short, clear update beats long explanations.",
-  ];
-
-  const HEALTH_GUIDES = [
-    "Protect energy. Keep meals light and routine clean.",
-    "Movement + hydration will stabilize everything else.",
-    "Do less, but do it consistently. Your body responds fast today.",
-    "Avoid overstimulation  keep the day gentle.",
-  ];
-
-  const INNER_GUIDES = [
-    "Name one emotion, then take one small action.",
-    "Dont overthink signals. Ground yourself in one practical step.",
-    "Keep your mental space clean: one thought, one task, done.",
-    "Pause before reacting  clarity shows up after the pause.",
-  ];
-
-  const GENERAL_GUIDES = [
-    "Keep the day simple: one priority, one clean action.",
-    "Even-paced day  small improvements compound.",
-    "Steady effort wins. Dont push; nudge things forward.",
-    "Keep it calm and consistent. Simple choices land best.",
-  ];
-
-  const guidePool =
-    focusLower.includes("relationships")
-      ? REL_GUIDES
-      : focusLower.includes("career")
-      ? CAREER_GUIDES
-      : focusLower.includes("health")
-      ? HEALTH_GUIDES
-      : focusLower.includes("inner")
-      ? INNER_GUIDES
-      : GENERAL_GUIDES;
-
-  // ï¿½ Varies by dateISO (not only idx)
-  const guideKey = [
-  dateISO,
-  focusLower,
-  mood,
-  (facts.find((x: string) => x.toLowerCase().includes("transit moon nakshatra:")) || ""),
-  (facts.find((x: string) => x.toLowerCase().includes("transit moon is")) || ""),
-  (facts.find((x: string) => x.toLowerCase().includes("strongest transit:")) || ""),
-].join("|");
-
-  const guidance = pickKey(guidePool, guideKey);
-
-  // Micro-tip (also varies)
-  const microPool = focusLower.includes("relationships")
-  ? [
-      "If you feel a reaction rising, pause before typing.",
-      "Say less, but say it clearly.",
-      "Assume good intent first  it changes everything.",
-      "Dont re-read messages looking for hidden meaning.",
-    ]
-  : focusLower.includes("career")
-  ? [
-      "Do the hardest task first  youll feel lighter all day.",
-      "Close one loop before starting a new one.",
-      "Keep messages short. Clarity > detail.",
-      "Dont tweak the planexecute the plan.",
-    ]
-  : focusLower.includes("health")
-  ? [
-      "Your body will respond fast to small discipline today.",
-      "Hydrate early  energy stays stable.",
-      "Light dinner = better sleep tonight.",
-      "Move a little  it clears the mind too.",
-    ]
-  : [
-      "Dont rush your day. Slow is smooth.",
-      "One small win will shift your mood.",
-      "Less input (scrolling/news) = more calm.",
-      "Choose one thing and finish it properly.",
-    ];
-
-const dayKey = [
-  dateISO,
-  focusLower,
-  mood,
-  // add a little uniqueness from facts (nakshatra / moon-from-moon / strongest transit)
-  (facts.find((x: string) => x.toLowerCase().includes("transit moon nakshatra:")) || ""),
-  (facts.find((x: string) => x.toLowerCase().includes("transit moon is")) || ""),
-  (facts.find((x: string) => x.toLowerCase().includes("strongest transit:")) || ""),
-].join("|");
-
-
-// micro-tip (also varies)
-const microTip = safeText(pickKey(microPool, dayKey + "::micro"));
-
-// guidance already comes from your pool — sanitize it too
-const guidanceClean = safeText(guidance);
-
-// Compose + sanitize again (final guard)
-const composed = safeText(`${guidanceClean} ${microTip}`.trim());
-
-// Remove mood prefix if it repeats
-const finalText = stripMoodPrefix(composed, moodText);
-
-// Do/Avoid lists (rotate + stable)
-const listKey = `${dateISO}:${focusLower}:${mood}`;
-const lists = doAvoidLists(focusLower, mood, listKey);
-
-  return {
-    dateISO,
-    headline,
-    mood,
-    moodText,
-    text: safeText(normalizeHighlightText(finalText, idx)),
-    do: [...lists.do],
-    avoid: [...lists.avoid],
-    color: extras.color,
-    luckyNumber: extras.luckyNumber,
-    bestTime: extras.bestTime,
-    confidence: conf,
-    theme: "",
-    facts,
-  };
-});
-
-
-    setDailyHighlights(fallback);
-    setDailyError(null);
-  }
 } catch (err) {
   console.error("daily highlights failed", err);
   setDailyError("Could not load daily highlights.");
