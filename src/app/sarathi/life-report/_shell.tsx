@@ -45,7 +45,7 @@ import { NAKSHATRA_INFO } from "@/lib/astrology/nakshatraMap";
 const AYANAMSA_LAHIRI_APPROX = 23.85;
 
 
-/* ---------------- Locking city autocomplete (simplified ï¿½ always typeable) ---------------- */
+/* ---------------- Locking city autocomplete (simplified - always typeable) ---------------- */
 
 
 const cityCache = new Map<string, Array<{ name: string; lat: number; lon: number }>>();
@@ -276,7 +276,7 @@ type PanchangInfo = {
   moonset?: string | null;
   moonsetISO?: string | null;
 
-  //  Kaal windows (we?ll still show ?? ï¿½ ?? until backend sends structured ranges)
+  //  Kaal windows (we?ll still show ?? - ?? until backend sends structured ranges)
   rahuKaal?: any;
   gulikaKaal?: any;
   abhijit?: any;
@@ -536,7 +536,7 @@ function toNum(x: any): number | undefined {
 return Number.isFinite(n) ? (n as number) : undefined;
 }
 
-// --- Yoga / Karana from sidereal ï¿½ & ï¿½ ---
+// --- Yoga / Karana from sidereal - & - ---
 
 const KARANA_MOVABLE = [
   "Bava",
@@ -576,7 +576,7 @@ function computeKaranaName(
   const K = Math.floor(D / 6); // 0..59
 
   // Fixed (sthira) karanas at specific K values:
-  // 57 ï¿½ Shakuni, 58 ï¿½ Chatushpada, 59 ï¿½ Naga, 0 ï¿½ Kimstughna
+  // 57 - Shakuni, 58 - Chatushpada, 59 - Naga, 0 - Kimstughna
   if (K === 57) return "Shakuni";
   if (K === 58) return "Chatushpada";
   if (K === 59) return "Naga";
@@ -1034,13 +1034,13 @@ const expect = lines.filter(Boolean).join(" ");
     "Do: respond slowly; quality > speed.",
   ];
   const dontBank = [
-    "Don’t: multitask or start 3 things at once.",
-    "Don’t: react instantly to messages — pause first.",
-    "Don’t: overspend or overcommit to please others.",
-    "Don’t: push your body if energy feels low.",
-    "Don’t: argue to win — aim for clarity instead.",
-    "Don’t: make big decisions late at night or in a rush.",
-    "Don’t: let small friction turn into a big mood.",
+    "Don't: multitask or start 3 things at once.",
+    "Don't: react instantly to messages — pause first.",
+    "Don't: overspend or overcommit to please others.",
+    "Don't: push your body if energy feels low.",
+    "Don't: argue to win — aim for clarity instead.",
+    "Don't: make big decisions late at night or in a rush.",
+    "Don't: let small friction turn into a big mood.",
   ];
 
   let doLine = doBank[idx % doBank.length];
@@ -1049,16 +1049,16 @@ const expect = lines.filter(Boolean).join(" ");
   // Tune to category
   if (strongest?.category === "career") {
     doLine = "Do: take one concrete career step (send, submit, schedule, follow up).";
-    dontLine = "Don’t: make impulsive job/business calls without checking details.";
+    dontLine = "Don't: make impulsive job/business calls without checking details.";
   } else if (strongest?.category === "relationships") {
     doLine = "Do: prioritize one relationship action (check-in, clarify, set boundary).";
-    dontLine = "Don’t: escalate emotionally — keep tone calm and precise.";
+    dontLine = "Don't: escalate emotionally — keep tone calm and precise.";
   } else if (strongest?.category === "health") {
     doLine = "Do: support the body (hydration, lighter food, early sleep).";
-    dontLine = "Don’t: overtrain or experiment wildly with diet/routine today.";
+    dontLine = "Don't: overtrain or experiment wildly with diet/routine today.";
   } else if (strongest?.category === "inner") {
     doLine = "Do: take quiet time — reflect before reacting.";
-    dontLine = "Don’t: spiral in overthinking; write it down and move on.";
+    dontLine = "Don't: spiral in overthinking; write it down and move on.";
   }
 
   return { expect, doLine, dontLine };
@@ -1303,7 +1303,7 @@ function parsePersonality(raw: unknown): { bullets: string[]; closing: string } 
     // ignore
   }
 
-  // plain text fallback ï¿½ split into lines if it looks list-y
+  // plain text fallback - split into lines if it looks list-y
   const lines = str
     .split("\n")
     .map((x) => x.trim())
@@ -1375,12 +1375,12 @@ function fixWeirdEncoding(input: string) {
     .replace(/\uFFFD/g, "")
 
     // 2) Common mojibake sequences
-    .replace(/\u00E2\u0080\u0099/g, "\u2019") // ï¿½
-    .replace(/\u00E2\u0080\u009C/g, "\u201C") // ï¿½
-    .replace(/\u00E2\u0080\u009D/g, "\u201D") // ï¿½
-    .replace(/\u00E2\u0080\u0093/g, "\u2013") // ï¿½
-    .replace(/\u00E2\u0080\u0094/g, "\u2014") // ï¿½
-    .replace(/\u00E2\u0080\u00A6/g, "\u2026") // ï¿½
+    .replace(/\u00E2\u0080\u0099/g, "\u2019") // -
+    .replace(/\u00E2\u0080\u009C/g, "\u201C") // -
+    .replace(/\u00E2\u0080\u009D/g, "\u201D") // -
+    .replace(/\u00E2\u0080\u0093/g, "\u2013") // -
+    .replace(/\u00E2\u0080\u0094/g, "\u2014") // -
+    .replace(/\u00E2\u0080\u00A6/g, "\u2026") // -
     .replace(/\u00E2\u0086\u0092/g, "\u2192") // ?
 
     // 3) Drop stray and NBSP
@@ -1394,22 +1394,22 @@ function fixWeirdEncoding(input: string) {
       "$1'$2"
     )
 
-    // 5) Fix numeric ranges where ï¿½ stands for a dash (do this BEFORE degree fixes)
-    // 1?2 sentence/day/week/month -> 1ï¿½2 sentence/day/week/month
+    // 5) Fix numeric ranges where - stands for a dash (do this BEFORE degree fixes)
+    // 1?2 sentence/day/week/month -> 1-2 sentence/day/week/month
     .replace(
       /(\d)\?(\d)(\s*(?:sentence|sentences|day|days|week|weeks|month|months)\b)/gi,
-      "$1ï¿½$2$3"
+      "$1-$2$3"
     )
 
     // 6) Fix degree symbol corruption (only when it looks like deg+minutes)
-    // 13?20' -> 13ï¿½20'
-    .replace(/(\d{1,2})\?(\d{2})(?=')/g, "$1ï¿½$2")
+    // 13?20' -> 13-20'
+    .replace(/(\d{1,2})\?(\d{2})(?=')/g, "$1-$2")
 
     // Also handle cases like 0?30 (common in astro text)
-    .replace(/(\d{1,2})\?(\d{2})(?!\d)/g, "$1ï¿½$2")
+    .replace(/(\d{1,2})\?(\d{2})(?!\d)/g, "$1-$2")
 
     // 7) Fix separators: "active? treat" or "Retrograde ?"
-    .replace(/([A-Za-z0-9])\?\s+(?=[A-Za-z])/g, "$1 ï¿½ ")
+    .replace(/([A-Za-z0-9])\?\s+(?=[A-Za-z])/g, "$1 - ")
     .replace(/\s+\?\s+/g, " – ")
 
     // 8) Collapse extra spaces
@@ -1422,14 +1422,14 @@ function sanitizeText(input: string): string {
   if (!input) return "";
 
   return input
-    // remove ï¿½ replacement characters
+    // remove - replacement characters
     .replace(/\uFFFD/g, "")
     // common mojibake fixes
-    .replace(/ï¿½/g, "")
-    .replace(/ï¿½|/g, '"')
-    .replace(/ï¿½|ï¿½/g, "'")
-    .replace(/ï¿½|ï¿½/g, "")
-    .replace(/ï¿½/g, "")
+    .replace(/-/g, "")
+    .replace(/-|/g, '"')
+    .replace(/-|-/g, "'")
+    .replace(/-|-/g, "")
+    .replace(/-/g, "")
     .replace(/\s+/g, " ")
     .trim();
 }
@@ -1603,7 +1603,7 @@ function normalizeMojibake(input: any): string {
   // Kill common replacement chars / mojibake sequences
   s = s
     .replace(/\uFFFD/g, "")        // � replacement char
-    .replace(/ï¿½/g, "")
+    .replace(/-/g, "")
     .replace(/â€“/g, "–")
     .replace(/â€”/g, "—")
     .replace(/â€˜/g, "‘")
@@ -1758,7 +1758,7 @@ function isMostlyGarbage(input: string): boolean {
   if (!s) return true;
 
   // Quick catches for common mojibake / replacement-char spam
-  if (s.includes("�") || s.includes("ï¿½") || s.includes("Ã") || s.includes("Â")) return true;
+  if (s.includes("�") || s.includes("-") || s.includes("Ã") || s.includes("Â")) return true;
 
   // Remove whitespace for ratio checks
   const compact = s.replace(/\s+/g, "");
@@ -2908,10 +2908,10 @@ function parseTimelineWindows(raw: string) {
   // 1) Primary: bullet lines that contain a date range in parentheses
   // Supports: ?, ->, , , to
   // Example:
-  // - Jupiter ï¿½ Moon (2026-01-01 -> 2026-02-15) [career]
+  // - Jupiter - Moon (2026-01-01 -> 2026-02-15) [career]
 
   const reRange =
-  /(?:^|\n)\s*[-ï¿½*]?\s*([^\n(]+?)\s*\(\s*(\d{4}-\d{2}-\d{2})\s*(?:\?|->|ï¿½|ï¿½|to)\s*(\d{4}-\d{2}-\d{2})\s*\)\s*(?:\[\s*([^\]]+?)\s*\])?\s*(?=\n|$)/gi;
+  /(?:^|\n)\s*[-*]?\s*([^\n(]+?)\s*\(\s*(\d{4}-\d{2}-\d{2})\s*(?:\?|->|-|-|to)\s*(\d{4}-\d{2}-\d{2})\s*\)\s*(?:\[\s*([^\]]+?)\s*\])?\s*(?=\n|$)/gi;
 
   let m: RegExpExecArray | null;
   while ((m = reRange.exec(text))) {
@@ -2925,10 +2925,10 @@ function parseTimelineWindows(raw: string) {
     }
   }
 
-  // 2) Secondary: if your text has "Window: YYYY-MM-DD ï¿½ YYYY-MM-DD"
+  // 2) Secondary: if your text has "Window: YYYY-MM-DD - YYYY-MM-DD"
   // (helps when GPT output format changes)
   const reInline =
-  /(?:window|period|phase)\s*[:\-]\s*([^\n:]+?)\s*(\d{4}-\d{2}-\d{2})\s*(?:\?|->|ï¿½|ï¿½|to)\s*(\d{4}-\d{2}-\d{2})/gi;
+  /(?:window|period|phase)\s*[:\-]\s*([^\n:]+?)\s*(\d{4}-\d{2}-\d{2})\s*(?:\?|->|-|-|to)\s*(\d{4}-\d{2}-\d{2})/gi;
 
   while ((m = reInline.exec(text))) {
     const label = (m[1] ?? "").trim();
@@ -3557,7 +3557,7 @@ const guessSiderealDegFrom = (pl: PlanetRow): number | undefined => {
     return sidGuess;
   }
 
-  // If we can't be clever, still return the guess ï¿½ better than nothing
+  // If we can't be clever, still return the guess - better than nothing
   return sidGuess;
 };
 const PLANET_PRACTICE: Record<
@@ -3766,7 +3766,7 @@ function nakTheme(name?: string | null) {
   return map[name] ?? null;
 }
 
-/* ---- zodiac helpers for House ï¿½ Sign legend ---- */
+/* ---- zodiac helpers for House - Sign legend ---- */
 
 function wrapIndex(i: number) {
   return ((i % 12) + 12) % 12;
@@ -3897,8 +3897,8 @@ function PlanetWheelSVG({
           return (
             <g key={`${h}-${p.name}-${idx}`}>
               <title>{`${p.name}${
-                p.sign ? ` ï¿½ ${p.sign}` : ""
-              }${p.house ? ` ï¿½ House ${p.house}` : ""}`}</title>
+                p.sign ? ` - ${p.sign}` : ""
+              }${p.house ? ` - House ${p.house}` : ""}`}</title>
               <circle cx={x} cy={y} r={8} fill="currentColor" fillOpacity="0.1" />
               <circle
                 cx={x}
@@ -4044,7 +4044,7 @@ function buildPersonality(
     out.push({
       headline: `Ascendant  ${asc.sign}${
         asc.house ? `  House ${asc.house}` : ""
-      }${ascNakshatra ? ` ï¿½ ${ascNakshatra}` : ""}`,
+      }${ascNakshatra ? ` - ${ascNakshatra}` : ""}`,
       bullets: [
         d.theme
           ? `Core vibe: ${d.theme}.`
@@ -4809,7 +4809,7 @@ function buildTodaysFocusV2(opts: {
 
   const finalCat: Cat = dashaFlavour ?? cat;
 
-  // 3) Map category ï¿½ text
+  // 3) Map category - text
   if (finalCat === "career") {
     return {
       area: "Career & long-term direction",
@@ -4891,7 +4891,7 @@ const TabDailyGuide: React.FC<{
     moneyTip?: MoneyTip;
   } | null;
   guideError: string | null;
-  dailyHighlights: { dateISO: string; text: string }[];
+  dailyHighlights: DailyHighlight[];
   dailyLoading: boolean;
   mounted: boolean;
   todaysFocus: any;
@@ -5392,7 +5392,7 @@ function toISODate(v: any): string | null {
 // ===================== Full Guidance: degree + nakshatra intelligence =====================
 
 // Lahiri-ish sidereal: you already store siderealDeg in [0..360).
-// Convert absolute degree ï¿½ degree within sign (0..30)
+// Convert absolute degree - degree within sign (0..30)
 function degInSignX(absDeg: any): number | null {
   const n = Number(absDeg);
   if (!Number.isFinite(n)) return null;
@@ -5843,6 +5843,101 @@ function topActiveTransitsForToday(hits: any[], todayISO: string, limit = 5): an
   active.sort((a: any, b: any) => (Number(b?.strength ?? 0) || 0) - (Number(a?.strength ?? 0) || 0));
   return active.slice(0, Math.max(1, limit));
 }
+function clamp01(n: number) { return Math.max(0, Math.min(1, n)); }
+
+function computeDecisionQuality10(al: {mind:number; emotions:number; direction:number; energy:number; support:number}, topToday: any[]) {
+  // Higher mind/direction/support help, high emotions without mind reduces quality slightly
+  const base =
+    0.22 * al.mind +
+    0.22 * al.direction +
+    0.18 * al.support +
+    0.20 * al.energy +
+    0.18 * (100 - al.emotions); // emotional volatility reduces
+  const transitBoost = Math.min(6, (topToday?.[0]?.strength ?? 0) * 10); // mild
+  const score100 = base + transitBoost;
+  return Math.round((Math.max(35, Math.min(92, score100)) / 10) * 10) / 10; // 3.5..9.2
+}
+
+function labelLevel(v: number) {
+  if (v >= 75) return "High";
+  if (v >= 58) return "Medium";
+  return "Low";
+}
+
+function inferMainTheme(plan: any, report: any, topToday: any[]) {
+  const head = String(plan?.headline ?? "").trim();
+  if (head) return head;
+
+  const t0 = topToday?.[0];
+  if (t0?.category) return `Focus: ${String(t0.category)}`;
+  // fallback: house 6/10 cues from your chart
+  const sat = findPlanet(report, "Saturn");
+  const h = toNum(sat?.house);
+  return h ? `Focus: ${houseTheme(h)}` : "Focus: steady progress";
+}
+
+function pickTopAction(plan: any, buckets: any) {
+  const a = plan?.next14Days?.steeringPlan?.[0];
+  if (a) return String(a);
+  const b = buckets?.supportive?.[0];
+  if (b) return String(b);
+  return "Pick one priority and finish it cleanly.";
+}
+
+function pickAvoid(buckets: any) {
+  const a = buckets?.avoid?.[0];
+  return a ? String(a) : "Avoid impulsive decisions when emotions are high.";
+}
+
+function computePressureOpportunity(topToday: any[], al: any) {
+  const s = Number(topToday?.[0]?.strength ?? 0);
+  const pressure = clamp01(0.55 * (al.emotions / 100) + 0.45 * s);
+  const opportunity = clamp01(0.45 * (al.support / 100) + 0.35 * (al.direction / 100) + 0.20 * s);
+  const energy = clamp01(al.energy / 100);
+  return { pressure, opportunity, energy };
+}
+function scoreAreas(plan: any, topToday: any[]) {
+  const areas = Array.isArray(plan?.next14Days?.areasActivated) ? plan?.next14Days?.areasActivated : [];
+  const chipsText = (topToday || []).map((t: any) => `${t?.category ?? ""} ${t?.transitPlanet ?? ""}`.toLowerCase());
+
+  const scored = areas.map((a: any) => {
+    const area = String(a?.area ?? "Focus").trim();
+    const why = String(a?.why ?? "").trim();
+    let score = 6.2;
+
+    const key = area.toLowerCase();
+    if (key.includes("work") || key.includes("routine") || key.includes("health")) score += 1.2;
+    if (key.includes("career") || key.includes("status")) score += 0.8;
+    if (chipsText.some((s) => s.includes(key))) score += 0.8;
+
+    return { area, why, score: Math.max(4.5, Math.min(9.7, score)) };
+  });
+
+  scored.sort((x: any, y: any) => y.score - x.score);
+  return scored.slice(0, 5);
+}
+function attachProbabilities(likely: string[], areas: any[]) {
+  const keys = (areas || []).map((a: any) => String(a?.area ?? "").toLowerCase()).join(" ");
+  return (likely || []).slice(0, 8).map((s) => {
+    const t = String(s).toLowerCase();
+    let p = 0.52;
+    if (t.includes("work") || t.includes("schedule") || t.includes("routine")) p += 0.12;
+    if (t.includes("health") || t.includes("exercise")) p += 0.10;
+    if (t.includes("conflict") || t.includes("misunderstanding")) p -= 0.08;
+    if (keys && keys.includes("work") && (t.includes("team") || t.includes("project"))) p += 0.08;
+    p = Math.max(0.28, Math.min(0.78, p));
+    return { text: s, p: Math.round(p * 100) };
+  }).sort((a,b)=>b.p-a.p);
+}
+function buildDecisionGPS(buckets: any) {
+  return [
+    { k: "Money", v: "Safe if you verify. Keep it simple, avoid impulsive spends." },
+    { k: "Work", v: buckets?.supportive?.[0] || "Finish one task fully before starting another." },
+    { k: "Conflict", v: buckets?.avoid?.[0] || "Delay reactions. Respond after calm." },
+    { k: "New ideas", v: "Explore, don’t commit immediately. Validate with one small test." },
+    { k: "Health", v: "Small consistent routines beat intense resets." },
+  ];
+}
 
 // ---------- Transit helpers (Advanced tab) ----------
 const isoDay = (d: Date) => d.toISOString().slice(0, 10);
@@ -5857,6 +5952,10 @@ const TabAdvanced: React.FC<{
   dashaTransitSummary?: string | null;
   transits?: TransitHit[];
   transitNow?: any[];
+  dailyHighlights?: DailyHighlight[];
+  dailyLoading?: boolean;
+  dailyError?: string | null;
+
 }> = ({
   report,
   mounted,
@@ -5866,6 +5965,9 @@ const TabAdvanced: React.FC<{
   dashaTransitSummary,
   transits,
   transitNow,
+  dailyHighlights,
+  dailyLoading,
+  dailyError,
 }) => {
 
   if (!mounted) return null;
@@ -5905,7 +6007,7 @@ const hitsN: TransitHit[] = (Array.isArray(hits) ? hits : [])
   })
   .filter((h: any) => !!h?.startISO && !!h?.endISO);
 
-// For today ï¿½ next 2 weeks chips
+// For today - next 2 weeks chips
 const addDaysISO = (iso: string, days: number) => {
   const d = new Date(iso + "T00:00:00.000Z");
   d.setUTCDate(d.getUTCDate() + days);
@@ -6044,33 +6146,19 @@ const parsedFusion: any = (() => {
 
   // Compute ONLY when report exists
   const r: any = report;
-  console.log("[TabAdvanced] prop transits len:", Array.isArray(transits) ? transits.length : "not-array", transits);
-console.log("[TabAdvanced] report.transits len:", Array.isArray((r as any)?.transits) ? (r as any).transits.length : "not-array", (r as any)?.transits);
+ console.log("[ADV][anchors]", {
+  ascSign: r?.ascSign,
+  coreAsc: r?.core?.ascSign,
+  moonSign: r?.moonSign,
+  coreMoon: r?.core?.moonSign,
+  moonHouse: r?.core?.moonHouse,
+  dasha: r?.dasha,
+  activeDasha: r?.activeDasha,
+  now: r?.now,
+  activePlanet: r?.activePlanet,
+});
 
-console.log("[TabAdvanced] planets[0]", report?.planets?.[0]);
-{/* ï¿½ TODAYS STRONG TRANSITS (from /api/transits) */}
-<div className="rounded-2xl border border-white/15 bg-white/5 p-5">
-  <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
-    Todays strong transits
-  </div>
 
-  {topToday.length > 0 ? (
-    <div className="mt-3 flex flex-wrap gap-2">
-      {topToday.map((t: any, i: number) => (
-        <span
-          key={(t?.id ?? i) as any}
-          className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[11px] text-white/80"
-        >
-          {formatTransitChip(t)}
-        </span>
-      ))}
-    </div>
-  ) : (
-    <div className="mt-3 text-xs text-white/60">
-      No strong transits active today.
-    </div>
-  )}
-</div>
 
 
   // Existing builders (keep)
@@ -6093,15 +6181,26 @@ const takeaway = buildTakeawayLine_X(r);
       : "";
 
   // Pull a few real anchors from report if present (non-breaking if missing)
-  const asc = safe(r?.ascSign ?? r?.core?.ascSign ?? "", "");
-  const moon = safe(r?.moonSign ?? r?.core?.moonSign ?? "", "");
-  const moonHouseRaw = r?.core?.moonHouse ?? r?.moonHouse ?? null;
+  // Pull a few real anchors from report if present (non-breaking if missing)
+const asc = safe(r?.ascSign ?? r?.core?.ascSign ?? "", "");
+
+// --- Moon fallbacks (robust) ---
+const moonP = getP_X(r, "Moon"); // uses report.planets[]
+const moon = safe(r?.moonSign ?? r?.core?.moonSign ?? moonP?.sign ?? "", "");
+
+const moonHouseRaw =
+  r?.core?.moonHouse ??
+  r?.moonHouse ??
+  moonP?.house ??
+  null;
+
 const moonHouse =
-  Number.isFinite(Number(moonHouseRaw)) &&
-  Number(moonHouseRaw) >= 1 &&
-  Number(moonHouseRaw) <= 12
+  typeof moonHouseRaw === "number"
+    ? moonHouseRaw
+    : typeof moonHouseRaw === "string" && /^\d+$/.test(moonHouseRaw)
     ? Number(moonHouseRaw)
     : null;
+
 
   const md = safe(r?.dasha?.md?.planet ?? r?.activeDasha?.md ?? "", "");
   const ad = safe(r?.dasha?.ad?.planet ?? r?.activeDasha?.ad ?? "", "");
@@ -6150,7 +6249,7 @@ const moonHouse =
 }
 
 
-// ===================== Full Guidance: no-generic builders (WHY ï¿½ SO WHAT ï¿½ HOW) =====================
+// ===================== Full Guidance: no-generic builders (WHY - SO WHAT - HOW) =====================
 
 function getP_X(report: any, name: string) {
   const planets = Array.isArray(report?.planets) ? report.planets : [];
@@ -6475,6 +6574,119 @@ if (Number.isFinite(moonHouseN) && moonHouseN >= 1 && moonHouseN <= 12) {
       {/* Pro content */}
       {isFull ? (
         <>
+       {/* 0) TODAY — CONTROL PANEL (premium cockpit) */}
+{(() => {
+  const al = computeAlignment(r);
+  const dq = computeDecisionQuality10(al, topToday);
+  const mainTheme = inferMainTheme(plan, r, topToday);
+  const topAction = pickTopAction(plan, buckets);
+  const avoidOne = pickAvoid(buckets);
+  const rad = computePressureOpportunity(topToday, al);
+
+  return (
+    <>
+      {/* Cockpit */}
+      <div className="rounded-2xl border border-white/15 bg-indigo-950/50 p-5 backdrop-blur-md shadow-xl shadow-[0_0_30px_rgba(99,102,241,0.12)]">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+              Today — Control Panel
+            </div>
+            <div className="mt-1 text-lg font-semibold text-slate-100">
+              {mainTheme}
+            </div>
+            <div className="mt-2 text-sm text-white/80">
+              <span className="text-white/60">Top action:</span>{" "}
+              <span className="text-white/90 font-semibold">{topAction}</span>
+            </div>
+            <div className="mt-1 text-sm text-white/80">
+              <span className="text-white/60">Avoid:</span>{" "}
+              <span className="text-white/90">{avoidOne}</span>
+            </div>
+          </div>
+
+          <div className="text-right">
+            <div className="text-xs text-white/60">Decision Quality</div>
+            <div className="mt-1 text-2xl font-semibold text-white">
+              {dq.toFixed(1)} <span className="text-sm text-white/60">/ 10</span>
+            </div>
+            <div className="mt-2 text-xs text-white/60">
+              Pressure: {labelLevel(Math.round(rad.pressure * 100))} • Opportunity:{" "}
+              {labelLevel(Math.round(rad.opportunity * 100))} • Energy:{" "}
+              {labelLevel(Math.round(rad.energy * 100))}
+            </div>
+          </div>
+        </div>
+
+        {/* Chips (today or next up) */}
+        <div className="mt-4 flex flex-wrap gap-2">
+          {(topToday.length ? topToday : nextUpcoming).slice(0, 3).map((t: any, i: number) => (
+            <span
+              key={(t?.id ?? i) as any}
+              className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[11px] text-white/80"
+            >
+              {formatTransitChip(t)}
+            </span>
+          ))}
+          {!topToday.length && !nextUpcoming.length ? (
+            <span className="text-xs text-white/50">No transit windows available.</span>
+          ) : null}
+        </div>
+      </div>
+
+      {/* Radar card (separate) */}
+      <div className="mt-4 rounded-2xl border border-white/15 bg-white/5 p-5">
+        <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+          Today's strong transits
+        </div>
+
+        {topToday.length > 0 ? (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {topToday.map((t: any, i: number) => (
+              <span
+                key={(t?.id ?? i) as any}
+                className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[11px] text-white/80"
+              >
+                {formatTransitChip(t)}
+              </span>
+            ))}
+          </div>
+        ) : (
+          <div className="mt-3 text-sm text-white/80 leading-relaxed">
+            Quiet transit day — so the edge comes from your{" "}
+            <span className="text-white/90 font-semibold">dasha + routines</span>, not big external pushes.
+            Use today for planning, cleanup, health systems, and low-risk decisions.
+          </div>
+        )}
+      </div>
+    </>
+  );
+})()}
+
+{/* Priority Scoreboard */}
+{plan ? (
+  <Locked title="Priority scoreboard (next 14 days)">
+    <div className="text-sm text-white/80">
+      Ranked by what your chart is actually emphasizing — so you don’t waste energy.
+    </div>
+
+    <div className="mt-3 space-y-2">
+      {scoreAreas(plan, topToday).map((x: any, i: number) => (
+        <div key={i} className="rounded-xl border border-white/10 bg-white/5 p-3 flex items-start justify-between gap-3">
+          <div>
+            <div className="text-sm font-semibold text-white/90">{x.area}</div>
+            <div className="mt-1 text-xs text-white/70">{x.why}</div>
+          </div>
+          <div className="text-right">
+            <div className="text-xs text-white/60">Priority</div>
+            <div className="text-lg font-semibold text-white">{x.score.toFixed(1)}</div>
+          </div>
+        </div>
+      ))}
+    </div>
+  </Locked>
+) : null}
+
           {/* Current activations */}
           <Locked title="Current activations (chart-specific)">
             <div className="text-sm text-white/80 leading-relaxed">
@@ -6490,14 +6702,25 @@ if (Number.isFinite(moonHouseN) && moonHouseN >= 1 && moonHouseN <= 12) {
                 </li>
               )}
             </ul>
-{!isFull && (
-  <div className="mt-3 text-xs text-white/60">
-    Full Plan adds: degree-precise hits + exact date windows for each activation.
-  </div>
-)}
+
 
           </Locked>
-{/* 0) TAKEAWAY (the click moment) */}
+{/* Decision GPS (instant decision support) */}
+<Locked title="Decision GPS (right now)">
+  <div className="text-sm text-white/80">
+    Use this when you’re unsure. It tells you what type of decisions are supported today.
+  </div>
+
+  <div className="mt-3 grid gap-2 md:grid-cols-2">
+    {buildDecisionGPS(buckets).map((x, i) => (
+      <div key={i} className="rounded-xl border border-white/10 bg-white/5 p-3">
+        <div className="text-xs font-semibold uppercase tracking-wide text-white/60">{x.k}</div>
+        <div className="mt-1 text-sm text-white/85">{x.v}</div>
+      </div>
+    ))}
+  </div>
+</Locked>
+
 <Locked title="Now and near future (paid guidance)">
   {!plan ? (
   <div className="text-sm text-white/70">
@@ -6516,9 +6739,9 @@ if (Number.isFinite(moonHouseN) && moonHouseN >= 1 && moonHouseN <= 12) {
           Next 14 days
         </div>
 
-        {Array.isArray(plan.next14Days.areasActivated) && plan.next14Days.areasActivated.length > 0 && (
+        {Array.isArray(plan?.next14Days?.areasActivated) && plan?.next14Days?.areasActivated.length > 0 && (
           <div className="mt-3 grid gap-2 md:grid-cols-2">
-            {plan.next14Days.areasActivated.slice(0, 6).map((a: any, i: number) => (
+            {plan?.next14Days?.areasActivated.slice(0, 6).map((a: any, i: number) => (
               <div key={i} className="rounded-xl border border-white/10 bg-white/5 p-3">
                 <div className="text-sm font-semibold text-white/90">{a?.area}</div>
                 <div className="mt-1 text-xs text-white/70">{a.why}</div>
@@ -6527,39 +6750,42 @@ if (Number.isFinite(moonHouseN) && moonHouseN >= 1 && moonHouseN <= 12) {
           </div>
         )}
 
-        {Array.isArray(plan.next14Days.likelyScenarios) && plan.next14Days.likelyScenarios.length > 0 && (
+        {Array.isArray(plan?.next14Days?.likelyScenarios) && plan?.next14Days?.likelyScenarios.length > 0 && (
           <div className="mt-4">
             <div className="text-[11px] font-semibold uppercase tracking-wide text-white/60">
               Likely scenarios
             </div>
-            <ul className="mt-2 list-disc pl-5 text-sm text-white/85">
-              {plan.next14Days.likelyScenarios.slice(0, 8).map((x: string, i: number) => (
-                <li key={i}>{x}</li>
-              ))}
-            </ul>
+            <ul className="mt-2 space-y-2 text-sm text-white/85">
+  {attachProbabilities(plan?.next14Days?.likelyScenarios, plan?.next14Days?.areasActivated).map((x, i) => (
+    <li key={i} className="flex items-start justify-between gap-3 rounded-lg border border-white/10 bg-white/5 px-3 py-2">
+      <span>{x.text}</span>
+      <span className="text-xs text-white/60">{x.p}%</span>
+    </li>
+  ))}
+</ul>
           </div>
         )}
 
-        {Array.isArray(plan.next14Days.steeringPlan) && plan.next14Days.steeringPlan.length > 0 && (
+        {Array.isArray(plan?.next14Days?.steeringPlan) && plan?.next14Days?.steeringPlan.length > 0 && (
           <div className="mt-4">
             <div className="text-[11px] font-semibold uppercase tracking-wide text-white/60">
               Steering plan
             </div>
             <ul className="mt-2 list-disc pl-5 text-sm text-white/85">
-              {plan.next14Days.steeringPlan.slice(0, 8).map((x: string, i: number) => (
+              {plan?.next14Days?.steeringPlan.slice(0, 8).map((x: string, i: number) => (
                 <li key={i}>{x}</li>
               ))}
             </ul>
           </div>
         )}
 
-        {Array.isArray(plan.next14Days.timing) && plan.next14Days.timing.length > 0 && (
+        {Array.isArray(plan?.next14Days?.timing) && plan?.next14Days?.timing.length > 0 && (
           <div className="mt-4 rounded-xl border border-white/10 bg-white/5 p-3">
             <div className="text-[11px] font-semibold uppercase tracking-wide text-white/60">
               Timing windows
             </div>
             <div className="mt-2 space-y-2 text-sm text-white/85">
-              {plan.next14Days.timing.slice(0, 6).map((t: any, i: number) => (
+              {plan?.next14Days?.timing.slice(0, 6).map((t: any, i: number) => (
                 <div key={i}>
                   <span className="text-white/90 font-semibold">{t.window}</span>
                   <span className="text-white/70">  {t.note}</span>
@@ -6569,9 +6795,9 @@ if (Number.isFinite(moonHouseN) && moonHouseN >= 1 && moonHouseN <= 12) {
           </div>
         )}
 
-        {Array.isArray(plan?.next14Days?.remedies) && plan.next14Days.remedies.length > 0 && (
+        {Array.isArray(plan?.next14Days?.remedies) && plan?.next14Days?.remedies.length > 0 && (
           <div className="mt-4 text-xs text-white/70">
-            Remedies: {plan.next14Days.remedies.slice(0, 3).join(" - ")}
+            Remedies: {plan?.next14Days?.remedies.slice(0, 3).join(" - ")}
           </div>
         )}
       </div>
@@ -6779,22 +7005,13 @@ if (Number.isFinite(moonHouseN) && moonHouseN >= 1 && moonHouseN <= 12) {
               </div>
             </div>
 
-            {!isFull && (
-  <div className="mt-3 text-xs text-white/60">
-    Full Plan adds: exact dates + why this bucket is active with chart evidence.
-  </div>
-)}
-
+            
             {/* Signature Insight (Pro mic-drop) */}
 <Locked title="Your signature insight (right now)">
   <div className="text-sm text-white/85 leading-relaxed">
     {buildSignatureInsightX(report)}
   </div>
-  {!isFull && (
-  <div className="mt-3 text-xs text-white/60">
-    Full Plan adds: dated windows + why evidence for each insight.
-  </div>
-)}
+  
 
 </Locked>
 {/* 4) ENERGY & EMOTIONAL RULES */}
@@ -6814,11 +7031,13 @@ if (Number.isFinite(moonHouseN) && moonHouseN >= 1 && moonHouseN <= 12) {
       report={report}
       mounted={mounted}
       isFull={true}
-      dailyHighlights={(report as any)?.dailyHighlights ?? []}
-      dailyLoading={false}
-      dailyError={null}
+      dailyHighlights={dailyHighlights ?? []}
+      dailyLoading={!!dailyLoading}
+      dailyError={dailyError ?? null}
       notificationsPreview={(report as any)?.previewNotifications ?? null}
       dashaTimeline={(report as any)?.dashaTimeline ?? null}
+      topToday={topToday}
+      todayISO={todayISO}
     />
   </div>
 ) : (
@@ -6881,6 +7100,23 @@ if (Number.isFinite(moonHouseN) && moonHouseN >= 1 && moonHouseN <= 12) {
     </div>
   );
 };
+// ---------- TYPES ----------
+
+type DailyHighlightLocal = {
+  dateISO: string;
+  headline?: string;
+  mood?: string;
+  moodText?: string;
+  text: string;
+  do?: string[];
+  avoid?: string[];
+  color?: string;
+  luckyNumber?: number | string;
+  bestTime?: string;
+  confidence?: "high" | "medium" | "low";
+  theme?: string;
+  facts?: string[];
+};
 
 type TabFullPlanProps = {
   report: LifeReportView | null;
@@ -6891,6 +7127,8 @@ type TabFullPlanProps = {
   dailyError: string | null;
   notificationsPreview: any | null;
   dashaTimeline?: any[] | null;
+  topToday?: TransitHit[];
+  todayISO?: string;
 };
 
 
@@ -7042,26 +7280,6 @@ useEffect(() => {
   const [weeklyInsights, setWeeklyInsights] = useState<WeeklyInsightLocal[]>([]);
   const [weeklyLoading, setWeeklyLoading] = useState(false);
   const [weeklyError, setWeeklyError] = useState<string | null>(null);
-
-      type DailyHighlightLocal = {
-  dateISO: string;
-  headline?: string;
-  mood?: string;        // short: Uplifting, Emotionally heavy, etc.
-  moodText?: string;    // one-line description of how it feels
-  text: string;
-  color?: string;
-luckyNumber?: number;
-bestTime?: string;
-  // optional bullets
-  do?: string[];
-  avoid?: string[];
-  confidence?: "high" | "medium" | "low";
-  facts?: string[];
-};
-
-
-
-
   const [dailyHighlights, setDailyHighlights] = useState<DailyHighlightLocal[]>([]);
   const [dailyLoading, setDailyLoading] = useState<boolean>(false);
   const [dailyError, setDailyError] = useState<string | null>(null);
@@ -7233,7 +7451,7 @@ const todaysFocus = useMemo(
   }
   
   const trimmedName = (name || "").trim() || "Default";
-  const profileId = `${trimmedName} ï¿½ ${dateISO}`;
+  const profileId = `${trimmedName} - ${dateISO}`;
 
   // Shape that Life Report / SavedProfile uses
   const savedProfile: SavedProfile = {
@@ -7525,7 +7743,7 @@ console.log("[life-report] response status", res.status);
 
 const envelope: any = await res.json();
 
-// ï¿½ Unwrap: get the ACTUAL report object that contains nowPlan/nowNearFuture
+// Unwrap: get the ACTUAL report object that contains nowPlan/nowNearFuture
 const data: any =
   envelope?.report ??
   envelope?.lifeReport ??
@@ -7545,7 +7763,7 @@ console.log(
 );
 console.log("[life-report] headline:", data?.nowPlan?.headline);
 
-// ï¿½ IMPORTANT: from this point forward, use `data` as your life report object
+//  IMPORTANT: from this point forward, use `data` as your life report object
 
 
 // ?? STEP 2: call /api/ai-personality using the REAL life-report payload
@@ -7595,7 +7813,7 @@ try {
   setAiSummary(`(DEBUG) ai-personality crashed: ${e?.message ?? String(e)}`);
 }
 
-    // ?? Notifications from API ï¿½ state (all 3 buckets)
+    // ?? Notifications from API - state (all 3 buckets)
     const anyData = data as any;
     const preview = anyData.previewNotifications ?? null;
     if (preview && typeof preview === "object") {
@@ -7745,7 +7963,7 @@ const birthInstant = makeUtcInstant(
       activePeriods: data?.activePeriods,
       lifeMilestones: data?.lifeMilestones,
       dashaTimeline: data?.dashaTimeline,
-      // ï¿½ Paid plan blocks from API
+      // Paid plan blocks from API
   nowPlan: (data as any)?.nowPlan ?? (data as any)?.nowNearFuture ?? undefined,
   nowNearFuture: (data as any)?.nowNearFuture ?? (data as any)?.nowPlan ?? undefined,
 
@@ -8352,7 +8570,7 @@ console.log("[ai-daily] dayInputs[0] sample:", dayInputs?.[0]);
   try {
     // --- AI daily highlights with timeout (premium UX) ---
 const ctrl = new AbortController();
-const t = setTimeout(() => ctrl.abort(), 40000); // 15s hard cap
+const t = setTimeout(() => ctrl.abort(), 40000); // 40s hard cap
 
 let aiDailyRes: Response | null = null;
 let aiJson: any = {};
@@ -8577,7 +8795,7 @@ return {
         }))
       : [];
 
-  const fallback: DailyHighlightLocal[] = fallbackInputs.map((d: any, idx: number) => {
+  const fallback: DailyHighlight[] = fallbackInputs.map((d: any, idx: number) => {
     const safeD = d && typeof d === "object" ? d : {};
 
     const facts = Array.isArray(safeD.facts) ? (safeD.facts as string[]) : [];
@@ -8781,7 +8999,7 @@ return {
       console.error("ai-transits error", err);
     }
 
-    // 2) Dasha ï¿½ Transits fusion
+    // 2) Dasha - Transits fusion
     try {
       const fusionRes = await fetch("/api/ai-dasha-transits", {
         method: "POST",
@@ -8936,7 +9154,7 @@ try {
   setWeeklyLoading(false);
 }
 
-// ï¿½ CLOSE the OUTER transits try/catch/finally correctly
+// CLOSE the OUTER transits try/catch/finally correctly
 } catch (err) {
   console.error("transits API error", err);
   setTransitsError("Could not load upcoming transits.");
@@ -10246,7 +10464,7 @@ useEffect(() => {
     };
 
     
-    // ï¿½ NO HIDING: disable chat cache while we debug houses/asc
+    // NO HIDING: disable chat cache while we debug houses/asc
 window.localStorage.removeItem("sarathi.lifeReportCache.v2");
 // console.log("[life-report] chat cache disabled");
 
@@ -10463,9 +10681,13 @@ router.replace(`${pathname}?${sp.toString()}`, { scroll: false });
     isFull={canSeeFull}             // ✅ change isFull -> canSeeFull
     onUnlockFull={unlockFullDev}    // ✅ add this line
     timelineSummary={timelineSummary}
+    dailyHighlights={dailyHighlights}
+    dailyLoading={dailyLoading}
+    dailyError={dailyError}
     dashaTransitSummary={dashaTransitSummary}
     transits={(report as any)?.transits ?? transits ?? []}
     transitNow={transitNow}
+    
   />
 )}
 
@@ -10486,8 +10708,11 @@ const TabFullPlan: React.FC<TabFullPlanProps> = ({
   dailyError,
   notificationsPreview,
   dashaTimeline,
+  topToday: topTodayProp,
+  todayISO: todayISOProp,
 }) => {
-   const isPreview = !isFull;
+  const isPreview = !isFull;
+  const topTodayList: TransitHit[] = Array.isArray(topTodayProp) ? topTodayProp : [];
   if (!mounted) {
     return (
       <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-white/70">
@@ -10560,7 +10785,7 @@ const horizonISO = new Date(Date.now() + 365 * 24 * 3600 * 1000)
   .toISOString()
   .slice(0, 10);
 
-// ï¿½ define FIRST
+// define FIRST
 const toISODate = (v: any): string => {
   const s = String(v || "").trim();
   if (!s) return "";
@@ -10638,7 +10863,7 @@ const adEndN = dayNum(adEndISO);
 // +/- 1 day tolerance (handles timezone shifts)
 const oneDay = 24 * 60 * 60 * 1000;
 
-  // ï¿½ transits array to use everywhere in TabAdvanced
+  // transits array to use everywhere in TabAdvanced
 const hits =
   Array.isArray((report as any)?.transits) ? (report as any).transits :
   Array.isArray((report as any)?.topTransits) ? (report as any).topTransits :
@@ -10987,7 +11212,7 @@ const timing = (() => {
       key: "morning",
       label: "Morning",
       bestFor: "High-impact work, planning, key conversations",
-      oneAction: "Lock 2540 minutes on the hardest task and start without switching.",
+      oneAction: "Lock 25-40 minutes on the hardest task and start without switching.",
       avoid: "Multitasking or starting too many threads",
       why: oneWhy(pick("morning")),
     },
@@ -11119,9 +11344,9 @@ const timing = (() => {
           Todays strongest transits
         </div>
 
-        {topToday.length > 0 ? (
-          <div className="mt-3 flex flex-wrap gap-2">
-            {topToday.map((t: any, i: number) => (
+        {topTodayList.length > 0 ? (
+  <div className="mt-3 flex flex-wrap gap-2">
+    {topTodayList.map((t: any, i: number) => (
               <span
                 key={(t?.id ?? i) as any}
                 className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[11px] text-white/80"
@@ -11156,7 +11381,7 @@ const timing = (() => {
             </div>
           </div>
 
-          {/* 2) Timing Intelligence (today ï¿½ next 72 hours) */}
+          {/* 2) Timing Intelligence (today - next 72 hours) */}
 <details className="rounded-2xl border border-white/15 bg-indigo-950/40 p-4 backdrop-blur-md" open>
   <summary className="cursor-pointer list-none">
     <div className="text-sm font-semibold text-slate-100">Todays Energy Windows</div>
@@ -11248,96 +11473,6 @@ const timing = (() => {
         </div>
       </div>
     </div>
-  </div>
-</details>
-
-          {/* 3) Next 35 days (optional but premium) */}
-          {/* 3) Next 35 days (premium) */}
-<details className="rounded-2xl border border-white/15 bg-white/5 p-4">
-  <summary className="cursor-pointer list-none">
-    <div className="text-sm font-semibold text-slate-100">Next 3 days</div>
-    <div className="mt-1 text-xs text-white/60">
-      A short runway showing how momentum unfolds over the next few days.
-    </div>
-  </summary>
-
-  <div className="mt-4 space-y-3">
-    {(!dailyLoading &&
-      !dailyError &&
-      Array.isArray(dailyHighlights) &&
-      dailyHighlights.length > 0) ? (
-      dailyHighlights.slice(0, 4).map((h: any, idx: number) => {
-        const headline = clean(h?.headline || "");
-        const likely = safeList(h?.likely, 3);
-        const dos = safeList(h?.do, 3);
-        const avoids = safeList(h?.avoid, 3);
-        const body = sentenceCase(trimToSentence(stripRepeats(clean(h?.text)), 220));
-
-        return (
-          <div key={idx} className="rounded-xl border border-white/10 bg-indigo-950/40 p-3">
-            <div className="flex items-start justify-between gap-3">
-              <div className="text-[11px] font-semibold uppercase tracking-wide text-white/60">
-                {h?.dateISO || ""}
-              </div>
-              {clean(h?.confidence) ? (
-                <div className="rounded-full border border-white/15 bg-white/5 px-2 py-[2px] text-[10px] text-white/70">
-                  {String(h.confidence).toUpperCase()}
-                </div>
-              ) : null}
-            </div>
-
-            {headline ? (
-              <div className="mt-1 text-sm font-semibold text-slate-100">{headline}</div>
-            ) : null}
-
-            {likely.length ? (
-              <div className="mt-2">
-                <div className="text-[11px] font-semibold uppercase tracking-wide text-white/60">
-                  Likely events
-                </div>
-                <ul className="mt-1 list-disc pl-4 text-sm text-white/85 space-y-1">
-                  {likely.map((x: string, i: number) => (
-                    <li key={i}>{sentenceCase(trimToSentence(x, 120))}</li>
-                  ))}
-                </ul>
-              </div>
-            ) : null}
-
-            {body ? (
-              <div className="mt-2 text-sm text-white/80 leading-relaxed">{body}</div>
-            ) : null}
-
-            {(dos.length || avoids.length) ? (
-              <div className="mt-3 grid gap-2 md:grid-cols-2">
-                <div className="rounded-lg border border-emerald-400/20 bg-emerald-500/10 p-2">
-                  <div className="text-[11px] font-semibold uppercase tracking-wide text-emerald-100/90">
-                    Do
-                  </div>
-                  <ul className="mt-1 list-disc pl-4 text-sm text-white/85 space-y-1">
-                    {(dos.length ? dos : ["Do one important thing fully."]).map((x: string, i: number) => (
-                      <li key={i}>{sentenceCase(trimToSentence(x, 90))}</li>
-                    ))}
-                  </ul>
-                </div>
-
-                <div className="rounded-lg border border-red-400/20 bg-red-500/10 p-2">
-                  <div className="text-[11px] font-semibold uppercase tracking-wide text-red-100/90">
-                    Avoid
-                  </div>
-                  <ul className="mt-1 list-disc pl-4 text-sm text-white/85 space-y-1">
-                    {(avoids.length ? avoids : ["Avoid impulsive reactions."]).map((x: string, i: number) => (
-                      <li key={i}>{sentenceCase(trimToSentence(x, 90))}</li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-            ) : null}
-          </div>
-        );
-      })
-    ) : (
-      <div className="text-xs text-white/60">No short plan available yet.</div>
-    )}
   </div>
 </details>
 
@@ -11447,7 +11582,7 @@ const timing = (() => {
 
                   <div className="mt-1 text-xs text-white/60">
                     {ap?.antardasha?.start && ap?.antardasha?.end
-                      ? `${String(ap.antardasha.start).slice(0, 10)} ï¿½ ${String(ap.antardasha.end).slice(0, 10)}`
+                      ? `${String(ap.antardasha.start).slice(0, 10)} - ${String(ap.antardasha.end).slice(0, 10)}`
                       : ""}
                   </div>
 
@@ -11487,7 +11622,7 @@ const timing = (() => {
                       Next shift (Antardasha)
                     </div>
                     <div className="mt-1 text-sm font-semibold text-slate-100">AD: {nextAD.lord}</div>
-                    <div className="mt-1 text-xs text-white/60">{nextAD.start} ï¿½ {nextAD.end}</div>
+                    <div className="mt-1 text-xs text-white/60">{nextAD.start} - {nextAD.end}</div>
 
                     <div className="mt-3 rounded-lg border border-white/10 bg-indigo-950/40 p-3">
                       <div className="text-xs font-semibold uppercase tracking-wide text-white/60">What you may notice</div>
@@ -11522,7 +11657,7 @@ const timing = (() => {
                       Major shift (Mahadasha)  longer term
                     </div>
                     <div className="mt-1 text-sm font-semibold text-slate-100">MD: {nextMD.planet}</div>
-                    <div className="mt-1 text-xs text-white/60">{nextMD.start} ï¿½ {nextMD.end}</div>
+                    <div className="mt-1 text-xs text-white/60">{nextMD.start} - {nextMD.end}</div>
 
                     <div className="mt-3 text-sm text-white/80 leading-relaxed">
                       {sentenceCase(
@@ -11544,42 +11679,6 @@ const timing = (() => {
                 ) : null}
               </div>
             </div>
-          </details>
-
-          {/* 7) Deep dive: Soul Alignment */}
-          <details className="rounded-2xl border border-white/15 bg-indigo-950/40 p-4 backdrop-blur-md">
-            <summary className="cursor-pointer list-none">
-              <div className="text-sm font-semibold text-slate-100">Soul Alignment Index  explained</div>
-              <div className="mt-1 text-xs text-white/60">Why each score is high/low + do/avoid + evidence</div>
-            </summary>
-
-            <div className="mt-4 grid gap-4 md:grid-cols-2">
-  {(Array.isArray(timing?.windows) ? timing.windows : []).slice(0, 3).map((w: any, i: number) => (
-    <div key={w.key ?? i} className="rounded-xl border border-white/10 bg-white/5 p-4">
-      <div className="text-sm font-semibold text-slate-100">{w.label}</div>
-
-      <div className="mt-1 text-xs text-white/70">
-        {w.bestFor ? `Best for: ${w.bestFor}` : "Best for: "}
-      </div>
-
-      <div className="mt-2 rounded-lg border border-white/10 bg-white/5 p-3 text-sm text-white/80">
-        <span className="text-white/60 text-[11px] uppercase tracking-wide mr-2">One action</span>
-        {w.oneAction || "Pick one meaningful action and finish it."}
-      </div>
-
-      <div className="mt-2 text-xs text-white/60">
-        Avoid: {w.avoid || "Rushed commitments."}
-      </div>
-    </div>
-  ))}
-
-  {!timing?.windows?.length ? (
-    <div className="rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-white/70 md:col-span-2">
-      No windows available yet. Generate/refresh the report to compute timing windows.
-    </div>
-  ) : null}
-</div>
-
           </details>
         </>
       );
