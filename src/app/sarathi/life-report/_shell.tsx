@@ -587,53 +587,36 @@ function computeKaranaName(
 }
 
 /* ---------------- Helpers ---------------- */
-function TabFromUrl({
-  onTab,
-}: {
-  onTab: (t: "overview" | "phases" | "now" | "advanced") => void;
-}) {
-  useEffect(() => {
-    if (typeof window === "undefined") return;
 
-    try {
-      const sp = new URLSearchParams(window.location.search);
-      const t = (sp.get("tab") || "").toLowerCase();
-
-      if (t === "overview" || t === "phases" || t === "now" || t === "advanced") {
-        onTab(t as any);
-      }
-    } catch {
-      // ignore
-    }
-  }, [onTab]);
-
-  return null;
-}
-
-
-function humanizeInsight(base: string): string {
+function humanizeInsight(base: string, seedKey: string = "default"): string {
+  // Premium: deterministic tone (no Math.random), clean punctuation, no awkward spacing
   const openers = [
-    "Today brings a subtle shift ",
-    "You may notice that",
-    "Theres a quiet invitation today to",
-    "The day supports a gentler approach ",
-    "Energy today encourages you to",
-    "This is a good day to"
+    "A gentle shift is available today:",
+    "Notice this subtle signal:",
+    "Today invites a quieter approach:",
+    "The energy supports a calmer rhythm:",
+    "Lean into this simple truth today:",
+    "One clear step is enough today:",
   ];
 
   const endings = [
-    "Take it one step at a time.",
-    "Small, steady choices will go a long way.",
-    "No need to rushclarity builds naturally.",
-    "Let simplicity guide your actions.",
-    "A calm pace will work in your favor.",
+    "Move slowly — clarity builds when you stop forcing it.",
+    "Keep it simple. One clean action beats ten scattered ones.",
+    "Choose one priority and finish it fully.",
+    "Let your next step be practical, not perfect.",
+    "Keep your tone soft and your intent firm.",
   ];
 
-  const pick = (arr: string[]) => arr[Math.floor(Math.random() * arr.length)];
+  const pick = (arr: string[], key: string) => {
+    // tiny deterministic hash so text stays stable per seedKey
+    let h = 0;
+    for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) >>> 0;
+    return arr[h % arr.length];
+  };
 
-  let sentence = base.trim();
+  let sentence = String(base || "").trim();
 
-  // remove repetitive astrology phrasing
+  // Remove repetitive astrology phrasing + clean up spacing
   sentence = sentence
     .replace(/this moon (position|phase|placement)/gi, "")
     .replace(/this transit|the transit/gi, "")
@@ -641,8 +624,16 @@ function humanizeInsight(base: string): string {
     .replace(/\s+/g, " ")
     .trim();
 
-  return `${pick(openers)} ${sentence} ${pick(endings)}`;
+  if (!sentence) return "";
+
+  // Ensure ending punctuation
+  if (!/[.!?]$/.test(sentence)) sentence += ".";
+
+  const opener = pick(openers, seedKey + "|o");
+  const ending = pick(endings, seedKey + "|e");
+  return `${opener} ${sentence} ${ending}`;
 }
+
 function transitRangeISO(t: any): { startISO: string | null; endISO: string | null } {
   const sRaw = t?.startISO ?? t?.fromISO ?? t?.from ?? t?.start ?? t?.startDate;
   const eRaw = t?.endISO ?? t?.toISO ?? t?.to ?? t?.end ?? t?.endDate;
@@ -929,15 +920,15 @@ function transitLineGold(
   // Show full “planet+target” line on day 1 or when it changes
   if (!sameAsYesterday) {
     const full =
-      cat === "career"
-        ? `Career is louder — ${planet} touching ${target} can bring a message, decision, or visibility moment.`
-        : cat === "relationships"
-        ? `Relationships are sensitive — ${planet} touching ${target} can highlight a conversation or boundary.`
-        : cat === "health"
-        ? `Energy needs care — ${planet} touching ${target} rewards pacing, sleep, and clean routine.`
-        : cat === "inner"
-        ? `Inner noise rises — ${planet} touching ${target} is best used for reflection, not reaction.`
-        : `Background influence — ${planet} touching ${target}.`;
+  cat === "career"
+    ? `Career signals are active — ${planet} touching ${target} can bring a useful update, decision point, or visibility moment. Stay factual and respond with one clean action.`
+    : cat === "relationships"
+    ? `Relationship tone matters — ${planet} touching ${target} can surface a conversation or boundary. Speak simply; don’t try to “win” today.`
+    : cat === "health"
+    ? `Your system wants care — ${planet} touching ${target} rewards pacing, hydration, and an early wind-down. Support the body and the mind will follow.`
+    : cat === "inner"
+    ? `Inner weather is louder — ${planet} touching ${target} is best used for reflection, not reaction. Pause before you interpret everything.`
+    : `A background influence is running — ${planet} touching ${target}. Keep your actions steady and uncluttered.`;
     return { key, line: full };
   }
 
@@ -965,18 +956,7 @@ function buildDayGuidance(
     typeof relHouse === "number" ? relHouse : undefined
   );
 
-  // Keep the opening rotation, but make them “human”
-  const openings = [
-    "Expect a steady day where small moves compound.",
-    "Expect a practical day — progress likes structure today.",
-    "Expect emotions to be noticeable; treat them as information, not commands.",
-    "Expect sensitivity — keep things simple and clean.",
-    "Expect attention to drift to what’s pending; close loops.",
-    "Expect clarity when you slow down and choose one priority.",
-    "Expect progress through discipline, not intensity.",
-  ];
-  const opening = openings[idx % openings.length];
-
+  
   // --- Nakshatra premium layer (short + memorable) ---
   const nak = String(moonNakshatra ?? "").trim();
   const nakName = nak ? nak.split("(")[0].trim() : "";
@@ -1009,39 +989,39 @@ function buildDayGuidance(
       : `Moon in ${nakName} sets today’s emotional tone — move deliberately, not reactively.`;
   }
 
-  // Base paragraph (2–4 sentences)
-  const lines: string[] = [];
+// Base paragraph (tight + premium)
+const lines: string[] = [];
 
-  // 1) opener
-  lines.push(opening);
-
-  // 2) nakshatra layer
-  const nakLine = themeSentence();
-  if (nakLine) lines.push(nakLine);
-
-  // 3) house focus layer
-  // 3) Moon-house focus line (premium, human)
+// 1) One premium opener only (moodOpeners)
 const moodOpeners = [
-  "Emotionally even, you can get a lot done without overthinking it.",
+  "Emotionally steady — you can get a lot done without overthinking.",
   "A calm, practical tone supports progress today.",
-  "Your mind wants clarity — simplicity will feel powerful today.",
-  "A slightly sensitive mood is possible; keep your pace steady.",
+  "Your mind wants clarity; simplicity will feel powerful.",
+  "Sensitivity is possible; keep your pace steady and your words clean.",
   "Today rewards quiet focus and clean choices.",
   "Small wins stack up — finish what you start.",
   "Less noise, more precision: one good decision beats many fast ones.",
 ];
 lines.push(moodOpeners[idx % moodOpeners.length]);
 
-lines.push(`Attention naturally goes toward ${houseText}.`);
+// 2) Nakshatra layer (if available)
+const nakLine = themeSentence();
+if (nakLine) lines.push(nakLine);
 
-lines.push("Keep actions simple and intentional: choose one priority, take one clear step, then close the loop.");
+// 3) House focus (short)
+lines.push(`Your attention naturally goes toward ${houseText}.`);
 
-    // 4) transit flavor (dedupe so the same “strongest transit” doesn’t repeat daily)
+// 4) One guiding instruction (not two)
+lines.push("Choose one priority, take one clear step, then close the loop.");
+
+// 5) Transit flavor (dedupe)
 const prevKey = String((strongest as any)?._prevKey ?? "");
 const tline = transitLineGold(strongest, idx, prevKey);
 if (tline.line) lines.push(tline.line);
 
-  const expect = lines.filter(Boolean).join(" ");
+const expect = lines.filter(Boolean).join(" ");
+
+
 
   // DO / DON'T suggestions (keep yours)
   const doBank = [
@@ -1838,7 +1818,8 @@ function stripNakshatraClaims(s: string) {
 
     // "Moon nakshatra is: Pushya"
     .replace(new RegExp(`\\bMoon\\s+nakshatra\\s+(?:is|:)?\\s*(?:${nakPattern})\\b[^.]*\\.?\\s*`, "gi"), "")
-
+    // "Today the Moon ..." (general)
+    .replace(/\bToday\s+the\s+Moon\b[^.]*\.?\s*/gi, "")
     // cleanup extra spaces
     .replace(/\s{2,}/g, " ")
     .trim();
@@ -3323,30 +3304,118 @@ function buildDailyFeatures(
   return out;
 }
 
+function describeMoonPhase(nak: string) {
+  const n = (nak || "").toLowerCase();
+
+  if (n.includes("ashwini"))
+    return "Initiative rises — take the first step, send the message, start the task.";
+
+  if (n.includes("bharani"))
+    return "Intensity increases — stay steady, avoid impulsive reactions, choose the clean path.";
+
+  if (n.includes("krittika"))
+    return "Clarity sharpens — cut distractions, make one strong decision, follow through.";
+
+  if (n.includes("rohini"))
+    return "Growth and visibility increase — build, present, and let your work be seen.";
+
+  if (n.includes("mrigashira"))
+    return "Curiosity and outreach grow — explore options, network lightly, refine direction.";
+
+  if (n.includes("ardra"))
+    return "Emotional processing is active — slow down, observe patterns, don’t escalate conflicts.";
+
+  if (n.includes("punarvasu"))
+    return "Reset energy — revisit plans, correct course gently, restore balance.";
+
+  if (n.includes("pushya"))
+    return "Supportive steady flow — discipline works today, routines bring results.";
+
+  if (n.includes("magha"))
+    return "Authority themes rise — take ownership, lead with dignity, keep ego clean.";
+
+  if (n.includes("purva phalguni"))
+    return "Creative-social warmth — connect, collaborate, and keep things light but real.";
+
+  if (n.includes("uttara phalguni"))
+    return "Commitment energy — good for agreements, formal decisions, and responsible follow-up.";
+
+  if (n.includes("hasta"))
+    return "Practical focus — organize, edit, refine, and fix what’s already in motion.";
+
+  if (n.includes("chitra"))
+    return "Upgrade mode — improve presentation, polish details, align form with purpose.";
+
+  if (n.includes("swati"))
+    return "Flexibility helps — adapt fast, stay balanced, don’t force certainty.";
+
+  if (n.includes("vishakha"))
+    return "Goal-pressure rises — push toward a milestone, but avoid harshness.";
+
+  if (n.includes("anuradha"))
+    return "Collaboration is favored — lean on allies, build trust, move as a team.";
+
+  if (n.includes("jyeshtha"))
+    return "Responsibility feels heavier — stay composed, choose maturity over control.";
+
+  if (n.includes("mula"))
+    return "Deep reset — simplify, release what’s draining you, avoid big irreversible calls.";
+
+  if (n.includes("purva ashadha"))
+    return "Momentum returns — confidence rises, move forward, don’t overthink.";
+
+  if (n.includes("uttara ashadha"))
+    return "Long-term progress — choose durable work, build what lasts.";
+
+  if (n.includes("shravana"))
+    return "Listening wins — gather information, ask better questions, learn before acting.";
+
+  if (n.includes("dhanishta"))
+    return "Action increases — execute, show up visibly, channel energy constructively.";
+
+  if (n.includes("shatabhisha"))
+    return "Inner recalibration — reduce noise, protect focus, prioritize health and clarity.";
+
+  if (n.includes("purva bhadrapada"))
+    return "Strategic intensity — go deep, but avoid extremes or dramatic decisions.";
+
+  if (n.includes("uttara bhadrapada"))
+    return "Stabilization — consolidate gains, steady the mind, keep things simple.";
+
+  if (n.includes("revati"))
+    return "Completion energy — close loops, finish pending tasks, wrap what’s unfinished.";
+
+  return "Stay steady — respond calmly, and keep your next step simple.";
+}
 
 function buildDailyFallbackFromFeatures(features: DailyFeature[]): DailyHighlight[] {
   return features.map((d) => {
-    const nk = d.moonNakshatra ?? "this nakshatra";
+    const nk = (d.moonNakshatra || "").trim();
     const focus = d.focusArea || "your regular routines";
 
+    // Translate nakshatra → usable guidance
+    const moonMeaning = describeMoonPhase(nk);
+
     const base =
-      `Today the Moon moves through ${nk}, gently highlighting ${focus}.`;
+      `Today’s flow centers on ${focus}. ${moonMeaning}`;
 
     let extra = "";
     const st = d.strongestTransit;
-    if (st && st.strength >= 0.5) {
+
+    if (st && st.strength >= 0.55) {
       extra =
-        ` There is also an important ${st.category} theme from ` +
-        `${st.transitPlanet} interacting with your natal ${st.natalPlanet}, ` +
-        `so move with awareness and make small, conscious choices.`;
+        ` A stronger ${st.category} influence builds as ` +
+        `${st.transitPlanet} interacts with your natal ${st.natalPlanet}. ` +
+        `Stay intentional and respond rather than react.`;
     }
 
     return {
       dateISO: d.dateISO,
-      text: base + extra,
+      text: (base + extra).trim(),
     };
   });
 }
+
 
 /* --- Time zone helpers (no libs) --- */
 
@@ -5320,7 +5389,7 @@ function toISODate(v: any): string | null {
   return null;
 }
 
-// ===================== Advanced Pro: degree + nakshatra intelligence =====================
+// ===================== Full Guidance: degree + nakshatra intelligence =====================
 
 // Lahiri-ish sidereal: you already store siderealDeg in [0..360).
 // Convert absolute degree ï¿½ degree within sign (0..30)
@@ -5779,24 +5848,26 @@ function topActiveTransitsForToday(hits: any[], todayISO: string, limit = 5): an
 const isoDay = (d: Date) => d.toISOString().slice(0, 10);
 
 
-// ---------- TabAdvanced (top-level component) ----------
 const TabAdvanced: React.FC<{
   report: LifeReportView | null;
   mounted: boolean;
-  isPro: boolean; // … Tier-2: Advanced Pro
+  isFull: boolean;                 // acts like canSeeFull
+  onUnlockFull?: () => void;       // ✅ ADD THIS
   timelineSummary?: string | null;
   dashaTransitSummary?: string | null;
   transits?: TransitHit[];
-  transitNow?: any[]; // ✅ ADD
+  transitNow?: any[];
 }> = ({
   report,
   mounted,
-  isPro,
+  isFull,
+  onUnlockFull,                    // ✅ ADD THIS
   timelineSummary,
   dashaTransitSummary,
   transits,
-  transitNow, // ✅ ADD
+  transitNow,
 }) => {
+
   if (!mounted) return null;
   // --- Transits source of truth (prefer prop; fallback to report) ---
 const hits: TransitHit[] = Array.isArray(transits)
@@ -6079,7 +6150,7 @@ const moonHouse =
 }
 
 
-// ===================== Advanced Pro: no-generic builders (WHY ï¿½ SO WHAT ï¿½ HOW) =====================
+// ===================== Full Guidance: no-generic builders (WHY ï¿½ SO WHAT ï¿½ HOW) =====================
 
 function getP_X(report: any, name: string) {
   const planets = Array.isArray(report?.planets) ? report.planets : [];
@@ -6330,82 +6401,79 @@ if (Number.isFinite(moonHouseN) && moonHouseN >= 1 && moonHouseN <= 12) {
   const maintainList = (buckets?.neutral || []).slice(0, 3);
   const avoidList = (buckets?.avoid || []).slice(0, 3);
 
-  
+  const unlockFullDev = useCallback(() => {
+  if (typeof window === "undefined") return;
+  localStorage.setItem("sarathi_plan", "full");
+  localStorage.setItem("sarathi_dev_full", "1");
+  // page will re-render next time planTier is read; for instant UI refresh:
+  window.dispatchEvent(new Event("storage"));
+}, []);
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="rounded-2xl border border-white/15 bg-white/5 p-4">
         <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
-          {isPro ? "Advanced Pro - Decision intelligence" : "Advanced - Preview"}
+          {isFull ? "Full Guidance — 90 days" : "Full Guidance — Preview"}
         </div>
 
         <div className="mt-1 text-lg font-semibold text-slate-100">
-          {isPro
+          {isFull
             ? "Your chart, translated into practical timing and choices."
             : "A glimpse of your deeper map  unlock to see the full decision layer."}
         </div>
 
         <div className="mt-1 text-sm text-white/70">
-          {isPro
+          {isFull
             ? "Everything shown below is anchored in your report data. Full Plan adds exact dated windows + day-by-day guidance."
-            : "Upgrade to Advanced Pro to unlock chart-specific activations, dasha - transit clarity, and your operating playbook."}
+            : "Upgrade to Full Guidance to unlock chart-specific activations, dasha - transit clarity, and your operating playbook."}
         </div>
       </div>
 
-      {/* If NOT Pro: show a strong, tempting paywall section (no generic filler) */}
-      {!isPro ? (
-        <Locked title="What Advanced Pro unlocks">
-          <div className="text-sm text-white/80 leading-relaxed">
-            Youll unlock three things that make Sarathi feel real:
-          </div>
+      {/* If NOT Full: show Full Guidance paywall */}
+{!isFull ? (
+  <Locked title="Full Guidance (locked)">
+    <div className="text-sm text-white/80 leading-relaxed">
+      Unlock your full roadmap — deeper timing, clearer decisions, and your complete chart guidance.
+    </div>
 
-          <div className="mt-4 grid gap-3 md:grid-cols-3">
-            {[
-              {
-                h: "Current activations",
-                b: "Your ascendant, Moon emphasis, running dasha, and todays strongest lever  summarised cleanly.",
-              },
-              {
-                h: "Dasha  transit clarity",
-                b: "Why this period feels intense/slow/confusing  without fear language.",
-              },
-              {
-                h: "Decision playbook",
-                b: "Do / Maintain / Avoid guidance that matches your current cycle.",
-              },
-            ].map((x) => (
-              <div
-                key={x.h}
-                className="rounded-xl border border-white/10 bg-white/5 p-3"
-              >
-                <div className="text-xs font-semibold uppercase tracking-wide text-white/70">
-                  {x.h}
-                </div>
-                <div className="mt-2 text-sm text-white/80 leading-relaxed">
-                  {x.b}
-                </div>
-              </div>
-            ))}
+    <div className="mt-4 grid gap-3 md:grid-cols-3">
+      {[
+        { h: "Full timing map", b: "Exact windows for decisions, movement, and progress." },
+        { h: "Deeper guidance", b: "Why this phase is unfolding and how to work with it." },
+        { h: "Decision support", b: "Clear actions aligned with your chart cycles." },
+      ].map((x) => (
+        <div key={x.h} className="rounded-xl border border-white/10 bg-white/5 p-3">
+          <div className="text-xs font-semibold uppercase tracking-wide text-white/70">
+            {x.h}
           </div>
+          <div className="mt-2 text-sm text-white/80 leading-relaxed">
+            {x.b}
+          </div>
+        </div>
+      ))}
+    </div>
 
-          <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-            <Link href="/sarathi/upgrade" className="w-full sm:w-auto">
-              <Button className="w-full sm:w-auto">Unlock Advanced Pro</Button>
-            </Link>
-            <Link href="/sarathi/chat" className="w-full sm:w-auto">
-              <Button
-                variant="outline"
-                className="w-full sm:w-auto border-white/20 hover:bg-white/10 text-white"
-              >
-                Ask Sarathi
-              </Button>
-            </Link>
-          </div>
-        </Locked>
-      ) : null}
+    <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+      <Button onClick={() => onUnlockFull?.()} className="w-full sm:w-auto">
+  Unlock Full Guidance
+</Button>
+
+
+      <Link href="/sarathi/chat" className="w-full sm:w-auto">
+        <Button
+          variant="outline"
+          className="w-full sm:w-auto border-white/20 hover:bg-white/10 text-white"
+        >
+          Ask Sarathi
+        </Button>
+      </Link>
+    </div>
+  </Locked>
+) : null}
 
       {/* Pro content */}
-      {isPro ? (
+      {isFull ? (
         <>
           {/* Current activations */}
           <Locked title="Current activations (chart-specific)">
@@ -6422,10 +6490,12 @@ if (Number.isFinite(moonHouseN) && moonHouseN >= 1 && moonHouseN <= 12) {
                 </li>
               )}
             </ul>
+{!isFull && (
+  <div className="mt-3 text-xs text-white/60">
+    Full Plan adds: degree-precise hits + exact date windows for each activation.
+  </div>
+)}
 
-            <div className="mt-3 text-xs text-white/60">
-              Full Plan adds: degree-precise hits + exact date windows for each activation.
-            </div>
           </Locked>
 {/* 0) TAKEAWAY (the click moment) */}
 <Locked title="Now and near future (paid guidance)">
@@ -6439,109 +6509,7 @@ if (Number.isFinite(moonHouseN) && moonHouseN >= 1 && moonHouseN <= 12) {
         {plan.headline}
       </div>
 
-      {/* NOW 3 DAYS (Upgraded) */}
-<div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-  <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
-    Now and next 3 days
-  </div>
- {Array.isArray(transitNow) && transitNow.length > 0 && (
-  <div className="mt-3 rounded-xl border border-white/10 bg-white/5 p-3">
-    <div className="text-[11px] font-semibold uppercase tracking-wide text-white/60">
-      Transit snapshot (what’s active)
-    </div>
-    <ul className="mt-2 list-disc pl-5 text-sm text-white/85">
-      {transitNow.slice(0, 6).map((p: any, i: number) => (
-        <li key={i}>
-          {p?.name} in {p?.sign}
-          {p?.house ? ` (H${p.house})` : ""}
-        </li>
-      ))}
-    </ul>
-  </div>
-)}
-
-
-  {/* Focus areas (like 14d cards) */}
-  {Array.isArray(plan.now3Days.focusAreas) && plan.now3Days.focusAreas.length > 0 && (
-    <div className="mt-3 grid gap-2 md:grid-cols-2">
-      {plan.now3Days.focusAreas.slice(0, 6).map((a: any, i: number) => (
-        <div key={i} className="rounded-xl border border-white/10 bg-white/5 p-3">
-          <div className="text-sm font-semibold text-white/90">{a?.area}</div>
-          <div className="mt-1 text-xs text-white/70">{a.why}</div>
-        </div>
-      ))}
-    </div>
-  )}
-
-  {/* If no focusAreas exist yet, fallback to themes */}
-  {(!Array.isArray(plan.now3Days.focusAreas) || plan.now3Days.focusAreas.length === 0) &&
-    Array.isArray(plan.now3Days.themes) && plan.now3Days.themes.length > 0 && (
-      <div className="mt-4">
-        <div className="text-[11px] font-semibold uppercase tracking-wide text-white/60">
-          Themes (keep simple)
-        </div>
-        <ul className="mt-2 list-disc pl-5 text-sm text-white/85">
-          {plan.now3Days.themes.slice(0, 4).map((x: string, i: number) => (
-            <li key={i}>{x}</li>
-          ))}
-        </ul>
-      </div>
-    )}
-
-  {/* Likely scenarios */}
-  {Array.isArray(plan.now3Days.likelyScenarios) && plan.now3Days.likelyScenarios.length > 0 && (
-    <div className="mt-4">
-      <div className="text-[11px] font-semibold uppercase tracking-wide text-white/60">
-        Likely scenarios (what may show up)
-      </div>
-      <ul className="mt-2 list-disc pl-5 text-sm text-white/85">
-        {plan.now3Days.likelyScenarios.slice(0, 5).map((x: string, i: number) => (
-          <li key={i}>{x}</li>
-        ))}
-      </ul>
-    </div>
-  )}
-
-  {/* Do now / Don't do (tight) */}
-  <div className="mt-4 grid gap-3 md:grid-cols-2">
-    <div className="rounded-xl border border-emerald-400/20 bg-emerald-500/10 p-3">
-      <div className="text-[11px] font-semibold uppercase tracking-wide text-emerald-100/90">
-        Do now
-      </div>
-      <ul className="mt-2 list-disc pl-5 text-sm text-white/85">
-        {(plan.now3Days.do ?? []).slice(0, 4).map((x: unknown, i: number) => (
-  <li key={i}>{bulletText(x)}</li>
-))}
-      </ul>
-    </div>
-
-    <div className="rounded-xl border border-red-400/20 bg-red-500/10 p-3">
-      <div className="text-[11px] font-semibold uppercase tracking-wide text-red-100/90">
-        Don't do
-      </div>
-      <ul className="mt-2 list-disc pl-5 text-sm text-white/85">
-        {(plan.now3Days.avoid ?? []).slice(0, 4).map((x: unknown, i: number) => (
-  <li key={i}>{bulletText(x)}</li>
-))}
-      </ul>
-    </div>
-  </div>
-
-  {/* 10-min reset */}
-  {Array.isArray(plan.now3Days.remedies) && plan.now3Days.remedies.length > 0 && (
-    <div className="mt-4 rounded-xl border border-white/10 bg-indigo-950/40 p-3">
-      <div className="text-[11px] font-semibold uppercase tracking-wide text-white/60">
-        10-minute reset (optional)
-      </div>
-      <ul className="mt-2 list-disc pl-5 text-sm text-white/85">
-        {plan.now3Days.remedies.slice(0, 3).map((x: string, i: number) => (
-          <li key={i}>{x}</li>
-        ))}
-      </ul>
-    </div>
-  )}
-</div>
-
+     
       {/* NEXT 14 DAYS */}
       <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
         <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
@@ -6811,17 +6779,23 @@ if (Number.isFinite(moonHouseN) && moonHouseN >= 1 && moonHouseN <= 12) {
               </div>
             </div>
 
-            <div className="mt-3 text-xs text-white/60">
-              Full Plan adds: exact dates + why this bucket is active with chart evidence.
-            </div>
+            {!isFull && (
+  <div className="mt-3 text-xs text-white/60">
+    Full Plan adds: exact dates + why this bucket is active with chart evidence.
+  </div>
+)}
+
             {/* Signature Insight (Pro mic-drop) */}
 <Locked title="Your signature insight (right now)">
   <div className="text-sm text-white/85 leading-relaxed">
     {buildSignatureInsightX(report)}
   </div>
+  {!isFull && (
   <div className="mt-3 text-xs text-white/60">
     Full Plan adds: dated windows + why evidence for each insight.
   </div>
+)}
+
 </Locked>
 {/* 4) ENERGY & EMOTIONAL RULES */}
 <Locked title="Energy & emotional rules (to stay steady)">
@@ -6831,37 +6805,79 @@ if (Number.isFinite(moonHouseN) && moonHouseN >= 1 && moonHouseN <= 12) {
     ))}
   </ul>
 </Locked>
-
           </div>
-       </>
+
+         {/* FULL GUIDANCE: single clean gate */}
+{isFull ? (
+  <div className="mt-6">
+    <TabFullPlan
+      report={report}
+      mounted={mounted}
+      isFull={true}
+      dailyHighlights={(report as any)?.dailyHighlights ?? []}
+      dailyLoading={false}
+      dailyError={null}
+      notificationsPreview={(report as any)?.previewNotifications ?? null}
+      dashaTimeline={(report as any)?.dashaTimeline ?? null}
+    />
+  </div>
+) : (
+  <Locked title="Full Guidance (locked)">
+    <div className="text-sm text-white/80 leading-relaxed">
+      Unlock Full Guidance to see your complete roadmap: deeper personalization,
+      stronger timing windows, and the full decision layer.
+    </div>
+
+    <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+      <Button onClick={unlockFullDev} className="w-full sm:w-auto">
+  Unlock Full Guidance
+</Button>
+
+      <Link href="/sarathi/chat" className="w-full sm:w-auto">
+        <Button
+          variant="outline"
+          className="w-full sm:w-auto border-white/20 hover:bg-white/10 text-white"
+        >
+          Ask Sarathi
+        </Button>
+      </Link>
+    </div>
+  </Locked>
+)}
+
+        </>
       ) : null}
 
-      {/* Final CTA */}
-      <div className="rounded-2xl border border-white/15 bg-white/5 p-4">
-        <div className="text-sm font-semibold text-slate-100">
-          Want the complete picture?
-        </div>
-        <div className="mt-1 text-sm text-white/70">
-          Full Plan unlocks exact dated windows, deeper personalization, and day-by-day guidance across life areas.
-        </div>
-        <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-          <Link href="/sarathi/upgrade" className="w-full sm:w-auto">
-            <Button className="w-full sm:w-auto">Unlock Full Guidance</Button>
-          </Link>
-          <Link href="/sarathi/chat" className="w-full sm:w-auto">
-            <Button
-              variant="outline"
-              className="w-full sm:w-auto border-white/20 hover:bg-white/10 text-white"
-            >
-              Ask Sarathi
-            </Button>
-          </Link>
-        </div>
-      </div>
+      {/* Final CTA (only for non-Pro) */}
+      {!isFull && (
+        <>
+          <div className="rounded-2xl border border-white/15 bg-white/5 p-4">
+            <div className="text-sm font-semibold text-slate-100">
+              Want the complete picture?
+            </div>
+            <div className="mt-1 text-sm text-white/70">
+              Full Plan unlocks exact dated windows, deeper personalization, and day-by-day guidance across life areas.
+            </div>
+            <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+              <Button onClick={unlockFullDev} className="w-full sm:w-auto">
+  Unlock Full Guidance
+</Button>
+              <Link href="/sarathi/chat" className="w-full sm:w-auto">
+                <Button
+                  variant="outline"
+                  className="w-full sm:w-auto border-white/20 hover:bg-white/10 text-white"
+                >
+                  Ask Sarathi
+                </Button>
+              </Link>
+            </div>
+          </div>
 
-      <div className="mt-6 text-center text-xs text-white/50">
-        This guidance evolves as your cycles shift. Revisit anytime to realign with what matters most.
-      </div>
+          <div className="mt-6 text-center text-xs text-white/50">
+            This guidance evolves as your cycles shift. Revisit anytime to realign with what matters most.
+          </div>
+        </>
+      )}
     </div>
   );
 };
@@ -6869,7 +6885,7 @@ if (Number.isFinite(moonHouseN) && moonHouseN >= 1 && moonHouseN <= 12) {
 type TabFullPlanProps = {
   report: LifeReportView | null;
   mounted: boolean;
-  isPro: boolean;
+  isFull: boolean;
   dailyHighlights: DailyHighlight[];
   dailyLoading: boolean;
   dailyError: string | null;
@@ -6931,47 +6947,73 @@ const LifeReportShell: React.FC<LifeReportShellProps> = ({
     return null;
   });
 
-  const [activeTab, setActiveTab] = useState("overview");
+type LifeTab = "overview" | "phases" | "now" | "advanced" | "full";
+const [activeTab, setActiveTab] = useState<LifeTab>("overview");
+
+  
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
   setMounted(true);
 }, []);
   const router = useRouter();
 const pathname = usePathname();
-const setTabFromUrl = useCallback(
-  (t: "overview" | "phases" | "now" | "advanced" | "full") => {
-    setActiveTab(t);
-  },
-  []
-);
-const isPro =
-  mounted &&
-  typeof window !== "undefined" &&
-  String(window.localStorage.getItem("sarathi_plan") || "free").toLowerCase() === "pro";
+const setTabFromUrl = useCallback((t: LifeTab) => {
+  setActiveTab(t);
+}, []);
 
-    // Read ?tab= from URL on first mount (deep-link to a tab)
-// Read ?tab= from URL on first mount (deep-link to a tab)
+// ---------------- Plan gating (reactive) ----------------
+type PlanTier = "free" | "advanced" | "full";
+
+const [planTier, setPlanTier] = useState<PlanTier>("free");
+
+// read localStorage once mounted (and whenever mounted flips true)
 useEffect(() => {
+  if (!mounted || typeof window === "undefined") return;
+
+  const raw = String(localStorage.getItem("sarathi_plan") || "free").toLowerCase();
+  const tier: PlanTier =
+    raw === "full" || raw === "advanced" || raw === "free" ? (raw as PlanTier) : "free";
+
+  setPlanTier(tier);
+}, [mounted]);
+const isFull = planTier === "full";
+
+const devUnlockFull =
+  mounted && typeof window !== "undefined"
+    ? localStorage.getItem("sarathi_dev_full") === "1"
+    : false;
+
+const canSeeFull = isFull || devUnlockFull;
+
+const unlockFullDev = useCallback(() => {
   if (typeof window === "undefined") return;
+
+  console.log("[unlockFullDev] clicked");
+  localStorage.setItem("sarathi_plan", "full");
+  setPlanTier("full");
+  setActiveTab("full");
+}, [setPlanTier, setActiveTab]);
+
+// ---------------- Deep-link ?tab=... ----------------
+useEffect(() => {
+  if (!mounted || typeof window === "undefined") return;
 
   try {
     const sp = new URLSearchParams(window.location.search);
     const t = (sp.get("tab") || "").toLowerCase();
 
-    if (
-  t === "overview" ||
-  t === "phases" ||
-  t === "now" ||
-  t === "advanced" ||
-  t === "full"
-) {
-  setTabFromUrl(t as any);
-}
-
+    if (t === "overview" || t === "phases" || t === "now" || t === "full") {
+      // Only allow "full" if paid (or dev override)
+      if (t === "full" && !canSeeFull) {
+        setTabFromUrl("overview");
+      } else {
+        setTabFromUrl(t as any);
+      }
+    }
   } catch {
     // ignore
   }
-}, []);
+}, [mounted, canSeeFull, setTabFromUrl]);
 
 
   const [dashaTimeline, setDashaTimeline] = useState<any[] | null>(null);
@@ -7319,18 +7361,39 @@ const todaysFocus = useMemo(
     } catch {}
   }, []);
 
-  // Clear report when inputs change
-  useEffect(() => {
-  setReport(null);
-  setActiveTab("overview");
+  // ✅ Clear report ONLY when the user is actively editing inputs
+// (NOT when app internals re-set tz/place after generation)
+const lastInputsKeyRef = useRef<string>("");
+
+useEffect(() => {
+  const key = [
+    dateISO || "",
+    time || "",
+    tz || "",
+    String(place?.lat ?? ""),
+    String(place?.lon ?? ""),
+  ].join("|");
+
+  // first run: just store
+  if (!lastInputsKeyRef.current) {
+    lastInputsKeyRef.current = key;
+    return;
+  }
+
+  // only clear if the inputs REALLY changed
+  if (key !== lastInputsKeyRef.current) {
+    lastInputsKeyRef.current = key;
+    setReport(null);
+    // keep tab as-is (don’t jump to overview)
+  }
 }, [dateISO, time, tz, place?.lat, place?.lon]);
+
 
 // Ensure activeTab is always valid (prevents blank screen)
 useEffect(() => {
-  const allowed = new Set(["overview", "phases", "now", "advanced"]);
+  const allowed = new Set(["overview", "phases", "now", "advanced", "full"] as const);
   if (!allowed.has(activeTab as any)) setActiveTab("overview");
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-}, []);
+}, [activeTab]);
 
 
 
@@ -7691,10 +7754,13 @@ const birthInstant = makeUtcInstant(
   plan: (data as any)?.plan ?? undefined,
     };
 
-    const moonNakFinal =
-      next.panchang?.moonNakshatraName ??
-      next.moonNakshatraName ??
-      derivedMoonNakshatra;
+    // Gold standard: "Now" should always win (Moon changes intraday)
+const moonNakFinal =
+  (next as any)?.moonNow?.nakshatra ??
+  (next as any)?.moonNow?.moonNakshatra ?? // (defensive if shape differs)
+  next.panchang?.moonNakshatraName ??
+  next.moonNakshatraName ??
+  derivedMoonNakshatra;
 
     next.planets = (next.planets || []).map((pl) => {
       if (
@@ -8180,10 +8246,18 @@ const dayInputs = (dailyMoon || []).slice(0, 7).map((m: any, idx: number) => {
 
 // Facts (for AI input only)
 
-// Moon context (make this impossible to misread)
-if (m?.moonNakshatra) {
-  facts.push(`Transit Moon nakshatra: ${m.moonNakshatra}`);
+const moonNakNow =
+  (next as any)?.moonNow?.nakshatra ||
+  (next as any)?.moonNow?.moonNakshatra ||
+  next.panchang?.moonNakshatraName ||
+  next.moonNakshatraName ||
+  derivedMoonNakshatra ||
+  null;
+
+if (moonNakNow) {
+  facts.push(`Moon-nakshatra-now: ${moonNakNow}`);
 }
+
 
 if (typeof moonFrom === "number") {
   facts.push(`Moon-from-natal-Moon: ${moonFrom}`); 
@@ -8942,12 +9016,14 @@ const TabPlacements = () => {
   const findP = (name: string) =>
     plsAll.find((p) => String(p?.name ?? "").trim().toLowerCase() === name);
 
-  const getMoonNakName = () =>
-    (report as any).panchangToday?.moonNakshatraName ??
-    (report as any).panchangToday?.nakshatraName ??
-    (report as any).panchangToday?.nakshatra?.name ??
-    report.panchang?.moonNakshatraName ??
-    "";
+ const getMoonNakName = () =>
+  (report as any)?.moonNow?.nakshatra ||
+  (report as any)?.moonNow?.moonNakshatra ||
+  (report as any)?.panchangToday?.moonNakshatraName ||
+  report?.panchang?.moonNakshatraName ||
+  report?.moonNakshatraName ||
+  null;
+
 
   const moonRow = findP("moon");
   const sunRow = findP("sun");
@@ -9094,7 +9170,7 @@ const TabPlacements = () => {
                   </div>
 
                   <div>
-                    <span className="font-medium">Moon Nakshatra:</span> {moonNak || ""}
+                    <span className="font-medium">Moon Nakshatra (today’s mood):</span> {moonNak || ""}
                   </div>
                 </div>
               );
@@ -10183,9 +10259,6 @@ window.localStorage.removeItem("sarathi.lifeReportCache.v2");
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-8 md:py-12">
-      <Suspense fallback={null}>
-      <TabFromUrl onTab={setTabFromUrl} />
-    </Suspense>
       <Card className="rounded-2xl border border-white/15 bg-indigo-950/40 backdrop-blur-md shadow-xl shadow-[0_0_30px_rgba(99,102,241,0.10)]">
         <CardHeader>
           <CardTitle className="text-xl font-semibold">
@@ -10321,8 +10394,9 @@ router.replace(`${pathname}?${sp.toString()}`, { scroll: false });
   <TabsTrigger value="overview">Overview</TabsTrigger>
   <TabsTrigger value="phases">Life Phases</TabsTrigger>
   <TabsTrigger value="now">Now & Near Future</TabsTrigger>
-  <TabsTrigger value="advanced">Advanced - Pro</TabsTrigger>
-  <TabsTrigger value="full">Full Plan </TabsTrigger>
+  <TabsTrigger value="advanced">Full Guidance</TabsTrigger>
+
+
 </TabsList>
 
         </Tabs>
@@ -10381,12 +10455,13 @@ router.replace(`${pathname}?${sp.toString()}`, { scroll: false });
 )}
 
 
-     {/* ADVANCED = premium deep insights (conversion page) */}
-  {activeTab === "advanced" && (
+    {/* ADVANCED = premium deep insights (conversion page) */}
+{activeTab === "advanced" && (
   <TabAdvanced
     report={report}
     mounted={mounted}
-    isPro={isPro}
+    isFull={canSeeFull}             // ✅ change isFull -> canSeeFull
+    onUnlockFull={unlockFullDev}    // ✅ add this line
     timelineSummary={timelineSummary}
     dashaTransitSummary={dashaTransitSummary}
     transits={(report as any)?.transits ?? transits ?? []}
@@ -10394,20 +10469,7 @@ router.replace(`${pathname}?${sp.toString()}`, { scroll: false });
   />
 )}
 
-  {activeTab === "full" && (
-  <TabFullPlan
-    report={report}
-    mounted={mounted}
-    isPro={isPro}
-    dailyHighlights={dailyHighlights}
-    dailyLoading={dailyLoading}
-    dailyError={dailyError}
-    notificationsPreview={notificationsPreview}
-     dashaTimeline={dashaTimeline} 
-  />
-)}
-
-
+  
 </div>
 
     </main>
@@ -10418,14 +10480,14 @@ router.replace(`${pathname}?${sp.toString()}`, { scroll: false });
 const TabFullPlan: React.FC<TabFullPlanProps> = ({
   report,
   mounted,
-  isPro,
+  isFull,
   dailyHighlights,
   dailyLoading,
   dailyError,
   notificationsPreview,
   dashaTimeline,
 }) => {
-   const isPreview = !isPro;
+   const isPreview = !isFull;
   if (!mounted) {
     return (
       <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-white/70">
@@ -10874,7 +10936,7 @@ const topToday = topActiveTransitsForToday(hitsToday, todayISOTransit, 5);
         return sentenceCase(trimToSentence(toWeekTone(base).replace(/^Over the next 7 days:\s*/i, "Watch for: "), 190));
       })();
 
-      // Next 46 weeks: build a strategic phase box
+      // Next 4-6 weeks: build a strategic phase box
       const phase = (() => {
         const theme = sentenceCase(trimToSentence(toPhaseTone(clean(weekTheme) || weekThemeBase), 240));
 
@@ -11307,10 +11369,10 @@ const timing = (() => {
             </div>
           </details>
 
-          {/* 5) Next 46 weeks */}
+          {/* 5) Next 4-6 weeks */}
           <details className="rounded-2xl border border-white/15 bg-white/5 p-4">
             <summary className="cursor-pointer list-none">
-              <div className="text-sm font-semibold text-slate-100">Next 46 weeks</div>
+              <div className="text-sm font-semibold text-slate-100">Next 4-6 weeks</div>
               <div className="mt-1 text-xs text-white/60">The broader direction your energy is moving toward  not daily noise.</div>
             </summary>
 

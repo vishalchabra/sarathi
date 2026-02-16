@@ -788,7 +788,31 @@ transitPlanets: transitNow, // keep legacy UI key working
     // ----------------------------
     // 13) Now/Near-future plan (AI)
     // ----------------------------
-    const nowPlan = await buildNowNearFuturePlan(enrichedWithDaily);
+    // ----------------------------
+// 13) Decision Intelligence (90d) — cached
+// ----------------------------
+const decision90Key = `decision90:v1:${baseKey}`;
+
+// 30 days cache
+const DECISION_TTL_SEC = 60 * 60 * 24 * 30;
+
+let nowPlan: any = null;
+
+if (process.env.NODE_ENV === "production") {
+  const cachedPlan = await cacheGet<any>(decision90Key);
+  if (cachedPlan) {
+    nowPlan = cachedPlan;
+  } else {
+    nowPlan = await buildNowNearFuturePlan(enrichedWithDaily);
+    if (nowPlan) await cacheSet(decision90Key, nowPlan, DECISION_TTL_SEC);
+  }
+} else {
+  // dev: always regenerate
+  nowPlan = await buildNowNearFuturePlan(enrichedWithDaily);
+}
+
+console.log("[life-report] nowPlan generated?", !!nowPlan, "headline:", nowPlan?.headline);
+
     console.log("[life-report] nowPlan generated?", !!nowPlan, "headline:", nowPlan?.headline);
 
     // ----------------------------
