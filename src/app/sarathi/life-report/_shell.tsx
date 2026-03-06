@@ -11281,7 +11281,10 @@ function TabFullPlan({
 
   const mindState =
     String(currentLife?.mindState ?? "").trim() || "";
-
+  const phaseTruth =
+  String(currentLife?.phaseTruth ?? "").trim() || "";
+  const oneDecision =
+  String(currentLife?.oneDecision ?? "").trim() || "";
   const areas: any[] = Array.isArray(currentLife?.areas)
     ? currentLife.areas
     : Array.isArray(currentLife?.snapshot)
@@ -11303,12 +11306,17 @@ function TabFullPlan({
     : [];
 
   const nextShift = fg?.nextShift ?? null;
-  const strongestShift = fg?.strongestShift ?? null;
 
   const remedies = fg?.remedies ?? null;
   const weekly = Array.isArray(fg?.weeklyPlaybook) ? fg.weeklyPlaybook : [];
   const chatPrompts = Array.isArray(fg?.chatPrompts) ? fg.chatPrompts : [];
-
+  const probabilities = Array.isArray(fg?.probabilities)
+  ? fg.probabilities
+  : [];
+  const strategicFocus = fg?.strategicFocus ?? null;
+  const turningPoints = Array.isArray(fg?.turningPoints) ? fg.turningPoints : [];
+const turningPointsTitle =
+  turningPoints.length >= 2 ? "Your Next 3 Turning Points" : "Your Next Turning Point";
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -11319,14 +11327,18 @@ function TabFullPlan({
         <div className="mt-1 text-lg font-semibold text-slate-100">
           {phase || "Current phase"}
         </div>
-        <div className="mt-3 text-sm text-white/80 leading-relaxed">
-          You are in a phase of pressure, definition, and visible consequence. This reading shows where life is tightening, where it is opening, and what the next clear turn looks like.
-        </div>
-        {overview ? (
-          <div className="mt-3 text-sm text-white/80 leading-relaxed">
-            {overview}
-          </div>
-        ) : null}
+       <div className="mt-3 text-sm text-white/80 leading-relaxed">
+  You are entering a phase where life becomes more defined. Work begins 
+  to demand precision, relationships begin to demand clarity, and the 
+  difference between discipline and distraction becomes visible quickly.
+</div>
+
+<div className="mt-2 text-sm text-white/70 leading-relaxed">
+  This reading explains what is happening in your life right now, what 
+  begins to change next, and how to move through this phase with more 
+  clarity and fewer mistakes.
+</div>
+        
       </div>
 
       {/* Current Life Chapter */}
@@ -11341,7 +11353,23 @@ function TabFullPlan({
             {mindState}
           </div>
         ) : null}
+       {phaseTruth ? (
+  <div className="mt-3 text-sm text-white/80 leading-relaxed">
+    <span className="text-white/60 font-semibold">Truth of this phase:</span>{" "}
+    {phaseTruth}
+  </div>
+) : null}
 
+{oneDecision ? (
+  <div className="mt-3 rounded-xl border border-white/10 bg-white/5 p-3">
+    <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+      The one decision that changes this phase
+    </div>
+    <div className="mt-1 text-sm text-white/80 leading-relaxed">
+      {oneDecision}
+    </div>
+  </div>
+) : null}
         {areas.length ? (
           <div className="mt-4 grid gap-3 md:grid-cols-2">
             {areas.slice(0, 5).map((a: any, i: number) => {
@@ -11415,7 +11443,24 @@ function TabFullPlan({
           </div>
         ) : null}
       </div>
+{probabilities.length ? (
+  <div className="rounded-2xl border border-white/15 bg-white/5 p-5">
+    <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+      Probability of Major Themes (Next 90 Days)
+    </div>
 
+    <div className="mt-3 space-y-2">
+      {probabilities.slice(0, 5).map((p: any, i: number) => (
+        <div key={i} className="flex items-center justify-between text-sm">
+          <span className="text-white/80">{p.label}</span>
+          <span className="text-slate-100 font-semibold">
+            {p.probability}%
+          </span>
+        </div>
+      ))}
+    </div>
+  </div>
+) : null}
       {/* The Next Turn */}
       {nextShift ? (
         <div className="rounded-2xl border border-white/15 bg-white/5 p-5">
@@ -11475,7 +11520,65 @@ function TabFullPlan({
           ) : null}
         </div>
       ) : null}
+      {turningPoints.length ? (
+  <div className="rounded-2xl border border-white/15 bg-white/5 p-5">
+    <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+      {turningPointsTitle}
+    </div>
+    <div className="mt-2 text-sm text-white/70">
+      These are the next meaningful moments where the phase begins to show itself more clearly.
+    </div>
 
+    <div className="mt-4 space-y-3">
+      {turningPoints.slice(0, 3).map((tp: any, i: number) => (
+        <div key={i} className="rounded-xl border border-white/10 bg-white/5 p-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="text-sm font-semibold text-slate-100">
+              {tp.title}
+            </div>
+            <div className="text-xs text-white/60">
+              {String(tp.dateISO).slice(0, 10)}
+            </div>
+          </div>
+
+          {tp.meaning ? (
+            <div className="mt-2 text-sm text-white/80 leading-relaxed">
+              {tp.meaning}
+            </div>
+          ) : null}
+
+          {tp.action ? (
+            <div className="mt-2 text-xs text-white/70">
+              <span className="text-white/60 font-semibold">Best response:</span>{" "}
+              {tp.action}
+            </div>
+          ) : null}
+        </div>
+      ))}
+    </div>
+  </div>
+) : null}
+{strategicFocus ? (
+  <div className="rounded-2xl border border-white/15 bg-white/5 p-5">
+    <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+      {String(strategicFocus.title ?? "Your Strategic Focus for the Next 90 Days")}
+    </div>
+
+    {strategicFocus?.text ? (
+      <div className="mt-2 text-sm text-white/80 leading-relaxed">
+        {String(strategicFocus.text)}
+      </div>
+    ) : null}
+
+    {Array.isArray(strategicFocus?.bullets) && strategicFocus.bullets.length ? (
+      <ul className="mt-4 space-y-1 text-sm text-white/80">
+        {strategicFocus.bullets.slice(0, 3).map((x: string, i: number) => (
+          <li key={i}>• {x}</li>
+        ))}
+      </ul>
+    ) : null}
+  </div>
+) : null}
       {/* Your Next 4 Weeks */}
       {weekly.length ? (
         <div className="rounded-2xl border border-white/15 bg-white/5 p-5">

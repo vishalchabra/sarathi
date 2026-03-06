@@ -94,7 +94,7 @@ function astrologerShiftNarrative(domain: string, headline: string, mode: "next"
 
   if (domain === "Relationships") {
     return mode === "next"
-      ? `This is when the relationship matter that has stayed half-clear will no longer remain vague. A conversation, a behavioural shift, or emotional distance will force definition. You will either move toward clarity, or you will see clearly why distance is healthier than confusion. ${h}`.trim()
+      ? `This is when the relationship matter that has stayed half-clear can no longer remain vague. A conversation, a change in behaviour, or emotional distance forces definition. What has been tolerated quietly now asks to be named clearly. ${h}`.trim()
       : `This is the strongest relationship wave ahead. Bonds become more defining here: commitment deepens, expectations are spoken, or unclear dynamics finally show their limit. What has been emotionally tolerated may now need a firm decision. ${h}`.trim();
   }
 
@@ -286,14 +286,15 @@ for (const s of preds90Lite) {
 }
   const domains = (["Career", "Relationships", "Health", "Money", "Inner"] as GuidanceDomain[])
   .map((d) => {
+    
     const p = bestByDomain.get(d) ?? null;
-
+  
     const score = clamp(Number(p?.score ?? 50));
-
+    
     const headline =
       String(p?.headline ?? "").trim() ||
       "No strong window detected — stay steady and avoid forcing outcomes.";
-
+    
     // ✅ Evidence: use scenario-lite fields only (no fluff)
     // priority: WHY → SIGN → DO
     const whyTop2 = (() => {
@@ -348,7 +349,24 @@ return {
 };
   });
 
-  
+const probabilityLabelByDomain: Record<string, string> = {
+  Career: "Career movement",
+  Relationships: "Relationship clarity",
+  Health: "Health correction",
+  Money: "Money stabilisation",
+  Inner: "Inner reset",
+};
+
+const probabilities = (Array.isArray(domains) ? domains : [])
+  .map((d: any) => {
+    const domain = String(d?.domain ?? "");
+    return {
+      domain,
+      label: probabilityLabelByDomain[domain] || domain,
+      probability: Math.round(Number(d?.score ?? 50)),
+    };
+  })
+  .sort((a: any, b: any) => b.probability - a.probability);
   // pick a “main theme” from best career/overall 90d
   const top90 = preds90
     .slice()
@@ -461,6 +479,48 @@ const highlights90d = pickHighlights(
   candidates90.slice().sort((a, b) => b.score - a.score),
   3
 );
+// ----------------- Next 3 Turning Points -----------------
+
+const turningPointTitle = (domain: string, headline: string) => {
+  if (domain === "Career") return "Work visibility / responsibility shift";
+  if (domain === "Relationships") return "Relationship clarity / definition";
+  if (domain === "Health") return "Health / routine correction point";
+  if (domain === "Money") return "Money control / leakage check";
+  return "Inner reset / simplification point";
+};
+
+const turningPointMeaning = (domain: string, headline: string) => {
+  if (domain === "Career") {
+    return "A moment where work becomes easier to define, show, or claim properly.";
+  }
+  if (domain === "Relationships") {
+    return "A moment where vagueness becomes harder to carry and clarity starts pushing forward.";
+  }
+  if (domain === "Health") {
+    return "A moment where the body shows clearly whether routine is helping or hurting.";
+  }
+  if (domain === "Money") {
+    return "A moment where repeated leaks or better control become more visible.";
+  }
+  return "A moment where inner noise asks to be simplified rather than ignored.";
+};
+
+const turningPoints = (Array.isArray(candidates90) ? candidates90 : [])
+  .filter((x: any) => String(x?.fromISO ?? "") > todayISO)
+  .slice()
+  .sort((a: any, b: any) => String(a.fromISO).localeCompare(String(b.fromISO)))
+  .slice(0, 3)
+  .map((x: any) => ({
+    dateISO: String(x?.fromISO ?? "").slice(0, 10),
+    domain: String(x?.domain ?? "").trim(),
+    title: turningPointTitle(String(x?.domain ?? "").trim(), String(x?.headline ?? "").trim()),
+    meaning: turningPointMeaning(String(x?.domain ?? "").trim(), String(x?.headline ?? "").trim()),
+    headline: String(x?.headline ?? "").trim(),
+    action:
+      Array.isArray(x?.do) && x.do.length
+        ? String(x.do[0])
+        : winMove || "Move early and act with clarity.",
+  }));
 // ----------------- Next Shift (earliest) + Strongest Shift -----------------
 
 const futureHighlights = (Array.isArray(candidates90) ? candidates90 : [])
@@ -809,7 +869,10 @@ const topScenarioDo = (() => {
 })();
 
 const controlLever = String(paid?.controlLever ?? "").trim();
-
+const oneDecision =
+  controlLever ||
+  winMove ||
+  "Define your responsibilities clearly and stop carrying what is not yours.";
 const whatToDoNow = [
   controlLever && `Control lever: ${controlLever}`,
   winMove && `Win move: ${winMove}`,
@@ -1015,13 +1078,77 @@ const currentLifeAreas = [
 
 
 // Replace currentLife with richer, paid-worthy shape
+const phaseTruth =
+  "The truth of this phase is simple: progress is possible, but only if responsibility, boundaries, and discipline become cleaner than before.";
+
 const currentLifeRich = {
   title: theme ? `Current phase: ${theme}` : "Current phase",
   overview: currentLifeOverview,
   mindState: inferMindState(),
+  phaseTruth,
+  oneDecision,
   areas: currentLifeAreas,
   whyNow,
   whatToDoNow,
+};
+const topDomainNow =
+  (Array.isArray(domains) ? domains : [])
+    .slice()
+    .sort((a: any, b: any) => Number(b?.score ?? 0) - Number(a?.score ?? 0))[0] ?? null;
+
+const strategicFocusTitle =
+  topDomainNow?.domain === "Career"
+    ? "Your Strategic Focus for the Next 90 Days"
+    : topDomainNow?.domain === "Relationships"
+    ? "Your Strategic Focus for the Next 90 Days"
+    : topDomainNow?.domain === "Health"
+    ? "Your Strategic Focus for the Next 90 Days"
+    : topDomainNow?.domain === "Money"
+    ? "Your Strategic Focus for the Next 90 Days"
+    : "Your Strategic Focus for the Next 90 Days";
+
+const strategicFocusText = (() => {
+  const domain = String(topDomainNow?.domain ?? "").trim();
+
+  if (domain === "Career") {
+    return "Your best results come from defining work clearly, making output visible, and refusing silent over-carrying. This is not the phase to hope people notice on their own. It is the phase to show value properly and claim ownership cleanly.";
+  }
+
+  if (domain === "Relationships") {
+    return "Your peace will come from clarity, not from waiting. The more something stays vague, the heavier it feels. This is the phase to define expectations early, read behaviour honestly, and stop protecting confusion just to avoid discomfort.";
+  }
+
+  if (domain === "Health") {
+    return "Your strength in this phase comes from rhythm, not intensity. Small discipline done daily will help more than occasional effort. If you respect routine, the body supports you quickly. If you ignore it, the body creates the slowdown itself.";
+  }
+
+  if (domain === "Money") {
+    return "Your advantage now is not dramatic gain but cleaner control. Quiet leakage matters more than large expense. The phase improves when decisions are slower, verification is stronger, and repeated small waste is removed.";
+  }
+
+  return "Your progress in this phase comes from simplification. You do not need more stimulation or more scattered effort. You need cleaner priorities, less noise, and a more honest relationship with what is draining your attention.";
+})();
+
+const strategicFocusBullets = uniqStr([
+  winMove ? `Priority: ${winMove}` : "",
+  drainToCut ? `Main mistake to avoid: ${drainToCut}` : "",
+  nextShift?.domain === "Relationships"
+  ? "Next important turn: a relationship matter moves toward clarity and can no longer stay vague."
+  : nextShift?.domain === "Career"
+  ? "Next important turn: work visibility increases and role or ownership becomes easier to define."
+  : nextShift?.domain === "Health"
+  ? "Next important turn: the body starts showing clearly whether routine is helping or hurting."
+  : nextShift?.domain === "Money"
+  ? "Next important turn: financial leakage or control becomes easier to see."
+  : nextShift?.whatChanges
+  ? `Next important turn: ${String(nextShift.whatChanges).slice(0, 110)}`
+  : "",
+]).filter(Boolean).slice(0, 3);
+
+const strategicFocus = {
+  title: strategicFocusTitle,
+  text: strategicFocusText,
+  bullets: strategicFocusBullets,
 };
   return {
     version: "FG_V2",
@@ -1036,7 +1163,7 @@ const currentLifeRich = {
     },
 
     domains,
-
+    probabilities,
     next14d: next14dPacked,
     next30d: next30dPacked,
     next60d: next60dPacked,
@@ -1044,7 +1171,9 @@ const currentLifeRich = {
     highlights90d,
     currentLife: currentLifeRich,
 nextShift,
+turningPoints,
 strongestShift: strongestShiftFinal,
+strategicFocus,
 remedies,
 weeklyPlaybook,
 chatPrompts,
