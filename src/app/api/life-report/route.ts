@@ -12,7 +12,8 @@ import { buildDailyGuideFromCore } from "@/server/guides/daily-core";
 import { todayISOForNotificationTz } from "@/server/notifications/today";
 import { openai, GPT_MODEL } from "@/lib/ai";
 import type { TransitHit, DailyMoonRow } from "@/app/api/transits/route";
-
+import { buildFullGuidanceV2 } from "@/server/fullGuidance/buildFullGuidanceV2";
+import { buildPaidOutput } from "@/server/fullGuidance/buildPaidOutput";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -653,7 +654,7 @@ async function fetchTransitsForLifeReport(payload: any) {
 const transitsData = await fetchTransitsForLifeReport({
   birth: birthForTransits,
   horizonDays: 365,
-  ascDeg: report?.core?.ascDeg,
+  ascDeg: (enriched as any)?.core?.ascDeg ?? report?.core?.ascDeg,
   ascSign: lagnaSign,
 });
 
@@ -719,7 +720,7 @@ console.log("[life-report] dailyMoon:", dailyMoon.length, dailyMoon?.[0]);
     if (ap?.pratyantardasha) core.dashaStack.push(ap.pratyantardasha as any);
 
     const dailyGuide = await buildDailyGuideFromCore(core);
-
+   
     // ----------------------------
     // 10) Moon nakshatra "today fact" (from dailyMoon rows)
     // ----------------------------
@@ -811,29 +812,55 @@ if (process.env.NODE_ENV === "production") {
   nowPlan = await buildNowNearFuturePlan(enrichedWithDaily);
 }
 
-console.log("[life-report] nowPlan generated?", !!nowPlan, "headline:", nowPlan?.headline);
 
     console.log("[life-report] nowPlan generated?", !!nowPlan, "headline:", nowPlan?.headline);
-
+const transitNowFacts = Array.isArray(transitNow)
+  ? transitNow
+      .filter((p: any) => p?.name && p?.sign)
+      .map((p: any) => {
+        const h = Number(p?.house);
+        if (Number.isFinite(h)) return `${p.name} in ${p.sign} (H${h})`;
+        return `${p.name} in ${p.sign}`;
+      })
+      .slice(0, 12)
+  : [];
     // ----------------------------
     // 14) Response payload
     // ----------------------------
-    const payload = {
+    const payload: any = {
       ...enrichedWithDaily,
-
+     transitNowFacts,
       nowNearFuture: nowPlan,
       nowPlan,
 
       notificationFacts,
       previewNotifications,
-
       _cache: cacheFlag,
       _debugAsc: {
-        ascDeg: report?.core?.ascDeg,
-        ascSign: report?.core?.ascSign,
+        ascDeg: (enriched as any)?.core?.ascDeg ?? report?.core?.ascDeg,
+        ascSign: (enriched as any)?.core?.ascSign ?? report?.core?.ascSign,
       },
     };
 
+    // ✅ Ensure consistent todayISO inside payload (used by buildPaidOutput)
+    payload.todayISO = todayISO;
+
+   // Build paid output (source for FG_V2)
+const paidOut = buildPaidOutput(payload);
+
+// ✅ Use the real variables that exist in this file
+const activePeriods = (enriched as any)?.activePeriods ?? payload?.activePeriods ?? null;
+const paid = paidOut;
+
+const fullGuidanceV2 = buildFullGuidanceV2({
+  todayISO: String(todayISO ?? payload?.todayISO ?? new Date().toISOString().slice(0, 10)),
+  activePeriods,
+  paid,
+  topTransits: Array.isArray(topTransits) ? topTransits : [],
+  transitNowFacts: Array.isArray(transitNowFacts) ? transitNowFacts : [],
+});
+
+payload.fullGuidanceV2 = fullGuidanceV2;
     return NextResponse.json(deepCleanStrings(payload));
   } catch (e: any) {
     console.error("life-report API error:", e);

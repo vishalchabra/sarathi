@@ -40,6 +40,47 @@ type Row = {
 };
 
 function normalize(dasha: any): Row[] {
+  // ✅ Sarathi report.dasha shape adapter (from src/lib/astro.ts)
+  // dasha = { mdLord, mdStartISO, mdEndISO, ad: [{ lord, startISO, endISO, years }] }
+  if (dasha?.mdLord && Array.isArray(dasha?.ad)) {
+    const mdLabel = String(dasha.mdLord || "MD");
+    const mdStart = toISO(dasha?.mdStartISO);
+    const mdEnd = isoEnd(dasha?.mdEndISO);
+
+  const startVal =
+  mdStart ??
+  toISO(dasha?.ad?.[0]?.startISO) ??
+  "";
+
+const endVal =
+  mdEnd ??
+  isoEnd(dasha?.ad?.[dasha.ad.length - 1]?.endISO) ??
+  "";
+
+if (!startVal || !endVal) return [];
+
+const row: Row = {
+  label: mdLabel,
+  start: startVal,
+  end: endVal,
+  AD: [],
+};
+
+
+    for (const a of dasha.ad) {
+      const as = toISO(a?.startISO);
+      const ae = isoEnd(a?.endISO);
+      if (!as || !ae) continue;
+      row.AD.push({
+        label: String(a?.lord || "AD"),
+        start: as,
+        end: ae,
+      });
+    }
+
+    return [row].filter((r) => !!r.start && !!r.end);
+  }
+
   const raw: any[] =
     dasha?.MD ||
     dasha?.Md ||
@@ -51,6 +92,7 @@ function normalize(dasha: any): Row[] {
     dasha?.mahadashas ||
     dasha ||
     [];
+
   const rows: Row[] = [];
   for (const m of raw) {
     const s = toISO(m);
@@ -65,7 +107,7 @@ function normalize(dasha: any): Row[] {
     }
     rows.push(row);
   }
-  // sort by start
+
   rows.sort((a, b) => +new Date(a.start) - +new Date(b.start));
   return rows;
 }
