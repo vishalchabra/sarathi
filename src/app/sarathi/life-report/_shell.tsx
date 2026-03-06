@@ -11285,6 +11285,8 @@ function TabFullPlan({
   String(currentLife?.phaseTruth ?? "").trim() || "";
   const oneDecision =
   String(currentLife?.oneDecision ?? "").trim() || "";
+  const biggestMistake =
+  String(currentLife?.biggestMistake ?? "").trim() || "";
   const areas: any[] = Array.isArray(currentLife?.areas)
     ? currentLife.areas
     : Array.isArray(currentLife?.snapshot)
@@ -11306,7 +11308,7 @@ function TabFullPlan({
     : [];
 
   const nextShift = fg?.nextShift ?? null;
-
+  const mostLikelyNextEvent = fg?.mostLikelyNextEvent ?? null;
   const remedies = fg?.remedies ?? null;
   const weekly = Array.isArray(fg?.weeklyPlaybook) ? fg.weeklyPlaybook : [];
   const chatPrompts = Array.isArray(fg?.chatPrompts) ? fg.chatPrompts : [];
@@ -11317,6 +11319,8 @@ function TabFullPlan({
   const turningPoints = Array.isArray(fg?.turningPoints) ? fg.turningPoints : [];
 const turningPointsTitle =
   turningPoints.length >= 2 ? "Your Next 3 Turning Points" : "Your Next Turning Point";
+  const lifeSummary =
+  String(currentLife?.lifeSummary ?? "").trim() || "";
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -11346,7 +11350,12 @@ const turningPointsTitle =
         <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
           Current Life Chapter
         </div>
-
+       {lifeSummary ? (
+  <div className="mt-2 text-sm text-white/80 leading-relaxed">
+    <span className="text-white/60 font-semibold">Life summary:</span>{" "}
+    {lifeSummary}
+  </div>
+) : null}
         {mindState ? (
           <div className="mt-3 text-sm text-white/80 leading-relaxed">
             <span className="text-white/60 font-semibold">What this feels like inside:</span>{" "}
@@ -11367,6 +11376,16 @@ const turningPointsTitle =
     </div>
     <div className="mt-1 text-sm text-white/80 leading-relaxed">
       {oneDecision}
+    </div>
+  </div>
+) : null}
+{biggestMistake ? (
+  <div className="mt-3 rounded-xl border border-white/10 bg-white/5 p-3">
+    <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+      The mistake that will cost you the most in this phase
+    </div>
+    <div className="mt-1 text-sm text-white/80 leading-relaxed">
+      {biggestMistake}
     </div>
   </div>
 ) : null}
@@ -11520,42 +11539,51 @@ const turningPointsTitle =
           ) : null}
         </div>
       ) : null}
-      {turningPoints.length ? (
+      {mostLikelyNextEvent ? (
   <div className="rounded-2xl border border-white/15 bg-white/5 p-5">
-    <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
-      {turningPointsTitle}
-    </div>
-    <div className="mt-2 text-sm text-white/70">
-      These are the next meaningful moments where the phase begins to show itself more clearly.
-    </div>
-
-    <div className="mt-4 space-y-3">
-      {turningPoints.slice(0, 3).map((tp: any, i: number) => (
-        <div key={i} className="rounded-xl border border-white/10 bg-white/5 p-3">
-          <div className="flex items-center justify-between gap-3">
-            <div className="text-sm font-semibold text-slate-100">
-              {tp.title}
-            </div>
-            <div className="text-xs text-white/60">
-              {String(tp.dateISO).slice(0, 10)}
-            </div>
-          </div>
-
-          {tp.meaning ? (
-            <div className="mt-2 text-sm text-white/80 leading-relaxed">
-              {tp.meaning}
-            </div>
-          ) : null}
-
-          {tp.action ? (
-            <div className="mt-2 text-xs text-white/70">
-              <span className="text-white/60 font-semibold">Best response:</span>{" "}
-              {tp.action}
-            </div>
-          ) : null}
+    <div className="flex items-center justify-between gap-3">
+      <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+        {String(mostLikelyNextEvent.title ?? "The event most likely to happen next")}
+      </div>
+      {mostLikelyNextEvent?.whenISO ? (
+        <div className="text-xs text-white/60">
+          {String(mostLikelyNextEvent.whenISO).slice(0, 10)}
         </div>
-      ))}
+      ) : null}
     </div>
+
+    {mostLikelyNextEvent?.event ? (
+      <div className="mt-2 text-sm text-white/80 leading-relaxed">
+        {String(mostLikelyNextEvent.event)}
+      </div>
+    ) : null}
+
+    {mostLikelyNextEvent?.whyLikely ? (
+      <div className="mt-3 text-sm text-white/70 leading-relaxed">
+        <span className="text-white/60 font-semibold">Why this is likely:</span>{" "}
+        {String(mostLikelyNextEvent.whyLikely)}
+      </div>
+    ) : null}
+
+    {Array.isArray(mostLikelyNextEvent?.signs) && mostLikelyNextEvent.signs.length ? (
+      <div className="mt-4">
+        <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+          Signs it has started
+        </div>
+        <ul className="mt-2 space-y-1 text-sm text-white/80">
+          {mostLikelyNextEvent.signs.slice(0, 3).map((x: string, i: number) => (
+            <li key={i}>• {x}</li>
+          ))}
+        </ul>
+      </div>
+    ) : null}
+
+    {mostLikelyNextEvent?.bestResponse ? (
+      <div className="mt-4 text-sm text-white/80 leading-relaxed">
+        <span className="text-white/60 font-semibold">Best response:</span>{" "}
+        {String(mostLikelyNextEvent.bestResponse)}
+      </div>
+    ) : null}
   </div>
 ) : null}
 {strategicFocus ? (

@@ -94,7 +94,7 @@ function astrologerShiftNarrative(domain: string, headline: string, mode: "next"
 
   if (domain === "Relationships") {
     return mode === "next"
-      ? `This is when the relationship matter that has stayed half-clear can no longer remain vague. A conversation, a change in behaviour, or emotional distance forces definition. What has been tolerated quietly now asks to be named clearly. ${h}`.trim()
+      ? `This is when the relationship matter you have been carrying without full clarity can no longer stay undefined. A conversation, a change in behaviour, or emotional distance forces the truth into the open. What has been tolerated quietly now asks for a decision. ${h}`.trim()
       : `This is the strongest relationship wave ahead. Bonds become more defining here: commitment deepens, expectations are spoken, or unclear dynamics finally show their limit. What has been emotionally tolerated may now need a firm decision. ${h}`.trim();
   }
 
@@ -860,7 +860,139 @@ const whyNow = uniqStr([
   ...themeDrivers.map((x) => `Driver: ${x}`),
   ...topWhyFacts.map((x) => `Signal: ${x}`),
 ]).filter(Boolean).slice(0, 4);
+const activeWhyText = uniqStr([
+  ...whyNow,
+  ...themeDrivers.map((x) => String(x)),
+  ...topWhyFacts.map((x) => String(x)),
+]).join(" • ").toLowerCase();
 
+const activeHouseFlags = {
+  h6: activeWhyText.includes("h6"),
+  h7: activeWhyText.includes("h7"),
+  h10: activeWhyText.includes("h10"),
+};
+
+const mostLikelyNextEvent = (() => {
+  const row = nextShift || strongestShiftFinal || null;
+  if (!row) return null;
+
+  const domain = String(row?.domain ?? "").trim();
+  const whenISO = String(row?.whenISO ?? "").slice(0, 10);
+  const watchFor = Array.isArray(row?.watchFor) ? row.watchFor : [];
+  const doArr = Array.isArray(row?.do) ? row.do : [];
+
+  const firstSignal =
+    watchFor.length > 0 ? String(watchFor[0]).trim() : "";
+
+  let event = "";
+  let whyLikely = "";
+
+  if (domain === "Career") {
+    if (activeHouseFlags.h10) {
+      event =
+        "A review, update, or stakeholder conversation that puts your work under clearer visibility is the most likely next event.";
+      whyLikely =
+        "Because career visibility is active, and work is moving from silent effort into visible evaluation or ownership.";
+    } else if (activeHouseFlags.h6) {
+      event =
+        "A recurring work problem or responsibility lands more clearly on your desk, forcing ownership or a process decision.";
+      whyLikely =
+        "Because work pressure is active through operational cleanup, and unresolved responsibilities are asking to be defined.";
+    } else {
+      event =
+        "A work discussion or decision that forces clearer role definition is the most likely next event.";
+      whyLikely =
+        "Because career is the strongest active theme and silent effort is becoming harder to sustain.";
+    }
+  } else if (domain === "Relationships") {
+    if (firstSignal) {
+      event =
+        "A direct conversation about expectations, commitment, or where this is going is the most likely next event.";
+    } else {
+      event =
+        "A change in tone, distance, or direct conversation that forces relationship clarity is the most likely next event.";
+    }
+
+    whyLikely =
+      "Because the relationship theme is moving from ambiguity into definition, and mixed signals are becoming harder to tolerate.";
+  } else if (domain === "Health") {
+    if (activeHouseFlags.h6) {
+      event =
+        "A clear body signal — through energy, digestion, sleep, or irritability — becomes the most likely next event.";
+      whyLikely =
+        "Because health and routine are strongly activated, and the body is responding quickly to rhythm.";
+    } else {
+      event =
+        "A noticeable shift in energy or routine tolerance becomes the most likely next event.";
+      whyLikely =
+        "Because the body is becoming less willing to absorb inconsistency quietly.";
+    }
+  } else if (domain === "Money") {
+    event =
+      "A spending pattern, repeated leakage, or a decision that needs verification becomes the most likely next event.";
+    whyLikely =
+      "Because money is moving through control rather than drama, and quiet waste is becoming more visible.";
+  } else {
+    event =
+      "A moment of mental overload, emotional flatness, or inner clarity becomes the most likely next event.";
+    whyLikely =
+      "Because inner pressure is building and simplification is becoming necessary.";
+  }
+
+  const bestResponse =
+    doArr.length
+      ? String(doArr[0])
+      : domain === "Career"
+      ? "Define ownership clearly and show the result, not just the effort."
+      : domain === "Relationships"
+      ? "Say what you want clearly and do not leave the situation half-open."
+      : domain === "Health"
+      ? "Correct routine immediately instead of waiting for a bigger signal."
+      : domain === "Money"
+      ? "Pause, verify, and cut the repeated leak before it grows."
+      : "Reduce noise and simplify before mental overload deepens.";
+
+  const signs = watchFor.length
+    ? watchFor.slice(0, 3)
+    : domain === "Relationships"
+    ? [
+        "A direct conversation begins around expectations or commitment.",
+        "A visible change in tone, effort, or consistency appears.",
+        "Silence starts feeling heavier than clarity.",
+      ]
+    : domain === "Career"
+    ? [
+        "Your work comes under clearer review or discussion.",
+        "Ownership or scope needs to be defined more directly.",
+        "A visible problem becomes an opportunity to step forward.",
+      ]
+    : domain === "Health"
+    ? [
+        "Sleep, energy, digestion, or irritability become easier to notice.",
+        "The body reacts quickly to better or worse rhythm.",
+        "Small corrections start helping more than force.",
+      ]
+    : domain === "Money"
+    ? [
+        "Repeated small spends become more noticeable.",
+        "A decision needs verification before commitment.",
+        "Relief comes once one leak is reduced.",
+      ]
+    : [
+        "Mental noise becomes harder to ignore.",
+        "You feel less tolerant of clutter or inconsistency.",
+        "Simplicity starts feeling more healing than stimulation.",
+      ];
+
+  return {
+    title: "The next real-life event most likely to happen",
+    event,
+    whenISO,
+    whyLikely,
+    signs,
+    bestResponse,
+  };
+})();
 // “what to do now” = winMove + 1 best action from top scenario + 1 boundary reminder
 const topScenarioDo = (() => {
   // best actionable do from the top90 row
@@ -873,6 +1005,7 @@ const oneDecision =
   controlLever ||
   winMove ||
   "Define your responsibilities clearly and stop carrying what is not yours.";
+ 
 const whatToDoNow = [
   controlLever && `Control lever: ${controlLever}`,
   winMove && `Win move: ${winMove}`,
@@ -932,6 +1065,7 @@ const chatPrompts = [
     prompt: "Give me remedies for my current phase: what to start now, what to continue for 30 days, and what to avoid.",
   },
 ];
+
 // ----------------- Current Life (paid voice) + Next Change -----------------
 
 const bestDomainList = (Array.isArray(domains) ? domains : [])
@@ -1080,22 +1214,52 @@ const currentLifeAreas = [
 // Replace currentLife with richer, paid-worthy shape
 const phaseTruth =
   "The truth of this phase is simple: progress is possible, but only if responsibility, boundaries, and discipline become cleaner than before.";
-
-const currentLifeRich = {
-  title: theme ? `Current phase: ${theme}` : "Current phase",
-  overview: currentLifeOverview,
-  mindState: inferMindState(),
-  phaseTruth,
-  oneDecision,
-  areas: currentLifeAreas,
-  whyNow,
-  whatToDoNow,
-};
 const topDomainNow =
   (Array.isArray(domains) ? domains : [])
     .slice()
     .sort((a: any, b: any) => Number(b?.score ?? 0) - Number(a?.score ?? 0))[0] ?? null;
+ const biggestMistake = (() => {
+  const domain = String(topDomainNow?.domain ?? "").trim();
 
+  if (domain === "Career") {
+    return "Doing work without defining ownership or visibility. If you carry responsibility silently, the burden grows faster than the recognition.";
+  }
+
+  if (domain === "Relationships") {
+    return "Allowing mixed signals to continue just to avoid discomfort. In this phase, vagueness becomes heavier the longer it survives.";
+  }
+
+  if (domain === "Health") {
+    return "Ignoring routine while trying to compensate with occasional intensity. The body in this phase responds to rhythm, not bursts of effort.";
+  }
+
+  if (domain === "Money") {
+    return "Ignoring small repeated leaks. Quiet financial erosion matters more than one dramatic expense right now.";
+  }
+
+  return "Allowing mental noise and scattered attention to continue without simplification.";
+})();
+const lifeSummary = (() => {
+  const domain = String(topDomainNow?.domain ?? "").trim();
+
+  if (domain === "Career") {
+    return "This is a phase where progress comes from defining your role clearly and refusing silent over-responsibility.";
+  }
+
+  if (domain === "Relationships") {
+    return "This is a phase where relationships move toward clarity — bonds either strengthen through honesty or loosen through truth.";
+  }
+
+  if (domain === "Health") {
+    return "This is a phase where routine becomes the foundation of stability and the body responds quickly to discipline.";
+  }
+
+  if (domain === "Money") {
+    return "This is a phase where financial stability improves through awareness, restraint, and removing quiet leakage.";
+  }
+
+  return "This is a phase where simplification and disciplined attention restore inner steadiness.";
+})();
 const strategicFocusTitle =
   topDomainNow?.domain === "Career"
     ? "Your Strategic Focus for the Next 90 Days"
@@ -1150,6 +1314,19 @@ const strategicFocus = {
   text: strategicFocusText,
   bullets: strategicFocusBullets,
 };
+
+const currentLifeRich = {
+  title: theme ? `Current phase: ${theme}` : "Current phase",
+  overview: currentLifeOverview,
+  lifeSummary,
+  mindState: inferMindState(),
+  phaseTruth,
+  oneDecision,
+  biggestMistake,
+  areas: currentLifeAreas,
+  whyNow,
+  whatToDoNow,
+};
   return {
     version: "FG_V2",
     generatedAtISO: new Date().toISOString(),
@@ -1171,6 +1348,7 @@ const strategicFocus = {
     highlights90d,
     currentLife: currentLifeRich,
 nextShift,
+mostLikelyNextEvent,
 turningPoints,
 strongestShift: strongestShiftFinal,
 strategicFocus,
