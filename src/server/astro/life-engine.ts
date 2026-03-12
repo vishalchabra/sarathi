@@ -433,13 +433,20 @@ const planetsWholeSign = (planetsRaw || []).map((p: any) => {
 });
 
 
-  /* 3) Panchang (FIX: don't use birthTime for "today" panchang) */
-  const fullPanchang: any = await getFullPanchang({
-    dobISO: todayISO,
-    tob: nowHHMM,
-    place: { tz: input.birthTz, lat: input.lat, lon: input.lon },
-  });
+  /* 3) Panchang */
+// Birth Panchang
+const birthPanchang: any = await getFullPanchang({
+  dobISO: input.birthDateISO,
+  tob: input.birthTime,
+  place: { tz: input.birthTz, lat: input.lat, lon: input.lon },
+});
 
+// Today's Panchang
+const fullPanchang: any = await getFullPanchang({
+  dobISO: todayISO,
+  tob: nowHHMM,
+  place: { tz: input.birthTz, lat: input.lat, lon: input.lon },
+});
   /* 4) Aspects */
   const aspects = computeAspects(planetsWholeSign);
 
@@ -450,6 +457,57 @@ const planetsWholeSign = (planetsRaw || []).map((p: any) => {
 const moonSid = typeof moonBirth?.siderealLongitude === "number"
   ? moonBirth.siderealLongitude
   : null;
+const sunBirth = (planetsWholeSign ?? []).find(
+  (p) => (p.name || "").toLowerCase() === "sun"
+);
+
+const sunSid =
+  typeof sunBirth?.siderealLongitude === "number"
+    ? sunBirth.siderealLongitude
+    : null;
+
+const birthWeekday = new Date(`${input.birthDateISO}T12:00:00Z`).toLocaleDateString(
+  "en-US",
+  { weekday: "long", timeZone: "UTC" }
+);
+
+const TITHI_NAMES = [
+  "Pratipada",
+  "Dwitiya",
+  "Tritiya",
+  "Chaturthi",
+  "Panchami",
+  "Shashthi",
+  "Saptami",
+  "Ashtami",
+  "Navami",
+  "Dashami",
+  "Ekadashi",
+  "Dwadashi",
+  "Trayodashi",
+  "Chaturdashi",
+  "Purnima",
+];
+
+let birthTithiName: string | null = null;
+if (sunSid !== null && moonSid !== null) {
+  const diff = wrap360(moonSid - sunSid);
+  const tithiIndex = Math.floor(diff / 12); // 0..29
+
+  if (tithiIndex < 15) {
+    const label = TITHI_NAMES[tithiIndex] ?? String(tithiIndex + 1);
+    birthTithiName = `Shukla ${label}`;
+  } else {
+    const krishnaIndex = tithiIndex - 15; // 0..14
+    const label =
+      krishnaIndex === 14
+        ? "Amavasya"
+        : TITHI_NAMES[krishnaIndex] ?? String(krishnaIndex + 1);
+    birthTithiName = `Krishna ${label}`;
+  }
+}
+
+const part = 360 / 27;
 
   /* 5) Vimshottari Mahadasha timeline */
   const dashaTimeline = await vimshottariMDTable({
@@ -532,107 +590,105 @@ const moonSid = typeof moonBirth?.siderealLongitude === "number"
 
     aspects,
 
-    panchang: {
-      ...fullPanchang,
+   panchang: {
+  ...birthPanchang,
 
-      tithiName: fullPanchang.tithiName || fullPanchang.tithi?.name || null,
-      yogaName: fullPanchang.yogaName || fullPanchang.yoga?.name || null,
-      karanaName: fullPanchang.karanaName || fullPanchang.karana?.name || null,
+  tithiName: birthPanchang.tithiName || birthPanchang.tithi?.name || null,
+  yogaName: birthPanchang.yogaName || birthPanchang.yoga?.name || null,
+  karanaName: birthPanchang.karanaName || birthPanchang.karana?.name || null,
 
-      moonNakshatraName:
-        planetsWholeSign.find((p: any) => p.name === "Moon")?.nakshatra ??
+  moonNakshatraName:
+    planetsWholeSign.find((p: any) => p.name === "Moon")?.nakshatra ??
+    birthPanchang.moonNakshatraName ??
+    birthPanchang.moon?.nakshatraName ??
+    birthPanchang.nakshatraName ??
+    null,
 
-        fullPanchang.moonNakshatraName ??
-        fullPanchang.moon?.nakshatraName ??
-        null,
+  weekday: birthPanchang.weekday || null,
+  meanings: birthPanchang.meanings || undefined,
 
-      weekday: fullPanchang.weekday || null,
-      meanings: fullPanchang.meanings || undefined,
+  today: {
+    ...fullPanchang,
 
-      today: {
-        ...fullPanchang,
+    tithiName: fullPanchang.tithiName || fullPanchang.tithi?.name || null,
 
-        tithiName: fullPanchang.tithiName || fullPanchang.tithi?.name || null,
+    nakshatraName:
+      fullPanchang.nakshatraName ||
+      fullPanchang.moonNakshatraName ||
+      fullPanchang.moon?.nakshatraName ||
+      null,
 
-        nakshatraName:
-          fullPanchang.nakshatraName ||
-          fullPanchang.moonNakshatraName ||
-          fullPanchang.moon?.nakshatraName ||
-          null,
+    yoga: { name: fullPanchang.yogaName || fullPanchang.yoga?.name || null },
+    karana: { name: fullPanchang.karanaName || fullPanchang.karana?.name || null },
 
-        yoga: { name: fullPanchang.yogaName || fullPanchang.yoga?.name || null },
-        karana: { name: fullPanchang.karanaName || fullPanchang.karana?.name || null },
+    sunriseISO:
+      fullPanchang.sunriseISO ||
+      fullPanchang.sunrise ||
+      fullPanchang.sun?.riseISO ||
+      fullPanchang.sun?.rise ||
+      fullPanchang.sun?.sunrise ||
+      fullPanchang.sunTimes?.sunriseISO ||
+      fullPanchang.sunTimes?.riseISO ||
+      fullPanchang.sunTimes?.sunrise ||
+      null,
 
-        sunriseISO:
-          fullPanchang.sunriseISO ||
-          fullPanchang.sunrise ||
-          fullPanchang.sun?.riseISO ||
-          fullPanchang.sun?.rise ||
-          fullPanchang.sun?.sunrise ||
-          fullPanchang.sunTimes?.sunriseISO ||
-          fullPanchang.sunTimes?.riseISO ||
-          fullPanchang.sunTimes?.sunrise ||
-          null,
+    sunsetISO:
+      fullPanchang.sunsetISO ||
+      fullPanchang.sunset ||
+      fullPanchang.sun?.setISO ||
+      fullPanchang.sun?.set ||
+      fullPanchang.sun?.sunset ||
+      fullPanchang.sunTimes?.sunsetISO ||
+      fullPanchang.sunTimes?.setISO ||
+      fullPanchang.sunTimes?.sunset ||
+      null,
 
-        sunsetISO:
-          fullPanchang.sunsetISO ||
-          fullPanchang.sunset ||
-          fullPanchang.sun?.setISO ||
-          fullPanchang.sun?.set ||
-          fullPanchang.sun?.sunset ||
-          fullPanchang.sunTimes?.sunsetISO ||
-          fullPanchang.sunTimes?.setISO ||
-          fullPanchang.sunTimes?.sunset ||
-          null,
+    moonriseISO:
+      fullPanchang.moonriseISO ||
+      fullPanchang.moonrise ||
+      fullPanchang.moon?.riseISO ||
+      fullPanchang.moon?.rise ||
+      fullPanchang.moon?.moonrise ||
+      fullPanchang.moonTimes?.moonriseISO ||
+      fullPanchang.moonTimes?.riseISO ||
+      fullPanchang.moonTimes?.moonrise ||
+      null,
 
-        // You said you removed moonrise/moonset earlier — keep if you want, but safe here:
-        moonriseISO:
-          fullPanchang.moonriseISO ||
-          fullPanchang.moonrise ||
-          fullPanchang.moon?.riseISO ||
-          fullPanchang.moon?.rise ||
-          fullPanchang.moon?.moonrise ||
-          fullPanchang.moonTimes?.moonriseISO ||
-          fullPanchang.moonTimes?.riseISO ||
-          fullPanchang.moonTimes?.moonrise ||
-          null,
+    moonsetISO:
+      fullPanchang.moonsetISO ||
+      fullPanchang.moonset ||
+      fullPanchang.moon?.setISO ||
+      fullPanchang.moon?.set ||
+      fullPanchang.moon?.moonset ||
+      fullPanchang.moonTimes?.moonsetISO ||
+      fullPanchang.moonTimes?.setISO ||
+      fullPanchang.moonTimes?.moonset ||
+      null,
 
-        moonsetISO:
-          fullPanchang.moonsetISO ||
-          fullPanchang.moonset ||
-          fullPanchang.moon?.setISO ||
-          fullPanchang.moon?.set ||
-          fullPanchang.moon?.moonset ||
-          fullPanchang.moonTimes?.moonsetISO ||
-          fullPanchang.moonTimes?.setISO ||
-          fullPanchang.moonTimes?.moonset ||
-          null,
+    rahuKaal:
+      fullPanchang.rahuKaal ||
+      fullPanchang.rahu ||
+      fullPanchang.kaals?.rahu ||
+      fullPanchang.kaalWindows?.rahu ||
+      null,
 
-        rahuKaal:
-          fullPanchang.rahuKaal ||
-          fullPanchang.rahu ||
-          fullPanchang.kaals?.rahu ||
-          fullPanchang.kaalWindows?.rahu ||
-          null,
+    gulikaKaal:
+      fullPanchang.gulikaKaal ||
+      fullPanchang.gulika ||
+      fullPanchang.kaals?.gulika ||
+      fullPanchang.kaalWindows?.gulika ||
+      null,
 
-        gulikaKaal:
-          fullPanchang.gulikaKaal ||
-          fullPanchang.gulika ||
-          fullPanchang.kaals?.gulika ||
-          fullPanchang.kaalWindows?.gulika ||
-          null,
+    abhijit:
+      fullPanchang.abhijit ||
+      fullPanchang.kaals?.abhijit ||
+      fullPanchang.kaalWindows?.abhijit ||
+      null,
 
-        abhijit:
-          fullPanchang.abhijit ||
-          fullPanchang.kaals?.abhijit ||
-          fullPanchang.kaalWindows?.abhijit ||
-          null,
-
-        festivals: fullPanchang.festivals || [],
-        tip: fullPanchang.tip || null,
-      },
-    },
-
+    festivals: fullPanchang.festivals || [],
+    tip: fullPanchang.tip || null,
+  },
+},
     // Keeping this for backward compat if your UI reads it:
     panchangToday: {
       ...fullPanchang,

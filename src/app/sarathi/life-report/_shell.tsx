@@ -10229,11 +10229,7 @@ try {
                     Moon sign
                   </div>
                   <div className="mt-1 text-sm font-semibold">
-                    {report.moonSign ??
-                      (() => {
-                        const moonNak = getMoonNakName();
-                        return `${moonRow?.sign ?? ""}${moonNak ? ` (${moonNak})` : ""}`;
-                      })()}
+                    {report.moonSign ?? (moonRow?.sign ?? "")}
                   </div>
                   <div className="mt-1 text-xs text-white/70">
                     Your emotional style, what you need to feel steady and safe.
@@ -10257,88 +10253,64 @@ try {
             <CardContent className="grid md:grid-cols-2 gap-4 text-sm">
               {/* Birth data */}
               <div className="space-y-1">
-                <div className="text-xs font-semibold uppercase text-white/70 tracking-wide">
-                  Birth Data
-                </div>
-                <div>
-                  {report.birthDateISO} @ {report.birthTime} ({report.birthTz})
-                </div>
-                {typeof report.birthLat === "number" && typeof report.birthLon === "number" && (
-                  <div className="text-xs text-white/70">
-                    {report.birthLat.toFixed(3)}, {report.birthLon.toFixed(3)}
-                  </div>
-                )}
-              </div>
+  <div className="text-xs font-semibold uppercase text-white/70 tracking-wide">
+    Birth Data
+  </div>
 
+  {report.birthDateISO || report.birthTime || report.birthTz ? (
+    <div>
+      {[report.birthDateISO, report.birthTime].filter(Boolean).join(" @ ")}
+      {report.birthTz ? ` (${report.birthTz})` : ""}
+    </div>
+  ) : (
+    <div className="text-white/50">{report.birthDateISO || report.birthTime || report.birthTz ? (
+  <div>
+    {[report.birthDateISO, report.birthTime].filter(Boolean).join(" @ ")}
+    {report.birthTz ? ` (${report.birthTz})` : ""}
+  </div>
+) : (
+  <div className="text-white/50">Birth details unavailable</div>
+)}</div>
+  )}
+
+  {typeof report.birthLat === "number" && typeof report.birthLon === "number" ? (
+    <div className="text-xs text-white/70">
+      {report.birthLat.toFixed(3)}, {report.birthLon.toFixed(3)}
+    </div>
+  ) : null}
+</div>
               {/* Panchang snapshot */}
-              {(() => {
-                const sunSid = sunRow ? guessSiderealDegFrom(sunRow as any) : undefined;
-                const moonSid = moonRow ? guessSiderealDegFrom(moonRow as any) : undefined;
+           {(() => {
+  const bp = report?.panchang ?? null;
 
-                const weekday =
-                  weekdayFromISODate(report.birthDateISO) ?? report.panchang?.weekday ?? "";
+  return (
+    <div className="space-y-1">
+      <div className="text-xs font-semibold uppercase text-white/70 tracking-wide">
+        Birth Panchang
+      </div>
 
-                const part = 360 / 27;
+      <div>
+        <span className="font-medium">Weekday:</span> {bp?.weekday ?? ""}
+      </div>
 
-                const yogaName =
-                  sunSid !== undefined && moonSid !== undefined
-                    ? YOGAS_27[Math.floor((norm360(sunSid + moonSid) + 1e-8) / part) % 27]
-                    : report.panchang?.yogaName ?? "";
+      <div>
+        <span className="font-medium">Tithi:</span> {bp?.tithiName ?? ""}
+      </div>
 
-                const karanaName =
-                  sunSid !== undefined && moonSid !== undefined
-                    ? computeKaranaName(sunSid, moonSid) ?? ""
-                    : report.panchang?.karanaName ?? "";
+      <div>
+        <span className="font-medium">Yoga:</span> {bp?.yogaName ?? ""}
+      </div>
 
-                const moonNak = getMoonNakName();
+      <div>
+        <span className="font-medium">Karana:</span> {bp?.karanaName ?? ""}
+      </div>
 
-                return (
-                  <div className="space-y-1">
-                    <div className="text-xs font-semibold uppercase text-white/70 tracking-wide">
-                      Panchang Snapshot
-                    </div>
-
-                    <div>
-                      <span className="font-medium">Weekday:</span> {weekday}
-                    </div>
-
-                    <div>
-                      <span className="font-medium">Tithi:</span>{" "}
-                      {report.panchang?.tithiName ?? ""}
-                      {report.panchang?.meanings?.tithi ? (
-                        <span className="text-xs text-white/70">
-                          {" "}
-                          {report.panchang.meanings.tithi}
-                        </span>
-                      ) : null}
-                    </div>
-
-                    <div>
-                      <span className="font-medium">Yoga:</span> {yogaName}
-                      {report.panchang?.meanings?.yoga ? (
-                        <span className="text-xs text-white/70">
-                          {" "}
-                          {report.panchang.meanings.yoga}
-                        </span>
-                      ) : null}
-                    </div>
-
-                    <div>
-                      <span className="font-medium">Karana:</span> {karanaName}
-                      {report.panchang?.meanings?.karana ? (
-                        <span className="text-xs text-white/70">
-                          {" "}
-                          {report.panchang.meanings.karana}
-                        </span>
-                      ) : null}
-                    </div>
-
-                    <div>
-                      <span className="font-medium">Moon Nakshatra (today’s mood):</span> {moonNak || ""}
-                    </div>
-                  </div>
-                );
-              })()}
+      <div>
+        <span className="font-medium">Nakshatra:</span> {bp?.moonNakshatraName ?? ""}
+      </div>
+    </div>
+  );
+})()}
             </CardContent>
           </Card>
         </motion.div>

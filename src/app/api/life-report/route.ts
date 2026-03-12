@@ -1202,17 +1202,31 @@ export async function POST(req: Request) {
     const todayISO = todayISOForNotificationTz(notificationTz);
 
     const enrichedWithDaily = {
-      ...enriched,
-      dailyGuide,
-      topTransits,
-      dailyMoon,
-      transitNow,
-      transitPlanets: transitNow,
-      moonNakshatraTodayFact,
-      moonTodayFact,
-      todayISO,
-    };
+  ...enriched,
 
+  // canonical birth fields for UI
+  birthDateISO: body.birthDateISO ?? enriched?.birthDateISO ?? report?.birthDateISO ?? "",
+  birthTime: body.birthTime ?? enriched?.birthTime ?? report?.birthTime ?? "",
+  birthTz: body.birthTz ?? enriched?.birthTz ?? report?.birthTz ?? "",
+  birthLat:
+    Number.isFinite(lat)
+      ? lat
+      : (typeof enriched?.birthLat === "number" ? enriched.birthLat : report?.birthLat),
+  birthLon:
+    Number.isFinite(lon)
+      ? lon
+      : (typeof enriched?.birthLon === "number" ? enriched.birthLon : report?.birthLon),
+  placeName: body.placeName ?? body.name ?? enriched?.placeName ?? report?.placeName ?? "",
+
+  dailyGuide,
+  topTransits,
+  dailyMoon,
+  transitNow,
+  transitPlanets: transitNow,
+  moonNakshatraTodayFact,
+  moonTodayFact,
+  todayISO,
+};
     // ----------------------------
     // 12) Notifications (unchanged)
     // ----------------------------
