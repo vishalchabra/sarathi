@@ -797,7 +797,10 @@ Examples:
 - Avoid vague statements like "energy may shift" or "themes are active."
 - Prefer concrete examples: meetings, clarifications, shared expenses, home repairs, paperwork, rescheduling, travel planning, collaboration, follow-ups, negotiations.
 - Keep visible guidance prediction-first, not philosophy-first.
-- Write 1-2 concise sentences. The first sentence describes the likely situation. The second sentence (optional) clarifies the context.
+- Write 2-3 concise sentences. 
+The first sentence describes the likely situation. 
+The second explains how it may unfold or what it may involve.
+The third (optional) can suggest a practical response.
 
 2) Astrology source-of-truth
 - Only reference planets present in FACTS. Only use: Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Rahu, Ketu.
@@ -1005,7 +1008,7 @@ export async function POST(req: Request) {
     });
 
     const cacheKey = `v2:${baseKey}`;
-
+    
     // ----------------------------
     // 3) Build or load life report
     // ----------------------------
@@ -1040,7 +1043,7 @@ export async function POST(req: Request) {
         cacheFlag = "miss";
       }
     }
-
+   
     // ----------------------------
     // 4) Enrich report with active periods
     // ----------------------------
@@ -1090,7 +1093,7 @@ export async function POST(req: Request) {
 
       return res.json();
     }
-
+   
     // ----------------------------
     // 7) Get transit windows + dailyMoon + transitNow from /api/transits
     // ----------------------------
@@ -1242,24 +1245,28 @@ export async function POST(req: Request) {
     // - bump cache version so old messy prod plan is not reused
     // ----------------------------
     const decision90Key = `decision90:v4:${baseKey}`;
+    // cache key for Now & Near Future plan
+    const nowPlanKey = `nowplan:v1:${baseKey}:${todayISO}`;
     const DECISION_TTL_SEC = 60 * 60 * 24 * 30;
 
     let nowPlan: any = null;
 
-    if (process.env.NODE_ENV === "production") {
-  const cachedPlan = await cacheGet<any>(decision90Key);
+if (process.env.NODE_ENV === "production") {
+  const cachedPlan = await cacheGet<any>(nowPlanKey);
+
   if (cachedPlan) {
     nowPlan = cachedPlan;
   } else {
     nowPlan = await buildNowNearFuturePlan(enrichedWithDaily);
-    if (nowPlan) await cacheSet(decision90Key, nowPlan, DECISION_TTL_SEC);
+
+    if (nowPlan) {
+      // cache for 24 hours
+      await cacheSet(nowPlanKey, nowPlan, 60 * 60 * 24);
+    }
   }
 } else {
+  // dev mode: always regenerate
   nowPlan = await buildNowNearFuturePlan(enrichedWithDaily);
-}
-
-if (nowPlan && typeof nowPlan === "object") {
-  nowPlan = deepCleanStrings(nowPlan);
 }
 
     console.log("[life-report] nowPlan generated?", !!nowPlan, "headline:", nowPlan?.headline);
