@@ -17,6 +17,8 @@ export type TransitHit = {
   transitSign?: string;
   transitHouse?: number;
   natalLon?: number;
+  natalHouse?: number;
+  orb?: number;
 };
 
 export type TransitRequestBirth = {
@@ -217,14 +219,38 @@ console.log("[dailyMoon] input", {
     if (!Array.isArray(dailyMoon)) dailyMoon = [];
 
     // 4) Convenience: topTransits (sorted/trimmed)
-    const topTransits = transits
-      .slice()
-      .sort(
-        (a: any, b: any) =>
-          Number(b?.strength ?? 0) - Number(a?.strength ?? 0)
-      )
-      .slice(0, 12);
+    const todayISO = todayISOForNotificationTz(birth.tz);
+const today = new Date(`${todayISO}T00:00:00`);
 
+const scoreTransit = (t: any) => {
+  const strength = Number(t?.strength ?? 0);
+
+  const start = new Date(`${String(t?.startISO || todayISO)}T00:00:00`);
+  const daysAway = Math.abs(
+    (start.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+  );
+
+  const proximityBoost = Math.max(0, 30 - daysAway) * 0.02;
+
+  const orb = Number.isFinite(Number(t?.orb)) ? Number(t.orb) : 12;
+  const orbBoost = Math.max(0, 12 - orb) * 0.015;
+
+  return strength + proximityBoost + orbBoost;
+};
+
+const topTransits = transits
+  .slice()
+  .sort((a: any, b: any) => scoreTransit(b) - scoreTransit(a))
+  .slice(0, 12);
+  console.log(
+  "[topTransits scored]",
+  topTransits.slice(0, 5).map((t: any) => ({
+    title: t?.title,
+    strength: t?.strength,
+    orb: t?.orb,
+    startISO: t?.startISO,
+  }))
+);
     return NextResponse.json({
       transits, // full list (backwards compatible)
       topTransits, // pre-trimmed list

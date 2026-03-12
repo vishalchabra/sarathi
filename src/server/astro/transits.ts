@@ -22,13 +22,13 @@ export type TransitHit = {
 
   category: "career" | "relationships" | "health" | "inner" | "general";
   strength: number;
-
+  orb?: number; // degrees away from exact aspect
   // ✅ NEW: transit placement at the strongest hit day (sidereal)
   transitLon?: number;     // 0..360 sidereal (sample at startISO)
   transitSign?: string;    // Capricorn, etc.
   transitHouse?: number;   // 1..12 from Lagna (if ascDeg provided)
   natalLon?: number;       // for the natal target planet (for debugging)
-
+  natalHouse?: number;
   title: string;
   description: string;
 };
@@ -45,7 +45,21 @@ export type DailyMoonSample = {
 /* -------------------------------------------------------
    BASIC DATE / DEGREE HELPERS
 -------------------------------------------------------- */
-
+function houseMeaning(h?: number): string {
+  return h === 1 ? "Self & direction" :
+    h === 2 ? "Money & resources" :
+    h === 3 ? "Communication & effort" :
+    h === 4 ? "Home & foundations" :
+    h === 5 ? "Creativity & children" :
+    h === 6 ? "Work & routines" :
+    h === 7 ? "Relationships & agreements" :
+    h === 8 ? "Shared finances & transformation" :
+    h === 9 ? "Learning & travel" :
+    h === 10 ? "Career & reputation" :
+    h === 11 ? "Friends & gains" :
+    h === 12 ? "Rest & release" :
+    "General activation";
+}
 function startOfDayUTC(d: Date): Date {
   return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 0, 0, 0, 0));
 }
@@ -310,11 +324,13 @@ function houseFromLagnaWholeSign(transitSign: string, ascSign?: string): number 
 type NatalPlanet = {
   name: string;
   lon: number; // sidereal longitude 0..360
+  house?: number;
 };
 
 type TransitPlanet = {
   name: string;
-  lon: number; // sidereal longitude 0..360
+  lon: number;
+  speedLon?: number;
 };
 
 /**
@@ -322,7 +338,8 @@ type TransitPlanet = {
  */
 async function computeNatalPlanets(
   birth: TransitEngineBirth,
-  constants: any
+  constants: any,
+  opts?: { ascDeg?: number; ascSign?: string }
 ): Promise<NatalPlanet[]> {
   // NOTE: with your current swe-remote stub, swe_set_sid_mode is a no-op.
   // We do manual tropical->sidereal conversion consistently below.
@@ -350,7 +367,7 @@ async function computeNatalPlanets(
   ];
 
   const out: NatalPlanet[] = [];
-  const seen = new Set<string>();
+  
   for (const p of defs) {
     if (p.code == null) continue;
 
@@ -363,7 +380,17 @@ let lonSid = toSiderealLon(lonDeg, ayanDeg);
 
 if (p.name === "Ketu") lonSid = wrap360(lonSid + 180);
 
-out.push({ name: p.name, lon: lonSid });
+let natalHouse: number | undefined = undefined;
+
+if (typeof opts?.ascDeg === "number" && Number.isFinite(opts.ascDeg)) {
+  natalHouse = houseFromAsc(opts.ascDeg, lonSid);
+}
+
+out.push({
+  name: p.name,
+  lon: lonSid,
+  house: natalHouse,
+});
   }
   // (guard must live INSIDE the defs loop, because it uses `p`)
 
@@ -409,7 +436,10 @@ async function computeTransitPlanetsForDay(
 
 
 const lonRaw = extractLongitude(res);
-
+const speedLon =
+  Array.isArray(res?.xx) && typeof res.xx[3] === "number"
+    ? res.xx[3]
+    : undefined;
 
 if (typeof lonRaw !== "number" || !isFinite(lonRaw)) continue;
 
@@ -418,7 +448,11 @@ const lonDeg = wrap360(Number(lonRaw));
 const lonSid = toSiderealLon(lonDeg, ayanDeg);     // tropical -> sidereal
 
 
-out.push({ name: p.name, lon: lonSid });
+out.push({
+  name: p.name,
+  lon: lonSid,
+  speedLon,
+});
 
   }
 
@@ -455,7 +489,8 @@ const ASPECT_DEFS: {
 
 function detectAspect(
   transitLon: number,
-  natalLon: number
+  natalLon: number,
+  transitSpeed?: number
 ): AspectHit | null {
   const diff = angleDiff(transitLon, natalLon);
   let best: AspectHit | null = null;
@@ -473,8 +508,26 @@ function detectAspect(
           : def.aspect === "square"
           ? 0.8
           : 0.7;
-      const proximity = 1 - delta / def.orb; // 1 at exact, 0 at edge
-      const strength = Math.max(0.1, base * (0.6 + 0.4 * proximity));
+      const proximity = 1 - delta / def.orb;
+
+// applying vs separating logic
+let applyingBoost = 1;
+
+if (typeof transitSpeed === "number") {
+  const futureLon = wrap360(transitLon + transitSpeed);
+  const futureDiff = angleDiff(futureLon, natalLon);
+
+  if (futureDiff < diff) {
+    applyingBoost = 1.15; // approaching aspect
+  } else {
+    applyingBoost = 0.85; // separating aspect
+  }
+}
+
+const strength = Math.max(
+  0.1,
+  base * (0.6 + 0.4 * proximity) * applyingBoost
+);
 
       if (!best || strength > best.strength) {
         best = { aspect: def.aspect, exactDiff: delta, strength };
@@ -533,19 +586,22 @@ type RawDailyHit = {
   transitLon: number;   // ✅
   natalPlanet: string;
   natalLon: number;     // ✅ (optional but useful)
+  natalHouse?: number;
   aspect: AspectKind;
   category: TransitCategory;
   strength: number;
+  exactDiff: number;
   
 };
 
 
 async function buildRawDailyHits(
   birth: TransitEngineBirth,
-  horizonDays: number
+  horizonDays: number,
+  opts?: { ascDeg?: number; ascSign?: string }
 ): Promise<RawDailyHit[]> {
   const constants = await getSweConstants();
-  const natal = await computeNatalPlanets(birth, constants);
+  const natal = await computeNatalPlanets(birth, constants, opts);
 
   // Anchor "today" to the user's timezone midnight, then convert to UTC.
 const tz = birth.tz; // you can also pass notification tz via opts if you want
@@ -580,7 +636,7 @@ const today = makeUtcInstant(todayISO, "00:00", tz);
 
     for (const tp of tPlanets) {
       for (const np of natal) {
-        const asp = detectAspect(tp.lon, np.lon);
+        const asp = detectAspect(tp.lon, np.lon, tp.speedLon);
         if (!asp) continue;
 
         const category = classifyCategory(tp.name, np.name);
@@ -588,14 +644,15 @@ const today = makeUtcInstant(todayISO, "00:00", tz);
         hits.push({
   dateISO,
   transitPlanet: tp.name,
-  transitLon: tp.lon,     // ✅
+  transitLon: tp.lon,
   natalPlanet: np.name,
-  natalLon: np.lon,       // ✅
+  natalLon: np.lon,
+  natalHouse: np.house,
   aspect: asp.aspect,
   category,
   strength: asp.strength,
+  exactDiff: asp.exactDiff,
 });
-
       }
     }
   }
@@ -797,21 +854,23 @@ if (typeof tLon === "number") {
     const description = buildWindowDescription(w, strongest);
 
     return {
-      id,
-      startISO: w.startISO,
-      endISO: w.endISO,
-      planet: w.planet,
-      target,
-      category: w.category,
-      strength: Math.min(1, w.maxStrength),
+  id,
+  startISO: w.startISO,
+  endISO: w.endISO,
+  planet: w.planet,
+  target,
+  category: w.category,
+  strength: Math.min(1, w.maxStrength),
+  orb: strongest.exactDiff,
 
-      transitLon: tLon,
-      transitSign: tSign,
-      transitHouse: tHouse,
-
-      title,
-      description,
-    };
+  transitLon: tLon,
+  transitSign: tSign,
+  transitHouse: tHouse,
+  natalLon: strongest.natalLon,
+  natalHouse: strongest.natalHouse,
+  title,
+  description,
+};
   });
 
   out.sort((a, b) =>
@@ -831,6 +890,15 @@ function buildWindowTitle(
   h: RawDailyHit
 ): string {
   const p = planet;
+  const natalHouseTag =
+    typeof h?.natalHouse === "number"
+      ? `H${h.natalHouse} ${houseMeaning(h.natalHouse)}`
+      : null;
+
+  if (natalHouseTag) {
+    return `${p} activation for ${natalHouseTag}`;
+  }
+
   switch (category) {
     case "career":
       return `${p} boost for career & direction`;
@@ -859,19 +927,24 @@ function buildWindowDescription(
       : `${w.startISO} → ${w.endISO}`;
 
   const coreLine = (() => {
-    const aspWord =
-      aspect === "conjunction"
-        ? "aligns with"
-        : aspect === "opposition"
-        ? "faces"
-        : aspect === "trine"
-        ? "flows with"
-        : aspect === "square"
-        ? "challenges"
-        : "supports";
+  const aspWord =
+    aspect === "conjunction"
+      ? "aligns with"
+      : aspect === "opposition"
+      ? "faces"
+      : aspect === "trine"
+      ? "flows with"
+      : aspect === "square"
+      ? "challenges"
+      : "supports";
 
-    return `${planet} ${aspWord} your natal ${natalPlanet}, activating this area from ${range}.`;
-  })();
+  const houseTag =
+    typeof strongest?.natalHouse === "number"
+      ? ` This especially activates H${strongest.natalHouse} ${houseMeaning(strongest.natalHouse)} themes.`
+      : "";
+
+  return `${planet} ${aspWord} your natal ${natalPlanet}, activating this area from ${range}.${houseTag}`;
+})();
 
   if (category === "career") {
     return [
@@ -990,7 +1063,7 @@ export async function computeTransitWindows(
   if (!horizonDays || horizonDays <= 0) return [];
 
   try {
-    const raw = await buildRawDailyHits(birth, horizonDays);
+    const raw = await buildRawDailyHits(birth, horizonDays, opts);
     if (!raw.length) return [];
 
     // ✅ pass ascDeg into the window builder so transitHouse is computed correctly
