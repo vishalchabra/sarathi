@@ -618,13 +618,12 @@
   function humanizeInsight(base: string, seedKey: string = "default"): string {
     // Premium: deterministic tone (no Math.random), clean punctuation, no awkward spacing
     const openers = [
-      "A gentle shift is available today:",
-      "Notice this subtle signal:",
-      "Today invites a quieter approach:",
-      "The energy supports a calmer rhythm:",
-      "Lean into this simple truth today:",
-      "One clear step is enough today:",
-    ];
+  "You may need to",
+  "Someone may ask you to",
+  "A situation may arise where you need to",
+  "You could find yourself needing to",
+  "A practical issue may come up around needing to",
+];
 
     const endings = [
       "Move slowly — clarity builds when you stop forcing it.",
@@ -4581,7 +4580,602 @@ function buildContextLine(headline: string, evidenceLine: string) {
       .replace(/\n{3,}/g, "\n\n")           // collapse extra blank lines
       .trim();
   };
-  
+  function hashSeed(input: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < input.length; i++) {
+    h ^= input.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return Math.abs(h >>> 0);
+}
+
+function pickFromSeed<T>(arr: T[], seedKey: string, offset = 0): T {
+  if (!Array.isArray(arr) || arr.length === 0) {
+    throw new Error("pickFromSeed requires a non-empty array");
+  }
+  const idx = (hashSeed(seedKey) + offset) % arr.length;
+  return arr[idx];
+}
+
+function scenarioPoolForCard(params: {
+  houseNum: number | null;
+  focus: string;
+  headline: string;
+  evidenceLine: string;
+}) {
+  const houseNum = params.houseNum;
+  const text = `${params.focus} ${params.headline} ${params.evidenceLine}`.toLowerCase();
+
+  if (
+    houseNum === 2 ||
+    houseNum === 8 ||
+    /money|finance|financial|expense|budget|bill|payment|resource|reimbursement|shared finances/.test(text)
+  ) {
+    return [
+  "review a bill, reimbursement, or shared expense",
+  "confirm a payment detail or transfer",
+  "discuss who is covering a cost or responsibility",
+  "update a shared budget or financial understanding",
+  "double-check numbers before agreeing to terms",
+];
+  }
+
+  if (
+    houseNum === 3 ||
+    /communication|message|reply|paperwork|document|follow.?up|email|clarify/.test(text)
+  ) {
+    return [
+  "reply to a message or request you postponed earlier",
+  "send a document, update, or confirmation someone is waiting for",
+  "follow up on a pending reply or approval",
+  "clear up a misunderstanding before it grows",
+  "confirm next steps in an unfinished conversation",
+];
+  }
+
+  if (
+    houseNum === 4 ||
+    /home|family|property|foundation|domestic|repair|maintenance/.test(text)
+  ) {
+    return [
+      "coordinate a home or family responsibility",
+      "deal with a practical issue linked to home, comfort, or maintenance",
+      "adjust plans around family logistics or domestic priorities",
+      "revisit a property, household, or family-related decision",
+      "handle something that affects your sense of stability or peace",
+    ];
+  }
+
+  if (
+    houseNum === 6 ||
+    /work|routine|responsibility|schedule|task|service|admin/.test(text)
+  ) {
+    return [
+  "handle a work task, deadline, or routine responsibility",
+  "organize a backlog, admin item, or unresolved practical matter",
+  "sort out a schedule or task division issue",
+  "fix something small but necessary before it creates friction",
+  "respond to a practical obligation that needs timely attention",
+];
+  }
+
+  if (
+    houseNum === 7 ||
+    /relationship|agreement|partner|partnership|expectation|commitment/.test(text)
+  ) {
+    return [
+      "clarify expectations with someone important",
+      "discuss roles, commitments, or shared responsibilities",
+      "confirm a plan or agreement before moving ahead",
+      "address tension caused by mismatched expectations",
+      "bring more structure into a partnership or collaboration",
+    ];
+  }
+
+  if (
+    houseNum === 9 ||
+    /travel|learning|higher learning|foreign|belief|mentor|guru/.test(text)
+  ) {
+    return [
+      "discuss travel, learning, or a longer-term growth plan",
+      "revisit a decision linked to expansion, study, or a wider opportunity",
+      "think seriously about a move, trip, or broader life direction",
+      "engage with a mentor, teacher, or guiding perspective",
+      "make sense of a bigger opportunity that could widen your world",
+    ];
+  }
+
+  if (
+    houseNum === 10 ||
+    /career|reputation|leadership|role|public|visibility/.test(text)
+  ) {
+    return [
+      "step into a leadership, responsibility, or visibility moment",
+      "handle a work decision that affects your role or reputation",
+      "respond to a request that places more responsibility on you",
+      "clarify expectations in a career or business context",
+      "make a practical decision that shapes how others see your priorities",
+    ];
+  }
+
+  if (
+    houseNum === 11 ||
+    /friends|gains|network|team|group|support/.test(text)
+  ) {
+    return [
+      "coordinate something involving a group, team, or network",
+      "follow up on a gain, opportunity, or collaborative opening",
+      "clarify your role in a shared effort or wider circle",
+      "respond to movement in a group plan or social commitment",
+      "make use of support, connections, or people already around you",
+    ];
+  }
+
+  if (
+    houseNum === 12 ||
+    /rest|withdrawal|distance|foreign residence|solitude|healing/.test(text)
+  ) {
+    return [
+      "step back from noise and sort something out quietly",
+      "handle a matter connected to distance, privacy, or emotional space",
+      "review something in private before speaking or deciding",
+      "need more rest, reflection, or a slower response before acting",
+      "notice that distance or withdrawal is clarifying what matters",
+    ];
+  }
+
+  return [
+    "handle a practical situation that needs a clear response",
+    "follow through on something small but important",
+    "clarify expectations before moving ahead",
+    "close an open loop that has been draining attention",
+    "respond to a situation that rewards steadiness over speed",
+  ];
+}
+
+function buildScenarioLine(params: {
+  dateISO: string;
+  triggerLabel: string;
+  houseNum: number | null;
+  focus: string;
+  headline: string;
+  evidenceLine: string;
+}) {
+  const pool = scenarioPoolForCard({
+    houseNum: params.houseNum,
+    focus: params.focus,
+    headline: params.headline,
+    evidenceLine: params.evidenceLine,
+  });
+
+  const openers = [
+    "You may need to",
+    "Someone may ask you to",
+    "A situation may arise where you need to",
+    "You could find yourself needing to",
+    "A practical moment may come up around",
+  ];
+
+  const closers = [
+    "A clear response will prevent unnecessary back-and-forth.",
+    "Handling it early should keep the rest of the day smoother.",
+    "A little structure now will reduce friction later.",
+    "The more clearly you respond, the easier this becomes.",
+    "This is easier to handle well when details are not rushed.",
+  ];
+
+  const seedKey = `${params.dateISO}|${params.triggerLabel}|${params.houseNum}|${params.focus}|${params.headline}|${params.evidenceLine}`;
+
+  const opener = pickFromSeed(openers, seedKey, 1);
+  const scenario = pickFromSeed(pool, seedKey, 2);
+  const closer = pickFromSeed(closers, seedKey, 3);
+
+  const openerClean = opener.endsWith("around")
+    ? `${opener} ${scenario}.`
+    : `${opener} ${scenario}.`;
+
+  return `${openerClean} ${closer}`;
+}
+
+function buildActionBias(params: {
+  houseNum: number | null;
+  focus: string;
+  headline: string;
+  evidenceLine: string;
+}) {
+  const text = `${params.focus} ${params.headline} ${params.evidenceLine}`.toLowerCase();
+
+  if (
+    params.houseNum === 2 ||
+    params.houseNum === 8 ||
+    /money|finance|expense|budget|bill|payment|resource/.test(text)
+  ) {
+    const arr = [
+      "Watch for: verify numbers before agreeing to anything.",
+      "Best use: confirm amounts, terms, and responsibilities clearly.",
+      "Watch for: small money details that are easy to overlook.",
+      "Best use: get clarity on costs before committing.",
+    ];
+    return pickFromSeed(arr, text, 11);
+  }
+
+  if (
+    params.houseNum === 3 ||
+    /communication|reply|message|paperwork|document|email|clarify|follow.?up/.test(text)
+  ) {
+    const arr = [
+      "Best use: respond early and close open communication loops.",
+      "Best use: clarify details before assumptions build up.",
+      "Watch for: delayed replies creating avoidable confusion.",
+      "Best use: send the update, document, or response promptly.",
+    ];
+    return pickFromSeed(arr, text, 12);
+  }
+
+  if (
+    params.houseNum === 4 ||
+    /home|family|property|foundation|domestic/.test(text)
+  ) {
+    const arr = [
+      "Best use: keep home or family logistics simple and practical.",
+      "Watch for: emotional reactions complicating a practical issue.",
+      "Best use: deal with the small domestic matter before it grows.",
+      "Best use: prioritize stability over perfection.",
+    ];
+    return pickFromSeed(arr, text, 13);
+  }
+
+  if (
+    params.houseNum === 6 ||
+    /work|routine|task|responsibility|admin|schedule/.test(text)
+  ) {
+    const arr = [
+      "Best use: deal with practical tasks before they pile up.",
+      "Watch for: avoidable friction caused by delay or poor sequencing.",
+      "Best use: organize the obvious next step and do it.",
+      "Best use: fix small process issues before they become bigger ones.",
+    ];
+    return pickFromSeed(arr, text, 14);
+  }
+
+  if (
+    params.houseNum === 7 ||
+    /relationship|agreement|partner|partnership|expectation|commitment/.test(text)
+  ) {
+    const arr = [
+      "Best use: align expectations before moving forward.",
+      "Watch for: vague agreements creating unnecessary strain.",
+      "Best use: make roles and responsibilities explicit.",
+      "Best use: keep communication transparent and balanced.",
+    ];
+    return pickFromSeed(arr, text, 15);
+  }
+
+  if (
+    params.houseNum === 10 ||
+    /career|leadership|role|visibility|reputation/.test(text)
+  ) {
+    const arr = [
+      "Best use: take initiative, but define expectations clearly.",
+      "Watch for: stepping into responsibility without enough clarity.",
+      "Best use: make one strong practical decision instead of overthinking.",
+      "Best use: act in a way that matches your longer-term priorities.",
+    ];
+    return pickFromSeed(arr, text, 16);
+  }
+
+  return pickFromSeed(
+    [
+      "Best use: keep plans simple and close small loops.",
+      "Best use: respond steadily instead of rushing.",
+      "Watch for: scattered attention creating avoidable friction.",
+      "Best use: choose clarity over speed.",
+    ],
+    text,
+    17
+  );
+}
+function toPrettyDayRange(dates: string[]): string {
+  const clean = Array.from(new Set((dates || []).filter(Boolean))).sort();
+  if (!clean.length) return "";
+
+  const fmt = (iso: string) => {
+    const d = new Date(`${iso}T00:00:00`);
+    if (Number.isNaN(d.getTime())) return iso;
+    return d.toLocaleDateString(undefined, {
+      day: "2-digit",
+      month: "short",
+    });
+  };
+
+  if (clean.length === 1) return fmt(clean[0]);
+
+  return `${fmt(clean[0])}–${fmt(clean[clean.length - 1])}`;
+}
+function detectEventType(source: string) {
+  const s = source.toLowerCase();
+
+  if (/budget|payment|expense|finance|financial|resource|bill|reimbursement|transfer/.test(s)) {
+    return "payment";
+  }
+
+  if (/document|paperwork|email|reply|message|communication|follow.?up|approval|confirmation/.test(s)) {
+    return "communication";
+  }
+
+  if (/relationship|partner|agreement|expectation|commitment|collaboration/.test(s)) {
+    return "relationship";
+  }
+
+  if (/home|family|property|repair|domestic|household|maintenance/.test(s)) {
+    return "home";
+  }
+
+  if (/career|work|task|responsibility|deadline|role|leadership|project|workflow|schedule/.test(s)) {
+    return "work";
+  }
+
+  if (/travel|foreign|learning|study|mentor|guru|trip/.test(s)) {
+    return "travel_learning";
+  }
+
+  return "general";
+}
+function buildEventSentence(event: string) {
+  const map: Record<string, string> = {
+    payment:
+      "A payment detail, shared expense, reimbursement, or financial number may need clarification",
+
+    communication:
+      "A message, document, pending reply, or confirmation may require a clear response",
+
+    relationship:
+      "A partner, colleague, or collaborator may want to clarify expectations, roles, or plans",
+
+    home:
+      "A home, family, property, or household matter may require coordination or a practical decision",
+
+    work:
+      "A task, deadline, responsibility, or work-related request may suddenly need attention",
+
+    travel_learning:
+      "A travel plan, learning decision, wider opportunity, or long-range discussion may need attention",
+
+    general:
+      "A practical situation may arise that requires a clear response",
+  };
+
+  return map[event] || map.general;
+}
+function buildDetailedEventSentence(source: string) {
+  const s = source.toLowerCase();
+
+  if (/payment|expense|budget|finance|resource/.test(s) && /relationship|partner|agreement|shared/.test(s)) {
+    return "A shared expense, payment split, or financial agreement with someone may need clarification";
+  }
+
+  if (/payment|expense|budget|finance|resource/.test(s) && /work|project|task|deadline/.test(s)) {
+    return "A work-related cost, budget item, or practical resource decision may need attention";
+  }
+
+  if (/communication|message|reply|document|paperwork/.test(s) && /work|project|task|deadline/.test(s)) {
+    return "A work message, document, approval, or follow-up may need a timely response";
+  }
+
+  if (/communication|message|reply|document|paperwork/.test(s) && /home|family|property/.test(s)) {
+    return "A family, property, or home-related message or document may require clarification";
+  }
+
+  if (/relationship|partner|agreement|expectation/.test(s) && /money|payment|expense|resource/.test(s)) {
+    return "A partner or close contact may want clarity around money, responsibilities, or shared expectations";
+  }
+
+  if (/relationship|partner|agreement|expectation/.test(s) && /work|project|team|collaboration/.test(s)) {
+    return "A colleague, collaborator, or partner may want to clarify roles, deliverables, or expectations";
+  }
+
+  if (/home|family|property/.test(s) && /money|payment|expense|resource/.test(s)) {
+    return "A home or family matter may involve a payment, cost, or practical resource decision";
+  }
+
+  if (/travel|foreign|learning|study|mentor|guru/.test(s)) {
+    return "A travel plan, study decision, or wider opportunity may require practical clarity";
+  }
+
+  const eventType = detectEventType(s);
+  return buildEventSentence(eventType);
+}
+function groupConsecutiveDates(dates: string[]): string[][] {
+  const clean = Array.from(new Set((dates || []).filter(Boolean))).sort();
+  if (!clean.length) return [];
+
+  const out: string[][] = [];
+  let current: string[] = [clean[0]];
+
+  const dayMs = 1000 * 60 * 60 * 24;
+
+  for (let i = 1; i < clean.length; i++) {
+    const prev = new Date(`${clean[i - 1]}T00:00:00`).getTime();
+    const curr = new Date(`${clean[i]}T00:00:00`).getTime();
+
+    if (Number.isFinite(prev) && Number.isFinite(curr) && curr - prev === dayMs) {
+      current.push(clean[i]);
+    } else {
+      out.push(current);
+      current = [clean[i]];
+    }
+  }
+
+  out.push(current);
+  return out;
+}
+type DecisionWindow = {
+  kind: "push" | "review" | "caution";
+  range: string;
+  text: string;
+};
+function buildDecisionWindows(cards: any[]): DecisionWindow[] {
+  const push: any[] = [];
+  const review: any[] = [];
+  const caution: any[] = [];
+
+  for (const c of Array.isArray(cards) ? cards : []) {
+    const dateISO = String(c?.dateISO ?? "").trim();
+    if (!dateISO) continue;
+
+    const trigger = String(c?.trigger ?? "").toLowerCase();
+    const focus = String(c?.focus ?? "").toLowerCase();
+    const evidence = Array.isArray(c?.evidence)
+      ? c.evidence.join(" ").toLowerCase()
+      : "";
+    const confidence = String(c?.confidence ?? "").toLowerCase();
+
+    const source = `${trigger} ${focus} ${evidence}`;
+
+    const isMercuryLike =
+      /(mercury|communication|agreement|document|paperwork|message|reply|approval|confirmation)/.test(source);
+
+    const isMoneyLike =
+      /(money|resource|budget|payment|finance|expense|bill|reimbursement|transfer)/.test(source);
+
+    const isPush =
+      /(jupiter|sun|venus)/.test(source) &&
+      confidence === "high" &&
+      !isMercuryLike;
+
+    const isReview =
+      isMercuryLike || isMoneyLike;
+
+    const isCaution =
+      /(saturn|rahu|ketu|pressure|delay|responsibility|unclear|transformation)/.test(source) ||
+      confidence === "low";
+
+    if (isPush) push.push(c);
+    if (isReview) review.push(c);
+    if (isCaution) caution.push(c);
+  }
+
+  function buildText(kind: DecisionWindow["kind"], sample: any): string {
+    const triggerRaw = String(sample?.trigger ?? "").toLowerCase();
+    const focus = String(sample?.focus ?? "").toLowerCase();
+    const evidence = Array.isArray(sample?.evidence)
+      ? sample.evidence.join(" ").toLowerCase()
+      : "";
+
+    const source = `${triggerRaw} ${focus} ${evidence}`;
+
+    const isMoney =
+      /(money|resource|budget|payment|finance|expense|bill|reimbursement|transfer)/.test(source);
+
+    const isCommunication =
+      /(communication|message|document|paperwork|email|reply|approval|confirmation|follow.?up)/.test(source);
+
+    const isRelationship =
+      /(relationship|partner|agreement|expectation|commitment|collaboration)/.test(source);
+
+    const isHome =
+      /(home|family|property|repair|domestic|household|maintenance)/.test(source);
+
+    const isWork =
+      /(career|work|task|responsibility|deadline|role|leadership|project|workflow|schedule)/.test(source);
+
+    const isTravel =
+      /(travel|foreign|learning|study|mentor|guru|trip)/.test(source);
+
+    if (kind === "review") {
+      if (isMoney) {
+        return "A payment, shared expense, or budget detail may need careful review. This is a better window to verify numbers, confirm terms, or clarify who is handling what.";
+      }
+      if (isCommunication) {
+        return "A message, document, or pending reply may need a careful response. This is a better window to clarify details, confirm next steps, or close an unfinished loop.";
+      }
+      if (isRelationship) {
+        return "An agreement, expectation, or shared responsibility may need clarification. Review what is being assumed before you commit or respond too quickly.";
+      }
+      if (isHome) {
+        return "A home, property, or family-related matter may need practical review. Check details before deciding how to handle it.";
+      }
+      return "A practical situation may need review before you move ahead. Confirm details and expectations rather than assuming they are already clear.";
+    }
+
+    if (kind === "caution") {
+      if (isMoney) {
+        return "Money, shared costs, or resource decisions may feel more sensitive here. Avoid rushing numbers, commitments, or financial assumptions.";
+      }
+      if (isRelationship) {
+        return "Expectations or roles may be more sensitive here. Go slower before reacting to what someone says or assumes.";
+      }
+      if (isHome) {
+        return "A family or home matter may carry more emotional weight here. Slow the pace and avoid turning a practical issue into a bigger one.";
+      }
+      if (isWork) {
+        return "Responsibilities or deadlines may feel heavier here. Go slower before accepting pressure, extra tasks, or unclear expectations.";
+      }
+      if (isCommunication) {
+        return "Messages, updates, or discussions may be easier to misread here. Slow down and make sure the meaning is fully clear before moving ahead.";
+      }
+      return "This window may carry more pressure or uncertainty than it first appears. Go slower and avoid rushing important decisions.";
+    }
+
+    // push
+    if (isWork) {
+      return "Work, progress, or practical action has stronger support here. This is a better window to act, respond, or move something forward.";
+    }
+    if (isRelationship) {
+      return "Agreements or partnership matters may move more smoothly here. This is a better window to have the conversation or make the decision.";
+    }
+    if (isHome) {
+      return "Home or family matters may become easier to organize here. This is a better window to act on something practical.";
+    }
+    if (isTravel) {
+      return "Travel, learning, or wider-direction decisions may gain traction here. This is a better window to move plans forward.";
+    }
+
+    return "This window carries better support for practical progress. If something is already clear, this is a better time to move it forward.";
+  }
+
+  function pickWindow(
+    kind: DecisionWindow["kind"],
+    items: any[]
+  ): DecisionWindow | null {
+    if (!items.length) return null;
+
+    const dates = items.map((x: any) => String(x?.dateISO ?? "").trim()).filter(Boolean);
+    const groups = groupConsecutiveDates(dates);
+    if (!groups.length) return null;
+
+    const best = groups.sort((a, b) => b.length - a.length)[0];
+    const range = toPrettyDayRange(best);
+    const sample =
+      items.find((x: any) => best.includes(String(x?.dateISO ?? "").trim())) || items[0];
+
+    return {
+      kind,
+      range,
+      text: buildText(kind, sample),
+    };
+  }
+
+  const reviewWindow = pickWindow("review", review);
+  const cautionWindow = pickWindow("caution", caution);
+  const pushWindow = pickWindow("push", push);
+
+  const out: DecisionWindow[] = [];
+
+  if (reviewWindow) out.push(reviewWindow);
+  if (cautionWindow && cautionWindow.range !== reviewWindow?.range) out.push(cautionWindow);
+
+  // only show push if it is genuinely different from review/caution
+  if (
+    pushWindow &&
+    pushWindow.range !== reviewWindow?.range &&
+    pushWindow.range !== cautionWindow?.range
+  ) {
+    out.unshift(pushWindow);
+  }
+
+  return out;
+}
   /* ---------- Individual tab components ---------- */
   const TabTransits: React.FC<TabTransitsProps> = memo(
     ({
@@ -4738,48 +5332,86 @@ list[0];
   const list = Array.isArray(visible) ? visible : [];
   if (!list.length) return null;
 
-  const focusCounts: Record<string, number> = {};
+  const combined = list
+    .map((card: any) => {
+      const trigger = String(card?.trigger ?? "");
+      const focus = String(card?.focus ?? "");
+      const evidence = Array.isArray(card?.evidence) ? card.evidence.join(" ") : "";
+      return `${trigger} ${focus} ${evidence}`;
+    })
+    .join(" ")
+    .toLowerCase();
 
-  for (const card of list) {
-    const key = String(card?.focus ?? "").toLowerCase();
+  const eventSentence = buildDetailedEventSentence(combined);
 
-    if (!key) continue;
+  let message = `${eventSentence}. This theme appears more than once across the coming days, so early clarity will help the week run more smoothly.`;
 
-    focusCounts[key] = (focusCounts[key] ?? 0) + 1;
-  }
-
-  const sorted = Object.entries(focusCounts)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 2);
-
-  if (!sorted.length) return null;
-
-  const mainTheme = sorted[0][0];
-  const count = sorted[0][1];
-
-  let message = "";
-
-  if (mainTheme.includes("communication")) {
+  if (/work|task|deadline|workflow|schedule/.test(combined)) {
     message =
-      "Communication loops and clarifications dominate the coming days. Address messages early to avoid small misunderstandings growing.";
-  } else if (mainTheme.includes("home")) {
+      "Work tasks, follow-ups, or practical responsibilities are likely to repeat across the week. The smoother approach is to deal with small obligations early before they create pressure.";
+  } else if (/payment|expense|budget|finance|resource/.test(combined)) {
     message =
-      "Home and family logistics appear repeatedly this week. Practical coordination will help things move smoothly.";
-  } else if (mainTheme.includes("finance") || mainTheme.includes("money") || mainTheme.includes("resource")) {
+      "Money, shared expenses, or practical resource decisions may come up more than once this week. Clarifying numbers and responsibilities early will prevent avoidable friction.";
+  } else if (/relationship|partner|agreement|expectation/.test(combined)) {
     message =
-      "Shared finances or practical resource decisions appear multiple times this week. Confirm details before committing.";
-  } else if (mainTheme.includes("relationship")) {
+      "Relationship dynamics, shared expectations, or partnership coordination may become a repeating theme this week. Clear communication will matter more than speed.";
+  } else if (/home|family|property|repair/.test(combined)) {
     message =
-      "Relationship dynamics and shared expectations appear repeatedly. Transparent communication will keep things balanced.";
-  } else {
+      "Home, family, or household coordination may require repeated attention this week. Practical handling will work better than emotional overreaction.";
+  } else if (/communication|message|reply|document|paperwork/.test(combined)) {
     message =
-      "Several days revolve around practical coordination and small decisions. Closing open loops early will keep the week smooth.";
+      "Messages, documents, and unfinished conversations may need repeated attention this week. Closing small communication loops early will keep things from becoming messy.";
   }
 
   return {
     title: "This week’s pattern",
     text: message,
   };
+}, [visible]);
+const weeklyAdvantage = React.useMemo(() => {
+  const text = JSON.stringify(visible).toLowerCase();
+
+  if (/work|routine|communication|paperwork|follow.?up|effort/.test(text)) {
+    return "The week supports practical organization, follow-through, and clearing pending matters while they are still manageable.";
+  }
+
+  if (/money|finance|resource|budget|shared/.test(text)) {
+    return "Momentum is strongest where budgeting, cost clarity, and practical resource decisions are handled early and directly.";
+  }
+
+  if (/relationship|agreement|partner|team|group/.test(text)) {
+    return "Progress is strongest when expectations are spoken clearly instead of being left implied.";
+  }
+
+  if (/home|family|property|repair/.test(text)) {
+    return "The week favors practical home or family coordination, especially where small issues can be resolved before they grow.";
+  }
+
+  return "The week rewards steadiness, practical clarity, and timely action on small but important matters.";
+}, [visible]);
+const weeklyFriction = React.useMemo(() => {
+  const text = JSON.stringify(visible).toLowerCase();
+
+  if (/money|finance|resource|budget|shared/.test(text)) {
+    return "Friction may appear when costs, numbers, or responsibilities are assumed rather than clearly discussed.";
+  }
+
+  if (/communication|reply|message|paperwork|document/.test(text)) {
+    return "Friction may come from delayed replies, vague wording, or documents that are left hanging too long.";
+  }
+
+  if (/relationship|agreement|partner|team|group/.test(text)) {
+    return "Friction may show up when expectations differ but nobody clarifies them early enough.";
+  }
+
+  if (/home|family|property|repair/.test(text)) {
+    return "Friction may come from practical home or family matters becoming emotional before they are handled clearly.";
+  }
+
+  return "Friction is most likely when a small practical issue is postponed instead of addressed directly.";
+}, [visible]);
+const decisionWindows = React.useMemo(() => {
+  return buildDecisionWindows(visible);
 }, [visible]);
       return (
         <div
@@ -4805,15 +5437,79 @@ list[0];
 <div className="text-xs text-white/60 mt-1">
   A 7-day view shaped by your dasha, Moon movement, and strongest active transits.
 </div>
-{weeklyPattern && (
-  <div className="mt-3 rounded-xl border border-indigo-400/20 bg-indigo-500/10 px-3 py-2">
-    <div className="text-[11px] uppercase tracking-wide text-indigo-200 font-semibold">
-      {weeklyPattern.title}
+{!dailyLoadingProp && !dailyErrorProp && visible.length > 0 && weeklyPattern && (
+  <>
+    <div className="mt-3 rounded-xl border border-indigo-400/20 bg-indigo-500/10 px-3 py-2">
+      <div className="text-[11px] uppercase tracking-wide text-indigo-200 font-semibold">
+        {weeklyPattern.title}
+      </div>
+      <div className="mt-1 text-xs text-white/75">
+        {weeklyPattern.text}
+      </div>
     </div>
-    <div className="mt-1 text-xs text-white/75">
-      {weeklyPattern.text}
+
+    <div className="grid gap-2 md:grid-cols-2">
+      <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2">
+        <div className="text-[11px] uppercase tracking-wide text-white/60 font-semibold">
+          Where momentum is strongest
+        </div>
+        <div className="mt-1 text-xs text-white/75">
+          {weeklyAdvantage}
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2">
+        <div className="text-[11px] uppercase tracking-wide text-white/60 font-semibold">
+          Where friction may appear
+        </div>
+        <div className="mt-1 text-xs text-white/75">
+          {weeklyFriction}
+        </div>
+      </div>
     </div>
-  </div>
+
+    {decisionWindows.length > 0 && (
+      <div className="mt-3 rounded-xl border border-white/10 bg-white/5 px-3 py-3">
+        <div className="text-[11px] uppercase tracking-wide text-white/60 font-semibold">
+          Decision windows
+        </div>
+
+        <div className="mt-2 grid gap-2">
+          {decisionWindows.map((w: DecisionWindow, idx: number) => {
+            const toneClass =
+              w.kind === "push"
+                ? "border-emerald-400/20 bg-emerald-500/10 text-emerald-200"
+                : w.kind === "review"
+                ? "border-indigo-400/20 bg-indigo-500/10 text-indigo-200"
+                : "border-amber-400/20 bg-amber-500/10 text-amber-200";
+
+            const label =
+              w.kind === "push"
+                ? "Push forward"
+                : w.kind === "review"
+                ? "Review carefully"
+                : "Go slower";
+
+            return (
+              <div
+                key={`${w.kind}-${idx}`}
+                className={"rounded-xl border px-3 py-2 " + toneClass}
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div className="text-xs font-semibold">{label}</div>
+                  <div className="text-[11px] opacity-80">{w.range}</div>
+                </div>
+
+                <div className="mt-1 text-xs text-white/80">
+                  {w.text}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    )}
+  </>
 )}
             </CardHeader>
 
@@ -5013,48 +5709,60 @@ const finalLineCandidate =
 const evidenceLine = Array.isArray((d as any)?.evidence)
   ? (d as any).evidence.filter(Boolean).join(" • ")
   : "";
-const actionBias = (() => {
-  const source = `${headline} ${finalLineCandidate} ${evidenceLine}`.toLowerCase();
-
-  if (/money|expense|budget|shared resource|shared expense|cost|financial/.test(source)) {
-    return "Watch for: confirm financial details before agreeing or committing.";
-  }
-
-  if (/email|reply|message|conversation|discussion|negotiat|clarif|document|paperwork|follow up/.test(source)) {
-    return "Best use: clarify details early and close open communication loops.";
-  }
-
-  if (/home|family|repair|maintenance|routine|schedule|foundation|property/.test(source)) {
-    return "Best use: practical coordination and steady problem-solving.";
-  }
-
-  if (/project|initiative|leadership|step up|organizing|responsibility/.test(source)) {
-    return "Best use: take initiative, but set clear expectations with others.";
-  }
-
-  if (/relationship|agreement|collaboration|team/.test(source)) {
-    return "Best use: align expectations and keep communication transparent.";
-  }
-
-  return "Best use: keep plans simple and close small loops.";
-})();
+const actionBias = buildActionBias({
+  houseNum,
+  focus: focusText || focusRaw,
+  headline,
+  evidenceLine,
+});
 const fallbackLine =
   moodText ||
   evidenceLine ||
   "A steady day: keep it simple, choose one priority, and close loops.";
 
-const likelyEventLine = (() => {
+const aiLine = (() => {
   const source = !finalLineCandidate || isMostlyGarbage(finalLineCandidate)
     ? fallbackLine
     : finalLineCandidate;
 
   const sentences = String(source)
     .split(/(?<=[.!?])\s+/)
-    .slice(0, 3);
+    .slice(0, 1);
 
   return sentences.join(" ").trim();
 })();
 
+const scenarioLine = buildScenarioLine({
+  dateISO: dateISO || `day-${idx}`,
+  triggerLabel,
+  houseNum,
+  focus: focusText || focusRaw,
+  headline,
+  evidenceLine,
+});
+
+const likelyEventLine = (() => {
+  const s1 = String(scenarioLine || "").trim();
+  const s2 = String(aiLine || "").trim();
+
+  if (!s2) return s1;
+  if (!s1) return s2;
+
+  const norm1 = s1.toLowerCase();
+  const norm2 = s2.toLowerCase();
+
+  if (
+    norm1.includes("payment") && norm2.includes("payment") ||
+    norm1.includes("document") && norm2.includes("document") ||
+    norm1.includes("responsibil") && norm2.includes("responsibil") ||
+    norm1.includes("follow up") && norm2.includes("follow up") ||
+    norm1.includes("clarif") && norm2.includes("clarif")
+  ) {
+    return s1;
+  }
+
+  return `${s1} ${s2}`;
+})();
 const contextLine = buildContextLine(headline, evidenceLine);
 
 const finalLine = [likelyEventLine, contextLine]
@@ -10790,12 +11498,110 @@ try {
 
 
       const ap = report.activePeriods as any;
+     const currentMD = ap?.mahadasha?.lord ? String(ap.mahadasha.lord) : "";
+const currentAD = ap?.antardasha?.subLord ? String(ap.antardasha.subLord) : "";
+const currentPD = ap?.pratyantardasha?.lord ? String(ap.pratyantardasha.lord) : "";
+
+const currentPhaseLine = [currentMD ? `${currentMD} Mahadasha` : "", currentAD ? `${currentAD} Antardasha` : "", currentPD ? `${currentPD} Pratyantardasha` : ""]
+  .filter(Boolean)
+  .join(" • ");
+
+const currentPhaseSummary = (() => {
+  if (currentMD === "Rahu" && currentAD === "Venus") {
+    return "You are in a phase where ambition is being refined by Venus. Rahu pushes growth, reinvention, and unconventional opportunities, while Venus shifts the focus toward quality of life, relationships, comfort, and value-based decisions.";
+  }
+
+  if (currentMD && currentAD) {
+    return `${currentMD} sets the larger life chapter, while ${currentAD} shapes the current sub-phase. This is the period where the main direction of life gets filtered through more immediate priorities, relationships, decisions, and responsibilities.`;
+  }
+
+  if (currentMD) {
+    return `${currentMD} is the main life chapter active right now. This period shapes the larger direction of experience, growth, and lessons.`;
+  }
+
+  return "Your current dasha phase shows the larger chapter of life, the active sub-phase within it, and the immediate short-term current running now.";
+})();
+
+const timelineRows = Array.isArray(report.dashaTimeline) ? report.dashaTimeline : [];
+const activeIdx = timelineRows.findIndex((row: any) => {
+  const s = new Date(row.startISO).getTime();
+  const e = new Date(row.endISO).getTime();
+  const now = Date.now();
+  return now >= s && now <= e;
+});
+
+const nearbyTimeline =
+  activeIdx >= 0
+    ? timelineRows.slice(Math.max(0, activeIdx - 2), Math.min(timelineRows.length, activeIdx + 3))
+    : timelineRows.slice(0, 5);
 
       const sectionTrigger =
         "text-sm font-semibold text-slate-100 hover:text-slate-50";
       const subNote = "text-xs text-slate-200/70";
       const divider = "border-white/15";
+const currentChapterTitle = (() => {
+  if (currentMD && currentAD) return `${currentMD} Mahadasha • ${currentAD} Antardasha`;
+  if (currentMD) return `${currentMD} Mahadasha`;
+  return "Current Chapter";
+})();
 
+const currentChapterBody = (() => {
+  if (currentMD === "Rahu" && currentAD === "Venus") {
+    return {
+      why: "This is a phase where ambition is being refined by values, comfort, and relationship priorities.",
+      brings: [
+        "A stronger pull toward growth, visibility, and unconventional opportunities.",
+        "More attention on quality of life, personal environment, comfort, and lifestyle choices.",
+        "Important decisions may increasingly revolve around what is truly worth building and keeping.",
+      ],
+      realLife: [
+        "This phase can coincide with a shift from chasing growth at any cost to choosing opportunities that feel sustainable and worthwhile.",
+        "Career, business, or status-related ambition may increasingly get filtered through comfort, relationships, home priorities, or quality-of-life decisions.",
+        "It may also bring lifestyle upgrades, relocation/property thinking, aesthetic refinement, or a stronger desire to build something that feels both successful and enjoyable.",
+      ],
+      lesson: "The lesson of this phase is to choose aligned growth over restless chasing.",
+    };
+  }
+
+  if (currentMD && currentAD) {
+    return {
+      why: `${currentMD} defines the larger life chapter, while ${currentAD} shapes the immediate tone of experience.`,
+      brings: [
+        `The main direction of life continues to unfold through ${currentMD}-type lessons and priorities.`,
+        `${currentAD} brings the nearer-term focus into day-to-day choices, relationships, and practical decisions.`,
+        "This is often the phase where bigger themes become more personal and immediate.",
+      ],
+      realLife: [
+        `In real life, this can show up through decisions, changes, or pressure in the areas most strongly linked to ${currentMD} and ${currentAD}.`,
+        "This may coincide with role changes, relationship shifts, relocation thinking, money decisions, or a more practical reassessment of priorities.",
+        "The current sub-phase often shows where life is asking for adjustment now, not just where it is heading in theory.",
+      ],
+      lesson: "The lesson of this phase is to respond consciously to what life is emphasizing right now, instead of reacting mechanically.",
+    };
+  }
+
+  if (currentMD) {
+    return {
+      why: `${currentMD} is the main chapter of life currently active.`,
+      brings: [
+        "The larger themes of this planet become more visible in direction, priorities, and life lessons.",
+        "Important choices tend to shape the tone of the years ahead more strongly during a Mahadasha.",
+      ],
+      realLife: [
+        "In practical life, this often shows up through bigger directional changes rather than isolated short-term events.",
+        "Career, family, identity, relocation, responsibility, or relationship themes may gradually reorganize around the logic of this Mahadasha.",
+      ],
+      lesson: "The lesson of this phase is to understand the larger chapter you are in, and work with it rather than against it.",
+    };
+  }
+
+  return {
+    why: "Your active dasha stack describes the larger chapter, the current sub-phase, and the short immediate current within it.",
+    brings: [],
+    realLife: [],
+    lesson: "",
+  };
+})();
       return (
         <div
           className={
@@ -10803,63 +11609,302 @@ try {
             (mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2")
           }
         >
-          {/* 1) Current dasha progress (simple, always visible) */}
-          {ap && (
-            <Card className="rounded-2xl border border-indigo-400/15 bg-indigo-950/40 backdrop-blur-md shadow-xl shadow-[0_0_30px_rgba(99,102,241,0.10)]">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-lg font-semibold text-slate-100">
-                  Current Dasha Progress
-                </CardTitle>
-                <p className={subNote}>
-                  Where you are right now in the dasha cycle (big - medium - short).
-                </p>
-              </CardHeader>
+          {/* 1) Current phase snapshot */}
+{ap && (
+  <Card className="rounded-2xl border border-indigo-400/15 bg-indigo-950/40 backdrop-blur-md shadow-xl shadow-[0_0_30px_rgba(99,102,241,0.10)]">
+    <CardHeader className="pb-2">
+      <CardTitle className="text-lg font-semibold text-slate-100">
+        Current Phase Snapshot
+      </CardTitle>
 
-              <CardContent className="space-y-3">
-                {ap.mahadasha && (
-                  <DashaBar
-                    label={`Mahadasha - ${ap.mahadasha.lord}`}
-                    start={ap.mahadasha.start}
-                    end={ap.mahadasha.end}
-                    subtitle={ap.mahadasha.summary}
-                  />
-                )}
+      <div className="space-y-2">
+        {currentPhaseLine ? (
+          <div className="text-sm font-medium text-indigo-100">
+            {currentPhaseLine}
+          </div>
+        ) : null}
+      </div>
+    </CardHeader>
 
-                {ap.antardasha && (
-                  <DashaBar
-                    label={`Antardasha - ${ap.antardasha.subLord} (in ${ap.antardasha.mahaLord})`}
-                    start={ap.antardasha.start}
-                    end={ap.antardasha.end}
-                    subtitle={ap.antardasha.summary}
-                  />
-                )}
+    <CardContent className="space-y-3">
+      {ap.mahadasha && (
+        <DashaBar
+          label={`Mahadasha - ${ap.mahadasha.lord}`}
+          start={ap.mahadasha.start}
+          end={ap.mahadasha.end}
+          subtitle={ap.mahadasha.summary}
+        />
+      )}
 
-                {ap.pratyantardasha && (
-                  <DashaBar
-                    label={`Pratyantardasha - ${ap.pratyantardasha.lord}`}
-                    start={ap.pratyantardasha.start}
-                    end={ap.pratyantardasha.end}
-                    subtitle={ap.pratyantardasha.summary}
-                  />
-                )}
-              </CardContent>
-            </Card>
-          )}
+      {ap.antardasha && (
+        <DashaBar
+          label={`Antardasha - ${ap.antardasha.subLord} (in ${ap.antardasha.mahaLord})`}
+          start={ap.antardasha.start}
+          end={ap.antardasha.end}
+          subtitle={ap.antardasha.summary}
+        />
+      )}
+
+      {ap.pratyantardasha && (
+        <DashaBar
+          label={`Pratyantardasha - ${ap.pratyantardasha.lord}`}
+          start={ap.pratyantardasha.start}
+          end={ap.pratyantardasha.end}
+          subtitle={ap.pratyantardasha.summary}
+        />
+      )}
+    </CardContent>
+  </Card>
+)}
+
+{/* 2) Current chapter */}
+<Card className="rounded-2xl border border-indigo-400/15 bg-indigo-950/40 backdrop-blur-md shadow-xl shadow-[0_0_30px_rgba(99,102,241,0.10)]">
+  <CardHeader className="pb-2">
+    <CardTitle className="text-lg font-semibold text-slate-100">
+      Current Chapter
+    </CardTitle>
+    <p className={subNote}>
+      What this phase is really trying to do in your life right now.
+    </p>
+  </CardHeader>
+
+  <CardContent className="space-y-4 text-sm leading-relaxed text-slate-100">
+    <div>
+      <div className="text-sm font-medium text-indigo-100">
+        {currentChapterTitle}
+      </div>
+      <p className="mt-1 text-sm leading-relaxed text-slate-100/90">
+        {currentChapterBody.why}
+      </p>
+    </div>
+
+    {Array.isArray(currentChapterBody.brings) && currentChapterBody.brings.length > 0 ? (
+      <div>
+        <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+          What this phase tends to bring
+        </div>
+        <div className="mt-2 space-y-1.5">
+          {currentChapterBody.brings.map((item: string, idx: number) => (
+            <p key={idx} className="text-sm leading-relaxed text-slate-100/90">
+              {item}
+            </p>
+          ))}
+        </div>
+      </div>
+    ) : null}
+
+    {currentChapterBody.lesson ? (
+      <div>
+        <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+          Core lesson
+        </div>
+        <p className="mt-1 text-sm leading-relaxed text-slate-100/90">
+          {currentChapterBody.lesson}
+        </p>
+      </div>
+    ) : null}
+  </CardContent>
+</Card>
+
+{/* 3) Real-life expression */}
+{Array.isArray(currentChapterBody.realLife) && currentChapterBody.realLife.length > 0 ? (
+  <Card className="rounded-2xl border border-indigo-400/15 bg-indigo-950/40 backdrop-blur-md shadow-xl shadow-[0_0_30px_rgba(99,102,241,0.10)]">
+    <CardHeader className="pb-2">
+      <CardTitle className="text-lg font-semibold text-slate-100">
+        How This Phase May Show Up in Real Life
+      </CardTitle>
+      <p className={subNote}>
+        The practical way this current chapter may be expressing itself.
+      </p>
+    </CardHeader>
+
+    <CardContent className="space-y-3">
+      {currentChapterBody.realLife.map((item: string, idx: number) => (
+        <p key={idx} className="text-sm leading-relaxed text-slate-100/90">
+          {item}
+        </p>
+      ))}
+    </CardContent>
+  </Card>
+) : null}
 
           {/* 2) Details (collapsible, avoids overwhelm) */}
           <Accordion type="multiple" className="w-full space-y-2">
-            {/* A) Year-ahead insight */}
+
+            {/* Life story overview (hide if it's the same as year-ahead) */}
+  {(() => {
+    const y = (dashaTransitSummary || "").trim();
+    const t = (timelineSummary || "").trim();
+    // no longer hide: year-ahead is a teaser now, so it's not overwhelming
+
+
+    return (
+      <AccordionItem value="life-overview">
+        
+        <AccordionContent>
+          {t ? (
+            <Card className={ACC_CARD}>
+              <CardContent className="pt-4 space-y-3 text-sm">
+                {renderAiTextBlocks(cleanTransitText(t))}
+              </CardContent>
+            </Card>
+          ) : (
+            <p className={"text-xs " + ACC_MUTED}>
+              Your life themes will appear here once your report summary is ready.
+            </p>
+          )}
+
+        </AccordionContent>
+      </AccordionItem>
+    );
+  })()}
+
+            {/* C) Vimshottari timeline (compact list) */}
+            {Array.isArray(report.dashaTimeline) && report.dashaTimeline.length > 0 && (
+              <AccordionItem
+                value="timeline"
+                className={"rounded-2xl border " + divider + " bg-indigo-950/40"}
+              >
+                <AccordionTrigger className={sectionTrigger}>
+                  Recent & Upcoming Major Phases
+                </AccordionTrigger>
+
+                <AccordionContent className="pt-2">
+                <p className={subNote}>
+  Your recent, current, and next major life chapters through Mahadasha.
+</p>
+                  <div className="mt-3">
+                    <Card className={ACC_CARD}>
+                      <CardContent className="pt-4 space-y-2">
+                        {nearbyTimeline.map((row: any, idx: number) => {
+                          const now = Date.now();
+                          const s = new Date(row.startISO).getTime();
+                          const e = new Date(row.endISO).getTime();
+                          const isActive = now >= s && now <= e;
+
+                          return (
+                            <div
+                              key={idx}
+                              className={
+                                "flex items-center justify-between rounded-xl border px-3 py-2 " +
+                                (isActive
+                                  ? "border-indigo-400/40 bg-indigo-500/10"
+                                  : "border-white/15 bg-slate-950/40")
+                              }
+                            >
+                              <div className="space-y-0.5">
+                                <div className="text-[11px] font-semibold uppercase tracking-wide text-white/60">
+                                  {row.planet} Mahadasha
+                                </div>
+                                <div className="text-[13px] text-white/70">
+  {new Date(row.startISO).getFullYear()}–{new Date(row.endISO).getFullYear()}
+</div>
+                              </div>
+
+                              {isActive && (
+                                <span className="text-[11px] font-semibold text-indigo-200">
+                                  Active Now
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </CardContent>
+                    </Card>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            )}
+
+            {/* D) Key phases (limit to avoid overwhelm) */}
+            {Array.isArray(report.lifeMilestones) && report.lifeMilestones.length > 0 && (
+              <AccordionItem
+                value="life-story"
+                className={"rounded-2xl border " + divider + " bg-indigo-950/40"}
+              >
+                <AccordionTrigger className={sectionTrigger}>
+  Your Life Chapters Through Mahadashas
+</AccordionTrigger>
+                <AccordionContent className="pt-2">
+                  <p className={subNote}>
+  How each major planetary period likely shaped real events, priorities, and lessons in your life.
+</p>
+
+                  <div className="mt-3">
+                    <Card className={ACC_CARD}>
+                      <CardContent className="pt-4">
+                        <div className="space-y-4">
+                          {report.lifeMilestones.slice(0, 6).map((m: any, idx: number) => (
+                            <div
+                              key={idx}
+                              className="relative pl-4 border-l border-white/15 last:border-l-0"
+                            >
+                              <div className="absolute -left-[5px] top-2 h-2 w-2 rounded-full bg-indigo-400 shadow-sm" />
+
+                              <div className="rounded-xl border border-white/15 bg-slate-950/40 p-3 text-sm leading-relaxed text-slate-100">
+                                <div className="flex flex-wrap items-start justify-between gap-2">
+                                  <div className="space-y-1">
+                                    <div className="text-sm font-semibold text-slate-100">
+  {m.label}
+</div>
+                                   <div className="text-[11px] text-slate-200/70">
+  {m.approxAgeRange} • {new Date(m.periodStart).getFullYear()}–{new Date(m.periodEnd).getFullYear()}
+</div>
+
+                                    {m.drivers && (
+                                      <div className="text-[11px] text-slate-200/60">
+                                        {m.drivers}
+                                      </div>
+                                    )}
+                                  </div>
+
+                                 <div
+  className={
+    "text-[10px] leading-none rounded-md px-2 py-1 font-medium opacity-90 " +
+    toneColor(m.risk)
+  }
+>
+                                    {m.risk === "opportunity"
+  ? "Supportive phase"
+  : m.risk === "caution"
+  ? "Demanding phase"
+  : "Mixed phase"}
+                                  </div>
+                                </div>
+                                
+                                <div className="mt-2 space-y-1.5 text-sm leading-relaxed text-slate-100/90">
+                                  {Array.isArray(m.themes) && m.themes.length ? (
+                                    m.themes.slice(0, 3).map((t: string, i2: number) => (
+                                      <p key={i2}>{t}</p>
+                                    ))
+                                  ) : (
+                                    <p className="text-slate-200/60">(No notes.)</p>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+
+                          {report.lifeMilestones.length > 6 && (
+                            <p className="text-xs text-slate-200/60">
+                            </p>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                                {/* A) Year-ahead insight */}
+           {dashaTransitSummary ? (
             <AccordionItem
               value="year-ahead"
               className={"rounded-2xl border " + divider + " bg-indigo-950/40"}
             >
               <AccordionTrigger className={sectionTrigger}>
-                Dasha - Transits - Year Ahead Insight
+                Phase Transition & Year Ahead
               </AccordionTrigger>
 
               <AccordionContent className="pt-2">
     <p className={subNote}>
-      A short preview of your year-ahead story (full breakdown in Advanced - Pro).
+      A short preview of your year-ahead story (full breakdown in Full Guidance).
     </p>
 
     <div className="mt-3">
@@ -10944,7 +11989,7 @@ try {
           className="w-full sm:w-auto"
         >
           <Button size="sm" className="w-full sm:w-auto">
-            View in Advanced (Pro)
+            View in Full Guidance
           </Button>
         </Link>
       </div>
@@ -10954,181 +11999,12 @@ try {
             })()}
           </CardContent>
         </Card>
-      ) : (
-        <p className={"mt-2 text-xs " + ACC_MUTED}>
-          No year-ahead summary available yet.
-        </p>
-      )}
+    ) : null}
     </div>
   </AccordionContent>
 
             </AccordionItem>
-
-            {/* Life story overview (hide if it's the same as year-ahead) */}
-  {(() => {
-    const y = (dashaTransitSummary || "").trim();
-    const t = (timelineSummary || "").trim();
-    // no longer hide: year-ahead is a teaser now, so it's not overwhelming
-
-
-    return (
-      <AccordionItem value="life-overview">
-        
-        <AccordionContent>
-          {t ? (
-            <Card className={ACC_CARD}>
-              <CardContent className="pt-4 space-y-3 text-sm">
-                {renderAiTextBlocks(cleanTransitText(t))}
-              </CardContent>
-            </Card>
-          ) : (
-            <p className={"text-xs " + ACC_MUTED}>
-              Your life themes will appear here once your report summary is ready.
-            </p>
-          )}
-
-        </AccordionContent>
-      </AccordionItem>
-    );
-  })()}
-
-            {/* C) Vimshottari timeline (compact list) */}
-            {Array.isArray(report.dashaTimeline) && report.dashaTimeline.length > 0 && (
-              <AccordionItem
-                value="timeline"
-                className={"rounded-2xl border " + divider + " bg-indigo-950/40"}
-              >
-                <AccordionTrigger className={sectionTrigger}>
-                  Vimshottari Mahadasha Timeline
-                </AccordionTrigger>
-
-                <AccordionContent className="pt-2">
-                  <p className={subNote}>
-                    The full sequence of mahadashas. The active one is highlighted.
-                  </p>
-
-                  <div className="mt-3">
-                    <Card className={ACC_CARD}>
-                      <CardContent className="pt-4 space-y-2">
-                        {report.dashaTimeline.map((row: any, idx: number) => {
-                          const now = Date.now();
-                          const s = new Date(row.startISO).getTime();
-                          const e = new Date(row.endISO).getTime();
-                          const isActive = now >= s && now <= e;
-
-                          return (
-                            <div
-                              key={idx}
-                              className={
-                                "flex items-center justify-between rounded-xl border px-3 py-2 " +
-                                (isActive
-                                  ? "border-indigo-400/40 bg-indigo-500/10"
-                                  : "border-white/15 bg-slate-950/40")
-                              }
-                            >
-                              <div className="space-y-0.5">
-                                <div className="text-[11px] font-semibold uppercase tracking-wide text-white/60">
-                                  {row.planet} Mahadasha
-                                </div>
-                                <div className="text-[13px] text-white/70">
-                                  {row.startISO} - {row.endISO}
-                                </div>
-                              </div>
-
-                              {isActive && (
-                                <span className="text-[11px] font-semibold text-indigo-200">
-                                  Current
-                                </span>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </CardContent>
-                    </Card>
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-            )}
-
-            {/* D) Key phases (limit to avoid overwhelm) */}
-            {Array.isArray(report.lifeMilestones) && report.lifeMilestones.length > 0 && (
-              <AccordionItem
-                value="life-story"
-                className={"rounded-2xl border " + divider + " bg-indigo-950/40"}
-              >
-                <AccordionTrigger className={sectionTrigger}>
-                  Life Story - Key Phases
-                </AccordionTrigger>
-
-                <AccordionContent className="pt-2">
-                  <p className={subNote}>
-                    The most important turning points. Kept short so it's easy to digest.
-                  </p>
-
-                  <div className="mt-3">
-                    <Card className={ACC_CARD}>
-                      <CardContent className="pt-4">
-                        <div className="space-y-4">
-                          {report.lifeMilestones.slice(0, 6).map((m: any, idx: number) => (
-                            <div
-                              key={idx}
-                              className="relative pl-4 border-l border-white/15 last:border-l-0"
-                            >
-                              <div className="absolute -left-[5px] top-2 h-2 w-2 rounded-full bg-indigo-400 shadow-sm" />
-
-                              <div className="rounded-xl border border-white/15 bg-slate-950/40 p-3 text-sm leading-relaxed text-slate-100">
-                                <div className="flex flex-wrap items-start justify-between gap-2">
-                                  <div className="space-y-1">
-                                    <div className="text-xs font-semibold uppercase text-white/60 tracking-wide">
-                                      {m.label}
-                                    </div>
-
-                                    <div className="text-[11px] text-slate-200/70">
-                                      {m.approxAgeRange} (
-                                      {new Date(m.periodStart).getFullYear()}?{new Date(m.periodEnd).getFullYear()})
-                                    </div>
-
-                                    {m.drivers && (
-                                      <div className="text-[11px] text-slate-200/60">
-                                        {m.drivers}
-                                      </div>
-                                    )}
-                                  </div>
-
-                                  <div
-                                    className={
-                                      "text-[10px] leading-none rounded-md px-2 py-1 font-medium " +
-                                      toneColor(m.risk)
-                                    }
-                                  >
-                                    {m.risk === "opportunity"
-                                      ? "Opportunity"
-                                      : m.risk === "caution"
-                                      ? "Caution"
-                                      : "Mixed"}
-                                  </div>
-                                </div>
-
-                                <div className="mt-2 space-y-1 text-xs leading-relaxed text-slate-100">
-                                  {Array.isArray(m.themes) && m.themes.length ? (
-                                    m.themes.slice(0, 3).map((t: string, i2: number) => (
-                                      <p key={i2}>{t}</p>
-                                    ))
-                                  ) : (
-                                    <p className="text-slate-200/60">(No notes.)</p>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-
-                          {report.lifeMilestones.length > 6 && (
-                            <p className="text-xs text-slate-200/60">
-                            </p>
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
+) : null}
                   </div>
                 </AccordionContent>
               </AccordionItem>
