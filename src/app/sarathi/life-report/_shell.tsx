@@ -11352,12 +11352,11 @@ try {
   /* ---------------- Tab 2: Personality ---------------- */
 
   type TabPersonalityProps = {
-    report: LifeReportView | null;
-    aiSummary: string;
-  };
+  report: LifeReportView | null;
+};
 
   const TabPersonality: React.FC<TabPersonalityProps> = memo(
-    ({ report, aiSummary }) => {
+  ({ report }) => {
       if (!report) return null;
 
       return (
@@ -11367,77 +11366,88 @@ try {
           initial="hidden"
           animate="show"
         >
-          {/* Keep AI Summary (the one you said you NEED) */}
-          {aiSummary ? (
-            <motion.div variants={fadeUpSmall} className="space-y-2">
-              <Card className="rounded-2xl border border-indigo-400/15 bg-indigo-950/40 backdrop-blur-md shadow-xl shadow-[0_0_30px_rgba(99,102,241,0.10)]">
-                <CardHeader>
-                  <CardTitle className="text-base font-semibold text-slate-50">
-                    Sarathi's summary
-                  </CardTitle>
-                </CardHeader>
+          {(report as any)?.coreLifePattern ? (
+  <Card className="rounded-2xl border border-indigo-400/15 bg-indigo-950/40 backdrop-blur-md shadow-xl">
+    <CardHeader>
+      <CardTitle className="text-base font-semibold text-slate-50">
+        Your Core Life Pattern
+      </CardTitle>
+    </CardHeader>
 
-                <CardContent className="text-sm leading-relaxed space-y-3 text-slate-100/90">
-                  {(() => {
-                    const raw0 = (aiSummary ?? "").trim();
-                    if (!raw0) return null;
+    <CardContent className="space-y-2 text-indigo-50/90">
+      <p className="font-semibold text-indigo-200">
+        {(report as any).coreLifePattern.title}
+      </p>
+      <p>
+        {(report as any).coreLifePattern.text}
+      </p>
+    </CardContent>
+  </Card>
+) : null}
+         {/* Sarathi Overview Summary */}
+{Array.isArray((report as any)?.overviewSummary) &&
+(report as any)?.overviewSummary.length > 0 ? (
+  <motion.div variants={fadeUpSmall} className="space-y-2">
+    <Card className="rounded-2xl border border-indigo-400/15 bg-indigo-950/40 backdrop-blur-md shadow-xl shadow-[0_0_30px_rgba(99,102,241,0.10)]">
+      
+      <CardHeader>
+        <CardTitle className="text-base font-semibold text-slate-50">
+          What your chart reveals about you
+        </CardTitle>
+      </CardHeader>
+      
+      <CardContent className="text-sm leading-relaxed space-y-3 text-slate-100/90">
+        {(report as any).overviewSummary.map((paragraph: string, i: number) => (
+          <p key={i} className="text-indigo-50/90">
+            {paragraph}
+          </p>
+        ))}
+      </CardContent>
+      {(report as any)?.hiddenPattern && (
+  <motion.div variants={fadeUpSmall} className="space-y-2">
+    <Card className="rounded-2xl border border-amber-400/15 bg-amber-950/20 backdrop-blur-md shadow-xl shadow-[0_0_30px_rgba(245,158,11,0.08)]">
+      
+      <CardHeader>
+        <CardTitle className="text-base font-semibold text-slate-50">
+          The hidden pattern in your life
+        </CardTitle>
+      </CardHeader>
 
-                    // Strip markdown fences if present
-                    const raw1 = raw0
-                      .replace(/^```json\s*/i, "")
-                      .replace(/^```\s*/i, "")
-                      .replace(/```$/i, "")
-                      .trim();
+      <CardContent className="text-sm leading-relaxed text-slate-100/90">
+        {(report as any).hiddenPattern}
+      </CardContent>
+{(report as any)?.lifePressureZone ? (
+  <Card className="rounded-2xl border border-indigo-400/15 bg-indigo-950/40 backdrop-blur-md shadow-xl">
+    <CardHeader>
+      <CardTitle className="text-base font-semibold text-slate-50">
+        Your Life Pressure Zone
+      </CardTitle>
+    </CardHeader>
 
-                    const tryParse = (s: string) => {
-                      try {
-                        return JSON.parse(s);
-                      } catch {
-                        return null;
-                      }
-                    };
+    <CardContent className="text-sm leading-relaxed text-indigo-50/90">
+      {(report as any).lifePressureZone}
+    </CardContent>
+  </Card>
+) : null}
+{(report as any)?.naturalStrength ? (
+  <Card className="rounded-2xl border border-emerald-400/15 bg-emerald-950/20 backdrop-blur-md shadow-xl">
+    <CardHeader>
+      <CardTitle className="text-base font-semibold text-slate-50">
+        Your Natural Strength
+      </CardTitle>
+    </CardHeader>
 
-                    let obj: any = tryParse(raw1);
-                    if (typeof obj === "string") {
-                      const obj2 = tryParse(obj);
-                      if (obj2) obj = obj2;
-                    }
-
-                    // If { text: [...], closing: "..." }
-                    const bullets =
-                      obj && Array.isArray(obj.text)
-                        ? (obj.text as string[])
-                        : obj && typeof obj.text === "string"
-                          ? [obj.text]
-                          : null;
-
-                    const closing =
-                      obj && typeof obj.closing === "string"
-                        ? (obj.closing as string)
-                        : "";
-
-                    if (bullets && bullets.length) {
-                      return (
-                        <>
-                          <ul className="list-disc pl-5 space-y-2 text-indigo-50/90">
-                            {bullets.map((b, i) => (
-                              <li key={i}>{String(b)}</li>
-                            ))}
-                          </ul>
-                          {closing ? (
-                            <p className="text-indigo-200/70 italic">{closing}</p>
-                          ) : null}
-                        </>
-                      );
-                    }
-
-                    // Plain text fallback
-                    return <p className="whitespace-pre-wrap">{raw1}</p>;
-                  })()}
-                </CardContent>
-              </Card>
-            </motion.div>
-          ) : null}
+    <CardContent className="text-sm leading-relaxed text-emerald-50/90">
+      {(report as any).naturalStrength}
+    </CardContent>
+  </Card>
+) : null}
+    </Card>
+  </motion.div>
+)}
+    </Card>
+  </motion.div>
+) : null}
 
           {/* Removed: the grid of personality cards (Strength/Pressure/Do this) */}
         </motion.div>
@@ -12564,12 +12574,11 @@ const text = uniqueTextParts
   </TabsList>
   {/* Tab panels */}
   <TabsContent value="overview" className="mt-4">
-    <div className="space-y-6">
-      <TabPlacements />
-      <TabPersonality report={report} aiSummary={aiSummary} />
-    </div>
-  </TabsContent>
-
+  <div className="space-y-6">
+    <TabPlacements />
+    <TabPersonality report={report} />
+  </div>
+</TabsContent>
   <TabsContent value="phases" className="mt-4">
     <TabTimeline
       report={report}

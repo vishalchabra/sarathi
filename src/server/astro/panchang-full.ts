@@ -84,13 +84,40 @@ function weekdayFromISO(localISO: string): string {
   );
   return new Intl.DateTimeFormat("en-US", { weekday: "long" }).format(d);
 }
+const TITHI_NAMES = [
+  "Pratipada",
+  "Dvitiya",
+  "Tritiya",
+  "Chaturthi",
+  "Panchami",
+  "Shashthi",
+  "Saptami",
+  "Ashtami",
+  "Navami",
+  "Dashami",
+  "Ekadashi",
+  "Dwadashi",
+  "Trayodashi",
+  "Chaturdashi",
+  "Purnima",
+];
 
+function formatTithiName(paksha: string, day: number): string {
+  const idx = Math.max(1, Math.min(15, Number(day || 1))) - 1;
+  const name = TITHI_NAMES[idx] || String(day || "");
+  return `${paksha} ${name}`.trim();
+}
 function computeTithiName(sunSid: number, moonSid: number): string {
   const diff = wrap360(moonSid - sunSid);
   const tithiIndex = Math.floor(diff / 12);
-  const half = tithiIndex < 15 ? "Shukla" : "Krishna";
-  const num = (tithiIndex % 15) + 1;
-  return `${half} ${num}`;
+  const paksha = tithiIndex < 15 ? "Shukla" : "Krishna";
+  const day = (tithiIndex % 15) + 1;
+
+  if (paksha === "Krishna" && day === 15) {
+    return "Krishna Amavasya";
+  }
+
+  return formatTithiName(paksha, day);
 }
 
 const YOGAS_27 = [
@@ -275,8 +302,8 @@ export async function getFullPanchang(req: PanchangRequest) {
   const weekday = rich?.weekday ?? weekdayFromISO(dobISO);
 
   const tithiName = rich?.tithi
-    ? `${rich.tithi.paksha} ${rich.tithi.day}`
-    : computeTithiName(sunSid, moonSid);
+  ? formatTithiName(rich.tithi.paksha, rich.tithi.day)
+  : computeTithiName(sunSid, moonSid);
 
   const yogaName = rich?.yoga?.name ?? computeYogaName(sunSid, moonSid);
 

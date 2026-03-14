@@ -499,7 +499,13 @@ export default function LifeGuidancePage() {
         (data as any)?.result?.aiSummary ??
         (reportData as any)?.aiSummary ??
         "";
-
+       console.log("[AI SUMMARY DEBUG]", {
+  topLevel: (data as any)?.aiSummary,
+  resultLevel: (data as any)?.result?.aiSummary,
+  reportLevel: (reportData as any)?.aiSummary,
+  fullData: data,
+  reportData,
+});
       setReport({ ...(reportData as any), aiSummary });
     } catch (e: any) {
       setError(e?.message || "Failed to generate guidance.");

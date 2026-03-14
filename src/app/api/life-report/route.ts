@@ -15,6 +15,15 @@ import type { TransitHit, DailyMoonRow } from "@/app/api/transits/route";
 import { buildFullGuidanceV2 } from "@/server/fullGuidance/buildFullGuidanceV2";
 import { buildPaidOutput } from "@/server/fullGuidance/buildPaidOutput";
 
+import {
+  buildOverviewSummary,
+  buildCoreLifePattern,
+  buildLifePressureZone,
+  buildNaturalStrength,
+} from "@/server/astro/overviewEngine";
+import { buildHiddenPattern } from "@/server/astro/hiddenPatternEngine";
+import { buildLifePatternMap } from "@/server/astro/lifePatternEngine";
+
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -22,6 +31,7 @@ export const revalidate = 0;
 /* -------------------------------------------------------
    Text cleanup helpers
 -------------------------------------------------------- */
+
 function errToJson(err: any) {
   return {
     error: "internal_error",
@@ -994,7 +1004,7 @@ export async function POST(req: Request) {
     // ----------------------------
     // 2) Cache keys
     // ----------------------------
-    const cacheBuster = 0;
+    const cacheBuster = 1;
 
     const baseKey = makeCacheKey({
       name: body.name ?? body.placeName ?? "User",
@@ -1318,9 +1328,13 @@ if (process.env.NODE_ENV === "production") {
     ascSign: (enriched as any)?.core?.ascSign ?? report?.core?.ascSign,
   },
 };
-
-    payload.todayISO = todayISO;
-
+   payload.overviewSummary = buildOverviewSummary(payload);
+payload.todayISO = todayISO;
+payload.hiddenPattern = buildHiddenPattern(payload);
+payload.lifePatternMap = buildLifePatternMap(payload);
+payload.coreLifePattern = buildCoreLifePattern(payload);
+payload.lifePressureZone = buildLifePressureZone(payload);
+payload.naturalStrength = buildNaturalStrength(payload);
     // Build paid output (source for FG_V2)
     const paidOut = buildPaidOutput(payload);
 
