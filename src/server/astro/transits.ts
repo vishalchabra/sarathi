@@ -382,7 +382,18 @@ if (p.name === "Ketu") lonSid = wrap360(lonSid + 180);
 
 let natalHouse: number | undefined = undefined;
 
-if (typeof opts?.ascDeg === "number" && Number.isFinite(opts.ascDeg)) {
+// Prefer whole-sign houses from ascSign for consistency with the rest of the app
+if (opts?.ascSign) {
+  const natalSign = signFromLonSidereal(lonSid);
+  natalHouse = houseFromLagnaWholeSign(natalSign, opts.ascSign);
+}
+
+// Fallback only if ascSign is missing
+if (
+  !natalHouse &&
+  typeof opts?.ascDeg === "number" &&
+  Number.isFinite(opts.ascDeg)
+) {
   natalHouse = houseFromAsc(opts.ascDeg, lonSid);
 }
 
@@ -583,15 +594,15 @@ function classifyCategory(
 type RawDailyHit = {
   dateISO: string;
   transitPlanet: string;
-  transitLon: number;   // ✅
+  transitLon: number;
+  transitHouse?: number;
   natalPlanet: string;
-  natalLon: number;     // ✅ (optional but useful)
+  natalLon: number;
   natalHouse?: number;
   aspect: AspectKind;
   category: TransitCategory;
   strength: number;
   exactDiff: number;
-  
 };
 
 
@@ -635,26 +646,43 @@ const today = makeUtcInstant(todayISO, "00:00", tz);
     );
 
     for (const tp of tPlanets) {
-      for (const np of natal) {
-        const asp = detectAspect(tp.lon, np.lon, tp.speedLon);
-        if (!asp) continue;
+  const transitSign = signFromLonSidereal(tp.lon);
 
-        const category = classifyCategory(tp.name, np.name);
+  let transitHouse: number | undefined = undefined;
 
-        hits.push({
-  dateISO,
-  transitPlanet: tp.name,
-  transitLon: tp.lon,
-  natalPlanet: np.name,
-  natalLon: np.lon,
-  natalHouse: np.house,
-  aspect: asp.aspect,
-  category,
-  strength: asp.strength,
-  exactDiff: asp.exactDiff,
-});
-      }
-    }
+  if (opts?.ascSign) {
+    transitHouse = houseFromLagnaWholeSign(transitSign, opts.ascSign);
+  }
+
+  if (
+    !transitHouse &&
+    typeof opts?.ascDeg === "number" &&
+    Number.isFinite(opts.ascDeg)
+  ) {
+    transitHouse = houseFromAsc(opts.ascDeg, tp.lon);
+  }
+
+  for (const np of natal) {
+    const asp = detectAspect(tp.lon, np.lon, tp.speedLon);
+    if (!asp) continue;
+
+    const category = classifyCategory(tp.name, np.name);
+
+    hits.push({
+      dateISO,
+      transitPlanet: tp.name,
+      transitLon: tp.lon,
+      transitHouse,
+      natalPlanet: np.name,
+      natalLon: np.lon,
+      natalHouse: np.house,
+      aspect: asp.aspect,
+      category,
+      strength: asp.strength,
+      exactDiff: asp.exactDiff,
+    });
+  }
+}
   }
 
   return hits;
@@ -826,21 +854,20 @@ function buildWindowsFromHits(
     );
 
     const tLon =
-      typeof (strongest as any).transitLon === "number"
-        ? wrap360((strongest as any).transitLon)
-        : undefined;
+  typeof strongest.transitLon === "number"
+    ? wrap360(strongest.transitLon)
+    : undefined;
 
-    const tSign = typeof tLon === "number" ? signFromLonSidereal(tLon) : undefined;
+const tSign = typeof tLon === "number" ? signFromLonSidereal(tLon) : undefined;
 
-    let tHouse: number | undefined = undefined;
+let tHouse: number | undefined =
+  typeof strongest.transitHouse === "number" ? strongest.transitHouse : undefined;
 
-if (typeof tLon === "number") {
-  // Whole Sign house from Lagna sign (preferred)
+if (!tHouse && typeof tLon === "number") {
   if (tSign && opts?.ascSign) {
     tHouse = houseFromLagnaWholeSign(tSign, opts.ascSign);
   }
 
-  // Fallback: equal-house from Asc degree if ascSign missing
   if (!tHouse && typeof opts?.ascDeg === "number" && Number.isFinite(opts.ascDeg)) {
     tHouse = houseFromAsc(opts.ascDeg, tLon);
   }
@@ -890,27 +917,52 @@ function buildWindowTitle(
   h: RawDailyHit
 ): string {
   const p = planet;
-  const natalHouseTag =
-    typeof h?.natalHouse === "number"
-      ? `H${h.natalHouse} ${houseMeaning(h.natalHouse)}`
+
+  const transitHouseTag =
+    typeof h?.transitHouse === "number"
+      ? `H${h.transitHouse}`
       : null;
 
+  const natalHouseTag =
+    typeof h?.natalHouse === "number"
+      ? `H${h.natalHouse}`
+      : null;
+
+  const aspectWord =
+    h.aspect === "conjunction"
+      ? "conjunct"
+      : h.aspect === "opposition"
+      ? "opposing"
+      : h.aspect === "trine"
+      ? "trine"
+      : h.aspect === "square"
+      ? "square"
+      : "sextile";
+
+  if (transitHouseTag && natalHouseTag) {
+    return `${p} in ${transitHouseTag} ${aspectWord} natal ${h.natalPlanet} (${natalHouseTag})`;
+  }
+
+  if (transitHouseTag) {
+    return `${p} in ${transitHouseTag} activation`;
+  }
+
   if (natalHouseTag) {
-    return `${p} activation for ${natalHouseTag}`;
+    return `${p} activating natal ${h.natalPlanet} (${natalHouseTag})`;
   }
 
   switch (category) {
     case "career":
-      return `${p} boost for career & direction`;
+      return `${p} career activation`;
     case "relationships":
-      return `${p} focus on relationships & harmony`;
+      return `${p} relationship activation`;
     case "health":
-      return `${p} tests for health & routines`;
+      return `${p} health activation`;
     case "inner":
-      return `${p} phase of inner work & reflection`;
+      return `${p} inner-work activation`;
     case "general":
     default:
-      return `${p} general life activation`;
+      return `${p} general activation`;
   }
 }
 
@@ -927,25 +979,29 @@ function buildWindowDescription(
       : `${w.startISO} → ${w.endISO}`;
 
   const coreLine = (() => {
-  const aspWord =
-    aspect === "conjunction"
-      ? "aligns with"
-      : aspect === "opposition"
-      ? "faces"
-      : aspect === "trine"
-      ? "flows with"
-      : aspect === "square"
-      ? "challenges"
-      : "supports";
+    const aspWord =
+      aspect === "conjunction"
+        ? "aligns with"
+        : aspect === "opposition"
+        ? "opposes"
+        : aspect === "trine"
+        ? "flows with"
+        : aspect === "square"
+        ? "challenges"
+        : "supports";
 
-  const houseTag =
-    typeof strongest?.natalHouse === "number"
-      ? ` This especially activates H${strongest.natalHouse} ${houseMeaning(strongest.natalHouse)} themes.`
-      : "";
+    const transitTag =
+      typeof strongest?.transitHouse === "number"
+        ? `${planet} is moving through H${strongest.transitHouse} ${houseMeaning(strongest.transitHouse)}`
+        : `${planet} is active by transit`;
 
-  return `${planet} ${aspWord} your natal ${natalPlanet}, activating this area from ${range}.${houseTag}`;
-})();
+    const natalTag =
+      typeof strongest?.natalHouse === "number"
+        ? ` while ${aspWord} natal ${natalPlanet} in H${strongest.natalHouse} ${houseMeaning(strongest.natalHouse)}`
+        : ` while ${aspWord} natal ${natalPlanet}`;
 
+    return `${transitTag}${natalTag} from ${range}.`;
+  })();
   if (category === "career") {
     return [
       coreLine,

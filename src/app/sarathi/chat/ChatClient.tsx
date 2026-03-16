@@ -85,7 +85,48 @@ type QAResponse = {
   meta?: { windowOrigin?: "engine" | "spans" | "synth"; version?: string };
   error?: string;
   debug?: any;
-
+  core?: {
+    ok: boolean;
+    mode: "personalized" | "generic";
+    domain: string;
+    questionType: string;
+    title: string;
+    verdict: {
+      type: string;
+      line: string;
+    };
+    currentPhase: {
+      label?: string;
+      summary: string;
+    };
+    timing: {
+      hasTiming: boolean;
+      summary: string;
+      windows: Array<{
+        fromISO?: string;
+        toISO?: string;
+        label: string;
+        strength: "Strong" | "Supportive" | "Mixed" | "Caution";
+        why: string[];
+        do: string[];
+        avoid: string[];
+      }>;
+    };
+    reasons: string[];
+    actions: string[];
+    avoid: string[];
+    confidence: {
+      level: "Low" | "Medium" | "High";
+      reason: string;
+    };
+    followUps: string[];
+    emotionalSupport?: string;
+    evidenceBullets: string[];
+    prose: {
+      short: string;
+      full: string;
+    };
+  };
   [k: string]: any;
 };
 
@@ -236,7 +277,7 @@ function AssistantProse({ data }: { data: QAResponse }) {
   const [showLong, setShowLong] = useState(false);
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-slate-950/35 p-4 text-sm leading-6 text-slate-100">
+    <div className="rounded-[24px] border border-white/10 bg-slate-950/35 p-5 md:p-6 text-sm leading-6 text-slate-100 shadow-[0_8px_30px_rgba(0,0,0,0.18)]">
       {c.answer ? <p className="mb-3 whitespace-pre-wrap">{c.answer}</p> : null}
 
       {c.long ? (
@@ -471,6 +512,11 @@ function SarathiAnswerCard({
   how,
   whyBullets,
   confidenceText,
+  confidenceLevel,
+  confidenceReason,
+  timingStrength,
+  timingSummary,
+  evidenceBullets,
   detailNote,
 }: {
   title?: string;
@@ -479,62 +525,119 @@ function SarathiAnswerCard({
   how?: string;
   whyBullets?: string[];
   confidenceText?: string;
+  confidenceLevel?: "Low" | "Medium" | "High";
+  confidenceReason?: string;
+  timingStrength?: "Strong" | "Supportive" | "Mixed" | "Caution";
+  timingSummary?: string;
+  evidenceBullets?: string[];
   detailNote?: string;
 }) {
   const [expanded, setExpanded] = useState(false);
+const [showEvidence, setShowEvidence] = useState(false);
+    const confidenceBadgeClass =
+    confidenceLevel === "High"
+      ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-200"
+      : confidenceLevel === "Medium"
+      ? "border-amber-400/30 bg-amber-500/10 text-amber-200"
+      : "border-white/10 bg-white/5 text-slate-200/90";
 
+  const timingBadgeClass =
+    timingStrength === "Strong"
+      ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-200"
+      : timingStrength === "Supportive"
+      ? "border-sky-400/30 bg-sky-500/10 text-sky-200"
+      : timingStrength === "Mixed"
+      ? "border-amber-400/30 bg-amber-500/10 text-amber-200"
+      : timingStrength === "Caution"
+      ? "border-rose-400/30 bg-rose-500/10 text-rose-200"
+      : "border-white/10 bg-white/5 text-slate-200/90";
   return (
-    <div className="rounded-2xl border border-white/10 bg-slate-950/35 p-4 text-sm leading-6 text-slate-100">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <div className="text-xs text-slate-300/70">Sārathi’s Guidance</div>
-          {title ? (
-            <div className="mt-1 text-sm font-semibold text-slate-100">{title}</div>
+         <div>
+        <div className="text-xs uppercase tracking-[0.18em] text-slate-300/60">
+          Sārathi's Guidance
+        </div>
+
+        {title ? (
+          <div className="mt-2 text-lg font-semibold text-slate-100">{title}</div>
+        ) : null}
+
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          {confidenceText ? (
+            <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-200/90">
+              {confidenceText}
+            </div>
           ) : null}
+
           {nowLabel ? (
-            <div className="mt-1 text-xs text-slate-300/70">Current timing: {nowLabel}</div>
+            <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-300/80">
+              Current timing: {nowLabel}
+            </div>
+          ) : null}
+
+          {confidenceLevel ? (
+            <div className={`rounded-full border px-3 py-1 text-xs ${confidenceBadgeClass}`}>
+              Confidence: {confidenceLevel}
+            </div>
+          ) : null}
+
+          {timingStrength ? (
+            <div className={`rounded-full border px-3 py-1 text-xs ${timingBadgeClass}`}>
+              Timing: {timingStrength}
+            </div>
           ) : null}
         </div>
-        {confidenceText ? (
-          <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-200/90">
-            {confidenceText}
-          </div>
-        ) : null}
-      </div>
 
-      {answer ? (
-  <div className="mt-3">
-    <p className="whitespace-pre-wrap">
-      {expanded ? answer : answer.slice(0, 600)}
-      {answer.length > 600 && !expanded ? "…" : ""}
-    </p>
+                  {answer ? (
+        <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 p-4">
+          <div className="text-xs uppercase tracking-[0.14em] text-slate-300/60">Verdict</div>
+          <p className="mt-2 whitespace-pre-wrap text-base leading-8 text-slate-100">
+            {expanded ? answer : answer.slice(0, 520)}
+            {answer.length > 520 && !expanded ? "…" : ""}
+          </p>
 
-    {answer.length > 600 && (
-      <button
-        type="button"
-        onClick={() => setExpanded((v) => !v)}
-        className="mt-2 text-xs text-indigo-300 hover:underline"
-      >
-        {expanded ? "Show less" : "Show more"}
-      </button>
-    )}
-  </div>
-) : null}
+          {answer.length > 520 && (
+            <button
+              type="button"
+              onClick={() => setExpanded((v) => !v)}
+              className="mt-3 text-xs text-indigo-300 hover:underline"
+            >
+              {expanded ? "Show less" : "Show more"}
+            </button>
+          )}
+        </div>
+      ) : null}
 
+      {timingSummary || confidenceReason ? (
+        <div className="mt-4 grid gap-3 md:grid-cols-2">
+          {timingSummary ? (
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+              <div className="text-xs uppercase tracking-[0.14em] text-slate-300/60">Timing read</div>
+              <div className="mt-2 text-sm leading-6 text-slate-100/90">{timingSummary}</div>
+            </div>
+          ) : null}
 
-      {(how || (whyBullets && whyBullets.length)) ? (
+          {confidenceReason ? (
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+              <div className="text-xs uppercase tracking-[0.14em] text-slate-300/60">Confidence note</div>
+              <div className="mt-2 text-sm leading-6 text-slate-100/90">{confidenceReason}</div>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+            {(how || (whyBullets && whyBullets.length)) ? (
         <div className="mt-4 grid gap-3 md:grid-cols-2">
           {how ? (
-            <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-              <div className="text-xs font-semibold text-slate-100">What to do now</div>
-              <div className="mt-1 whitespace-pre-wrap text-xs text-slate-100/90">{how}</div>
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+              <div className="text-xs uppercase tracking-[0.14em] text-slate-300/60">What to do now</div>
+              <div className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-100/90">{how}</div>
             </div>
           ) : null}
 
           {whyBullets && whyBullets.length ? (
-            <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-              <div className="text-xs font-semibold text-slate-100">Why this works</div>
-              <ul className="mt-1 list-disc pl-5 space-y-1 text-xs text-slate-100/90">
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+              <div className="text-xs uppercase tracking-[0.14em] text-slate-300/60">Why this works</div>
+              <ul className="mt-2 list-disc pl-5 space-y-1 text-sm leading-6 text-slate-100/90">
                 {whyBullets.slice(0, 3).map((w, i) => (
                   <li key={i}>{w}</li>
                 ))}
@@ -544,8 +647,40 @@ function SarathiAnswerCard({
         </div>
       ) : null}
 
+                {evidenceBullets && evidenceBullets.length ? (
+        <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 p-4">
+          <button
+            type="button"
+            onClick={() => setShowEvidence((s) => !s)}
+            className="flex w-full items-center justify-between text-left"
+          >
+            <div>
+              <div className="text-xs uppercase tracking-[0.14em] text-slate-300/60">
+                Why Sārathi said this
+              </div>
+              <div className="mt-1 text-sm text-slate-100/85">
+                Show the astrology evidence behind this answer
+              </div>
+            </div>
+            <div className="text-xs text-indigo-300">
+              {showEvidence ? "Hide" : "Show"}
+            </div>
+          </button>
+
+          {showEvidence ? (
+            <ul className="mt-3 list-disc pl-5 space-y-2 text-sm leading-6 text-slate-100/90">
+              {evidenceBullets.slice(0, 5).map((item, i) => (
+                <li key={i}>{item}</li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
+      ) : null}
+
       {detailNote ? (
-        <div className="mt-3 text-xs text-slate-300/70">{detailNote}</div>
+        <div className="mt-4 border-t border-white/10 pt-3 text-xs text-slate-400/80">
+          {detailNote}
+        </div>
       ) : null}
     </div>
   );
@@ -1117,7 +1252,19 @@ console.log("[job-debug] lengths", {
 });
 
   const now = d?.now?.label || d?.extra?.nowLabel;
-
+    const core = d?.core;
+    const isDailyOutlook = core?.questionType === "daily_outlook";
+  const timingStrength =
+  core?.questionType === "daily_outlook"
+    ? undefined
+    : core?.timing?.windows?.[0]?.strength;
+  const timingSummary =
+  core?.questionType === "daily_outlook"
+    ? undefined
+    : core?.timing?.summary;
+  const confidenceLevel = core?.confidence?.level;
+  const confidenceReason = core?.confidence?.reason;
+  const evidenceBullets = core?.evidenceBullets || d?.evidenceBullets || [];
 const preferLong = intent === "when" || intent === "exact" || view === "narrative";
 
 const fallbackAnswer =
@@ -1130,7 +1277,7 @@ const fallbackAnswer =
         .join("\n")
     : Array.isArray(d?.guidance) && d.guidance.length
     ? d.guidance.slice(0, 3).join("\n")
-    : "Here’s what I found.";
+    : "";
 
 const longFromWindows =
   Array.isArray(d?.windows) && d.windows.length
@@ -1149,12 +1296,15 @@ const longFromWindows =
     : "";
 
 let answer =
-  (preferLong
-    ? (d?.copy?.long || d?.copy?.answer || longFromWindows || d?.answer)
-    : (d?.copy?.answer || d?.answer || d?.copy?.long)) ||
-  d?.bottomLine?.lead ||
-  fallbackAnswer;
-
+  isDailyOutlook
+    ? (core?.prose?.full || core?.prose?.short || d?.copy?.answer || d?.answer)
+    : (
+        preferLong
+          ? (core?.prose?.full || d?.copy?.long || d?.copy?.answer || longFromWindows || d?.answer)
+          : (core?.prose?.short || d?.copy?.answer || d?.answer || d?.copy?.long)
+      ) ||
+      d?.bottomLine?.lead ||
+      fallbackAnswer;
 
 if (!answer || answer.trim().length < 120) {
   answer = answer ? `${answer}\n\n${fallbackAnswer}` : fallbackAnswer;
@@ -1181,7 +1331,7 @@ console.log("[chat] keys:", {
       ? d.guidance.slice(0, 3)
       : [];
 
-  const title = d?.title || (d?.topic ? Cap(String(d.topic)) : undefined);
+ const title = core?.title || d?.title || (d?.topic ? Cap(String(d.topic)) : undefined);
 
   const detailNote = hasProfile
     ? "Tip: switch view (Q&A / Cards / Timeline) above if you want deeper timing details."
@@ -1190,15 +1340,20 @@ console.log("[chat] keys:", {
   // show one compact Sarathi answer card
   content = (
     <div className="space-y-3">
-      <SarathiAnswerCard
-        title={title}
-        nowLabel={now}
-        answer={answer}
-        how={how}
-        whyBullets={whyBullets}
-        confidenceText={hasProfile ? "Personalized" : "General"}
-        detailNote={detailNote}
-      />
+            <SarathiAnswerCard
+  title={title}
+  nowLabel={now}
+  answer={answer}
+  how={how}
+  whyBullets={whyBullets}
+  confidenceText={hasProfile ? "Personalized" : "General"}
+  confidenceLevel={confidenceLevel}
+  confidenceReason={confidenceReason}
+  timingStrength={timingStrength}
+  timingSummary={timingSummary}
+  evidenceBullets={evidenceBullets}
+  detailNote={detailNote}
+/>
 
       {/* Optional deep view stays available */}
       {showDetails && hasWindows ? (

@@ -5,7 +5,15 @@ export const runtime = "nodejs";
 import "server-only";
 import { NextResponse } from "next/server";
 import { SARATHI_SYSTEM_PROMPT } from "@/lib/qa/systemPrompt";
-
+import type {
+  AskSarathiCoreAnswer,
+  AskSarathiDomain,
+  AskSarathiQuestionType,
+  AskSarathiVerdictType,
+  AskSarathiConfidence,
+  AskSarathiTimingWindow,
+  AskSarathiWindowStrength,
+} from "@/lib/ask-sarathi/types";
 const chatContext = new Map<string, string[]>(); // memory of recent questions
 const lastFollowup = new Map<string, string>();  // last followup lane we offered
 const lastFacts = new Map<string, any>();        // last astroFacts bundle
@@ -166,9 +174,7 @@ function strengthBar(n: number): string {
    Topic + emotion sensing
 -------------------------------------------------- */
 
-function detectTopic(
-  q: string
-): "career" | "money" | "relationship" | "health" | "generic" {
+function detectTopic(q: string): AskSarathiDomain {
   const lower = q.toLowerCase();
 
   if (
@@ -182,7 +188,9 @@ function detectTopic(
     lower.includes("office") ||
     lower.includes("job change") ||
     lower.includes("job switch") ||
-    lower.includes("new job")
+    lower.includes("new job") ||
+    lower.includes("resign") ||
+    lower.includes("quit")
   ) return "career";
 
   if (
@@ -192,16 +200,26 @@ function detectTopic(
     lower.includes("finance") ||
     lower.includes("salary") ||
     lower.includes("bonus") ||
-    lower.includes("raise")
+    lower.includes("raise") ||
+    lower.includes("investment") ||
+    lower.includes("invest") ||
+    lower.includes("cashflow")
   ) return "money";
 
   if (
     lower.includes("relationship") ||
-    lower.includes("marriage") ||
     lower.includes("partner") ||
     lower.includes("love") ||
-    lower.includes("spouse")
-  ) return "relationship";
+    lower.includes("spouse") ||
+    lower.includes("boyfriend") ||
+    lower.includes("girlfriend")
+  ) return "relationships";
+
+  if (
+    lower.includes("marriage") ||
+    lower.includes("marry") ||
+    lower.includes("wedding")
+  ) return "marriage";
 
   if (
     lower.includes("health") ||
@@ -210,10 +228,193 @@ function detectTopic(
     lower.includes("energy") ||
     lower.includes("fatigue") ||
     lower.includes("sleep") ||
-    lower.includes("burnout")
+    lower.includes("burnout") ||
+    lower.includes("illness") ||
+    lower.includes("recovery")
   ) return "health";
 
+  if (
+    lower.includes("property") ||
+    lower.includes("house") ||
+    lower.includes("home purchase") ||
+    lower.includes("real estate") ||
+    lower.includes("plot") ||
+    lower.includes("land")
+  ) return "property";
+
+  if (
+    lower.includes("vehicle") ||
+    lower.includes("car") ||
+    lower.includes("bike") ||
+    lower.includes("automobile")
+  ) return "vehicle";
+
+  if (
+    lower.includes("dispute") ||
+    lower.includes("legal") ||
+    lower.includes("court") ||
+    lower.includes("case") ||
+    lower.includes("conflict")
+  ) return "disputes";
+
+  if (
+    lower.includes("purpose") ||
+    lower.includes("stuck") ||
+    lower.includes("blocked") ||
+    lower.includes("direction") ||
+    lower.includes("confused") ||
+    lower.includes("lost") ||
+    lower.includes("inner") ||
+    lower.includes("meaning")
+  ) return "inner";
+
   return "generic";
+}
+function detectQuestionType(q: string): AskSarathiQuestionType {
+  const lower = q.toLowerCase().trim();
+
+  const normalized = lower
+    .replace(/['’]/g, "")
+    .replace(/\?/g, "")
+    .replace(/\./g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+     // DAILY MICRO — tiny daily/lifestyle questions
+  if (
+    normalized.includes("what color is best for today") ||
+    normalized.includes("what colour is best for today") ||
+    normalized.includes("what color is good today") ||
+    normalized.includes("what colour is good today") ||
+    normalized.includes("what color should i wear today") ||
+    normalized.includes("what colour should i wear today") ||
+    normalized.includes("best color for today") ||
+    normalized.includes("best colour for today") ||
+    normalized.includes("what should i eat today") ||
+    normalized.includes("what to eat today") ||
+    normalized.includes("is today good for a meeting") ||
+    normalized.includes("is today good for meeting") ||
+    normalized.includes("is today good for an interview") ||
+    normalized.includes("is today good for an important conversation") ||
+    normalized.includes("is today good for a call") ||
+    normalized.includes("gym today") ||
+    normalized.includes("workout today") ||
+    normalized.includes("run today")
+  ) {
+    return "daily_micro";
+  }
+  // DAILY OUTLOOK — must be checked first
+  if (
+    normalized.includes("hows my day looking") ||
+    normalized.includes("how is my day looking") ||
+    normalized.includes("hows my day") ||
+    normalized.includes("how is my day") ||
+    normalized.includes("how does my day look") ||
+    normalized.includes("how is today looking") ||
+    normalized.includes("hows today looking") ||
+    normalized.includes("today looking") ||
+    normalized.includes("what is today like") ||
+    normalized.includes("whats today like") ||
+    normalized.includes("what should i focus on today") ||
+    normalized.includes("what is today good for") ||
+    normalized.includes("is today good for") ||
+    normalized.includes("how is my day going")
+  ) {
+    return "daily_outlook";
+  }
+
+  if (
+    normalized.startsWith("what is ") ||
+    normalized.startsWith("whats ") ||
+    normalized.startsWith("what's ") ||
+    normalized.includes("meaning of ") ||
+    normalized.includes("explain ") ||
+    normalized.includes("what does") ||
+    normalized.includes("how does")
+  ) {
+    return "explainer";
+  }
+
+  if (
+    normalized.includes("remedy") ||
+    normalized.includes("remedies") ||
+    normalized.includes("upaya") ||
+    normalized.includes("mantra") ||
+    normalized.includes("pooja") ||
+    normalized.includes("gem") ||
+    normalized.includes("stone") ||
+    normalized.includes("wear")
+  ) {
+    return "remedy";
+  }
+
+  if (
+    normalized.includes("compare") ||
+    normalized.includes(" vs ") ||
+    normalized.includes(" versus ") ||
+    normalized.includes("or wait") ||
+    normalized.includes("or stay") ||
+    normalized.includes("or switch")
+  ) {
+    return "comparison";
+  }
+
+  if (
+    normalized.includes("when") ||
+    normalized.includes("which month") ||
+    normalized.includes("what time") ||
+    normalized.includes("timing") ||
+    normalized.includes("window") ||
+    normalized.includes("date") ||
+    normalized.includes("dates")
+  ) {
+    return "timing";
+  }
+
+  if (
+    normalized.includes("should i") ||
+    normalized.includes("can i") ||
+    normalized.includes("is it good to") ||
+    normalized.includes("is it right to") ||
+    normalized.includes("is this a good time")
+  ) {
+    return "decision";
+  }
+
+  if (
+    normalized.includes("why is") ||
+    normalized.includes("why am i") ||
+    normalized.includes("why does") ||
+    normalized.includes("what is happening") ||
+    normalized.includes("why delayed") ||
+    normalized.includes("why stuck")
+  ) {
+    return "diagnosis";
+  }
+
+  if (
+    normalized.includes("what should i do") ||
+    normalized.includes("what to do") ||
+    normalized.includes("how should i move") ||
+    normalized.includes("next step") ||
+    normalized.includes("action plan")
+  ) {
+    return "action_plan";
+  }
+
+  if (
+    normalized.includes("anxious") ||
+    normalized.includes("worried") ||
+    normalized.includes("scared") ||
+    normalized.includes("stressed") ||
+    normalized.includes("lost") ||
+    normalized.includes("confused") ||
+    normalized.includes("emotionally") ||
+    normalized.includes("hopeless")
+  ) {
+    return "emotional_support";
+  }
+
+  return "decision";
 }
 function isFoodQuestion(q: string): boolean {
   const l = q.toLowerCase();
@@ -280,18 +481,17 @@ function detectDistress(q: string): boolean {
   return triggers.some((t) => l.includes(t));
 }
 
-function reassureUser(topic: string): string {
+function reassureUser(topic: AskSarathiDomain): string {
   if (topic === "career")
     return "You're not failing. This timing is slow-build, not dead. The chart is saying 'stack proof and be seen', not 'you're done'.";
   if (topic === "health")
     return "Your chart does not say permanent damage. It says 'watch stress load, protect sleep, don't self-abandon'.";
-  if (topic === "relationship" || topic === "relationships")
+  if (topic === "relationships" || topic === "marriage")
     return "This isn't 'you're unlovable'. It's a boundary-and-truth chapter, not permanent loneliness.";
   if (topic === "money")
     return "This is 'delayed inflow', not 'no inflow'. It's timing, not doom.";
   return "I can feel how heavy this is. This is shaping energy, not punishment. You're not broken.";
 }
-
 function isMicroIntentQuestion(q: string): boolean {
   const l = (q || "").toLowerCase().trim();
 
@@ -366,14 +566,39 @@ function toneForLord(lord?: string): string {
   if (L === "moon")    return "emotional flow, instincts, comfort and security needs";
   return "activation around a key theme.";
 }
-function pickActiveTransitNow(
-  report: LifeReportLike | null | undefined
-): TransitWindow | null {
-  if (!report?.transitWindows || !Array.isArray(report.transitWindows)) return null;
-
+function pickActiveTransitNow(report: any): TransitWindow | null {
   const now = Date.now();
 
-  const tagged = report.transitWindows
+  const pool: TransitWindow[] = [];
+
+  if (Array.isArray(report?.transitWindows)) {
+    for (const w of report.transitWindows) {
+      pool.push(w);
+    }
+  }
+
+  if (Array.isArray(report?.topTransits)) {
+    for (const tr of report.topTransits) {
+      pool.push({
+        from: tr.startISO,
+        to: tr.endISO,
+        focusArea: tr.category || "",
+        driver: tr.title || tr.target || tr.planet || "",
+        riskFlag:
+          typeof tr.strength === "number"
+            ? tr.strength >= 0.82
+              ? "opportunity"
+              : tr.strength >= 0.7
+              ? "mixed"
+              : "caution"
+            : "mixed",
+        summary: tr.description || tr.title || "",
+        actions: [],
+      });
+    }
+  }
+
+  const tagged = pool
     .map((w) => {
       const from = new Date(w.from).getTime();
       const to = new Date(w.to).getTime();
@@ -383,16 +608,13 @@ function pickActiveTransitNow(
 
   if (!tagged.length) return null;
 
-  // 1) window that actually covers "now"
   let active = tagged.find((x) => now >= x.from && now <= x.to);
   if (!active) {
-    // 2) nearest upcoming window
     active = [...tagged]
       .filter((x) => x.from >= now)
       .sort((a, b) => a.from - b.from)[0];
   }
   if (!active) {
-    // 3) fallback: most recent past window
     active = [...tagged].sort((a, b) => b.to - a.to)[0];
   }
 
@@ -522,52 +744,138 @@ function normalizeProfile(p: any) {
 }
 
 function pickBestTransitWindows(
-  report: LifeReportLike | null | undefined,
+  report: any,
   topic: string
-) {
-  if (!report?.transitWindows || !Array.isArray(report.transitWindows)) return [];
-
+): TransitWindow[] {
   const t = canonicalTopic(topic);
+
+  const out: TransitWindow[] = [];
+
+  // 1) Existing explicit transitWindows, if present
+  if (Array.isArray(report?.transitWindows)) {
+    for (const tw of report.transitWindows) {
+      out.push({
+        from: tw.from,
+        to: tw.to,
+        focusArea: tw.focusArea,
+        driver: tw.driver,
+        riskFlag: tw.riskFlag,
+        summary: tw.summary,
+        actions: Array.isArray(tw.actions) ? tw.actions : [],
+      });
+    }
+  }
+
+  // 2) Normalize topTransits from life-report into transit windows
+  if (Array.isArray(report?.topTransits)) {
+    for (const tr of report.topTransits) {
+      out.push({
+        from: tr.startISO,
+        to: tr.endISO,
+        focusArea: tr.category || "",
+        driver: tr.title || tr.target || tr.planet || "",
+        riskFlag:
+          typeof tr.strength === "number"
+            ? tr.strength >= 0.82
+              ? "opportunity"
+              : tr.strength >= 0.7
+              ? "mixed"
+              : "caution"
+            : "mixed",
+        summary: tr.description || tr.title || "",
+        actions: [],
+      });
+    }
+  }
 
   function scoreTransitForTopic(tw: TransitWindow, topic2: string): number {
     const area = (tw.focusArea || "").toLowerCase();
     const driver = (tw.driver || "").toLowerCase();
     const summary = (tw.summary || "").toLowerCase();
 
-    // use topic2 NOT outer var
     if (topic2 === "career") {
       if (
-        area.includes("career") || area.includes("status") || area.includes("recognition") ||
-        summary.includes("career") || driver.includes("10th") || driver.includes("11th") ||
-        driver.includes("reputation") || driver.includes("visibility")
+        area.includes("career") ||
+        summary.includes("career") ||
+        summary.includes("work") ||
+        summary.includes("responsibilities") ||
+        summary.includes("visibility") ||
+        summary.includes("direction") ||
+        driver.includes("h10") ||
+        driver.includes("self & direction")
       ) return 10;
     }
+
     if (topic2 === "money") {
       if (
-        area.includes("money") || area.includes("income") || area.includes("wealth") ||
-        area.includes("earnings") || summary.includes("money") || summary.includes("income") ||
-        driver.includes("2nd") || driver.includes("11th")
+        area.includes("money") ||
+        summary.includes("money") ||
+        summary.includes("resources") ||
+        summary.includes("gains") ||
+        driver.includes("money") ||
+        driver.includes("resources")
       ) return 10;
     }
+
     if (topic2 === "relationships") {
       if (
-        area.includes("relationship") || area.includes("partnership") || area.includes("marriage") ||
-        driver.includes("7th") || summary.includes("relationship")
+        area.includes("relationship") ||
+        area.includes("relationships") ||
+        summary.includes("relationships") ||
+        summary.includes("partnership") ||
+        summary.includes("one-to-one")
       ) return 10;
     }
+
     if (topic2 === "health") {
       if (
-        area.includes("health") || area.includes("body") || area.includes("recovery") ||
-        area.includes("stress") || driver.includes("6th") || driver.includes("8th") ||
-        summary.includes("health")
+        area.includes("health") ||
+        summary.includes("health") ||
+        summary.includes("stress") ||
+        summary.includes("recovery") ||
+        summary.includes("body")
       ) return 10;
     }
 
-    return 1;
+    if (topic2 === "property") {
+      if (
+        summary.includes("home") ||
+        summary.includes("property") ||
+        summary.includes("stability")
+      ) return 10;
+    }
+
+    if (topic2 === "vehicle") {
+      if (
+        summary.includes("vehicle") ||
+        summary.includes("movement") ||
+        summary.includes("purchase")
+      ) return 10;
+    }
+
+    if (topic2 === "disputes") {
+      if (
+        summary.includes("conflict") ||
+        summary.includes("legal") ||
+        summary.includes("pressure") ||
+        summary.includes("rebalance")
+      ) return 10;
+    }
+
+    if (topic2 === "inner") {
+      if (
+        area.includes("inner") ||
+        summary.includes("clarity") ||
+        summary.includes("direction") ||
+        summary.includes("inner")
+      ) return 10;
+    }
+
+    return topic2 === "generic" ? 2 : 1;
   }
 
-  const ranked = (report?.transitWindows ?? [])
-      .map((tw) => ({ win: tw, s: scoreTransitForTopic(tw, t) }))
+  const ranked = out
+    .map((tw) => ({ win: tw, s: scoreTransitForTopic(tw, t) }))
     .sort((a, b) => b.s - a.s);
 
   if (!ranked.length) return [];
@@ -576,10 +884,9 @@ function pickBestTransitWindows(
 
   return ranked
     .filter((r) => r.s >= 5)
-    .slice(0, 2)
+    .slice(0, 3)
     .map((r) => r.win);
 }
-
 function pickFromTimeline(
   report: LifeReportLike | null | undefined,
   topic: string
@@ -849,28 +1156,34 @@ function hasLowConfidenceSignal(text: string): boolean {
 
 function pickFormatTier(question: string): FormatTier {
   const q = question.toLowerCase();
-
-  // 🔥 Priority 1: emotional / life-direction uncertainty → PREMIUM
+  if (
+    q.includes("how's my day") ||
+    q.includes("how is my day") ||
+    q.includes("how is today looking") ||
+    q.includes("what should i focus on today") ||
+    q.includes("what is today good for")
+  ) {
+    return "standard";
+  }
+  // emotional / uncertainty → premium
   if (hasLowConfidenceSignal(q)) {
     return "premium";
   }
 
-  // 🎯 Clear decision-based questions → PREMIUM
+  // decision or timing → premium
   if (
-    /(when|should i|will i|is it time|can i)\b/.test(q) &&
-    /(job|career|marriage|relationship|business|move|switch|resign|quit|finance)/.test(q)
+    /(when|should i|can i|is it good|is it right|start|change|switch|resign|quit|business)/.test(q)
   ) {
     return "premium";
   }
 
-  // ⚡ Short, practical daily questions
+  // small lifestyle questions
   if (
-    /(what color|what should i wear|what to eat|what should i eat|today)/.test(q)
+    /(what color|what should i wear|what to eat|eat today|diet)/.test(q)
   ) {
     return "micro";
   }
 
-  // Default
   return "standard";
 }
 
@@ -943,10 +1256,291 @@ function ensurePremiumMeat(answer: string, extras: {
 /* --------------------------------------------------
    Evidence / Why section
 -------------------------------------------------- */
+function titleFromDomain(domain: AskSarathiDomain): string {
+  switch (domain) {
+    case "career":
+      return "Career Guidance";
+    case "money":
+      return "Money Guidance";
+    case "relationships":
+      return "Relationship Guidance";
+    case "marriage":
+      return "Marriage Guidance";
+    case "health":
+      return "Health Guidance";
+    case "property":
+      return "Property Guidance";
+    case "vehicle":
+      return "Vehicle Guidance";
+    case "disputes":
+      return "Dispute Guidance";
+    case "inner":
+      return "Inner Guidance";
+    default:
+      return "Sārathi Guidance";
+  }
+}
 
+function verdictTypeFromSignals(opts: {
+  hasTiming: boolean;
+  windows: AskSarathiTimingWindow[];
+  distressed: boolean;
+  questionType: AskSarathiQuestionType;
+}): AskSarathiVerdictType {
+  const first = opts.windows[0];
+
+  if (first?.strength === "Strong") return "favorable";
+  if (first?.strength === "Supportive") return "supportive";
+  if (first?.strength === "Caution") return "caution";
+
+  if (opts.questionType === "timing" && !opts.hasTiming) return "needs_patience";
+  if (opts.distressed) return "needs_patience";
+
+  return "mixed";
+}
+
+function confidenceFromSignals(opts: {
+  mode: "personalized" | "generic";
+  evidenceCount: number;
+  hasTiming: boolean;
+  windows: AskSarathiTimingWindow[];
+}): { level: AskSarathiConfidence; reason: string } {
+  if (
+    opts.mode === "personalized" &&
+    opts.hasTiming &&
+    opts.evidenceCount >= 2 &&
+    opts.windows.length > 0
+  ) {
+    return {
+      level: "High",
+      reason: "Current timing and supporting chart signals are both available.",
+    };
+  }
+
+  if (
+    opts.mode === "personalized" &&
+    (opts.hasTiming || opts.evidenceCount >= 1)
+  ) {
+    return {
+      level: "Medium",
+      reason: "The answer is personalized, but the timing picture is only partly defined.",
+    };
+  }
+
+  return {
+    level: "Low",
+    reason: "This answer is based on limited timing evidence or general context.",
+  };
+}
+
+function followUpsFor(domain: AskSarathiDomain, questionType: AskSarathiQuestionType): string[] {
+  if (questionType === "timing") {
+    return [
+      "Show me the next 90-day window.",
+      "Tell me the caution period too.",
+      "Break this into next 30, 60, and 90 days.",
+    ];
+  }
+
+  if (questionType === "comparison") {
+    return [
+      "Compare option A vs option B more directly.",
+      "Which path is safer right now?",
+      "Which option has better long-term growth?",
+    ];
+  }
+
+  if (questionType === "diagnosis") {
+    return [
+      "Why does this phase feel like this emotionally?",
+      "What lesson is active right now?",
+      "What behaviour helps most in this phase?",
+    ];
+  }
+
+  if (questionType === "remedy") {
+    return [
+      "Give me practical remedies only.",
+      "What should I avoid strengthening right now?",
+      "Keep the remedies aligned to my current dasha.",
+    ];
+  }
+
+  if (questionType === "emotional_support") {
+    return [
+      "What is this phase trying to teach me?",
+      "How do I stabilize myself right now?",
+      "What should I stop forcing?",
+    ];
+  }
+
+  switch (domain) {
+    case "career":
+      return [
+        "Show me the next job-change window.",
+        "Compare staying vs switching.",
+        "What type of role suits this phase best?",
+      ];
+    case "money":
+      return [
+        "Is this better for saving or investing?",
+        "Show me the next stronger money window.",
+        "What money mistakes should I avoid now?",
+      ];
+    case "relationships":
+    case "marriage":
+      return [
+        "Is this a repair phase or a commitment phase?",
+        "What should I avoid in communication now?",
+        "Show me the next relationship-supportive window.",
+      ];
+    case "health":
+      return [
+        "What should I prioritize this week for stability?",
+        "What lifestyle mistake is hurting this phase?",
+        "How do I protect energy right now?",
+      ];
+    default:
+      return [
+        "Show me the next 90-day pattern.",
+        "Tell me what to focus on now.",
+        "What should I avoid in this phase?",
+      ];
+  }
+}
+
+function windowStrengthFromRiskFlag(flag?: string): AskSarathiWindowStrength {
+  const f = String(flag || "").toLowerCase();
+  if (f === "opportunity") return "Strong";
+  if (f === "caution") return "Caution";
+  if (f === "mixed") return "Mixed";
+  return "Supportive";
+}
+function windowStrengthScore(flag?: string): number {
+  const strength = windowStrengthFromRiskFlag(flag);
+  if (strength === "Strong") return 4;
+  if (strength === "Supportive") return 3;
+  if (strength === "Mixed") return 2;
+  if (strength === "Caution") return 1;
+  return 0;
+}
+function fallbackWindowFromActivePeriod(
+  report?: LifeReportLike | null,
+  topic?: AskSarathiDomain
+): AskSarathiTimingWindow | null {
+
+  const act = getActiveDashaAnyShape(report);
+  const md = act.md;
+  const ad = act.ad;
+  const pd = act.pd;
+
+  const adEnd =
+    report?.activePeriods?.antardasha?.end ||
+    report?.activePeriods?.antardasha?.end ||
+    undefined;
+
+  if ((!md || md === "Unknown") && (!ad || ad === "Unknown") && (!pd || pd === "Unknown")) {
+    return null;
+  }
+
+  const topicLabelMap: Record<AskSarathiDomain, string> = {
+    career: "Career positioning phase",
+    money: "Money structuring phase",
+    relationships: "Relationship clarity phase",
+    marriage: "Marriage timing phase",
+    health: "Health stabilization phase",
+    property: "Property planning phase",
+    vehicle: "Vehicle planning phase",
+    disputes: "Dispute management phase",
+    inner: "Inner reset phase",
+    generic: "Current active phase",
+  };
+
+  const why: string[] = [
+    md && md !== "Unknown" ? `MD ${md} sets the main background.` : "",
+    ad && ad !== "Unknown" ? `AD ${ad} sets the current working tone.` : "",
+    pd && pd !== "Unknown" ? `PD ${pd} acts as the immediate trigger.` : "",
+  ].filter(Boolean);
+
+  const doMap: Record<AskSarathiDomain, string[]> = {
+    career: [
+      "Use this phase to improve visibility, outreach, and readiness.",
+      "Take selective action instead of waiting passively.",
+      "Prepare for a cleaner opening as timing strengthens.",
+    ],
+    money: [
+      "Use this phase for planning, cash discipline, and selective decisions.",
+      "Strengthen structure before taking major risk.",
+      "Watch for practical openings rather than emotional moves.",
+    ],
+    relationships: [
+      "Use this phase to improve clarity, honesty, and emotional steadiness.",
+      "Focus on quality of interaction before forcing outcomes.",
+      "Let timing reveal what is sustainable.",
+    ],
+    marriage: [
+      "Use this phase to assess seriousness, timing, and compatibility.",
+      "Avoid rushing because of pressure alone.",
+      "Let clarity build before commitment.",
+    ],
+    health: [
+      "Use this phase for consistency, routine, and recovery.",
+      "Protect sleep, energy, and stress load.",
+      "Build stability before expecting dramatic change.",
+    ],
+    property: [
+      "Use this phase for research, paperwork, and timing assessment.",
+      "Strengthen the foundation before final commitment.",
+      "Move selectively, not emotionally.",
+    ],
+    vehicle: [
+      "Use this phase for planning, budget clarity, and practical comparison.",
+      "Check need versus impulse before purchase.",
+      "Act when the path feels cleaner and better supported.",
+    ],
+    disputes: [
+      "Use this phase for strategy, documentation, and controlled response.",
+      "Avoid reacting from anger alone.",
+      "Let timing support stronger positioning.",
+    ],
+    inner: [
+      "Use this phase for reflection, simplification, and regaining direction.",
+      "Let clarity grow through observation and steady action.",
+      "Do not confuse transition with failure.",
+    ],
+    generic: [
+      "Use this phase for steady preparation and selective action.",
+      "Let timing build instead of forcing certainty.",
+      "Stay ready for the next cleaner opening.",
+    ],
+  };
+
+  const avoidMap: Record<AskSarathiDomain, string[]> = {
+    career: ["Avoid quitting purely from frustration."],
+    money: ["Avoid impulsive money moves."],
+    relationships: ["Avoid forcing emotional certainty too quickly."],
+    marriage: ["Avoid commitment from pressure rather than clarity."],
+    health: ["Avoid neglecting body signals."],
+    property: ["Avoid rushed commitment without clean readiness."],
+    vehicle: ["Avoid buying just to release restlessness."],
+    disputes: ["Avoid emotionally reactive escalation."],
+    inner: ["Avoid assuming this phase means nothing is happening."],
+    generic: ["Avoid forceful moves made from confusion."],
+  };
+
+  return {
+    fromISO: undefined,
+    toISO: adEnd || undefined,
+    label: topicLabelMap[topic || "generic"],
+    strength: "Supportive",
+    why,
+    do: doMap[topic || "generic"],
+    avoid: avoidMap[topic || "generic"],
+  };
+}
 function buildWhyEvidence(opts: {
   report?: LifeReportLike | null;
-  topic: ReturnType<typeof canonicalTopic>;
+  topic: AskSarathiDomain;
 })
  {
 
@@ -999,7 +1593,92 @@ if (!bullets.length && adLord) {
 
   return bullets;
 }
+function buildDomainAstroEvidence(opts: {
+  topic: AskSarathiDomain;
+  report?: any;
+}): {
+  natalFactors: string[];
+  dashaFactors: string[];
+  transitFactors: string[];
+  synthesis: string[];
+} {
+  const { topic, report } = opts;
 
+  const natalFactors: string[] = [];
+  const dashaFactors: string[] = [];
+  const transitFactors: string[] = [];
+  const synthesis: string[] = [];
+
+  const ascSign = report?.ascSign;
+  if (ascSign) natalFactors.push(`Ascendant baseline: ${ascSign}.`);
+
+  if (Array.isArray(report?.planets)) {
+    const p = report.planets;
+    const byName = (name: string) =>
+      p.find((x: any) => String(x?.name || "").toLowerCase() === name.toLowerCase());
+
+    const moon = byName("Moon");
+    const venus = byName("Venus");
+    const jupiter = byName("Jupiter");
+    const mercury = byName("Mercury");
+    const saturn = byName("Saturn");
+    const mars = byName("Mars");
+
+    if (topic === "career") {
+      if (saturn?.house != null) natalFactors.push(`Natal Saturn links to house ${saturn.house}, adding responsibility and structure themes.`);
+      if (mercury?.house != null) natalFactors.push(`Natal Mercury in house ${mercury.house} highlights communication, coordination, and role-fit decisions.`);
+      if (jupiter?.house != null) natalFactors.push(`Natal Jupiter in house ${jupiter.house} shows where growth and opportunity can support career choices.`);
+    }
+
+    if (topic === "money") {
+      if (venus?.house != null) natalFactors.push(`Natal Venus in house ${venus.house} influences comfort, value, and financial preferences.`);
+      if (jupiter?.house != null) natalFactors.push(`Natal Jupiter in house ${jupiter.house} contributes to growth and resource expansion themes.`);
+    }
+
+    if (topic === "relationships" || topic === "marriage") {
+      if (venus?.house != null) natalFactors.push(`Natal Venus in house ${venus.house} colors attraction, bonding, and relationship style.`);
+      if (moon?.house != null) natalFactors.push(`Natal Moon in house ${moon.house} shows emotional needs and relational sensitivity.`);
+      if (jupiter?.house != null) natalFactors.push(`Natal Jupiter in house ${jupiter.house} adds guidance and maturity to partnership themes.`);
+    }
+
+    if (topic === "health") {
+      if (moon?.house != null) natalFactors.push(`Natal Moon in house ${moon.house} affects emotional resilience and recovery rhythm.`);
+      if (saturn?.house != null) natalFactors.push(`Natal Saturn in house ${saturn.house} points to where pressure can accumulate if routines slip.`);
+      if (mars?.house != null) natalFactors.push(`Natal Mars in house ${mars.house} shows where energy must be channeled carefully.`);
+    }
+  }
+
+  const act = getActiveDashaAnyShape(report);
+  if (act.md && act.md !== "Unknown") dashaFactors.push(`MD ${act.md} sets the main life chapter.`);
+  if (act.ad && act.ad !== "Unknown") dashaFactors.push(`AD ${act.ad} sets the current operating tone.`);
+  if (act.pd && act.pd !== "Unknown") dashaFactors.push(`PD ${act.pd} acts as the immediate trigger.`);
+
+  const bestTransit = pickBestTransitWindows(report, topic);
+  for (const w of bestTransit.slice(0, 2)) {
+    transitFactors.push(
+      `${fmtRange(w.from, w.to)} → ${w.driver || "Transit trigger"}${w.summary ? `: ${w.summary}` : ""}`
+    );
+  }
+
+  if (topic === "career") {
+    synthesis.push("Career timing should be read from natal direction + current dasha + active work/growth transits together.");
+  } else if (topic === "money") {
+    synthesis.push("Money timing should be read from resource themes + current dasha + near-term gain/support windows together.");
+  } else if (topic === "relationships" || topic === "marriage") {
+    synthesis.push("Relationship timing should be read from natal bonding patterns + current emotional chapter + active transit triggers together.");
+  } else if (topic === "health") {
+    synthesis.push("Health timing should be read from baseline resilience + current stress/load chapter + recovery-supportive triggers together.");
+  } else {
+    synthesis.push("This answer should be read from natal baseline + current dasha + near-term transit triggers together.");
+  }
+
+  return {
+    natalFactors,
+    dashaFactors,
+    transitFactors,
+    synthesis,
+  };
+}
 /* --------------------------------------------------
    Remedies / next phases / concept explainers
 -------------------------------------------------- */
@@ -1647,7 +2326,699 @@ function buildDailyRhythm(
     oneStep,
   };
 }
+  function buildUniversalTimingGuidance(opts: {
+  report?: LifeReportLike | null;
+  topic: AskSarathiDomain;
+  windows: AskSarathiTimingWindow[];
+}): {
+  strongestStrength: AskSarathiWindowStrength | null;
+  primaryWindow: AskSarathiTimingWindow | null;
+  timingSummary: string;
+  timingDirective: string;
+  distantPivotNote?: string;
+} {
+  const { report, topic, windows } = opts;
 
+  const primaryWindow = windows.length ? windows[0] : null;
+  const strongestStrength = primaryWindow?.strength ?? null;
+
+  const adEnd =
+    report?.activePeriods?.antardasha?.end ||
+    undefined;
+
+  const domainLabelMap: Record<AskSarathiDomain, string> = {
+    career: "career movement",
+    money: "money movement",
+    relationships: "relationship movement",
+    marriage: "marriage progress",
+    health: "health improvement",
+    property: "property action",
+    vehicle: "vehicle action",
+    disputes: "dispute movement",
+    inner: "inner clarity",
+    generic: "movement",
+  };
+
+  const domainLabel = domainLabelMap[topic] || "movement";
+
+  let timingSummary = "";
+  let timingDirective = "";
+
+    if (strongestStrength === "Strong") {
+    timingSummary = `A strong near-term window is active for ${domainLabel}.`;
+    timingDirective = "Treat the current phase as actionable. Move with preparation, not hesitation.";
+  } else if (strongestStrength === "Supportive") {
+    timingSummary = `A supportive near-term window is active for ${domainLabel}, so selective movement is possible now.`;
+    timingDirective = "This phase is usable now. Move selectively and intelligently instead of waiting passively.";
+  } else if (strongestStrength === "Mixed") {
+    timingSummary = `The best available timing is mixed, but still usable for selective ${domainLabel}.`;
+    timingDirective = "Use this phase for positioning, testing options, and measured action rather than forcing a final leap.";
+  } else if (strongestStrength === "Caution") {
+    timingSummary = `The best visible timing carries caution for ${domainLabel}.`;
+    timingDirective = "Move carefully. Use the phase for preparation, clarity, and damage control rather than force.";
+  } else {
+    timingSummary = `No tagged window is visible, but the current phase still gives a usable opening for ${domainLabel}.`;
+    timingDirective = "Do not treat this as a dead phase. Use it for preparation, visibility, and readiness.";
+  }
+
+  const distantPivotNote = adEnd
+    ? `A larger background pivot may come closer to ${fmtDateShort(adEnd)}, but that should not be treated as the only time something can happen.`
+    : undefined;
+
+  return {
+    strongestStrength,
+    primaryWindow,
+    timingSummary,
+    timingDirective,
+    distantPivotNote,
+  };
+}
+function buildDailyOutlookCoreAnswer(opts: {
+  mode: "personalized" | "generic";
+  report?: any;
+  evidenceBullets: string[];
+}): AskSarathiCoreAnswer {
+  const { mode, report, evidenceBullets } = opts;
+
+  const dailyGuide = report?.dailyGuide ?? {};
+  const todayMoon = Array.isArray(report?.dailyMoon) ? report.dailyMoon[0] : null;
+  const transitNowFacts = Array.isArray(report?.transitNowFacts) ? report.transitNowFacts : [];
+  const topTransits = Array.isArray(report?.topTransits) ? report.topTransits : [];
+
+  const act = getActiveDashaAnyShape(report);
+  const currentPhaseLabel =
+    [act.md, act.ad, act.pd].filter((x) => x && x !== "Unknown").join(" / ") || undefined;
+
+  const emotional =
+    String(dailyGuide?.emotionalWeather?.summary ?? "").trim();
+  const money =
+    String(dailyGuide?.moneyTip?.summary ?? "").trim();
+  const food =
+    String(dailyGuide?.food?.headline ?? "").trim();
+
+  const moonNak = String(
+  todayMoon?.moonNakshatra ??
+    report?.moonNakshatraTodayFact ??
+    ""
+)
+  .replace(/^Moon nakshatra today:\s*/i, "")
+  .trim();
+
+  const moonHouse =
+    typeof todayMoon?.houseFromMoon === "number" ? todayMoon.houseFromMoon : null;
+
+  const moonLine = moonNak
+    ? `The Moon today is in ${moonNak}${moonHouse ? `, activating H${moonHouse} from your natal Moon` : ""}. This shapes the emotional tone of the day.`
+    : "The Moon is setting the emotional tone of the day, so mood and timing matter more than force.";
+
+  const transitLine =
+    transitNowFacts.length > 0
+      ? `Current transits active today: ${transitNowFacts.slice(0, 3).join(" • ")}.`
+      : "Today carries active movement, but the day is best read through tone and pacing rather than force.";
+
+  const strongestNow = topTransits[0];
+  const strongestWindowLine =
+    strongestNow?.title && strongestNow?.startISO && strongestNow?.endISO
+      ? `The strongest active backdrop right now is ${strongestNow.title} (${strongestNow.startISO} → ${strongestNow.endISO}).`
+      : "";
+
+  const dashaLine = currentPhaseLabel
+    ? `Your active phase (${currentPhaseLabel}) colors how these daily signals are experienced, but the day itself should be read mainly from the Moon and current transits.`
+    : "";
+
+  const usableSummary = [
+    moonLine,
+    transitLine,
+    strongestWindowLine,
+    dashaLine,
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+   const actions = [
+    "Use the day for practical tasks, follow-through, and clearing small pending items.",
+    "Handle important conversations with calm clarity rather than emotional speed.",
+    moonHouse === 6
+      ? "Prioritize work, routines, or unfinished responsibilities before moving to less important things."
+      : emotional || "Keep your energy focused on one or two meaningful priorities instead of scattering it.",
+  ]
+    .filter(Boolean)
+    .slice(0, 3);
+
+  const avoid = [
+    "Avoid overloading the day with too many priorities.",
+    "Avoid reacting emotionally to small irritations or delays.",
+    food || "Avoid comfort-seeking habits that break your rhythm or focus.",
+  ]
+    .filter(Boolean)
+    .slice(0, 3);
+
+  const reasons = [
+    moonLine,
+    transitLine,
+    strongestWindowLine,
+    dashaLine,
+  ]
+    .filter(Boolean)
+    .slice(0, 4);
+    let verdictLine =
+    "Today looks usable and productive, especially if you stay intentional and do not scatter your energy.";
+
+  if (moonHouse === 6) {
+    verdictLine =
+      "Today has a practical and task-oriented tone. You may feel mentally busy or slightly pressured to handle responsibilities, but this energy can help you organize things and move work forward.";
+  } else if (moonHouse === 12) {
+    verdictLine =
+      "Today has a quieter and more inward tone. You may feel reflective, slightly withdrawn, or less interested in noise, and the day works better for calm progress than outward push.";
+  } else if (moonHouse === 7) {
+    verdictLine =
+      "Today puts more emphasis on people, conversations, and one-to-one dynamics. You may feel more aware of how others are responding, and interactions can shape the tone of the day.";
+  } else if (moonHouse === 10) {
+    verdictLine =
+      "Today has a visible and action-oriented tone. You may feel a push to handle responsibilities properly and make tangible progress in something important.";
+  }
+
+  const feelingLine =
+    moonHouse === 6
+      ? "Emotionally, you may feel mentally active, duty-focused, or slightly restless. The mind may keep returning to work, pending tasks, or things that need fixing."
+      : moonHouse === 12
+      ? "Emotionally, the day may feel quieter or more inward than usual. You may prefer space, slower pacing, or time away from unnecessary noise."
+      : moonHouse === 7
+      ? "Emotionally, the day may feel more relational. You may notice yourself reacting more to conversations, tone, or the behavior of other people."
+      : moonHouse === 10
+      ? "Emotionally, the day may feel purposeful and responsibility-driven. You may want to get things done properly rather than leave them hanging."
+      : "Emotionally, the day carries a steady but observant tone. You may do best when you stay aware of your pace and don’t let small irritations take over.";
+
+  const likelyEventLine =
+    moonHouse === 6
+      ? "A practical situation related to work, routines, health, coordination, or a pending responsibility may need your attention today. This is more likely to be a manageable task than a dramatic disruption."
+      : moonHouse === 12
+      ? "The day may bring quieter progress, background thinking, or a need to step back from noise. You may also find yourself revisiting something internally before acting outwardly."
+      : moonHouse === 7
+      ? "A conversation, clarification, or one-to-one interaction may become one of the main shaping events of the day. How calmly you handle it will matter."
+      : moonHouse === 10
+      ? "A visible responsibility, work matter, or decision about direction may ask for your attention today. There is more benefit in handling it cleanly than delaying it."
+      : "A small but meaningful situation may arise that asks for practical attention, emotional balance, or clearer communication.";
+  return {
+    ok: true,
+    mode,
+    domain: "generic",
+    questionType: "daily_outlook",
+    title: "Today’s Outlook",
+    verdict: {
+      type: "supportive",
+      line: verdictLine,
+    },
+    currentPhase: {
+      label: currentPhaseLabel,
+      summary: usableSummary,
+    },
+    timing: {
+      hasTiming: true,
+      summary: "This is a same-day guidance read, so the focus is on today’s Moon tone, current transits, and how you use the day.",
+      windows: [],
+    },
+    reasons,
+    actions,
+    avoid,
+    confidence: {
+      level: mode === "personalized" ? "High" : "Medium",
+      reason:
+        mode === "personalized"
+          ? "Today’s reading is grounded in Moon nakshatra, current transits, and your active phase."
+          : "This is based on general daily guidance with limited personalization.",
+    },
+    followUps: [
+      "What should I focus on most today?",
+      "What should I avoid today?",
+      "Is today good for an important conversation?",
+    ],
+    evidenceBullets,
+    prose: {
+      short: verdictLine,
+           full: [
+        verdictLine,
+        "",
+        feelingLine,
+        "",
+        likelyEventLine,
+        "",
+        usableSummary,
+        "",
+        "What to focus on now:",
+        ...actions.map((x) => `- ${x}`),
+        "",
+        "What to avoid:",
+        ...avoid.map((x) => `- ${x}`),
+        ...(money ? ["", `Money tone: ${money}`] : []),
+      ].join("\n"),
+    },
+  };
+}
+function buildDailyMicroCoreAnswer(opts: {
+  mode: "personalized" | "generic";
+  report?: any;
+  question: string;
+  evidenceBullets: string[];
+}): AskSarathiCoreAnswer {
+  const { mode, report, question, evidenceBullets } = opts;
+
+  const q = String(question || "").toLowerCase();
+  const todayMoon = Array.isArray(report?.dailyMoon) ? report.dailyMoon[0] : null;
+  const transitNowFacts = Array.isArray(report?.transitNowFacts) ? report.transitNowFacts : [];
+  const act = getActiveDashaAnyShape(report);
+  const currentPhaseLabel =
+    [act.md, act.ad, act.pd].filter((x) => x && x !== "Unknown").join(" / ") || undefined;
+
+  const moonNak = String(
+    todayMoon?.moonNakshatra ||
+      report?.moonNakshatraTodayFact ||
+      ""
+  ).replace(/^Moon nakshatra today:\s*/i, "").trim();
+
+  const houseFromMoon =
+    typeof todayMoon?.houseFromMoon === "number" ? todayMoon.houseFromMoon : null;
+
+  const moonLine = moonNak
+    ? `Moon tone today: ${moonNak}${houseFromMoon ? ` • H${houseFromMoon} from natal Moon` : ""}.`
+    : "Moon tone today supports staying aware and intentional.";
+
+  let title = "Today’s Guidance";
+  let verdict = "Today is usable, but the best results will come from staying intentional and choosing simply.";
+  let actions: string[] = [];
+  let avoid: string[] = [];
+  let extraLine = "";
+
+  if (q.includes("color") || q.includes("colour") || q.includes("wear")) {
+    title = "Today’s Best Color";
+    verdict =
+      "For today, softer, cleaner, and balanced tones are likely to work better than loud or aggressive colors.";
+    actions = [
+      "Choose calm, polished shades like white, cream, pastel blue, soft grey, or light green.",
+      "If you want presence without heaviness, go for elegant rather than flashy.",
+      "Use color to feel composed and clear rather than overstimulated.",
+    ];
+    avoid = [
+      "Avoid overly harsh or aggressive colors if you already feel mentally loaded.",
+      "Avoid dressing in a way that increases restlessness or emotional noise.",
+    ];
+    extraLine = moonNak
+      ? `Because today’s Moon is in ${moonNak}, the day responds better to balance and rhythm than visual excess.`
+      : "";
+  } else if (q.includes("eat")) {
+    title = "What to Eat Today";
+    verdict =
+      "Today is better supported by simple, grounding, and steady food choices than excess or stimulation.";
+    actions = [
+      "Choose warm, practical meals that keep energy stable.",
+      "Eat in a way that supports focus rather than heaviness.",
+      "Prefer clean, moderate food over random cravings.",
+    ];
+    avoid = [
+      "Avoid overeating or comfort-driven snacking.",
+      "Avoid foods that make you dull, agitated, or overly heavy.",
+    ];
+  } else if (
+    q.includes("meeting") ||
+    q.includes("interview") ||
+    q.includes("conversation") ||
+    q.includes("call")
+  ) {
+    title = "Today for Conversations";
+    verdict =
+      "Yes, today can be used for an important conversation, provided you stay calm, clear, and measured.";
+    actions = [
+      "Keep your communication direct but composed.",
+      "Use the day for clarification, alignment, and practical discussion.",
+      "Prepare your key points before the conversation starts.",
+    ];
+    avoid = [
+      "Avoid emotionally reactive wording.",
+      "Avoid going into the conversation unprepared or scattered.",
+    ];
+  } else if (
+    q.includes("gym") ||
+    q.includes("workout") ||
+    q.includes("run")
+  ) {
+    title = "Today for Exercise";
+    verdict =
+      "Yes, today is usable for movement, but it is better for structured effort than overexertion.";
+    actions = [
+      "Choose a focused workout over an extreme one.",
+      "Let consistency matter more than intensity.",
+      "Use exercise to stabilize the mind as well as the body.",
+    ];
+    avoid = [
+      "Avoid pushing too hard if energy feels uneven.",
+      "Avoid turning movement into pressure rather than support.",
+    ];
+  } else {
+    title = "Today’s Guidance";
+    verdict =
+      "Today is usable, and it will work best if you keep things simple, focused, and well-paced.";
+    actions = [
+      "Use the day with intention.",
+      "Prefer clarity over speed.",
+      "Choose steady action over scattered effort.",
+    ];
+    avoid = [
+      "Avoid overcomplicating the day.",
+      "Avoid emotional overreaction to small things.",
+    ];
+  }
+
+  const summary = [
+    moonLine,
+    transitNowFacts.length ? `Active transits today: ${transitNowFacts.slice(0, 2).join(" • ")}.` : "",
+    currentPhaseLabel ? `Background phase: ${currentPhaseLabel}.` : "",
+    extraLine,
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  const reasons = [
+    moonLine,
+    transitNowFacts.length ? `Today’s active transits: ${transitNowFacts.slice(0, 2).join(" • ")}.` : "",
+    currentPhaseLabel ? `Active phase: ${currentPhaseLabel}.` : "",
+    ...evidenceBullets.slice(0, 1),
+  ]
+    .filter(Boolean)
+    .slice(0, 4);
+
+  return {
+    ok: true,
+    mode,
+    domain: "generic",
+    questionType: "daily_micro",
+    title,
+    verdict: {
+      type: "supportive",
+      line: verdict,
+    },
+    currentPhase: {
+      label: currentPhaseLabel,
+      summary,
+    },
+    timing: {
+      hasTiming: true,
+      summary: "This is a same-day micro guidance read based mainly on Moon tone and active transits today.",
+      windows: [],
+    },
+    reasons,
+    actions,
+    avoid,
+    confidence: {
+      level: mode === "personalized" ? "High" : "Medium",
+      reason:
+        mode === "personalized"
+          ? "This answer uses today’s Moon tone, current transits, and your active phase."
+          : "This answer uses general daily guidance with light personalization.",
+    },
+    followUps: [
+      "What should I avoid today?",
+      "Is today good for a conversation?",
+      "What should I focus on today?",
+    ],
+    evidenceBullets: reasons,
+    prose: {
+      short: verdict,
+      full: [
+        verdict,
+        "",
+        summary,
+        "",
+        "What works well today:",
+        ...actions.map((x) => `- ${x}`),
+        "",
+        "What to avoid:",
+        ...avoid.map((x) => `- ${x}`),
+      ].join("\n"),
+    },
+  };
+}
+function buildAskSarathiCoreAnswer(opts: {
+  question: string;
+  mode: "personalized" | "generic";
+  report?: LifeReportLike | null;
+  topic: AskSarathiDomain;
+  questionType: AskSarathiQuestionType;
+  distressed: boolean;
+  distressSoothing: string;
+  evidenceBullets: string[];
+}): AskSarathiCoreAnswer {
+  const {
+    question,
+    mode,
+    report,
+    topic,
+    questionType,
+    distressed,
+    distressSoothing,
+    evidenceBullets,
+  } = opts;
+
+  const act = getActiveDashaAnyShape(report);
+  const currentPhaseLabel =
+    [act.md, act.ad, act.pd]
+      .filter((x) => x && x !== "Unknown")
+      .join(" / ") || undefined;
+
+  const currentPhaseSummary =
+    mode === "personalized"
+      ? buildShortHorizon(report, "month")
+      : "This answer is based on general guidance because full personalized timing is not fully available.";
+
+  const bestTransit = pickBestTransitWindows(report, topic);
+  const bestTimeline = pickFromTimeline(report, topic);
+
+  const windows: AskSarathiTimingWindow[] = [];if (bestTransit.length) {
+
+  // 1️⃣ Score windows using topic relevance + strength
+  const scored = bestTransit
+  .map((w: any) => {
+    const strength = windowStrengthScore(w.riskFlag);
+    const category = String(w.focusArea || "").toLowerCase();
+
+    const weight = topicWeight(topic, category);
+
+    const score = strength + weight * 0.5;
+
+    return {
+      ...w,
+      _score: score,
+    };
+  })
+    .sort((a, b) => b._score - a._score);
+
+  // 2️⃣ Select the best 2 windows AFTER scoring
+  for (const w of scored.slice(0, 2)) {
+    windows.push({
+      fromISO: w.from || undefined,
+      toISO: w.to || undefined,
+      label: w.summary || w.focusArea || "Active window",
+      strength: windowStrengthFromRiskFlag(w.riskFlag),
+      why: [
+        w.driver ? `Driver: ${w.driver}` : "",
+        w.summary ? w.summary : "",
+      ].filter(Boolean),
+
+      do:
+        Array.isArray(w.actions) && w.actions.length
+          ? w.actions.slice(0, 3)
+          : [
+              "Use this window for targeted movement and practical action.",
+              "Act selectively rather than impulsively.",
+            ],
+
+      avoid:
+        w.riskFlag === "caution"
+          ? ["Avoid rushed or emotionally reactive decisions."]
+          : w.riskFlag === "mixed"
+          ? ["Avoid forcing outcomes before timing becomes cleaner."]
+          : [],
+    });
+  }
+}
+  if (!windows.length && bestTimeline) {
+    const timelineStrength: AskSarathiWindowStrength =
+      typeof bestTimeline.score === "number" && bestTimeline.score >= 8
+        ? "Strong"
+        : typeof bestTimeline.score === "number" && bestTimeline.score >= 5
+        ? "Supportive"
+        : "Mixed";
+
+    windows.push({
+      fromISO: bestTimeline.from || undefined,
+      toISO: bestTimeline.to || undefined,
+      label: bestTimeline.label || bestTimeline.blurb || "Important phase",
+      strength: timelineStrength,
+      why: [
+        bestTimeline.blurb || "",
+        bestTimeline.adLord ? `AD ${bestTimeline.adLord}` : "",
+        bestTimeline.pdLord ? `PD ${bestTimeline.pdLord}` : "",
+      ].filter(Boolean),
+      do: [
+        "Use this phase for structured progress aligned to the topic.",
+        "Treat this as the best currently visible timing path.",
+      ],
+      avoid: timelineStrength === "Mixed" ? ["Avoid forcing a final decision too early."] : [],
+    });
+  }
+
+  if (!windows.length) {
+    const fallbackWindow = fallbackWindowFromActivePeriod(report, topic);
+    if (fallbackWindow) windows.push(fallbackWindow);
+  }
+
+    const timingGuide = buildUniversalTimingGuidance({
+    report,
+    topic,
+    windows,
+  });
+
+  const hasTiming = windows.length > 0;
+
+  const verdictType = verdictTypeFromSignals({
+    hasTiming,
+    windows,
+    distressed,
+    questionType,
+  });
+
+  const verdictLineMap: Record<AskSarathiVerdictType, string> = {
+  favorable: "Yes — this is a favorable phase to move ahead, provided you act with discipline.",
+  supportive: "Yes — selective movement is possible now, and the current phase is supportive enough to act intelligently.",
+  mixed: "Yes — movement is possible, but this phase is better for selective action than a rushed leap.",
+  caution: "You can move, but carefully — this timing rewards restraint and measured judgment more than force.",
+  not_advised: "This is not a strong phase for forcing this move right now.",
+  needs_patience: "This phase is better for positioning and selective progress than a forced final move right now.",
+};
+  
+  const confidence = confidenceFromSignals({
+    mode,
+    evidenceCount: evidenceBullets.length,
+    hasTiming,
+    windows,
+  });
+
+   const domainEvidence = buildDomainAstroEvidence({
+    topic,
+    report,
+  });
+
+  const reasons = [
+    ...domainEvidence.natalFactors.slice(0, 1),
+    ...domainEvidence.dashaFactors.slice(0, 1),
+    ...domainEvidence.transitFactors.slice(0, 1),
+    ...domainEvidence.synthesis.slice(0, 1),
+    ...evidenceBullets.slice(0, 2),
+  ].slice(0, 4);
+
+   const actions: string[] =
+    windows[0]?.do?.length
+      ? windows[0].do.slice(0, 3)
+      : questionType === "decision"
+      ? [
+          timingGuide.timingDirective,
+          "Move in measured steps instead of one big emotional jump.",
+          "Act strategically, not reactively.",
+        ]
+      : questionType === "timing"
+      ? [
+          timingGuide.timingDirective,
+          "Treat timing as a staged process, not a one-day event.",
+          "Use the current phase instead of waiting passively for a distant pivot.",
+        ]
+      : [
+          timingGuide.timingDirective,
+          "Keep your next step realistic and specific.",
+          "Use this phase for clarity and steady movement.",
+        ];
+
+  const avoid: string[] =
+    windows[0]?.avoid?.length
+      ? windows[0].avoid.slice(0, 3)
+      : [
+          "Avoid making decisions only from frustration.",
+          "Avoid comparing your pace with someone else’s timing.",
+          "Avoid forcing certainty where the phase still needs observation.",
+        ];
+
+     const strongestWindow = timingGuide.primaryWindow;
+  const strongestStrength = timingGuide.strongestStrength;
+  const timingSummary = timingGuide.timingSummary;
+
+  const emotionalSupport =
+    distressed || questionType === "emotional_support"
+      ? distressSoothing || "This phase is not punishment. It is pressure shaping clarity."
+      : undefined;
+
+  const followUps = followUpsFor(topic, questionType);
+
+  const shortProse = verdictLineMap[verdictType];
+   const timingLines = hasTiming
+    ? windows.map((w) => {
+        const range =
+          w.fromISO && w.toISO ? `${w.fromISO} → ${w.toISO}` : "Timing active";
+        return `- ${w.label}: ${range}`;
+      })
+    : ["- Use the current phase for preparation, visibility, and readiness."];
+
+  if (timingGuide.distantPivotNote) {
+    timingLines.push(`- ${timingGuide.distantPivotNote}`);
+  }
+  const fullProse = [
+    verdictLineMap[verdictType],
+    "",
+    currentPhaseSummary,
+    "",
+    "What to focus on now:",
+    ...actions.map((x) => `- ${x}`),
+    "",
+    "What to avoid:",
+    ...avoid.map((x) => `- ${x}`),
+    "",
+    "Timing insight:",
+    ...timingLines,
+    emotionalSupport ? "" : null,
+    emotionalSupport ? emotionalSupport : null,
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  return {
+    ok: true,
+    mode,
+    domain: topic,
+    questionType,
+    title: titleFromDomain(topic),
+    verdict: {
+      type: verdictType,
+      line: verdictLineMap[verdictType],
+    },
+    currentPhase: {
+      label: currentPhaseLabel,
+      summary: currentPhaseSummary,
+    },
+    timing: {
+      hasTiming,
+      summary: timingSummary,
+      windows,
+    },
+    reasons,
+    actions,
+    avoid,
+    confidence,
+    followUps,
+    emotionalSupport,
+    evidenceBullets,
+    prose: {
+      short: shortProse,
+      full: fullProse,
+    },
+  };
+}
 function buildAstroFacts(question: string, report: LifeReportLike | null) {
   // ---------- helpers ----------
   const safeStr = (v: any) => (typeof v === "string" ? v.trim() : "");
@@ -1878,7 +3249,37 @@ if (careerBrief?.type === "career_window" && (careerBrief as any)?.windowRange) 
     evidenceBullets: evidence.slice(0, 7),
   };
 }
+function topicWeight(topic: string, category?: string) {
+  if (!category) return 0;
 
+  const t = topic.toLowerCase();
+  const c = category.toLowerCase();
+
+  if (t === "career") {
+    if (c === "career") return 3;
+    if (c === "general") return 1;
+  }
+
+  if (t === "money") {
+    if (c === "career") return 2;
+    if (c === "general") return 1;
+  }
+
+  if (t === "relationships") {
+    if (c === "relationships") return 3;
+    if (c === "general") return 1;
+  }
+
+  if (t === "health") {
+    if (c === "health") return 3;
+  }
+
+  if (t === "inner") {
+    if (c === "inner") return 3;
+  }
+
+  return 0;
+}
 /* --------------------------------------------------
    POST handler
 -------------------------------------------------- */
@@ -2019,9 +3420,14 @@ export async function POST(req: Request) {
       });
     }
 
-    const topic = canonicalTopic(detectTopic(question));
-    const { tone, depth } = pickToneAndDepth(question, topic);
-
+    const topic = detectTopic(question);
+const questionType = detectQuestionType(question);
+const { tone, depth } = pickToneAndDepth(question, topic);
+console.log("[astro-chat] detected", {
+  question,
+  topic,
+  questionType,
+});
     // decide response size early
     const formatTier: FormatTier = isMicroIntentQuestion(question) ? "micro" : pickFormatTier(question);
     console.log("[astro-chat] formatTier:", formatTier, "question:", question);
@@ -2055,16 +3461,75 @@ export async function POST(req: Request) {
 
     const evidenceBullets = [...(Array.isArray(baseEvidence) ? baseEvidence : [])];
 
-    if (
-      careerBrief?.type === "career_window" &&
-      (careerBrief as any)?.hasWindow &&
-      (careerBrief as any)?.windowRange
-    ) {
-      evidenceBullets.push(`Career window: ${(careerBrief as any).windowRange}`);
-      if ((careerBrief as any)?.confidenceWord) evidenceBullets.push(`Strength: ${(careerBrief as any).confidenceWord}`);
-      if ((careerBrief as any)?.theme) evidenceBullets.push(`Theme: ${(careerBrief as any).theme}`);
-    }
+if (
+  careerBrief?.type === "career_window" &&
+  (careerBrief as any)?.hasWindow &&
+  (careerBrief as any)?.windowRange
+) {
+  evidenceBullets.push(`Career window: ${(careerBrief as any).windowRange}`);
+  if ((careerBrief as any)?.confidenceWord) {
+    evidenceBullets.push(`Strength: ${(careerBrief as any).confidenceWord}`);
+  }
+  if ((careerBrief as any)?.theme) {
+    evidenceBullets.push(`Theme: ${(careerBrief as any).theme}`);
+  }
+}
 
+const weightedTransitEvidence = pickBestTransitWindows(report, topic);
+
+for (const w of weightedTransitEvidence.slice(0, 2)) {
+  evidenceBullets.push(
+    `Transit window ${fmtRange(w.from, w.to)} → ${w.focusArea || "general"}; driver: ${w.driver || "Transit"}${
+      w.riskFlag ? `; tone: ${w.riskFlag}-leaning` : ""
+    }`
+  );
+}
+
+const dedupedEvidenceBullets = Array.from(new Set(evidenceBullets));
+
+const dailyEvidenceBullets =
+  questionType === "daily_outlook" || questionType === "daily_micro"
+    ? Array.from(
+        new Set(
+          [
+            report?.moonNakshatraTodayFact
+              ? String(report.moonNakshatraTodayFact)
+              : "",
+            Array.isArray(report?.transitNowFacts) && report.transitNowFacts.length
+              ? `Transit snapshot: ${report.transitNowFacts.slice(0, 3).join(" • ")}`
+              : "",
+            report?.activePeriods?.mahadasha?.lord || report?.activePeriods?.antardasha?.subLord
+              ? `Active dasha stack → MD ${actAny.md} • AD ${actAny.ad} • PD ${actAny.pd}`
+              : "",
+          ].filter(Boolean)
+        )
+      )
+    : dedupedEvidenceBullets;
+
+const core =
+  questionType === "daily_outlook"
+    ? buildDailyOutlookCoreAnswer({
+        mode,
+        report,
+        evidenceBullets: dailyEvidenceBullets,
+      })
+    : questionType === "daily_micro"
+    ? buildDailyMicroCoreAnswer({
+        mode,
+        report,
+        question,
+        evidenceBullets: dailyEvidenceBullets,
+      })
+    : buildAskSarathiCoreAnswer({
+        question,
+        mode,
+        report,
+        topic,
+        questionType,
+        distressed,
+        distressSoothing,
+        evidenceBullets: dedupedEvidenceBullets,
+      });
     // signature of "today's astro window"
     const todayISO = new Date().toISOString().slice(0, 10);
 
@@ -2086,17 +3551,26 @@ export async function POST(req: Request) {
     const styleGuide = {
       vibe: "clear, warm, direct; modern astrology guide; no fluff",
       coreRules: [
-        "Answer the user's question immediately. Do NOT stall with phrases like 'while I refresh...' or 'let me pull your chart'.",
-        "If MODE=generic: answer as an astrology expert in general terms. Offer personalization in ONE short sentence at the end.",
-        "If MODE=personalized: NEVER ask for birth details. Use astroFacts/report if present. If report is missing, answer using natal basics from profile (no excuses).",
-        "If MODE=personalized and report/timing is missing: do NOT ask for birth details. Say: 'Open Life Report once so I can load your timing windows' (one short line).",
-        "No psychoanalysis. No moral judgment. No doom. No fear messaging.",
-        "If user asks timing: give a window + 2 actions + 1 risk to avoid. Keep it compact.",
-        "Do NOT output the heading 'Why this (evidence)'. If the user explicitly asks why, use heading: 'Why (astro):'",
-        "Never say you're 'refreshing' or 'loading' timing windows.",
-        "If MODE=personalized: do NOT mention any planet/transit unless it appears in EVIDENCE_BULLETS_JSON or ASTRO_FACTS_JSON.",
-        "If user asks 'why': add a short 'Why (astro):' section with 2–4 bullets, grounded in the provided evidence only.",
-      ],
+  "Answer the user's question immediately. Do NOT stall with phrases like 'while I refresh...' or 'let me pull your chart'.",
+  "If MODE=generic: answer as an astrology expert in general terms. Offer personalization in ONE short sentence at the end.",
+  "If MODE=personalized: NEVER ask for birth details. Use astroFacts/report if present. If report is missing, answer using natal basics from profile (no excuses).",
+  "If MODE=personalized and report/timing is missing: do NOT ask for birth details. Say: 'Open Life Report once so I can load your timing windows' (one short line).",
+  "No psychoanalysis. No moral judgment. No doom. No fear messaging.",
+  "If user asks timing: give a window + 2 actions + 1 risk to avoid. Keep it compact.",
+  "Do NOT output the heading 'Why this (evidence)'. If the user explicitly asks why, use heading: 'Why (astro):'.",
+  "Never say you're 'refreshing' or 'loading' timing windows.",
+  "If MODE=personalized: do NOT mention any planet/transit unless it appears in EVIDENCE_BULLETS_JSON or ASTRO_FACTS_JSON.",
+  "If user asks 'why': add a short 'Why (astro):' section with 2-4 bullets, grounded in the provided evidence only.",
+  "The response must align with VERDICT_LINE and CORE_TIMING_SUMMARY. Do not contradict them.",
+  "Never say that nothing will happen until a distant sub-period change. Always present the best available near-term window or positioning phase.",
+  "If TIMING_STRENGTH is Supportive or Strong, describe the phase as usable now and explicitly say that selective movement is possible now.",
+  "Do not describe a Supportive or Strong phase as blocked, inactive, or delayed until a distant date.",
+  "Do not use phrases like 'next real shift', 'only after', or 'nothing meaningful until' unless TIMING_STRENGTH is Caution and no usable window exists.",
+  "If a distant pivot date exists, mention it only as secondary background context, never as the main answer.",
+  "Do not open the answer with 'there isn't a window right now' when TIMING_STRENGTH is Supportive or Strong.",
+  "If DOMAIN_ASTRO_EVIDENCE is present, the answer should reflect natal baseline, dasha activation, and transit trigger together rather than sounding dasha-only.",
+  "If QUESTION_TYPE is daily_outlook, answer like a practical daily astrology guide: describe today's tone, focus, and caution clearly without forcing a decision-window style answer.",
+],
       formatting: ["Prefer short paragraphs and bullets.", "Never include placeholders like 'refreshing windows'."],
       avoid: ["No dumping raw dasha / transit data unless user asked 'why does it feel like this'.", "Don't sound like a horoscope blog.", "Don't blame them or say 'be positive'."],
     };
@@ -2107,39 +3581,44 @@ DEPTH=${depth}
 
 Write like a trusted human advisor speaking directly to the user.
 
-Structure the response naturally using these sections (use headings only where helpful):
+Use VERDICT_LINE as the anchor for the opening.
+Use CORE_TIMING_SUMMARY as the anchor for the timing section.
+If PRIMARY_TIMING_WINDOW exists, treat it as the best available window now.
+If a distant pivot is mentioned anywhere in the evidence, treat it as background context only.
 
-• Verdict  
-One clear, grounded sentence that answers the user’s question directly.
+Structure the response using these sections:
 
-• What this phase means  
-Explain what is happening *now* in simple, human terms.  
-Acknowledge how this phase can feel emotionally without judgment.
+Verdict  
+Use the engine verdict directly in natural language.
 
-• What to focus on now  
-Give 2–4 practical actions that fit the current timing.  
-These should feel doable, not overwhelming.
+What this phase means  
+Explain the current phase simply and concretely.
 
-• What to avoid  
-List 2–3 common mistakes people make in this phase.
+What to focus on now  
+Give 2–3 practical actions.
 
-• Timing insight  
-If a clear window exists, state it.  
-If not, explain *what changes the timing* (sub-period shift, new trigger, external opportunity).
+What to avoid  
+Give 2–3 mistakes or risks.
 
-• Closing guidance  
-End with a calm, confident takeaway that reassures and orients the user forward.
+Timing insight  
+State the best available timing now. If supportive, say it is usable now. If mixed, say selective movement is possible. If caution, say move carefully.
+
+Closing guidance  
+End with calm, practical direction.
 
 Hard rules:
-- Never sound like a report or horoscope.
-- Never blame the user or analyze their personality.
-- Translate astrology into lived experience.
-- Use only facts present in ASTRO_FACTS_JSON and EVIDENCE_BULLETS_JSON.
-- Every heading must have content. Never output a heading with no text under it.
+- Never contradict VERDICT_LINE.
+- Never contradict CORE_TIMING_SUMMARY.
+- Never turn a supportive phase into a dead waiting phase.
+- Never say 'next real shift' or 'only after' unless timing is clearly cautionary and no usable window exists.
+- Never invent astrology not present in ASTRO_FACTS_JSON, EVIDENCE_BULLETS_JSON, or CORE.
+- Keep the response under 190 words.
+- If TIMING_STRENGTH is Supportive, say that selective movement is possible now.
+- Do not begin the answer by denying current movement when timing is Supportive or Strong.
 `.trim();
 
     const standardRules = `
-Answer in 6–10 short lines.
+Answer in 6-10 short lines.
 No section headings unless truly needed.
 Be direct and practical.
 If you mention astrology, it must be supported by EVIDENCE_BULLETS_JSON or ASTRO_FACTS_JSON.
@@ -2156,29 +3635,57 @@ If you mention astrology, it must be supported by EVIDENCE_BULLETS_JSON or ASTRO
 
     // payload for /api/naturalize
     const natPayload = {
-      userQuestion: question,
-      topic,
-      history,
-      astroFacts,
-      moodHint,
-      mode,
-      distressed,
-      distressSoothing,
-      astroStressDriver,
-      copingTip,
-      followupMode,
-      lastFollowupKind: prevFollowKind,
-      astroWindowSignature,
-      questionSignature,
-      evidenceBullets,
-      styleGuide,
-      formatTier,
-      formatRules: rules,
-      tone,
-      depth,
-      timingLoaded,
-    };
+  userQuestion: question,
+  topic,
+  questionType,
+  history,
+  astroFacts,
+  moodHint,
+  mode,
+  distressed,
+  distressSoothing,
+  astroStressDriver,
+  copingTip,
+  followupMode,
+  lastFollowupKind: prevFollowKind,
+  astroWindowSignature,
+  questionSignature,
+  evidenceBullets: questionType === "daily_outlook" || questionType === "daily_micro"
+  ? dailyEvidenceBullets
+  : dedupedEvidenceBullets,
+  styleGuide,
+  formatTier,
+  formatRules: rules,
+  tone,
+  depth,
+  timingLoaded,
+  core,
+  domainAstroEvidence: buildDomainAstroEvidence({ topic, report }),
+  coreTimingSummary: core.timing.summary,
+  timingStrength: core.timing.windows?.[0]?.strength || null,
+  verdictLine: core.verdict.line,
+  primaryTimingWindow: core.timing.windows?.[0] || null,
+};
+if (questionType === "daily_outlook" || questionType === "daily_micro") {
+  const outText = cleanUnknown(
+    core?.prose?.full || core?.prose?.short || "Today looks usable and productive."
+  );
 
+  return okJson({
+    answer: outText,
+    evidenceBullets: dedupedEvidenceBullets,
+    followupMode,
+    distressed,
+    copy: { answer: outText, long: outText },
+    core: {
+      ...core,
+      prose: {
+        short: core.prose.short || outText,
+        full: outText,
+      },
+    },
+  });
+}
     // ---- call /api/naturalize ----
     let naturalJson: any = null;
 
@@ -2219,33 +3726,67 @@ If you mention astrology, it must be supported by EVIDENCE_BULLETS_JSON or ASTRO
 
     // ✅ If we got a styled, human answer, return that
     if (naturalJson?.text) {
-      lastFollowup.set(userId, naturalJson.followupKind || "generic_deepen");
+  lastFollowup.set(userId, naturalJson.followupKind || "generic_deepen");
 
-      const finalText = String(naturalJson.text || "").trim();
-      const outText = cleanUnknown(finalText);
+  const finalText = String(naturalJson.text || "").trim();
 
+  const anchoredText =
+    formatTier === "premium"
+      ? [
+          `Verdict`,
+          `${core.verdict.line}`,
+          ``,
+          finalText
+            .replace(/^Verdict\s*/i, "")
+            .replace(/^There isn['’]t a sharply defined.*$/im, "")
+            .trim(),
+        ]
+          .filter(Boolean)
+          .join("\n")
+      : finalText;
+const outText = cleanUnknown(anchoredText)
+  .replace(/The next real activation comes when your sub-period shifts.*$/gim, "")
+  .replace(/The next sub-period change.*$/gim, "")
+  .replace(/The next real shift.*$/gim, "")
+  .replace(/There isn['’]t a sharply defined career shift window at this moment\.\s*/gim, "")
+  .replace(/\n{3,}/g, "\n\n")
+  .trim();
       // If model returned empty, fall back gracefully
       if (!outText) {
         const fallback = mode === "personalized"
           ? "I can answer this, but open Life Report once so I can load your timing windows."
           : "Ask your question with your birth details (DOB/TOB/City) for a precise timing-based answer.";
 
-        return okJson({
-          answer: fallback,
-          evidenceBullets,
-          followupMode,
-          distressed,
-          copy: { answer: fallback, long: fallback },
-        });
+     return okJson({
+  answer: fallback,
+  evidenceBullets: dedupedEvidenceBullets,
+  followupMode,
+  distressed,
+  copy: { answer: fallback, long: fallback },
+  core: {
+    ...core,
+    prose: {
+      short: core.prose.short || fallback,
+      full: fallback || core.prose.full,
+    },
+  },
+});
       }
 
       return okJson({
-        answer: outText,
-        evidenceBullets,
-        followupMode,
-        distressed,
-        copy: { answer: outText, long: outText },
-      });
+  answer: outText,
+  evidenceBullets: dailyEvidenceBullets,
+  followupMode,
+  distressed,
+  copy: { answer: outText, long: outText },
+  core: {
+    ...core,
+    prose: {
+      short: core.prose.short || outText,
+      full: outText || core.prose.full,
+    },
+  },
+});
     }
 
     // ✅ If /api/naturalize returned no text, do a safe fallback using astroFacts
@@ -2258,13 +3799,20 @@ If you mention astrology, it must be supported by EVIDENCE_BULLETS_JSON or ASTRO
         : "I can answer generally, but for precise timing I need your birth details (DOB, time, city).";
 
     return okJson({
-      answer: fallbackText,
-      evidenceBullets,
-      followupMode,
-      distressed,
-      copy: { answer: fallbackText, long: fallbackText },
-      debug: true,
-    });
+  answer: fallbackText,
+  evidenceBullets: dedupedEvidenceBullets,
+  followupMode,
+  distressed,
+  copy: { answer: fallbackText, long: fallbackText },
+  core: {
+    ...core,
+    prose: {
+      short: core.prose.short || fallbackText,
+      full: fallbackText || core.prose.full,
+    },
+  },
+  debug: true,
+});
   } catch (e: any) {
     console.error("[astro-chat] POST failed:", e?.message || e);
     return badJson(`Server error: ${String(e?.message || e)}`, 500);
