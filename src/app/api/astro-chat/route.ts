@@ -5,6 +5,7 @@ export const runtime = "nodejs";
 import "server-only";
 import { NextResponse } from "next/server";
 import { SARATHI_SYSTEM_PROMPT } from "@/lib/qa/systemPrompt";
+import { nakshatraToneMap } from "@/server/askSarathi/nakshatraTone";
 import type {
   AskSarathiCoreAnswer,
   AskSarathiDomain,
@@ -14,6 +15,7 @@ import type {
   AskSarathiTimingWindow,
   AskSarathiWindowStrength,
 } from "@/lib/ask-sarathi/types";
+
 const chatContext = new Map<string, string[]>(); // memory of recent questions
 const lastFollowup = new Map<string, string>();  // last followup lane we offered
 const lastFacts = new Map<string, any>();        // last astroFacts bundle
@@ -97,7 +99,49 @@ type DailyRhythm = {
   moneyHint: string;
   oneStep: string;
 };
+type AskSarathiQuestionFamily =
+  | "daily_micro"
+  | "daily_outlook"
+  | "timing"
+  | "decision"
+  | "prediction"
+  | "remedy"
+  | "gemstone"
+  | "explainer"
+  | "diagnosis"
+  | "emotional_support"
+  | "calendar_event"
+  | "comparison"
+  | "action_plan"
+  | "generic";
 
+type TimeAnchorInfo = {
+  kind: "festival" | "date" | "relative_period" | "none";
+  label?: string;
+  raw?: string;
+};
+
+type GemstoneInfo = {
+  asked: boolean;
+  stone?: string;
+  planet?: string;
+};
+
+type AskSarathiRoutePlan = {
+  family: AskSarathiQuestionFamily;
+  domain: AskSarathiDomain;
+  questionType: AskSarathiQuestionType;
+  isMicro: boolean;
+  needsTiming: boolean;
+  needsDecisionLogic: boolean;
+  needsRemedyLogic: boolean;
+  needsGemstoneLogic: boolean;
+  needsCalendarLogic: boolean;
+  needsExplainerLogic: boolean;
+  needsPredictionLogic: boolean;
+  timeAnchor: TimeAnchorInfo;
+  gemstone: GemstoneInfo;
+};
 
 type AstroChatRequest = {
   // frontend may send either "question" or "message"
@@ -129,7 +173,27 @@ function cleanUnknown(s?: string) {
     .trim();
 }
 
+function getNakshatraToneLine(report?: any): string {
+  const rawNak =
+    report?.natal?.moonNakshatra ??
+    report?.moonNakshatra ??
+    "";
 
+  const moonNak = String(rawNak)
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ");
+
+  if (!moonNak) return "";
+
+  const tone =
+    nakshatraToneMap[moonNak] ??
+    nakshatraToneMap[moonNak.replace(/\s/g, "")];
+
+  if (!tone?.message) return "";
+
+  return tone.message;
+}
 function okJson(data: any, status = 200) {
   
   return new NextResponse(JSON.stringify(data), {
@@ -259,8 +323,6 @@ function detectTopic(q: string): AskSarathiDomain {
 
   if (
     lower.includes("purpose") ||
-    lower.includes("stuck") ||
-    lower.includes("blocked") ||
     lower.includes("direction") ||
     lower.includes("confused") ||
     lower.includes("lost") ||
@@ -268,7 +330,13 @@ function detectTopic(q: string): AskSarathiDomain {
     lower.includes("meaning")
   ) return "inner";
 
-  return "generic";
+  if (
+  /\b(life|phase|future|direction|next phase|next step|purpose|meaning)\b/.test(q)
+) {
+  return "inner";
+}
+
+return "generic";
 }
 function detectQuestionType(q: string): AskSarathiQuestionType {
   const lower = q.toLowerCase().trim();
@@ -280,7 +348,7 @@ function detectQuestionType(q: string): AskSarathiQuestionType {
     .replace(/\s+/g, " ")
     .trim();
      // DAILY MICRO — tiny daily/lifestyle questions
-  if (
+    if (
     normalized.includes("what color is best for today") ||
     normalized.includes("what colour is best for today") ||
     normalized.includes("what color is good today") ||
@@ -289,6 +357,22 @@ function detectQuestionType(q: string): AskSarathiQuestionType {
     normalized.includes("what colour should i wear today") ||
     normalized.includes("best color for today") ||
     normalized.includes("best colour for today") ||
+
+    normalized.includes("what color is good for me") ||
+    normalized.includes("what colour is good for me") ||
+    normalized.includes("which color is good for me") ||
+    normalized.includes("which colour is good for me") ||
+    normalized.includes("what color suits me") ||
+    normalized.includes("what colour suits me") ||
+    normalized.includes("which color suits me") ||
+    normalized.includes("which colour suits me") ||
+    normalized.includes("what color should i wear") ||
+    normalized.includes("what colour should i wear") ||
+    normalized.includes("which color should i wear") ||
+    normalized.includes("which colour should i wear") ||
+    normalized.includes("best color for me") ||
+    normalized.includes("best colour for me") ||
+
     normalized.includes("what should i eat today") ||
     normalized.includes("what to eat today") ||
     normalized.includes("is today good for a meeting") ||
@@ -416,6 +500,289 @@ function detectQuestionType(q: string): AskSarathiQuestionType {
 
   return "decision";
 }
+function detectTimeAnchor(q: string): TimeAnchorInfo {
+  const lower = String(q || "").toLowerCase().trim();
+
+  // festival anchors
+  if (/\bdiwali\b/.test(lower)) {
+    return { kind: "festival", label: "Diwali", raw: "diwali" };
+  }
+  if (/\bholi\b/.test(lower)) {
+    return { kind: "festival", label: "Holi", raw: "holi" };
+  }
+  if (/\bnavratri\b/.test(lower)) {
+    return { kind: "festival", label: "Navratri", raw: "navratri" };
+  }
+  if (/\bdussehra\b|\bvijayadashami\b/.test(lower)) {
+    return { kind: "festival", label: "Dussehra", raw: "dussehra" };
+  }
+  if (/\bguru purnima\b/.test(lower)) {
+    return { kind: "festival", label: "Guru Purnima", raw: "guru purnima" };
+  }
+  if (/\bjanmashtami\b/.test(lower)) {
+    return { kind: "festival", label: "Janmashtami", raw: "janmashtami" };
+  }
+  if (/\bmahashivratri\b|\bshivratri\b/.test(lower)) {
+    return { kind: "festival", label: "Maha Shivratri", raw: "shivratri" };
+  }
+
+  // relative timing anchors
+  if (/\bafter\b|\bfrom\b|\bby\b|\bbefore\b/.test(lower)) {
+    if (/\bnext month\b/.test(lower)) {
+      return { kind: "relative_period", label: "next month", raw: "next month" };
+    }
+    if (/\bthis month\b/.test(lower)) {
+      return { kind: "relative_period", label: "this month", raw: "this month" };
+    }
+    if (/\bnext year\b/.test(lower)) {
+      return { kind: "relative_period", label: "next year", raw: "next year" };
+    }
+    if (/\bthis year\b/.test(lower)) {
+      return { kind: "relative_period", label: "this year", raw: "this year" };
+    }
+  }
+
+  // simple explicit date patterns
+  if (/\b\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\b/.test(lower)) {
+    const m = lower.match(/\b\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\b/);
+    return { kind: "date", label: m?.[0], raw: m?.[0] };
+  }
+
+  return { kind: "none" };
+}
+function detectGemstoneIntent(q: string): GemstoneInfo {
+  const lower = String(q || "").toLowerCase().trim();
+
+  const map: Array<{ stone: string; planet: string; patterns: RegExp[] }> = [
+    {
+      stone: "Yellow Sapphire",
+      planet: "Jupiter",
+      patterns: [/\byellow sapphire\b/, /\bpukhraj\b/],
+    },
+    {
+      stone: "Blue Sapphire",
+      planet: "Saturn",
+      patterns: [/\bblue sapphire\b/, /\bneelam\b/],
+    },
+    {
+      stone: "Emerald",
+      planet: "Mercury",
+      patterns: [/\bemerald\b/, /\bpanna\b/],
+    },
+    {
+      stone: "Ruby",
+      planet: "Sun",
+      patterns: [/\bruby\b/, /\bmanik\b/],
+    },
+    {
+      stone: "Pearl",
+      planet: "Moon",
+      patterns: [/\bpearl\b/, /\bmoti\b/],
+    },
+    {
+      stone: "Red Coral",
+      planet: "Mars",
+      patterns: [/\bred coral\b/, /\bcoral\b/, /\bmoonga\b/, /\bmunga\b/],
+    },
+    {
+      stone: "Diamond",
+      planet: "Venus",
+      patterns: [/\bdiamond\b/, /\bheera\b/],
+    },
+    {
+      stone: "Opal",
+      planet: "Venus",
+      patterns: [/\bopal\b/],
+    },
+    {
+      stone: "Cat's Eye",
+      planet: "Ketu",
+      patterns: [/\bcat'?s eye\b/, /\blehsunia\b/, /\bvaidurya\b/],
+    },
+    {
+      stone: "Hessonite",
+      planet: "Rahu",
+      patterns: [/\bhessonite\b/, /\bgomed\b/],
+    },
+  ];
+
+  const asked =
+    /\b(gem|gemstone|stone|wear|wearing|suit|suits|suitable|safe to wear|can i wear|should i wear)\b/.test(lower);
+
+  for (const item of map) {
+    if (item.patterns.some((re) => re.test(lower))) {
+      return {
+        asked: true,
+        stone: item.stone,
+        planet: item.planet,
+      };
+    }
+  }
+
+  return { asked, stone: undefined, planet: undefined };
+}
+function detectQuestionFamily(question: string): AskSarathiQuestionFamily {
+  const q = String(question || "").toLowerCase().trim();
+
+  // calendar / event anchored questions
+    if (
+    (/\bwhen is\b/.test(q) || /\bdate of\b/.test(q) || /\bon what date\b/.test(q)) &&
+    /\b(diwali|holi|navratri|dussehra|vijayadashami|guru purnima|janmashtami|shivratri)\b/.test(q)
+  ) {
+    return "calendar_event";
+  }
+
+  if (
+    /\b(after|from|before|by)\b/.test(q) &&
+    /\b(diwali|holi|navratri|dussehra|vijayadashami|guru purnima|janmashtami|shivratri)\b/.test(q)
+  ) {
+    return "calendar_event";
+  }
+
+  // gemstone / remedy
+  if (
+    /\b(yellow sapphire|blue sapphire|emerald|ruby|pearl|coral|red coral|diamond|opal|cat'?s eye|hessonite|pukhraj|neelam|panna|manik|moti|moonga|munga|heera|gomed|lehsunia)\b/.test(q) ||
+    /\b(gemstone|gem stone|stone|which stone|what stone|which gemstone|what gemstone)\b/.test(q)
+  ) {
+    return "gemstone";
+  }
+
+  if (
+    /\b(remedy|remedies|upaya|upay|mantra|pooja|puja|totka)\b/.test(q)
+  ) {
+    return "remedy";
+  }
+
+  // daily
+  if (
+    /\b(how is my day|how's my day|how is today|today looking|what should i focus on today|what is today good for)\b/.test(q)
+  ) {
+    return "daily_outlook";
+  }
+
+  if (
+    /\b(what color|which color|what colour|which colour|wear today|what should i wear|what to eat today|meeting today|call today|gym today|workout today|run today)\b/.test(q)
+  ) {
+    return "daily_micro";
+  }
+
+  // explainers
+  if (
+    /\b(what is|what's|whats|meaning of|explain|what does)\b/.test(q)
+  ) {
+    return "explainer";
+  }
+ if (
+    /\b(when will things improve|when will my life improve|when will things get better|when will my situation improve)\b/.test(q)
+  ) {
+    return "timing";
+  }
+  if (
+    /\b(when will things change|when will my time change|will my time improve|what is coming next|what is next for me|is this phase changing|why is nothing changing|why is everything stuck)\b/.test(q)
+  ) {
+    return "diagnosis";
+  }
+  // diagnosis
+  if (
+  /\b(why am i|why is|why does|why stuck|why delayed|why life|why nothing|why everything|why feels|why feel|what is happening)\b/.test(q)
+) {
+  return "diagnosis";
+}
+if (
+  /\b(stuck|blocked|nothing changing|no progress|life stuck|life stagnant)\b/.test(q)
+) {
+  return "diagnosis";
+}
+  // emotional support
+  if (
+    /\b(anxious|worried|scared|stressed|lost|hopeless|emotionally)\b/.test(q)
+  ) {
+    return "emotional_support";
+  }
+
+  // comparison
+  if (/\b(compare| vs | versus |or wait|or stay|or switch)\b/.test(q)) {
+    return "comparison";
+  }
+
+  // timing
+  if (/\bwhen|which month|what time|timing|window|date|dates\b/.test(q)) {
+    return "timing";
+  }
+ 
+  // decision
+  if (/\bshould i|can i|is it good to|is it right to|is this a good time\b/.test(q)) {
+    return "decision";
+  }
+
+  // action plan
+  if (/\b(what should i do|what to do|next step|action plan|how should i move)\b/.test(q)) {
+    return "action_plan";
+  }
+
+  // prediction
+  if (
+    /\b(will i|will my|am i going to|is it likely|can this happen)\b/.test(q)
+  ) {
+    return "prediction";
+  }
+  
+  return "generic";
+}
+
+function buildRoutePlan(question: string): AskSarathiRoutePlan {
+  const domain = detectTopic(question);
+  const timeAnchor = detectTimeAnchor(question);
+  const gemstone = detectGemstoneIntent(question);
+  const family = detectQuestionFamily(question);
+
+  let questionType: AskSarathiQuestionType = detectQuestionType(question);
+
+  // family can override legacy questionType when needed
+  if (family === "gemstone" || family === "remedy") questionType = "remedy";
+  if (family === "calendar_event") questionType = "timing";
+  if (family === "prediction") questionType = "decision";
+  if (family === "daily_micro") questionType = "daily_micro";
+  if (family === "daily_outlook") questionType = "daily_outlook";
+  if (family === "explainer") questionType = "explainer";
+  if (family === "diagnosis") questionType = "diagnosis";
+  if (family === "comparison") questionType = "comparison";
+  if (family === "action_plan") questionType = "action_plan";
+  if (family === "emotional_support") questionType = "emotional_support";
+
+  const isMicro = family === "daily_micro";
+
+  return {
+    family,
+    domain,
+    questionType,
+    isMicro,
+    needsTiming:
+      family === "timing" ||
+      family === "decision" ||
+      family === "prediction" ||
+      family === "calendar_event" ||
+      family === "comparison",
+    needsDecisionLogic:
+      family === "decision" ||
+      family === "prediction" ||
+      family === "comparison",
+    needsRemedyLogic:
+      family === "remedy" || family === "gemstone",
+    needsGemstoneLogic:
+      family === "gemstone" || !!gemstone.stone,
+    needsCalendarLogic:
+      family === "calendar_event" || timeAnchor.kind !== "none",
+    needsExplainerLogic:
+      family === "explainer",
+    needsPredictionLogic:
+      family === "prediction" ||
+      family === "timing" ||
+      family === "decision",
+    timeAnchor,
+    gemstone,
+  };
+}
 function isFoodQuestion(q: string): boolean {
   const l = q.toLowerCase();
 
@@ -499,8 +866,8 @@ function isMicroIntentQuestion(q: string): boolean {
   if (l.length <= 18) return true;
 
   // daily/lifestyle quick intents
-  if (
-    /\b(what color|which color|what to wear|wear today|outfit|dress)\b/.test(l) ||
+   if (
+    /\b(what color|which color|what colour|which colour|what to wear|should i wear|wear today|outfit|dress|suits me)\b/.test(l) ||
     /\b(what should i eat|what to eat|eat today|diet today|khana|khaana)\b/.test(l) ||
     /\b(is today good|is it good today|good day for|should i go|should i do)\b/.test(l) ||
     /\b(meeting today|good for meeting|call today|presentation today)\b/.test(l) ||
@@ -1091,7 +1458,8 @@ function buildGenericBrief(opts: {
 
   const bestTransit = pickBestTransitWindows(report, topic);
   const bestTimeline = pickFromTimeline(report, topic);
-
+  const strongestTransit = bestTransit?.[0];
+  const transitInterpretation = interpretTransitTrigger(strongestTransit?.driver);
   // 1) If we have transit windows, use them first
   if (bestTransit.length) {
     const w = bestTransit[0];
@@ -1275,9 +1643,9 @@ function titleFromDomain(domain: AskSarathiDomain): string {
     case "disputes":
       return "Dispute Guidance";
     case "inner":
-      return "Inner Guidance";
+      return "";
     default:
-      return "Sārathi Guidance";
+      return "";
   }
 }
 
@@ -1408,7 +1776,875 @@ function followUpsFor(domain: AskSarathiDomain, questionType: AskSarathiQuestion
       ];
   }
 }
+function buildDomainVerdictLine(opts: {
+  topic: AskSarathiDomain;
+  verdictType: AskSarathiVerdictType;
+  routeFamily?: AskSarathiQuestionFamily;
+}): string {
+  const { topic, verdictType, routeFamily = "generic" } = opts;
 
+  const isTimingLike =
+    routeFamily === "timing" ||
+    routeFamily === "prediction" ||
+    routeFamily === "comparison";
+
+  const isDecisionLike = routeFamily === "decision";
+  
+  const isEmotionalLike = routeFamily === "emotional_support";
+ if (routeFamily === "diagnosis") {
+  return "Pressure is building faster than visible movement.";
+}
+  if (topic === "career") {
+    if (verdictType === "favorable") {
+      return isTimingLike
+        ? "Yes — career movement looks favorable, and the current phase can support visible progress, role movement, or a stronger opening."
+        : "Yes — this phase supports meaningful career movement, especially through visibility, readiness, and disciplined action.";
+    }
+    if (verdictType === "supportive") {
+      return isDecisionLike
+        ? "Yes — career movement is possible now, but it should be done selectively and with a practical strategy."
+        : "Yes — career movement is possible now, and the current phase is supportive enough for positioning, outreach, and steady forward action.";
+    }
+    if (verdictType === "mixed") {
+      return "Career movement is possible, but this phase looks mixed — better for selective progress and better positioning than an impulsive leap.";
+    }
+    if (verdictType === "caution") {
+      return "Career matters should be handled carefully right now. This phase is better for preparation, review, and measured action than a rushed jump.";
+    }
+    if (verdictType === "needs_patience") {
+      return "This is more of a career-positioning phase than a clean breakthrough phase right now, so patience and preparation matter.";
+    }
+    if (verdictType === "not_advised") {
+      return "This is not a strong phase for forcing a career move right now.";
+    }
+  }
+
+  if (topic === "marriage") {
+    if (verdictType === "favorable") {
+      return "Yes — marriage or formal commitment timing looks favorable, provided the emotional and practical factors are both aligned.";
+    }
+    if (verdictType === "supportive") {
+      return "Yes — relationship or marriage movement is visible, but this phase favors sincerity, clarity, and seriousness over rushing.";
+    }
+    if (verdictType === "mixed") {
+      return "Marriage-related movement is possible, but the phase looks mixed — more supportive for clarity and alignment than a forced commitment.";
+    }
+    if (verdictType === "caution") {
+      return "This is not the cleanest phase for forcing marriage decisions. Move carefully and judge stability before commitment.";
+    }
+    if (verdictType === "needs_patience") {
+      return "This phase is better for understanding readiness and compatibility than pushing for a final marriage outcome immediately.";
+    }
+    if (verdictType === "not_advised") {
+      return "This is not a strong phase for forcing marriage decisions right now.";
+    }
+  }
+
+  if (topic === "relationships") {
+    if (verdictType === "favorable") {
+      return "Yes — relationship movement looks favorable, especially where sincerity, honesty, and emotional maturity are present.";
+    }
+    if (verdictType === "supportive") {
+      return "Yes — relationship progress is possible now, though it works better through calm clarity than emotional pressure.";
+    }
+    if (verdictType === "mixed") {
+      return "Relationship movement is possible, but mixed signals are present, so this phase is better for clarity than force.";
+    }
+    if (verdictType === "caution") {
+      return "Relationship matters need careful handling right now. Do not force certainty where the phase still looks unstable.";
+    }
+    if (verdictType === "needs_patience") {
+      return "This is more of a relationship-understanding phase than a clean emotional breakthrough phase right now.";
+    }
+    if (verdictType === "not_advised") {
+      return "This is not a strong phase for forcing relationship decisions right now.";
+    }
+  }
+
+  if (topic === "money") {
+    if (verdictType === "favorable") {
+      return "Yes — the chart supports money movement, growth, or a stronger financial opening, provided decisions stay grounded.";
+    }
+    if (verdictType === "supportive") {
+      return "Yes — financial movement is possible now, especially through steady planning, structured action, and intelligent restraint.";
+    }
+    if (verdictType === "mixed") {
+      return "Money movement is possible, but this phase is mixed — better for correction and structure than dramatic risk.";
+    }
+    if (verdictType === "caution") {
+      return "Financial decisions need caution right now. This phase is better for control, discipline, and review than bold experimentation.";
+    }
+    if (verdictType === "needs_patience") {
+      return "This is more of a financial-structuring phase than a clean gain window right now.";
+    }
+    if (verdictType === "not_advised") {
+      return "This is not a strong phase for forcing big money decisions right now.";
+    }
+  }
+
+  if (topic === "property") {
+    if (verdictType === "favorable") {
+      return "Yes — property or home-related movement looks favorable, provided the decision is supported by practical readiness.";
+    }
+    if (verdictType === "supportive") {
+      return "Yes — this phase is usable for property planning or movement, but decisions should still be made carefully and cleanly.";
+    }
+    if (verdictType === "mixed") {
+      return "Property movement is possible, but this phase is mixed — better for planning, research, and paperwork than a rushed commitment.";
+    }
+    if (verdictType === "caution") {
+      return "Property decisions should be handled carefully right now. This phase favors preparation more than pressure-based commitment.";
+    }
+    if (verdictType === "needs_patience") {
+      return "This is more of a property-planning phase than a clean finalization window right now.";
+    }
+    if (verdictType === "not_advised") {
+      return "This is not a strong phase for forcing a major property decision right now.";
+    }
+  }
+
+  if (topic === "vehicle") {
+    if (verdictType === "favorable") {
+      return "Yes — a vehicle-related move or purchase can be supported now, provided it is matched by practical readiness.";
+    }
+    if (verdictType === "supportive") {
+      return "Yes — this phase is usable for vehicle decisions, but it is better for intelligent timing than emotional impulse.";
+    }
+    if (verdictType === "mixed") {
+      return "Vehicle movement is possible, but this phase is mixed — better for comparison and planning than impulsive purchase.";
+    }
+    if (verdictType === "caution") {
+      return "Vehicle decisions should be handled carefully right now. Avoid buying just to release restlessness or pressure.";
+    }
+    if (verdictType === "needs_patience") {
+      return "This is more of a vehicle-planning phase than a clean purchase window right now.";
+    }
+    if (verdictType === "not_advised") {
+      return "This is not a strong phase for forcing a vehicle decision right now.";
+    }
+  }
+
+  if (topic === "health") {
+    if (verdictType === "favorable") {
+      return "Yes — improvement is possible, and the chart supports stabilizing the body and routine more effectively in this phase.";
+    }
+    if (verdictType === "supportive") {
+      return "Yes — health improvement is possible now, especially through routine, consistency, and not overloading yourself.";
+    }
+    if (verdictType === "mixed") {
+      return "Improvement is possible, but the phase is mixed — better for stabilization and correction than expecting instant recovery.";
+    }
+    if (verdictType === "caution") {
+      return "Health needs careful handling right now. This phase rewards rest, discipline, and body awareness more than pushing through.";
+    }
+    if (verdictType === "needs_patience") {
+      return "This is more of a stabilization phase than a dramatic recovery phase right now.";
+    }
+    if (verdictType === "not_advised") {
+      return "This is not a strong phase for ignoring body signals or forcing extreme changes right now.";
+    }
+  }
+
+  if (topic === "inner") {
+    if (verdictType === "favorable") {
+      return "Yes — this phase can bring meaningful inner clarity and a stronger sense of direction, if you work with it consciously.";
+    }
+    if (verdictType === "supportive") {
+      return "Yes — inner movement is possible now, though it may come through slow clarity rather than dramatic external change.";
+    }
+    if (verdictType === "mixed") {
+      return "This phase is mixed internally — it can still bring insight, but not through force or over-control.";
+    }
+    if (verdictType === "caution") {
+      return "This phase needs patience and reflection. Avoid forcing meaning when the lesson is still unfolding.";
+    }
+    if (verdictType === "needs_patience") {
+      return "This is more of an inner-reset phase than a fast external breakthrough.";
+    }
+    if (verdictType === "not_advised") {
+      return "This is not a strong phase for forcing certainty about everything right now.";
+    }
+  }
+
+ 
+if (routeFamily === "timing" && topic === "generic") {
+  return "Yes — the phase does shift over time, but improvement usually appears gradually as the current timing cycle matures rather than through an overnight change.";
+}
+
+  if (isEmotionalLike) {
+    return "What you are feeling is connected to a real phase pattern in the chart, and it should be handled with steadiness rather than fear.";
+  }
+
+  const defaultMap: Record<AskSarathiVerdictType, string> = {
+    favorable: "Yes — this is a favorable phase to move ahead, provided you act with discipline.",
+    supportive: "Yes — selective movement is possible now, and the current phase is supportive enough to act intelligently.",
+    mixed: "Yes — movement is possible, but this phase is better for selective action than a rushed leap.",
+    caution: "You can move, but carefully — this timing rewards restraint and measured judgment more than force.",
+    not_advised: "This is not a strong phase for forcing this move right now.",
+    needs_patience: "This phase is better for positioning and selective progress than a forced final move right now.",
+  };
+
+  return defaultMap[verdictType];
+}
+function buildDomainActionGuidance(opts: {
+  topic: AskSarathiDomain;
+  questionType: AskSarathiQuestionType;
+  routeFamily?: AskSarathiQuestionFamily;
+  timingDirective: string;
+  windowDo?: string[];
+  windowAvoid?: string[];
+}): { actions: string[]; avoid: string[] } {
+  const {
+    topic,
+    questionType,
+    routeFamily = "generic",
+    timingDirective,
+    windowDo = [],
+    windowAvoid = [],
+  } = opts;
+
+  if (windowDo.length || windowAvoid.length) {
+    return {
+      actions: windowDo.length
+        ? windowDo.slice(0, 3)
+        : [timingDirective, "Use the current phase with steady judgment."],
+      avoid: windowAvoid.length
+        ? windowAvoid.slice(0, 3)
+        : ["Avoid forcing outcomes before timing becomes cleaner."],
+    };
+  }
+
+  if (topic === "career") {
+    return {
+      actions: [
+        timingDirective,
+        "Improve visibility, outreach, and role-readiness instead of waiting passively.",
+        "Take practical steps that increase interview, promotion, or movement probability.",
+      ],
+      avoid: [
+        "Avoid resigning purely from frustration.",
+        "Avoid confusing slow progress with no progress.",
+        "Avoid scattered effort without a clear career direction.",
+      ],
+    };
+  }
+
+  if (topic === "marriage") {
+    return {
+      actions: [
+        timingDirective,
+        "Use this phase to judge seriousness, emotional clarity, and long-term fit.",
+        "Let commitment grow through clarity rather than pressure.",
+      ],
+      avoid: [
+        "Avoid rushing marriage decisions because of fear or age pressure alone.",
+        "Avoid reading temporary emotional movement as permanent certainty.",
+        "Avoid forcing a final outcome before stability is visible.",
+      ],
+    };
+  }
+
+  if (topic === "relationships") {
+    return {
+      actions: [
+        timingDirective,
+        "Focus on honesty, emotional steadiness, and quality of interaction.",
+        "Let communication reveal what is sustainable.",
+      ],
+      avoid: [
+        "Avoid emotional overreaction to mixed signals.",
+        "Avoid forcing clarity from someone who is still inconsistent.",
+        "Avoid confusing chemistry with stability.",
+      ],
+    };
+  }
+
+  if (topic === "money") {
+    return {
+      actions: [
+        timingDirective,
+        "Use the phase for structure, cash discipline, and intelligent financial planning.",
+        "Prefer measured decisions over dramatic money moves.",
+      ],
+      avoid: [
+        "Avoid impulsive financial risks.",
+        "Avoid overcommitting because of short-term optimism.",
+        "Avoid using money decisions to escape emotional pressure.",
+      ],
+    };
+  }
+
+  if (topic === "property") {
+    return {
+      actions: [
+        timingDirective,
+        "Use this phase for research, paperwork, financial readiness, and practical comparison.",
+        "Move when the foundation feels stable, not just emotionally attractive.",
+      ],
+      avoid: [
+        "Avoid rushed property commitment.",
+        "Avoid ignoring funding, paperwork, or long-term stability concerns.",
+        "Avoid taking a major home decision only to release restlessness.",
+      ],
+    };
+  }
+
+  if (topic === "vehicle") {
+    return {
+      actions: [
+        timingDirective,
+        "Use this phase to compare options, budget properly, and judge practical need.",
+        "Treat purchase timing as a decision of readiness, not only desire.",
+      ],
+      avoid: [
+        "Avoid impulse buying.",
+        "Avoid using a vehicle purchase as an emotional release.",
+        "Avoid stretching finances for appearance or urgency.",
+      ],
+    };
+  }
+
+  if (topic === "health") {
+    return {
+      actions: [
+        timingDirective,
+        "Protect routine, recovery, sleep, and consistency.",
+        "Use the phase to stabilize energy before expecting big performance.",
+      ],
+      avoid: [
+        "Avoid ignoring body signals.",
+        "Avoid extreme routines started from anxiety.",
+        "Avoid treating exhaustion as weakness instead of data.",
+      ],
+    };
+  }
+
+  if (topic === "inner") {
+    return {
+      actions: [
+        timingDirective,
+        "Use this phase for reflection, simplification, and regaining direction.",
+        "Let clarity come through steady observation and honest self-review.",
+      ],
+      avoid: [
+        "Avoid forcing instant meaning from a slow inner phase.",
+        "Avoid assuming delay means failure.",
+        "Avoid filling uncertainty with panic decisions.",
+      ],
+    };
+  }
+
+  if (routeFamily === "diagnosis") {
+  return {
+    actions: [
+      timingDirective,
+      "Treat this phase as a restructuring period rather than a permanent blockage.",
+      "Focus on correcting patterns and strengthening foundations so the next timing window can work fully.",
+    ],
+    avoid: [
+      "Avoid assuming delay means failure.",
+      "Avoid reacting to temporary stagnation with drastic decisions.",
+      "Avoid comparing your timing with someone else's life path.",
+    ],
+  };
+}
+
+  if (routeFamily === "emotional_support") {
+    return {
+      actions: [
+        timingDirective,
+        "Slow the pace enough to hear what the phase is really doing.",
+        "Protect your energy and return to one or two stabilizing routines.",
+      ],
+      avoid: [
+        "Avoid fear-based conclusions.",
+        "Avoid comparing your timeline to others.",
+        "Avoid interpreting a heavy phase as proof that nothing is working.",
+      ],
+    };
+  }
+
+  return {
+    actions: [
+      timingDirective,
+      "Keep your next step realistic and specific.",
+      "Use this phase for clarity and steady movement.",
+    ],
+    avoid: [
+      "Avoid making decisions only from frustration.",
+      "Avoid comparing your pace with someone else’s timing.",
+      "Avoid forcing certainty where the phase still needs observation.",
+    ],
+  };
+}
+function interpretTransitTrigger(trigger?: string): string | null {
+  const t = String(trigger || "").toLowerCase();
+
+  if (t.includes("mars")) {
+    return "Mars activation often increases urgency, restlessness, competitiveness, or impatience. It pushes action but can also create friction if handled impulsively.";
+  }
+
+  if (t.includes("saturn")) {
+    return "Saturn activation tends to bring pressure, responsibility, delays, or a feeling of heaviness. It usually indicates a period of discipline and structural correction.";
+  }
+
+  if (t.includes("rahu")) {
+    return "Rahu activation often amplifies ambition, uncertainty, or mental restlessness. It can create sudden opportunities but also confusion if clarity is weak.";
+  }
+
+  if (t.includes("ketu")) {
+    return "Ketu activation can create detachment, withdrawal, or internal questioning. It often pushes people toward reflection rather than external expansion.";
+  }
+
+  if (t.includes("venus")) {
+    return "Venus activation increases attention toward relationships, comfort, beauty, and emotional harmony.";
+  }
+
+  if (t.includes("jupiter")) {
+    return "Jupiter activation often expands opportunity, learning, and growth, but it works best when discipline supports the expansion.";
+  }
+
+  if (t.includes("mercury")) {
+    return "Mercury activation increases thinking, communication, planning, and decision activity.";
+  }
+
+  if (t.includes("sun")) {
+    return "Sun activation highlights identity, leadership, authority issues, and visibility.";
+  }
+
+  if (t.includes("moon")) {
+    return "Moon activation heightens emotional sensitivity, mood fluctuation, and responsiveness to surrounding situations.";
+  }
+
+  return null;
+}
+function buildMultiTransitNarrative(bestTransit: any[]): string | null {
+  if (!Array.isArray(bestTransit) || bestTransit.length === 0) return null;
+
+  const top = bestTransit.slice(0, 3);
+
+  const names = top
+    .map((w) => String(w?.driver || w?.summary || "").toLowerCase())
+    .join(" | ");
+
+  const hasMars = names.includes("mars");
+  const hasSaturn = names.includes("saturn");
+  const hasJupiter = names.includes("jupiter");
+  const hasVenus = names.includes("venus");
+  const hasMercury = names.includes("mercury");
+  const hasRahu = names.includes("rahu");
+  const hasKetu = names.includes("ketu");
+  const hasMoon = names.includes("moon");
+  const hasSun = names.includes("sun");
+
+  if (hasSaturn && hasJupiter) {
+    return "Saturn is adding pressure and seriousness, while Jupiter is still trying to open growth, support, or expansion. This usually creates a phase where progress is possible, but only through maturity and disciplined action.";
+  }
+
+  if (hasMars && hasVenus) {
+    return "Mars is increasing action and urgency, while Venus is softening the tone through relationships, comfort, or harmony. This can create a push-pull between force and ease.";
+  }
+
+  if (hasRahu && hasMercury) {
+    return "Rahu is amplifying urgency or ambition, while Mercury is increasing mental activity, planning, and analysis. This can make the phase feel mentally busy, sharp, and slightly restless.";
+  }
+
+  if (hasSaturn && hasMoon) {
+    return "Saturn is adding emotional heaviness or responsibility, while Moon-linked sensitivity makes the phase feel more personal internally. This often feels like pressure that lands emotionally as well as practically.";
+  }
+
+  if (hasSun && hasSaturn) {
+    return "Sun is highlighting visibility, identity, or authority, while Saturn is testing endurance and responsibility. This often brings a phase of being seen more, but also judged more seriously.";
+  }
+
+  if (hasMars && hasMercury) {
+    return "Mars is pushing speed and decisive movement, while Mercury is increasing thought, communication, and planning. This can feel productive, but it can also create sharpness or impatience in speech and decisions.";
+  }
+
+  if (hasKetu && hasMoon) {
+    return "Ketu is pulling energy inward and cutting attachment, while Moon sensitivity makes the emotional experience feel quieter, more detached, or more introspective than usual.";
+  }
+
+  return null;
+}
+function interpretPlanetInNatalChart(planet: string, report?: any): string | null {
+  if (!planet || !report?.planets) return null;
+
+  const p = String(planet).toLowerCase();
+
+  const natal = report.planets.find(
+    (pl: any) => String(pl?.name || "").toLowerCase() === p
+  );
+
+  if (!natal) return null;
+
+  const house = natal.house;
+  const sign = natal.sign;
+
+  if (!house) return null;
+
+  const areaMap: Record<number, string> = {
+    1: "identity, self-direction, and how you show up in life",
+    2: "money, speech, and family stability",
+    3: "effort, communication, and initiative",
+    4: "home, emotional security, and inner comfort",
+    5: "creativity, romance, and personal expression",
+    6: "work routines, service, and daily pressure",
+    7: "relationships, agreements, and partnerships",
+    8: "deep change, vulnerability, and psychological transformation",
+    9: "beliefs, learning, and long-distance perspective",
+    10: "career direction, reputation, and public role",
+    11: "goals, networks, and long-term aspirations",
+    12: "rest, retreat, and subconscious processing",
+  };
+
+  const area = areaMap[house] || "important life areas";
+
+  return `${planet} in your natal chart sits in the ${house} house (${sign}), which means its activation often shows up through ${area}.`;
+}
+function interpretDegreeTrigger(hit?: any): string | null {
+  if (!hit || typeof hit !== "object") return null;
+
+  const orb =
+    typeof hit?.orb === "number"
+      ? hit.orb
+      : typeof hit?.distanceDeg === "number"
+      ? hit.distanceDeg
+      : typeof hit?.deltaDeg === "number"
+      ? hit.deltaDeg
+      : null;
+
+  const phaseRaw = String(
+    hit?.phase ?? hit?.motionPhase ?? hit?.approachState ?? ""
+  )
+    .trim()
+    .toLowerCase();
+
+  const target =
+    String(
+      hit?.target ??
+      hit?.targetLabel ??
+      hit?.natalPoint ??
+      hit?.point ??
+      ""
+    ).trim();
+
+  const planet =
+    String(
+      hit?.planet ??
+      hit?.transitPlanet ??
+      hit?.driver ??
+      ""
+    ).trim();
+
+  if (!planet && !target && orb == null && !phaseRaw) return null;
+
+  const subject =
+    [planet, target].filter(Boolean).join(" → ") || "This transit";
+
+  const orbText =
+    orb == null
+      ? ""
+      : orb <= 1
+      ? `The orb is very tight (${orb.toFixed(2)}°), so the effect is stronger than usual.`
+      : orb <= 2
+      ? `The orb is fairly tight (${orb.toFixed(2)}°), so the trigger is active and noticeable.`
+      : orb <= 3
+      ? `The orb is moderate (${orb.toFixed(2)}°), so the trigger is present but not yet at maximum strength.`
+      : `The orb is wider (${orb.toFixed(2)}°), so this acts more like a background influence than an exact spike.`;
+
+  let phaseText = "";
+  if (phaseRaw.includes("approach") || phaseRaw.includes("applying")) {
+    phaseText = `${subject} is still approaching exactness, so the pressure or theme may keep building.`;
+  } else if (phaseRaw.includes("exact")) {
+    phaseText = `${subject} is at or near exact activation, which usually makes the theme feel strongest right now.`;
+  } else if (phaseRaw.includes("separat") || phaseRaw.includes("reced")) {
+    phaseText = `${subject} is separating from exactness, so the lesson may still be present, but the peak pressure is likely easing.`;
+  }
+
+  return [phaseText, orbText].filter(Boolean).join(" ");
+}
+function detectPressurePattern(
+  report: any,
+  strongestTransit: any,
+  dasha: any
+): string | null {
+
+  const driver = String(
+    strongestTransit?.driver ??
+    strongestTransit?.planet ??
+    ""
+  ).toLowerCase();
+
+  const target = String(
+    strongestTransit?.target ??
+    strongestTransit?.targetLabel ??
+    ""
+  ).toLowerCase();
+
+  const md = String(dasha?.md ?? "").toLowerCase();
+  const ad = String(dasha?.ad ?? "").toLowerCase();
+
+  if (driver.includes("mars") && target.includes("moon")) {
+    return "Mars activating your Moon can create emotional restlessness and impatience, which often makes life feel blocked even when movement is building underneath.";
+  }
+
+  if (driver.includes("saturn") && target.includes("moon")) {
+    return "Saturn influencing the Moon often creates emotional heaviness or responsibility pressure, which can make progress feel slower than it actually is.";
+  }
+
+  if (md === "rahu" || ad === "rahu") {
+    return "Rahu phases often create periods where direction feels uncertain while new ambitions are forming, which can temporarily feel like stagnation.";
+  }
+
+  if (driver.includes("saturn")) {
+    return "Saturn periods frequently slow external progress so that structure and discipline can rebuild underneath.";
+  }
+
+  return null;
+}
+const dignityMap: Record<string, { exalt?: string; debil?: string; own?: string[] }> = {
+  sun: { exalt: "aries", debil: "libra", own: ["leo"] },
+  moon: { exalt: "taurus", debil: "scorpio", own: ["cancer"] },
+  mars: { exalt: "capricorn", debil: "cancer", own: ["aries", "scorpio"] },
+  mercury: { exalt: "virgo", debil: "pisces", own: ["gemini", "virgo"] },
+  jupiter: { exalt: "cancer", debil: "capricorn", own: ["sagittarius", "pisces"] },
+  venus: { exalt: "pisces", debil: "virgo", own: ["taurus", "libra"] },
+  saturn: { exalt: "libra", debil: "aries", own: ["capricorn", "aquarius"] },
+};
+function interpretPlanetDignity(planet: string, report?: any): string | null {
+  if (!planet || !report?.planets) return null;
+
+  const p = String(planet).toLowerCase();
+
+  const natal = report.planets.find(
+    (pl: any) => String(pl?.name || "").toLowerCase() === p
+  );
+
+  if (!natal?.sign) return null;
+
+  const sign = String(natal.sign).toLowerCase();
+
+  const dignity = dignityMap[p];
+  if (!dignity) return null;
+
+  if (dignity.exalt === sign) {
+    return `${planet} operates with strong natural dignity in ${sign}, which often makes its themes clearer and more effective in your life.`;
+  }
+
+  if (dignity.debil === sign) {
+    return `${planet} operates with reduced strength in ${sign}, so its themes sometimes require extra patience, maturity, or conscious handling.`;
+  }
+
+  if (dignity.own?.includes(sign)) {
+    return `${planet} sits in its own sign (${sign}), which generally allows it to express its natural qualities more comfortably in your chart.`;
+  }
+
+  return null;
+}
+const houseLordMap: Record<string, Record<string, number[]>> = {
+  aries: {
+    mars: [1],
+    venus: [2, 7],
+    mercury: [3, 6],
+    moon: [4],
+    sun: [5],
+    jupiter: [9, 12],
+    saturn: [10, 11],
+  },
+
+  taurus: {
+    venus: [1, 6],
+    mercury: [2, 5],
+    moon: [3],
+    sun: [4],
+    mars: [7, 12],
+    jupiter: [8, 11],
+    saturn: [9, 10],
+  },
+
+  gemini: {
+    mercury: [1, 4],
+    moon: [2],
+    sun: [3],
+    venus: [5, 12],
+    mars: [6, 11],
+    jupiter: [7, 10],
+    saturn: [8, 9],
+  },
+
+  cancer: {
+    moon: [1],
+    sun: [2],
+    mercury: [3, 12],
+    venus: [4, 11],
+    mars: [5, 10],
+    jupiter: [6, 9],
+    saturn: [7, 8],
+  },
+
+  leo: {
+    sun: [1],
+    mercury: [2, 11],
+    venus: [3, 10],
+    mars: [4, 9],
+    jupiter: [5, 8],
+    saturn: [6, 7],
+  },
+
+  virgo: {
+    mercury: [1, 10],
+    venus: [2, 9],
+    mars: [3, 8],
+    jupiter: [4, 7],
+    saturn: [5, 6],
+    moon: [11],
+    sun: [12],
+  },
+
+  libra: {
+    venus: [1, 8],
+    mars: [2, 7],
+    jupiter: [3, 6],
+    saturn: [4, 5],
+    mercury: [9, 12],
+    moon: [10],
+    sun: [11],
+  },
+
+  scorpio: {
+    mars: [1, 6],
+    jupiter: [2, 5],
+    saturn: [3, 4],
+    venus: [7, 12],
+    mercury: [8, 11],
+    moon: [9],
+    sun: [10],
+  },
+
+  sagittarius: {
+    jupiter: [1, 4],
+    saturn: [2, 3],
+    venus: [6, 11],
+    mercury: [7, 10],
+    moon: [8],
+    sun: [9],
+    mars: [5, 12],
+  },
+
+  capricorn: {
+    saturn: [1, 2],
+    jupiter: [3, 12],
+    mars: [4, 11],
+    venus: [5, 10],
+    mercury: [6, 9],
+    moon: [7],
+    sun: [8],
+  },
+
+  aquarius: {
+    saturn: [1, 12],
+    jupiter: [2, 11],
+    mars: [3, 10],
+    venus: [4, 9],
+    mercury: [5, 8],
+    moon: [6],
+    sun: [7],
+  },
+
+  pisces: {
+    jupiter: [1, 10],
+    mars: [2, 9],
+    venus: [3, 8],
+    mercury: [4, 7],
+    moon: [5],
+    sun: [6],
+    saturn: [11, 12],
+  },
+};
+function interpretHouseLordRole(planet: string, report?: any): string | null {
+  if (!planet || !report?.ascendantSign) return null;
+
+  const asc = String(report.ascendantSign).toLowerCase();
+  const p = String(planet).toLowerCase();
+
+  const lordData = houseLordMap[asc]?.[p];
+  if (!lordData || !lordData.length) return null;
+
+  const houseMeaning: Record<number, string> = {
+    1: "identity and personal direction",
+    2: "money, speech, and family stability",
+    3: "effort, courage, and communication",
+    4: "home, emotional security, and inner comfort",
+    5: "creativity, romance, and intelligence",
+    6: "work routines, pressure, and competition",
+    7: "relationships and agreements",
+    8: "deep change, vulnerability, and transformation",
+    9: "beliefs, luck, and higher learning",
+    10: "career direction and public reputation",
+    11: "goals, networks, and gains",
+    12: "rest, retreat, and subconscious processing",
+  };
+
+  const houseDescriptions = lordData
+    .map((h) => houseMeaning[h])
+    .filter(Boolean);
+
+  if (!houseDescriptions.length) return null;
+
+  return `${planet} rules ${lordData
+    .map((h) => `${h}${h === 1 ? "st" : h === 2 ? "nd" : h === 3 ? "rd" : "th"}`)
+    .join(" and ")} houses in your chart, so when it activates it often influences ${houseDescriptions.join(
+    " and "
+  )}.`;
+}
+function pickDegreeAwareTransit(report: any, strongestTransit: any): any | null {
+  if (!report || typeof report !== "object") return null;
+
+  const pools: any[] = [];
+
+  if (Array.isArray(report?.topTransits)) {
+    pools.push(...report.topTransits);
+  }
+  if (Array.isArray(report?.transitHits)) {
+    pools.push(...report.transitHits);
+  }
+  if (Array.isArray(report?.transitNowFactsDetailed)) {
+    pools.push(...report.transitNowFactsDetailed);
+  }
+
+  if (!pools.length) return strongestTransit || null;
+
+  const strongestDriver = String(
+    strongestTransit?.driver ??
+    strongestTransit?.planet ??
+    strongestTransit?.title ??
+    ""
+  ).toLowerCase();
+
+  if (!strongestDriver) {
+    return pools[0] ?? strongestTransit ?? null;
+  }
+
+  const matched =
+    pools.find((x) => {
+      const hay = [
+        x?.driver,
+        x?.planet,
+        x?.transitPlanet,
+        x?.title,
+        x?.target,
+        x?.targetLabel,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      return hay.includes(strongestDriver);
+    }) ?? null;
+
+  return matched || strongestTransit || null;
+}
 function windowStrengthFromRiskFlag(flag?: string): AskSarathiWindowStrength {
   const f = String(flag || "").toLowerCase();
   if (f === "opportunity") return "Strong";
@@ -1696,7 +2932,263 @@ function remedyForPlanet(p: string): string {
   if (key === "ketu")   return "Cut fake obligations, feed/comfort stray dogs, allow emotional detox. Cat’s eye ONLY if it's actually aligned.";
   return "Serve honestly, stay clean, protect your peace — that supports any planet.";
 }
+function gemstonePlanetMeaning(planet?: string): string {
+  const p = String(planet || "").toLowerCase();
 
+  if (p === "sun") return "identity, authority, confidence, visibility";
+  if (p === "moon") return "emotions, stability, sensitivity, inner comfort";
+  if (p === "mars") return "drive, courage, aggression, action";
+  if (p === "mercury") return "thinking, speech, trade, planning";
+  if (p === "jupiter") return "wisdom, expansion, guidance, fortune";
+  if (p === "venus") return "love, comfort, beauty, harmony, pleasure";
+  if (p === "saturn") return "discipline, responsibility, pressure, endurance";
+  if (p === "rahu") return "ambition, obsession, amplification, restlessness";
+  if (p === "ketu") return "detachment, spiritualization, cutting, inner withdrawal";
+
+  return "a planetary theme in the chart";
+}
+
+function gemstoneRiskLine(planet?: string): string {
+  const p = String(planet || "").toLowerCase();
+
+  if (p === "saturn") {
+    return "Saturn stones should never be worn casually. If Saturn is difficult in the chart, strengthening it can increase pressure, heaviness, or delays.";
+  }
+  if (p === "rahu") {
+    return "Rahu stones should be handled very carefully. If misused, they can amplify confusion, obsession, anxiety, or risky decision-making.";
+  }
+  if (p === "ketu") {
+    return "Ketu stones should not be worn casually. They can increase detachment, isolation, or emotional disconnection if not properly suited.";
+  }
+  if (p === "mars") {
+    return "Mars stones can increase heat, irritability, impatience, or confrontation if Mars is not safe to strengthen.";
+  }
+  if (p === "sun") {
+    return "Sun stones can increase ego friction or authority conflicts if the Sun is not supportive in the chart.";
+  }
+  if (p === "venus") {
+    return "Venus stones can increase indulgence, emotional entanglement, or comfort-seeking if Venus is not well placed for the native.";
+  }
+  if (p === "jupiter") {
+    return "Jupiter stones are not automatically safe for everyone. They should be worn only if Jupiter is truly supportive for the chart and the current objective.";
+  }
+  if (p === "mercury") {
+    return "Mercury stones should match both chart support and present need. Otherwise they can create overthinking, nervousness, or scattered focus.";
+  }
+  if (p === "moon") {
+    return "Moon stones should not be worn blindly. If Moon-related sensitivity is already high, they can increase emotional fluctuation.";
+  }
+
+  return "No gemstone should be worn blindly just because it sounds positive.";
+}
+
+function buildGemstoneEngineAnswer(opts: {
+  question: string;
+  report?: LifeReportLike | null;
+  gemstone: GemstoneInfo;
+}): string {
+  const { question, report, gemstone } = opts;
+
+  const stone = gemstone.stone || "This stone";
+  const planet = gemstone.planet || "";
+  const meaning = gemstonePlanetMeaning(planet);
+  const riskLine = gemstoneRiskLine(planet);
+
+  const act = getActiveDashaAnyShape(report);
+  const md = act.md && act.md !== "Unknown" ? act.md : "";
+  const ad = act.ad && act.ad !== "Unknown" ? act.ad : "";
+  const pd = act.pd && act.pd !== "Unknown" ? act.pd : "";
+
+  const activeStack = [md, ad, pd].filter(Boolean);
+  const lowerStack = activeStack.map((x) => x.toLowerCase());
+
+  const planetActive = planet
+    ? lowerStack.includes(String(planet).toLowerCase())
+    : false;
+
+  const askedSafety =
+    /\b(safe|can i wear|should i wear|suitable|suits me|okay to wear|ok to wear)\b/i.test(question);
+
+  const askedNow =
+    /\b(now|right now|currently|at present|this time)\b/i.test(question);
+
+  let verdict = "";
+  if (planet && planetActive) {
+    verdict =
+      `${stone} is linked to ${planet}, and ${planet} is active in your current dasha stack, so this is a stone that deserves serious chart-specific judgment right now — not a casual yes.`;
+  } else if (planet) {
+    verdict =
+      `${stone} strengthens ${planet}, so the real question is not whether the stone is generally good, but whether ${planet} is safe and useful to strengthen in your chart.`;
+  } else {
+    verdict =
+      `A gemstone should only be recommended after checking which planet it strengthens and whether that planet should actually be amplified in your chart.`;
+  }
+
+  const dashaLine =
+    activeStack.length
+      ? `Current timing context: ${activeStack.join(" / ")}.`
+      : `I do not have a strong dasha context loaded yet, so I would avoid giving a blind gemstone yes.`;
+
+  const planetLine =
+    planet
+      ? `${stone} is used to strengthen ${planet} themes: ${meaning}.`
+      : "";
+
+  let timingLine = "";
+  if (planet && planetActive) {
+    timingLine =
+      `${planet} is active in your present timing stack, which makes gemstone decisions more sensitive and more important than usual.`;
+  } else if (planet && askedNow) {
+    timingLine =
+      `${planet} is not clearly visible as the main active dasha trigger right now, so the timing question becomes more about chart suitability than urgency.`;
+  } else if (planet) {
+    timingLine =
+      `This should be judged from chart suitability first, and timing second.`;
+  }
+
+  const actionLines: string[] = [];
+
+  if (askedSafety) {
+    actionLines.push(`Do not wear ${stone} purely because someone suggested it or because it sounds favorable.`);
+  }
+
+  if (planetActive) {
+    actionLines.push(`Because ${planet} is active now, get this checked specifically as a strength-or-risk decision, not as a generic remedy.`);
+  } else {
+    actionLines.push(`First confirm whether ${planet} is actually beneficial to strengthen in your chart.`);
+  }
+
+  actionLines.push("Judge the stone from lagna support, house rulership, natal placement, and current dasha relevance together.");
+
+  return [
+    verdict,
+    "",
+    planetLine,
+    dashaLine,
+    timingLine,
+    "",
+    "What matters before wearing it:",
+    ...actionLines.map((x) => `- ${x}`),
+    "",
+    "Caution:",
+    `- ${riskLine}`,
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+function getFestivalDateLabel(anchor?: TimeAnchorInfo): string {
+  if (!anchor || anchor.kind !== "festival") return "";
+
+  const raw = String(anchor.raw || "").toLowerCase();
+
+  // We are keeping this version simple and non-astronomical:
+  // it gives the user a practical anchor, not a Panchang engine yet.
+  if (raw === "diwali") return "Diwali";
+  if (raw === "holi") return "Holi";
+  if (raw === "navratri") return "Navratri";
+  if (raw === "dussehra") return "Dussehra";
+  if (raw === "guru purnima") return "Guru Purnima";
+  if (raw === "janmashtami") return "Janmashtami";
+  if (raw === "shivratri") return "Maha Shivratri";
+
+  return anchor.label || "";
+}
+
+function isPureCalendarDateQuestion(question: string, anchor?: TimeAnchorInfo): boolean {
+  const q = String(question || "").toLowerCase().trim();
+
+  if (!anchor || anchor.kind !== "festival") return false;
+
+  return (
+    /\bwhen is\b/.test(q) ||
+    /\bdate of\b/.test(q) ||
+    /\bon what date\b/.test(q)
+  );
+}
+
+function buildCalendarAnchorEngineAnswer(opts: {
+  question: string;
+  report?: LifeReportLike | null;
+  anchor: TimeAnchorInfo;
+  topic: AskSarathiDomain;
+}): string {
+  const { question, report, anchor, topic } = opts;
+
+  const festivalLabel = getFestivalDateLabel(anchor);
+  const q = String(question || "").toLowerCase().trim();
+
+  // 1) Pure date-style question
+  if (isPureCalendarDateQuestion(question, anchor)) {
+    return `${festivalLabel} timing depends on the lunar calendar each year. In this version of Ask Sārathi, I can recognize ${festivalLabel} as a timing anchor, but the exact festival date should come from Panchang/calendar data rather than guessed text.`;
+  }
+
+  // 2) Astrology question anchored to festival / event
+  const act = getActiveDashaAnyShape(report);
+  const activeStack = [act.md, act.ad, act.pd].filter((x) => x && x !== "Unknown");
+  const stackLabel = activeStack.length ? activeStack.join(" / ") : "current phase";
+
+  const bestTransit = pickBestTransitWindows(report, topic);
+  const bestTimeline = pickFromTimeline(report, topic);
+
+  const hasTransit = bestTransit.length > 0;
+  const topTransit = hasTransit ? bestTransit[0] : null;
+
+  let verdict =
+    `${festivalLabel} can be used as a psychological or timing marker, but your actual shift should be judged from dasha and transit activation, not from the festival alone.`;
+
+  if (topTransit?.riskFlag === "opportunity") {
+    verdict =
+      `Yes, the period around or after ${festivalLabel} can coincide with improvement, but the real reason is that your timing looks supportive rather than the festival itself magically changing things.`;
+  } else if (topTransit?.riskFlag === "mixed") {
+    verdict =
+      `${festivalLabel} may bring a noticeable shift in mood or movement, but the chart suggests a mixed phase rather than an instant clean breakthrough.`;
+  } else if (topTransit?.riskFlag === "caution") {
+    verdict =
+      `${festivalLabel} itself should not be treated as an automatic turning point. The chart still suggests caution, preparation, and selective movement rather than a dramatic immediate shift.`;
+  } else if (bestTimeline) {
+    verdict =
+      `${festivalLabel} may feel like a useful emotional marker, but the bigger story is your running dasha phase and timeline window.`;
+  }
+
+  const whyLines: string[] = [];
+
+  if (activeStack.length) {
+    whyLines.push(`Current dasha stack: ${stackLabel}.`);
+  }
+
+  if (topTransit) {
+    whyLines.push(
+      `Best visible timing window: ${fmtRange(topTransit.from, topTransit.to)}${topTransit.driver ? ` • driver: ${topTransit.driver}` : ""}.`
+    );
+  } else if (bestTimeline) {
+    whyLines.push(
+      `Relevant timeline window: ${fmtRange(bestTimeline.from, bestTimeline.to)}${bestTimeline.adLord ? ` • AD ${bestTimeline.adLord}` : ""}${bestTimeline.pdLord ? ` • PD ${bestTimeline.pdLord}` : ""}.`
+    );
+  } else {
+    whyLines.push("No sharply tagged external window is visible right now, so the answer should be read through the active phase more than a calendar anchor.");
+  }
+
+  let actionLine = "Use the festival as a reflection point, not as blind proof that life will change on that exact day.";
+  if (/\b(job|career|work|promotion)\b/.test(q)) {
+    actionLine = `Use the period around ${festivalLabel} to review career movement, outreach, and readiness — but act from timing quality, not symbolic hope alone.`;
+  } else if (/\b(marriage|relationship|partner|love)\b/.test(q)) {
+    actionLine = `Use the period around ${festivalLabel} to notice whether relationship momentum is actually improving, rather than projecting meaning onto the festival itself.`;
+  } else if (/\b(property|house|home|move house|shift)\b/.test(q)) {
+    actionLine = `Treat ${festivalLabel} as a planning marker for property or moving decisions, but still judge the move from actual support in timing.`;
+  } else if (/\b(car|vehicle)\b/.test(q)) {
+    actionLine = `Use ${festivalLabel} as a decision checkpoint for vehicle matters, but not as the only reason to buy.`;
+  }
+
+  return [
+    verdict,
+    "",
+    "Why this is the right way to read it:",
+    ...whyLines.map((x) => `- ${x}`),
+    "",
+    "How to use this anchor:",
+    `- ${actionLine}`,
+  ].join("\n");
+}
 function buildRemedyAnswer(report?: LifeReportLike | null): string {
   const act = getActiveDashaAnyShape(report);
 const md = act.md === "Unknown" ? "" : act.md;
@@ -2408,7 +3900,7 @@ function buildDailyOutlookCoreAnswer(opts: {
   const act = getActiveDashaAnyShape(report);
   const currentPhaseLabel =
     [act.md, act.ad, act.pd].filter((x) => x && x !== "Unknown").join(" / ") || undefined;
-
+  const nakshatraToneLine = getNakshatraToneLine(report);
   const emotional =
     String(dailyGuide?.emotionalWeather?.summary ?? "").trim();
   const money =
@@ -2473,8 +3965,9 @@ function buildDailyOutlookCoreAnswer(opts: {
     .filter(Boolean)
     .slice(0, 3);
 
-  const reasons = [
+   const reasons = [
     moonLine,
+    nakshatraToneLine ? `Natal Moon pattern: ${nakshatraToneLine}` : "",
     transitLine,
     strongestWindowLine,
     dashaLine,
@@ -2556,10 +4049,13 @@ function buildDailyOutlookCoreAnswer(opts: {
     evidenceBullets,
     prose: {
       short: verdictLine,
-           full: [
+              full: [
         verdictLine,
         "",
         feelingLine,
+        ...(nakshatraToneLine
+          ? ["", `Because of your natal Moon pattern: ${nakshatraToneLine}`]
+          : []),
         "",
         likelyEventLine,
         "",
@@ -2589,7 +4085,7 @@ function buildDailyMicroCoreAnswer(opts: {
   const act = getActiveDashaAnyShape(report);
   const currentPhaseLabel =
     [act.md, act.ad, act.pd].filter((x) => x && x !== "Unknown").join(" / ") || undefined;
-
+  const nakshatraToneLine = getNakshatraToneLine(report);
   const moonNak = String(
     todayMoon?.moonNakshatra ||
       report?.moonNakshatraTodayFact ||
@@ -2609,7 +4105,12 @@ function buildDailyMicroCoreAnswer(opts: {
   let avoid: string[] = [];
   let extraLine = "";
 
-  if (q.includes("color") || q.includes("colour") || q.includes("wear")) {
+   if (
+    q.includes("color") ||
+    q.includes("colour") ||
+    q.includes("wear") ||
+    q.includes("suits me")
+  ) {
     title = "Today’s Best Color";
     verdict =
       "For today, softer, cleaner, and balanced tones are likely to work better than loud or aggressive colors.";
@@ -2690,6 +4191,7 @@ function buildDailyMicroCoreAnswer(opts: {
 
   const summary = [
     moonLine,
+    nakshatraToneLine ? `Natal Moon pattern: ${nakshatraToneLine}` : "",
     transitNowFacts.length ? `Active transits today: ${transitNowFacts.slice(0, 2).join(" • ")}.` : "",
     currentPhaseLabel ? `Background phase: ${currentPhaseLabel}.` : "",
     extraLine,
@@ -2699,6 +4201,7 @@ function buildDailyMicroCoreAnswer(opts: {
 
   const reasons = [
     moonLine,
+    nakshatraToneLine ? `Natal Moon pattern: ${nakshatraToneLine}` : "",
     transitNowFacts.length ? `Today’s active transits: ${transitNowFacts.slice(0, 2).join(" • ")}.` : "",
     currentPhaseLabel ? `Active phase: ${currentPhaseLabel}.` : "",
     ...evidenceBullets.slice(0, 1),
@@ -2763,16 +4266,18 @@ function buildAskSarathiCoreAnswer(opts: {
   report?: LifeReportLike | null;
   topic: AskSarathiDomain;
   questionType: AskSarathiQuestionType;
+  routeFamily?: AskSarathiQuestionFamily;
   distressed: boolean;
   distressSoothing: string;
   evidenceBullets: string[];
 }): AskSarathiCoreAnswer {
-  const {
+   const {
     question,
     mode,
     report,
     topic,
     questionType,
+    routeFamily = "generic",
     distressed,
     distressSoothing,
     evidenceBullets,
@@ -2783,16 +4288,41 @@ function buildAskSarathiCoreAnswer(opts: {
     [act.md, act.ad, act.pd]
       .filter((x) => x && x !== "Unknown")
       .join(" / ") || undefined;
-
+  const nakshatraToneLine = getNakshatraToneLine(report); 
   const currentPhaseSummary =
     mode === "personalized"
       ? buildShortHorizon(report, "month")
       : "This answer is based on general guidance because full personalized timing is not fully available.";
-
+  const questionIntentLabel = routeFamily || questionType;
   const bestTransit = pickBestTransitWindows(report, topic);
   const bestTimeline = pickFromTimeline(report, topic);
 
-  const windows: AskSarathiTimingWindow[] = [];if (bestTransit.length) {
+      const strongestTransit = bestTransit?.[0];
+  const degreeAwareTransit = pickDegreeAwareTransit(report, strongestTransit);
+  const transitInterpretation = interpretTransitTrigger(
+    strongestTransit?.driver ?? degreeAwareTransit?.driver ?? degreeAwareTransit?.planet
+  );
+  const multiTransitNarrative = buildMultiTransitNarrative(bestTransit);
+  const natalPlanetContext = interpretPlanetInNatalChart(
+    strongestTransit?.driver ?? degreeAwareTransit?.driver ?? degreeAwareTransit?.planet,
+    report
+  );
+  const degreeTriggerNarrative = interpretDegreeTrigger(degreeAwareTransit);
+  const houseLordNarrative = interpretHouseLordRole(
+  strongestTransit?.driver ?? degreeAwareTransit?.planet,
+  report
+);
+const dignityNarrative = interpretPlanetDignity(
+  strongestTransit?.driver ?? degreeAwareTransit?.planet,
+  report
+);
+const pressureNarrative = detectPressurePattern(
+  report,
+  strongestTransit,
+  act
+);
+  const windows: AskSarathiTimingWindow[] = [];
+  if (bestTransit.length) {  
 
   // 1️⃣ Score windows using topic relevance + strength
   const scored = bestTransit
@@ -2886,14 +4416,11 @@ function buildAskSarathiCoreAnswer(opts: {
     questionType,
   });
 
-  const verdictLineMap: Record<AskSarathiVerdictType, string> = {
-  favorable: "Yes — this is a favorable phase to move ahead, provided you act with discipline.",
-  supportive: "Yes — selective movement is possible now, and the current phase is supportive enough to act intelligently.",
-  mixed: "Yes — movement is possible, but this phase is better for selective action than a rushed leap.",
-  caution: "You can move, but carefully — this timing rewards restraint and measured judgment more than force.",
-  not_advised: "This is not a strong phase for forcing this move right now.",
-  needs_patience: "This phase is better for positioning and selective progress than a forced final move right now.",
-};
+    const verdictLine = buildDomainVerdictLine({
+    topic,
+    verdictType,
+    routeFamily,
+  });
   
   const confidence = confidenceFromSignals({
     mode,
@@ -2907,56 +4434,70 @@ function buildAskSarathiCoreAnswer(opts: {
     report,
   });
 
-  const reasons = [
-    ...domainEvidence.natalFactors.slice(0, 1),
-    ...domainEvidence.dashaFactors.slice(0, 1),
-    ...domainEvidence.transitFactors.slice(0, 1),
-    ...domainEvidence.synthesis.slice(0, 1),
-    ...evidenceBullets.slice(0, 2),
-  ].slice(0, 4);
+      const reasons = [
+  ...(nakshatraToneLine ? [`Natal Moon pattern: ${nakshatraToneLine}`] : []),
+  ...domainEvidence.natalFactors.slice(0, 1),
+  ...domainEvidence.dashaFactors.slice(0, 1),
+  ...domainEvidence.transitFactors.slice(0, 1),
+  ...(pressureNarrative ? [pressureNarrative] : []),
+  ...(transitInterpretation ? [transitInterpretation] : []),
+  ...(multiTransitNarrative ? [multiTransitNarrative] : []),
+  ...(natalPlanetContext ? [natalPlanetContext] : []),
+  ...(degreeTriggerNarrative ? [degreeTriggerNarrative] : []),
+  ...(houseLordNarrative ? [houseLordNarrative] : []),
+  ...(dignityNarrative ? [dignityNarrative] : []),
+  ...domainEvidence.synthesis.slice(0, 1),
+  ...evidenceBullets.slice(0, 1),
+].slice(0, 4);
+    const domainGuidance = buildDomainActionGuidance({
+    topic,
+    questionType,
+    routeFamily,
+    timingDirective: timingGuide.timingDirective,
+    windowDo: windows[0]?.do,
+    windowAvoid: windows[0]?.avoid,
+  });
 
-   const actions: string[] =
-    windows[0]?.do?.length
-      ? windows[0].do.slice(0, 3)
-      : questionType === "decision"
-      ? [
-          timingGuide.timingDirective,
-          "Move in measured steps instead of one big emotional jump.",
-          "Act strategically, not reactively.",
-        ]
-      : questionType === "timing"
-      ? [
-          timingGuide.timingDirective,
-          "Treat timing as a staged process, not a one-day event.",
-          "Use the current phase instead of waiting passively for a distant pivot.",
-        ]
-      : [
-          timingGuide.timingDirective,
-          "Keep your next step realistic and specific.",
-          "Use this phase for clarity and steady movement.",
-        ];
-
-  const avoid: string[] =
-    windows[0]?.avoid?.length
-      ? windows[0].avoid.slice(0, 3)
-      : [
-          "Avoid making decisions only from frustration.",
-          "Avoid comparing your pace with someone else’s timing.",
-          "Avoid forcing certainty where the phase still needs observation.",
-        ];
-
+  const actions: string[] = domainGuidance.actions.slice(0, 3);
+  const avoid: string[] = domainGuidance.avoid.slice(0, 3);
      const strongestWindow = timingGuide.primaryWindow;
   const strongestStrength = timingGuide.strongestStrength;
-  const timingSummary = timingGuide.timingSummary;
+  const timingSummary =
+    routeFamily === "diagnosis"
+      ? "This is not a dead phase. The chart shows active pressure and restructuring, which can feel like stagnation from the inside even when movement is building underneath."
+      : timingGuide.timingSummary;
 
   const emotionalSupport =
     distressed || questionType === "emotional_support"
       ? distressSoothing || "This phase is not punishment. It is pressure shaping clarity."
       : undefined;
+     const diagnosisExplainer =
+    routeFamily === "diagnosis"
+      ? {
+          cause: [
+            pressureNarrative,
+            transitInterpretation,
+          ]
+            .filter(Boolean)
+            .slice(0, 2)
+            .join(" "),
+          phase: [
+            multiTransitNarrative,
+            natalPlanetContext,
+            houseLordNarrative,
+            dignityNarrative,
+          ]
+            .filter(Boolean)
+            .slice(0, 2)
+            .join(" "),
+        }
+      : null;
+    const followUps = followUpsFor(
+    topic,
+    routeFamily === "prediction" ? "timing" : questionType
+  );
 
-  const followUps = followUpsFor(topic, questionType);
-
-  const shortProse = verdictLineMap[verdictType];
+  const shortProse = verdictLine;
    const timingLines = hasTiming
     ? windows.map((w) => {
         const range =
@@ -2968,34 +4509,64 @@ function buildAskSarathiCoreAnswer(opts: {
   if (timingGuide.distantPivotNote) {
     timingLines.push(`- ${timingGuide.distantPivotNote}`);
   }
-  const fullProse = [
-    verdictLineMap[verdictType],
-    "",
-    currentPhaseSummary,
-    "",
-    "What to focus on now:",
-    ...actions.map((x) => `- ${x}`),
-    "",
-    "What to avoid:",
-    ...avoid.map((x) => `- ${x}`),
-    "",
-    "Timing insight:",
-    ...timingLines,
-    emotionalSupport ? "" : null,
-    emotionalSupport ? emotionalSupport : null,
-  ]
-    .filter(Boolean)
-    .join("\n");
-
+       const fullProse =
+    routeFamily === "diagnosis"
+      ? [
+          verdictLine,
+          ...(diagnosisExplainer?.cause
+            ? ["", `Why it feels this way: ${diagnosisExplainer.cause}`]
+            : []),
+          ...(diagnosisExplainer?.phase
+            ? ["", `What this phase is doing: ${diagnosisExplainer.phase}`]
+            : []),
+          "",
+          currentPhaseSummary,
+          "",
+          "What to focus on now:",
+          ...actions.map((x) => `- ${x}`),
+          "",
+          "What to avoid:",
+          ...avoid.map((x) => `- ${x}`),
+          emotionalSupport ? "" : null,
+          emotionalSupport ? emotionalSupport : null,
+        ]
+          .filter(Boolean)
+          .join("\n")
+      : [
+          verdictLine,
+          "",
+          currentPhaseSummary,
+          ...(multiTransitNarrative ? ["", multiTransitNarrative] : []),
+          ...(natalPlanetContext ? ["", natalPlanetContext] : []),
+          ...(degreeTriggerNarrative ? ["", degreeTriggerNarrative] : []),
+          ...(houseLordNarrative ? ["", houseLordNarrative] : []),
+          ...(dignityNarrative ? ["", dignityNarrative] : []),
+          ...(nakshatraToneLine
+            ? ["", `Because of your natal Moon pattern: ${nakshatraToneLine}`]
+            : []),
+          "",
+          "What to focus on now:",
+          ...actions.map((x) => `- ${x}`),
+          "",
+          "What to avoid:",
+          ...avoid.map((x) => `- ${x}`),
+          "",
+          "Timing insight:",
+          ...timingLines,
+          emotionalSupport ? "" : null,
+          emotionalSupport ? emotionalSupport : null,
+        ]
+          .filter(Boolean)
+          .join("\n");
   return {
     ok: true,
     mode,
     domain: topic,
     questionType,
     title: titleFromDomain(topic),
-    verdict: {
+      verdict: {
       type: verdictType,
-      line: verdictLineMap[verdictType],
+      line: verdictLine,
     },
     currentPhase: {
       label: currentPhaseLabel,
@@ -3409,29 +4980,74 @@ export async function POST(req: Request) {
       mode,
     });
 
-    // 🔹 Food Engine (works in both modes)
-    if (isFoodQuestion(question)) {
-      const foodText = buildFoodAnswer(report);
-      return okJson({
-        answer: foodText,
-        copy: { answer: foodText, long: foodText },
-        followupMode: "new",
-        distressed: false,
-      });
-    }
+   const routePlan = buildRoutePlan(question);
+const topic = routePlan.domain;
+const questionType = routePlan.questionType;
 
-    const topic = detectTopic(question);
-const questionType = detectQuestionType(question);
 const { tone, depth } = pickToneAndDepth(question, topic);
+
 console.log("[astro-chat] detected", {
   question,
   topic,
   questionType,
+  family: routePlan.family,
+  timeAnchor: routePlan.timeAnchor,
+  gemstone: routePlan.gemstone,
 });
-    // decide response size early
-    const formatTier: FormatTier = isMicroIntentQuestion(question) ? "micro" : pickFormatTier(question);
-    console.log("[astro-chat] formatTier:", formatTier, "question:", question);
 
+// decide response size early
+const formatTier: FormatTier =
+  routePlan.isMicro ? "micro" : pickFormatTier(question);
+
+console.log("[astro-chat] formatTier:", formatTier, "question:", question);
+
+
+// 🔹 Food Engine (works in both modes)
+if (
+  isFoodQuestion(question) ||
+  (routePlan.family === "daily_micro" &&
+    /\b(eat|food|diet|khana|khaana)\b/i.test(question))
+) {
+  const foodText = buildFoodAnswer(report);
+  
+  return okJson({
+    answer: foodText,
+    copy: { answer: foodText, long: foodText },
+    followupMode: "new",
+    distressed: false,
+  });
+}
+    // 🔹 Gemstone Engine
+    if (routePlan.needsGemstoneLogic) {
+      const gemText = buildGemstoneEngineAnswer({
+        question,
+        report,
+        gemstone: routePlan.gemstone,
+      });
+
+      return okJson({
+        answer: gemText,
+        copy: { answer: gemText, long: gemText },
+        followupMode: "new",
+        distressed: false,
+      });
+    }
+        // 🔹 Calendar Anchor Engine
+    if (routePlan.needsCalendarLogic) {
+      const calText = buildCalendarAnchorEngineAnswer({
+        question,
+        report,
+        anchor: routePlan.timeAnchor,
+        topic,
+      });
+
+      return okJson({
+        answer: calText,
+        copy: { answer: calText, long: calText },
+        followupMode: "new",
+        distressed: false,
+      });
+    }
     const moodHint = inferMood(question);
     const distressed = detectDistress(question);
     const distressSoothing = distressed ? reassureUser(topic) : "";
@@ -3457,23 +5073,12 @@ console.log("[astro-chat] detected", {
     const baseEvidence = buildWhyEvidence({ report, topic });
 
     // only build careerBrief if the question is actually career
-    const careerBrief = topic === "career" ? buildCareerBriefStructured({ report }) : null;
+const careerBrief = topic === "career" ? buildCareerBriefStructured({ report }) : null;
 
-    const evidenceBullets = [...(Array.isArray(baseEvidence) ? baseEvidence : [])];
+const evidenceBullets = [...(Array.isArray(baseEvidence) ? baseEvidence : [])];
 
-if (
-  careerBrief?.type === "career_window" &&
-  (careerBrief as any)?.hasWindow &&
-  (careerBrief as any)?.windowRange
-) {
-  evidenceBullets.push(`Career window: ${(careerBrief as any).windowRange}`);
-  if ((careerBrief as any)?.confidenceWord) {
-    evidenceBullets.push(`Strength: ${(careerBrief as any).confidenceWord}`);
-  }
-  if ((careerBrief as any)?.theme) {
-    evidenceBullets.push(`Theme: ${(careerBrief as any).theme}`);
-  }
-}
+// Keep evidence premium-facing: do not inject raw meta labels like Career window / Strength / Theme
+// into the compact Q&A evidence block. Those belong in deeper views, not the main answer card.
 
 const weightedTransitEvidence = pickBestTransitWindows(report, topic);
 
@@ -3520,12 +5125,13 @@ const core =
         question,
         evidenceBullets: dailyEvidenceBullets,
       })
-    : buildAskSarathiCoreAnswer({
+        : buildAskSarathiCoreAnswer({
         question,
         mode,
         report,
         topic,
         questionType,
+        routeFamily: routePlan.family,
         distressed,
         distressSoothing,
         evidenceBullets: dedupedEvidenceBullets,
@@ -3638,6 +5244,9 @@ If you mention astrology, it must be supported by EVIDENCE_BULLETS_JSON or ASTRO
   userQuestion: question,
   topic,
   questionType,
+  routeFamily: routePlan.family,
+  timeAnchor: routePlan.timeAnchor,
+  gemstone: routePlan.gemstone,
   history,
   astroFacts,
   moodHint,
@@ -3666,139 +5275,146 @@ If you mention astrology, it must be supported by EVIDENCE_BULLETS_JSON or ASTRO
   verdictLine: core.verdict.line,
   primaryTimingWindow: core.timing.windows?.[0] || null,
 };
-if (questionType === "daily_outlook" || questionType === "daily_micro") {
+if (
+  questionType === "daily_outlook" ||
+  questionType === "daily_micro"
+) {
   const outText = cleanUnknown(
-    core?.prose?.full || core?.prose?.short || "Today looks usable and productive."
+    core?.prose?.full || core?.prose?.short || "This phase is active."
   );
 
   return okJson({
     answer: outText,
-    evidenceBullets: dedupedEvidenceBullets,
+    evidenceBullets: dailyEvidenceBullets,
     followupMode,
     distressed,
     copy: { answer: outText, long: outText },
     core: {
       ...core,
       prose: {
-        short: core.prose.short || outText,
+        short: core?.prose?.short || outText,
         full: outText,
       },
     },
   });
 }
-    // ---- call /api/naturalize ----
-    let naturalJson: any = null;
+   // ---- call /api/naturalize ----
+let naturalJson: any = null;
 
-    try {
-      const naturalizeURL = safeInternalURL(req, "/api/naturalize");
-      console.log("[astro-chat] natPayload keys:", Object.keys(natPayload || {}));
+try {
+  const naturalizeURL = safeInternalURL(req, "/api/naturalize");
+  console.log("[astro-chat] natPayload keys:", Object.keys(natPayload || {}));
 
-      const naturalRes = await fetch(naturalizeURL, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(natPayload),
-      });
+  const naturalRes = await fetch(naturalizeURL, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(natPayload),
+  });
 
-      if (!naturalRes.ok) {
-        const errText = await naturalRes.text();
-        return okJson({
-          answer:
-            `⚠️ GPT call failed (naturalize ${naturalRes.status}).\n\n` +
-            `Server said:\n${errText}\n\n` +
-            `Tip: Check OPENAI_API_KEY / GPT_MODEL in .env.local, then restart dev server.`,
-          followupMode,
-          distressed,
-          debug: true,
-        });
-      }
+  if (!naturalRes.ok) {
+    const errText = await naturalRes.text();
+    return okJson({
+      answer:
+        `⚠️ GPT call failed (naturalize ${naturalRes.status}).\n\n` +
+        `Server said:\n${errText}\n\n` +
+        `Tip: Check OPENAI_API_KEY / GPT_MODEL in .env.local, then restart dev server.`,
+      followupMode,
+      distressed,
+      debug: true,
+    });
+  }
 
-      naturalJson = await naturalRes.json();
-    } catch (e: any) {
-      return okJson({
-        answer:
-          `⚠️ Could not reach /api/naturalize.\n\n${String(e?.message || e)}\n\n` +
-          `Tip: Is the route file at src/app/api/naturalize/route.ts and exported as POST?`,
-        followupMode,
-        distressed,
-        debug: true,
-      });
-    }
+  naturalJson = await naturalRes.json();
+} catch (e: any) {
+  return okJson({
+    answer:
+      `⚠️ Could not reach /api/naturalize.\n\n${String(e?.message || e)}\n\n` +
+      `Tip: Is the route file at src/app/api/naturalize/route.ts and exported as POST?`,
+    followupMode,
+    distressed,
+    debug: true,
+  });
+}
 
-    // ✅ If we got a styled, human answer, return that
-    if (naturalJson?.text) {
+// ✅ If we got a styled, human answer, return that as the MAIN visible answer
+if (naturalJson?.text) {
   lastFollowup.set(userId, naturalJson.followupKind || "generic_deepen");
 
   const finalText = String(naturalJson.text || "").trim();
 
   const anchoredText =
-    formatTier === "premium"
-      ? [
-          `Verdict`,
-          `${core.verdict.line}`,
-          ``,
-          finalText
-            .replace(/^Verdict\s*/i, "")
-            .replace(/^There isn['’]t a sharply defined.*$/im, "")
-            .trim(),
-        ]
-          .filter(Boolean)
-          .join("\n")
-      : finalText;
-const outText = cleanUnknown(anchoredText)
-  .replace(/The next real activation comes when your sub-period shifts.*$/gim, "")
-  .replace(/The next sub-period change.*$/gim, "")
-  .replace(/The next real shift.*$/gim, "")
-  .replace(/There isn['’]t a sharply defined career shift window at this moment\.\s*/gim, "")
-  .replace(/\n{3,}/g, "\n\n")
-  .trim();
-      // If model returned empty, fall back gracefully
-      if (!outText) {
-        const fallback = mode === "personalized"
-          ? "I can answer this, but open Life Report once so I can load your timing windows."
-          : "Ask your question with your birth details (DOB/TOB/City) for a precise timing-based answer.";
+  formatTier === "premium"
+    ? finalText
+        .replace(/^Verdict\s*$/im, "")
+        .replace(/^Verdict\s*/i, "")
+        .replace(/^Timing read\s*$/im, "")
+        .replace(/^Timing read\s*/i, "")
+        .replace(/^Confidence note\s*$/im, "")
+        .replace(/^Confidence note\s*/i, "")
+        .replace(/^There isn['’]t a sharply defined.*$/gim, "")
+        .trim()
+    : finalText;
 
-     return okJson({
-  answer: fallback,
-  evidenceBullets: dedupedEvidenceBullets,
-  followupMode,
-  distressed,
-  copy: { answer: fallback, long: fallback },
-  core: {
-    ...core,
-    prose: {
-      short: core.prose.short || fallback,
-      full: fallback || core.prose.full,
-    },
-  },
-});
-      }
+  const outText = cleanUnknown(anchoredText)
+    .replace(/The next real activation comes when your sub-period shifts.*$/gim, "")
+    .replace(/The next sub-period change.*$/gim, "")
+    .replace(/The next real shift.*$/gim, "")
+    .replace(/There isn['’]t a sharply defined career shift window at this moment\.\s*/gim, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
 
-      return okJson({
-  answer: outText,
-  evidenceBullets: dailyEvidenceBullets,
-  followupMode,
-  distressed,
-  copy: { answer: outText, long: outText },
-  core: {
-    ...core,
-    prose: {
-      short: core.prose.short || outText,
-      full: outText || core.prose.full,
-    },
-  },
-});
-    }
-
-    // ✅ If /api/naturalize returned no text, do a safe fallback using astroFacts
-    const fallbackText =
+  // If model returned empty, fall back gracefully
+  if (!outText) {
+    const fallback =
       mode === "personalized"
-        ? [
-            "I can answer this, but I need one thing:",
-            "Open Life Report once so I can load your timing windows and give precise dates.",
-          ].join(" ")
-        : "I can answer generally, but for precise timing I need your birth details (DOB, time, city).";
+        ? "I can answer this, but open Life Report once so I can load your timing windows."
+        : "Ask your question with your birth details (DOB/TOB/City) for a precise timing-based answer.";
 
     return okJson({
+      answer: fallback,
+      evidenceBullets: dedupedEvidenceBullets,
+      followupMode,
+      distressed,
+      copy: { answer: fallback, long: fallback },
+      core: {
+        ...core,
+        prose: {
+          short: core?.prose?.short || fallback,
+          full: fallback,
+        },
+      },
+    });
+  }
+
+  return okJson({
+    answer: outText,
+    evidenceBullets:
+      routePlan.family === "daily_outlook" || routePlan.family === "daily_micro"
+        ? dailyEvidenceBullets
+        : dedupedEvidenceBullets,
+    followupMode,
+    distressed,
+    copy: { answer: outText, long: outText },
+    core: {
+      ...core,
+      prose: {
+        short: outText,
+        full: outText,
+      },
+    },
+  });
+}
+
+// ✅ If /api/naturalize returned no text, do a safe fallback using astroFacts
+const fallbackText =
+  mode === "personalized"
+    ? [
+        "I can answer this, but I need one thing:",
+        "Open Life Report once so I can load your timing windows and give precise dates.",
+      ].join(" ")
+    : "I can answer generally, but for precise timing I need your birth details (DOB, time, city).";
+
+return okJson({
   answer: fallbackText,
   evidenceBullets: dedupedEvidenceBullets,
   followupMode,
@@ -3807,13 +5423,13 @@ const outText = cleanUnknown(anchoredText)
   core: {
     ...core,
     prose: {
-      short: core.prose.short || fallbackText,
-      full: fallbackText || core.prose.full,
+      short: fallbackText,
+      full: fallbackText,
     },
   },
   debug: true,
 });
-  } catch (e: any) {
+} catch (e: any) {
     console.error("[astro-chat] POST failed:", e?.message || e);
     return badJson(`Server error: ${String(e?.message || e)}`, 500);
   }

@@ -557,19 +557,20 @@ const [showEvidence, setShowEvidence] = useState(false);
           Sārathi's Guidance
         </div>
 
-        {title ? (
-          <div className="mt-2 text-lg font-semibold text-slate-100">{title}</div>
-        ) : null}
+     {title &&
+ !["sārathi guidance", "sarathi guidance", "career guidance", "inner guidance", "relationship guidance", "money guidance", "health guidance"].includes(title.trim().toLowerCase()) ? (
+  <div className="mt-2 text-sm font-medium text-slate-300/80">{title}</div>
+) : null}
 
-        <div className="mt-2 flex flex-wrap items-center gap-2">
+        <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
           {confidenceText ? (
-            <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-200/90">
-              {confidenceText}
-            </div>
+            <div className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-slate-200/85">
+  {confidenceText}
+</div>
           ) : null}
 
           {nowLabel ? (
-            <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-300/80">
+            <div className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-slate-200/85">
               Current timing: {nowLabel}
             </div>
           ) : null}
@@ -587,44 +588,46 @@ const [showEvidence, setShowEvidence] = useState(false);
           ) : null}
         </div>
 
-                  {answer ? (
-        <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 p-4">
-          <div className="text-xs uppercase tracking-[0.14em] text-slate-300/60">Verdict</div>
-          <p className="mt-2 whitespace-pre-wrap text-base leading-8 text-slate-100">
-            {expanded ? answer : answer.slice(0, 520)}
-            {answer.length > 520 && !expanded ? "…" : ""}
-          </p>
+                 {answer ? (
+  <div className="mt-4 rounded-[22px] border border-white/10 bg-white/[0.05] p-5 md:p-6">
+  <div className="whitespace-pre-wrap text-[15px] leading-8 text-slate-100/95">
+      {expanded ? answer : answer.slice(0, 520)}
+      {answer.length > 520 && !expanded ? "…" : ""}
+    </div>
 
-          {answer.length > 520 && (
-            <button
-              type="button"
-              onClick={() => setExpanded((v) => !v)}
-              className="mt-3 text-xs text-indigo-300 hover:underline"
-            >
-              {expanded ? "Show less" : "Show more"}
-            </button>
-          )}
-        </div>
-      ) : null}
+    {answer.length > 520 && (
+      <button
+        type="button"
+        onClick={() => setExpanded((v) => !v)}
+        className="mt-3 text-xs text-indigo-300 hover:underline"
+      >
+        {expanded ? "Show less" : "Show more"}
+      </button>
+    )}
+  </div>
+) : null}
 
       {timingSummary || confidenceReason ? (
-        <div className="mt-4 grid gap-3 md:grid-cols-2">
-          {timingSummary ? (
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-              <div className="text-xs uppercase tracking-[0.14em] text-slate-300/60">Timing read</div>
-              <div className="mt-2 text-sm leading-6 text-slate-100/90">{timingSummary}</div>
-            </div>
-          ) : null}
-
-          {confidenceReason ? (
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-              <div className="text-xs uppercase tracking-[0.14em] text-slate-300/60">Confidence note</div>
-              <div className="mt-2 text-sm leading-6 text-slate-100/90">{confidenceReason}</div>
-            </div>
-          ) : null}
+  <div className="mt-4 grid gap-3 md:grid-cols-2">
+    {timingSummary ? (
+      <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+        <div className="text-[11px] uppercase tracking-[0.14em] text-slate-300/45">
+          Current timing
         </div>
-      ) : null}
+        <div className="mt-2 text-sm leading-6 text-slate-100/80">{timingSummary}</div>
+      </div>
+    ) : null}
 
+    {confidenceReason ? (
+      <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+        <div className="text-[11px] uppercase tracking-[0.14em] text-slate-300/45">
+          How clear this looks
+        </div>
+        <div className="mt-2 text-sm leading-6 text-slate-100/80">{confidenceReason}</div>
+      </div>
+    ) : null}
+  </div>
+) : null}
             {(how || (whyBullets && whyBullets.length)) ? (
         <div className="mt-4 grid gap-3 md:grid-cols-2">
           {how ? (
@@ -656,10 +659,10 @@ const [showEvidence, setShowEvidence] = useState(false);
           >
             <div>
               <div className="text-xs uppercase tracking-[0.14em] text-slate-300/60">
-                Why Sārathi said this
+                What this is based on
               </div>
               <div className="mt-1 text-sm text-slate-100/85">
-                Show the astrology evidence behind this answer
+                See the astrology signals behind this answer
               </div>
             </div>
             <div className="text-xs text-indigo-300">
@@ -1117,69 +1120,13 @@ const stripEvidenceMarker = (s?: string) => {
             ) : null}
           </h1>
 
-          <div className="flex items-center gap-4 text-xs ml-auto flex-wrap">
-            <div className="flex items-center gap-2">
-              <span className="text-slate-300/60">View</span>
-              <label className="flex items-center gap-1.5 text-slate-100/90">
-                <input
-                  className="accent-indigo-400"
-                  type="radio"
-                  name="view"
-                  checked={view === "qa"}
-                  onChange={() => { setView("qa"); setShowDetails(true); }}
-                  disabled={safeMode}
-                />
-                Q&amp;A
-              </label>
-              <label className="flex items-center gap-1.5 text-slate-100/90">
-                <input
-                  className="accent-indigo-400"
-                  type="radio"
-                  name="view"
-                  checked={view === "cards"}
-                  onChange={() => { setView("cards"); setShowDetails(true); }}
-                  disabled={safeMode}
-                />
-                Cards
-              </label>
-              <label className="flex items-center gap-1.5 text-slate-100/90">
-                <input
-                  className="accent-indigo-400"
-                  type="radio"
-                  name="view"
-                  checked={view === "narrative"}
-                  onChange={() => { setView("narrative"); setShowDetails(true); }}
-                  disabled={safeMode}
-                />
-                Timeline
-              </label>
-            </div>
-           <button
-  type="button"
-  onClick={() => setShowDetails((s) => !s)}
-  className="rounded-full border border-white/10 bg-white/5 px-3 py-1 hover:bg-white/10 text-slate-100"
->
-  {showDetails ? "Hide details" : "Show details"}
-</button>
-
-            <div className="flex items-center gap-2">
-              <span className="text-slate-300/60">Mode</span>
-              <label className="flex items-center gap-1.5 text-slate-100/90">
-                <input
-                  className="accent-indigo-400"
-                  type="checkbox"
-                  checked={chattyMode}
-                  onChange={(e) => setChattyMode(e.target.checked)}
-                />
-                Conversational
-              </label>
-              {safeMode && (
-                <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-slate-200/80">
-                  Safe
-                </span>
-              )}
-            </div>
-          </div>
+          <div className="ml-auto flex items-center gap-2 text-xs">
+  {safeMode && (
+    <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-slate-200/80">
+      Safe
+    </span>
+  )}
+</div>
         </div>
 
         {/* Profile + actions */}
@@ -1295,17 +1242,62 @@ const longFromWindows =
         .join("\n")
     : "";
 
+const bestLongAnswer =
+  [
+    d?.copy?.long,
+    d?.answer,
+    core?.prose?.full,
+    d?.copy?.answer,
+    core?.prose?.short,
+    d?.bottomLine?.lead,
+    fallbackAnswer,
+  ]
+    .map((x) => String(x || "").trim())
+    .find((x) => x.length >= 80) ||
+  [
+    d?.copy?.long,
+    d?.answer,
+    core?.prose?.full,
+    d?.copy?.answer,
+    core?.prose?.short,
+    d?.bottomLine?.lead,
+    fallbackAnswer,
+  ]
+    .map((x) => String(x || "").trim())
+    .find(Boolean) ||
+  "";
+
+const bestShortAnswer =
+  [
+    d?.copy?.answer,
+    d?.answer,
+    core?.prose?.short,
+    d?.copy?.long,
+    core?.prose?.full,
+    d?.bottomLine?.lead,
+    fallbackAnswer,
+  ]
+    .map((x) => String(x || "").trim())
+    .find((x) => x.length >= 40) ||
+  [
+    d?.copy?.answer,
+    d?.answer,
+    core?.prose?.short,
+    d?.copy?.long,
+    core?.prose?.full,
+    d?.bottomLine?.lead,
+    fallbackAnswer,
+  ]
+    .map((x) => String(x || "").trim())
+    .find(Boolean) ||
+  "";
+
 let answer =
   isDailyOutlook
-    ? (core?.prose?.full || core?.prose?.short || d?.copy?.answer || d?.answer)
-    : (
-        preferLong
-          ? (core?.prose?.full || d?.copy?.long || d?.copy?.answer || longFromWindows || d?.answer)
-          : (core?.prose?.short || d?.copy?.answer || d?.answer || d?.copy?.long)
-      ) ||
-      d?.bottomLine?.lead ||
-      fallbackAnswer;
-
+    ? bestLongAnswer
+    : preferLong
+    ? bestLongAnswer
+    : bestShortAnswer;
 if (!answer || answer.trim().length < 120) {
   answer = answer ? `${answer}\n\n${fallbackAnswer}` : fallbackAnswer;
 }
@@ -1334,8 +1326,8 @@ console.log("[chat] keys:", {
  const title = core?.title || d?.title || (d?.topic ? Cap(String(d.topic)) : undefined);
 
   const detailNote = hasProfile
-    ? "Tip: switch view (Q&A / Cards / Timeline) above if you want deeper timing details."
-    : "For precise timing windows, open Life Report once and save your birth profile.";
+  ? "Deeper timing layers are available if you want to explore further."
+  : "For precise timing windows, open Life Report once and save your birth profile.";
 
   // show one compact Sarathi answer card
   content = (
@@ -1356,15 +1348,7 @@ console.log("[chat] keys:", {
 />
 
       {/* Optional deep view stays available */}
-      {showDetails && hasWindows ? (
-        view === "cards" ? (
-          <TimingCards data={d as any} />
-        ) : view === "narrative" ? (
-          <NarrativeTiming data={d as any} />
-        ) : (
-          <QARich data={d as any} question={prevUser} />
-        )
-      ) : null}
+      {null}
     </div>
   );
 } else if (msg.role === "assistant" && msg.content) {

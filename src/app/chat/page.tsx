@@ -295,75 +295,76 @@ export default function AstroChatPage() {
 
   const canSend = useMemo(() => q.trim().length > 0 && !loading, [q, loading]);
 
-  async function send() {
-    if (!canSend) return;
+ async function send() {
+  if (!canSend) return;
+  if (loading) return;
 
-    const question = q.trim();
-    const topic = inferTopic(question);
+  const question = q.trim();
+  const topic = inferTopic(question);
 
-    setMessages((m) => [...m, { role: "user", text: question }]);
-    setQ("");
-    setLoading(true);
+  setMessages((m) => [...m, { role: "user", text: question }]);
+  setQ("");
+  setLoading(true);
 
-    try {
-      // ✅ IMPORTANT: send the saved profile EXACTLY as stored
-      const freshProfile = loadBirthProfile();
-      setProfile(freshProfile);
+  try {
+    const freshProfile = loadBirthProfile();
+    setProfile(freshProfile);
 
-      const ok = isProfileComplete(freshProfile);
+    const ok = isProfileComplete(freshProfile);
 
-      console.log("[SARATHI_CHAT_DEBUG] sending", {
-        question,
-        topic,
-        reportPresent: !!report,
-        profilePresent: !!freshProfile,
-        profileOk: ok,
-        dobISO: (freshProfile as any)?.dobISO,
-        tob: (freshProfile as any)?.tob,
-        tz: (freshProfile as any)?.place?.tz,
-        lat: (freshProfile as any)?.place?.lat,
-        lon: (freshProfile as any)?.place?.lon,
-      });
+    console.log("[SARATHI_CHAT_DEBUG] sending", {
+      question,
+      topic,
+      reportPresent: !!report,
+      profilePresent: !!freshProfile,
+      profileOk: ok,
+      dobISO: (freshProfile as any)?.dobISO,
+      tob: (freshProfile as any)?.tob,
+      tz: (freshProfile as any)?.place?.tz,
+      lat: (freshProfile as any)?.place?.lat,
+      lon: (freshProfile as any)?.place?.lon,
+    });
 
-      if (!ok) {
-        setMessages((m) => [
-          ...m,
-          {
-            role: "assistant",
-            text: "Your profile isn’t saved yet. Please go to Profile, enter birth date/time/place, and hit Save.",
-          },
-        ]);
-        return;
-      }
-
-      const res = await fetch("/api/astro-chat", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          message: question,
-          // ✅ send under BOTH keys so backend always sees it
-          profile: freshProfile,
-          birthProfile: freshProfile,
-          topic,
-          report, // lite report context you built from cache
-        }),
-      });
-
-      const json = await res.json();
-      const answer = json?.answer || json?.text || json?.error || "…";
-
-      setMessages((m) => [...m, { role: "assistant", text: String(answer) }]);
-    } catch (e: any) {
+    if (!ok) {
       setMessages((m) => [
         ...m,
-        { role: "assistant", text: `⚠️ Network error: ${e?.message || e}` },
+        {
+          role: "assistant",
+          text: "Your profile isn’t saved yet. Please go to Profile, enter birth date/time/place, and hit Save.",
+        },
       ]);
-    } finally {
-      setLoading(false);
-      inputRef.current?.focus();
+      return;
     }
-  }
 
+    const res = await fetch("/api/astro-chat", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        message: question,
+        profile: freshProfile,
+        birthProfile: freshProfile,
+        topic,
+        report,
+      }),
+    });
+
+    const json = await res.json();
+    const answer = json?.answer || json?.text || json?.error || "…";
+
+    setMessages((m) => [
+      ...m,
+      { role: "assistant", text: String(answer), data: json },
+    ]);
+  } catch (e: any) {
+    setMessages((m) => [
+      ...m,
+      { role: "assistant", text: `⚠️ Network error: ${e?.message || e}` },
+    ]);
+  } finally {
+    setLoading(false);
+    inputRef.current?.focus();
+  }
+}
   function onEnter(e: KeyboardEvent<HTMLInputElement>) {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
