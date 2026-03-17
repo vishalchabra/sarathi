@@ -5201,9 +5201,58 @@ const adLord =
   ? (report as any).todayNextFewDaysCards
   : [];
 
-const visible = list.slice(0, 7);
+const fallbackFromNowPlan = (() => {
+  const np: any = (report as any)?.nowPlan ?? (report as any)?.nowNearFuture ?? null;
+  if (!np || typeof np !== "object") return [];
+
+  const out: any[] = [];
+
+  const now3 = Array.isArray(np?.now3Days?.likelyScenarios) ? np.now3Days.likelyScenarios : [];
+  const now3Areas = Array.isArray(np?.now3Days?.focusAreas) ? np.now3Days.focusAreas : [];
+  const next14 = Array.isArray(np?.next14Days?.timing) ? np.next14Days.timing : [];
+
+  for (let i = 0; i < Math.min(3, now3.length); i++) {
+    out.push({
+      kind: "day",
+      dateISO: "",
+      dateLabel: `Day ${i + 1}`,
+      trigger: "Active now",
+      confidence: "High",
+      energy: "High",
+      focus: String(now3Areas[i]?.area ?? now3Areas[0]?.area ?? "Current focus"),
+      subfocus: "",
+      houseNum: null,
+      guidance: String(now3[i] ?? "").trim(),
+      evidence: [],
+    });
+  }
+
+  for (let i = 0; i < Math.min(4, next14.length); i++) {
+    out.push({
+      kind: "day",
+      dateISO: String(next14[i]?.window ?? "").trim(),
+      dateLabel: String(next14[i]?.window ?? `Upcoming ${i + 1}`).trim(),
+      trigger: "Upcoming",
+      confidence: "Medium",
+      energy: "High",
+      focus: "Near future",
+      subfocus: "",
+      houseNum: null,
+      guidance: String(next14[i]?.note ?? "").trim(),
+      evidence: [],
+    });
+  }
+
+  return out;
+})();
+
+const visible =
+  list.length > 0
+    ? list.slice(0, 7)
+    : fallbackFromNowPlan.slice(0, 7);
 
 console.log("[NOW TAB] todayNextFewDaysCards =", (report as any)?.todayNextFewDaysCards);
+console.log("[NOW TAB] fallbackFromNowPlan =", fallbackFromNowPlan);
 console.log("[NOW TAB] visible =", visible);
 console.log("[NOW TAB] dailyHighlights fallback length =", Array.isArray(dailyHighlights) ? dailyHighlights.length : 0);
      const upcomingWindow = React.useMemo(() => {
@@ -12616,25 +12665,25 @@ const text = uniqueTextParts
   <TabsContent value="full" className="mt-4">
    
     {/* Always show *something* below */}
-    {!canSeeFull ? (
-      <div className="mt-4 rounded-2xl border border-white/15 bg-white/5 p-4 text-sm text-white/80">
-        Full Guidance is locked.
-      </div>
-    ) : !report ? (
-      <div className="mt-4 rounded-2xl border border-black-500/30 bg-black-950/30 p-4 text-sm text-red-100">
-        Full Guidance will populate after generation.
-      </div>
-    ) : (
-      <div className="mt-4 rounded-2xl border border-white/15 bg-white/5 p-4">
-    <div className="text-xs text-white/60 mb-3">FULL CONTENT BELOW ✅</div>
-
+    {!(report as any)?.fullGuidanceV2 ? (
+  !report ? (
+    <div className="mt-4 rounded-2xl border border-black-500/30 bg-black-950/30 p-4 text-sm text-red-100">
+      Full Guidance will populate after generation.
+    </div>
+  ) : (
+    <div className="mt-4 rounded-2xl border border-white/15 bg-white/5 p-4 text-sm text-white/80">
+      Full Guidance is not available yet.
+    </div>
+  )
+) : (
+  <div className="mt-4 rounded-2xl border border-white/15 bg-white/5 p-4">
     {(() => {
       try {
         return (
           <TabFullPlan
             report={report}
             mounted={mounted}
-            isFull={isFull}
+            isFull={true}
             notificationsPreview={notificationsPreview ?? null}
             dashaTimeline={(report as any)?.dashaTimeline ?? null}
             topToday={[]}
@@ -12650,7 +12699,7 @@ const text = uniqueTextParts
       }
     })()}
   </div>
-    )}
+)}
   </TabsContent>
           </Tabs>
 
