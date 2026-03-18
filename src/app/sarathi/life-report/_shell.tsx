@@ -1183,6 +1183,38 @@
       },
     };
   }
+  function cleanNowCardText(text: string) {
+  const raw = String(text || "").trim();
+  if (!raw) return raw;
+
+const banned = [
+  "a little structure now will reduce friction later",
+  "a little structure and a timely response will make the situation easier to handle",
+  "the more clearly you respond, the easier this becomes",
+  "a clear response will prevent unnecessary back-and-forth",
+  "this is easier to handle well when details are not rushed",
+  "handling it early should keep the rest of the day smoother",
+];
+
+  const normalize = (s: string) =>
+    s.toLowerCase().replace(/[^\w\s]/g, "").replace(/\s+/g, " ").trim();
+
+  const parts = raw.match(/[^.!?]+[.!?]?/g) || [raw];
+  const kept: string[] = [];
+  const seen = new Set<string>();
+
+  for (const p of parts.map((x) => x.trim()).filter(Boolean)) {
+    const key = normalize(p);
+    if (!key) continue;
+    if (banned.some((b) => key.includes(b))) continue;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    kept.push(p);
+    if (kept.length >= 2) break;
+  }
+
+  return kept.join(" ").replace(/\s{2,}/g, " ").trim();
+}
   // small helper to generate facts from moon + transits
   function buildDailyFacts(
     dailyMoon: DailyMoonEntry[],
@@ -1988,7 +2020,7 @@ function buildContextLine(headline: string, evidenceLine: string) {
     return "Small decisions made now may shape how others read your priorities over the next few days.";
   }
 
-  return "A little structure and a timely response will make the situation easier to handle.";
+  return "";
 }
   /* ---------------- Monthly highlights helper (client-side) ---------------- */
   function stripMoodPrefix(main: string, moodText: string) {
@@ -4309,7 +4341,53 @@ function buildContextLine(headline: string, evidenceLine: string) {
 
     return out;
   }
-  
+function strengthenEventLine(text: string) {
+  let s = safeText(text);
+
+  s = s.replace(/^a situation may arise where you need to /i, "You may need to ");
+  s = s.replace(/^a situation may arise where /i, "");
+  s = s.replace(/^you may need to respond to a practical obligation that needs timely attention\.?/i,
+    "A pending task, request, or responsibility may need your attention.");
+  s = s.replace(/^someone may ask you to respond to a practical obligation that needs timely attention\.?/i,
+    "Someone may ask for an update or expect you to handle a pending responsibility.");
+  s = s.replace(/^you may need to bring more structure into /i,
+    "You may need to define clearer expectations in ");
+  s = s.replace(/^someone may ask you to discuss roles commitments or shared responsibilities\.?/i,
+    "Someone may want clarity on roles, commitments, or shared responsibilities.");
+  s = s.replace(/^you could be asked to review a budget or financial plan for an upcoming project\.?/i,
+    "A budget, cost, or project-related financial decision may need review.");
+
+  // cleanup of smashed words / awkward joins
+  s = s.replace(/\bfastmoving\b/gi, "fast-moving");
+  s = s.replace(/\blongterm\b/gi, "long-term");
+  s = s.replace(/\bsharedresponsibility\b/gi, "shared-responsibility");
+  s = s.replace(/\bsharedresponsibilities\b/gi, "shared-responsibilities");
+  s = s.replace(/\bworkrelated\b/gi, "work-related");
+  s = s.replace(/\bhomerelated\b/gi, "home-related");
+  s = s.replace(/\bfamilyrelated\b/gi, "family-related");
+  s = s.replace(/this may connect to long-term ambitions or unfamiliar territory\.?/gi, "");
+  s = s.replace(/responsibilities or long-term commitments may shape the situation\.?/gi, "");
+  s = s.replace(/communication style or information flow may become especially important\.?/gi, "");
+  s = s.replace(/\s{2,}/g, " ").trim();
+  // soften repetitive weak openers
+  s = s.replace(/^you may need to confirm next steps in an unfinished conversation\.?/i,
+    "An unfinished conversation may need a clear next step.");
+  s = s.replace(/^you may need to confirm a plan or agreement before moving ahead\.?/i,
+    "A plan or agreement may need to be confirmed before anything moves forward.");
+  s = s.replace(/^someone may ask you to clarify expectations with someone important\.?/i,
+    "Someone may ask for clarity on expectations or responsibilities.");
+  s = s.replace(/^you may need to double-check numbers before agreeing to terms\.?/i,
+    "You may need to check the numbers carefully before agreeing.");
+  s = s.replace(/^you may need to resolve a lingering issue from the past with a family member\.?/i,
+    "A family issue that was left unresolved may need attention.");
+  s = s.replace(/^a family member could bring up a past misunderstanding asking for your perspective or explanation\.?/i,
+    "A family member may revisit an earlier misunderstanding and want your side of it.");
+
+  // clean spacing
+  s = s.replace(/\s{2,}/g, " ").trim();
+
+  return s;
+}
   /* ---- misc UI helpers ---- */
 
   const fadeUp: any = {
@@ -4733,48 +4811,139 @@ function scenarioPoolForCard(params: {
   ];
 }
 
-function buildScenarioLine(params: {
+function buildScenarioLine(opts: {
   dateISO: string;
-  triggerLabel: string;
-  houseNum: number | null;
-  focus: string;
-  headline: string;
-  evidenceLine: string;
+  triggerLabel?: string;
+  houseNum?: number | null;
+  focus?: string;
+  headline?: string;
+  evidenceLine?: string;
 }) {
-  const pool = scenarioPoolForCard({
-    houseNum: params.houseNum,
-    focus: params.focus,
-    headline: params.headline,
-    evidenceLine: params.evidenceLine,
-  });
+  const trigger = String(opts.triggerLabel ?? "").toLowerCase();
+  const focus = String(opts.focus ?? "").toLowerCase();
+  const headline = String(opts.headline ?? "").toLowerCase();
+  const evidence = String(opts.evidenceLine ?? "").toLowerCase();
+  const houseNum = Number.isFinite(Number(opts.houseNum)) ? Number(opts.houseNum) : null;
 
-  const openers = [
-    "You may need to",
-    "Someone may ask you to",
-    "A situation may arise where you need to",
-    "You could find yourself needing to",
-    "A practical moment may come up around",
-  ];
+  const text = `${trigger} ${focus} ${headline} ${evidence}`;
 
-  const closers = [
-    "A clear response will prevent unnecessary back-and-forth.",
-    "Handling it early should keep the rest of the day smoother.",
-    "A little structure now will reduce friction later.",
-    "The more clearly you respond, the easier this becomes.",
-    "This is easier to handle well when details are not rushed.",
-  ];
+  // Trigger-first logic
+  if (trigger.includes("misunderstanding")) {
+    if (/money|expense|budget|resource|shared/.test(text)) {
+      return "A misunderstanding around shared costs, expectations, or responsibilities may need to be cleared up.";
+    }
+    if (/partner|relationship|family|close/.test(text)) {
+      return "A partner, family member, or close contact may raise something that was left unclear earlier.";
+    }
+    return "A misunderstanding may need to be cleared up before it creates unnecessary tension.";
+  }
+if (trigger.includes("ketu")) {
+  if (/relationship|partner|shared|agreement|negotiation/.test(text)) {
+    return "A relationship or shared-responsibility conversation may reveal what no longer feels worth forcing.";
+  }
+  if (/work|task|routine/.test(text)) {
+    return "You may feel less attached to a task, expectation, or obligation that no longer seems necessary.";
+  }
+  return "Something may become easier to release, simplify, or stop pushing unnecessarily.";
+}
+  if (trigger.includes("priority clash")) {
+    if (/team|group|colleague|work/.test(text)) {
+      return "A task, deadline, or team discussion may expose conflicting priorities or unclear ownership.";
+    }
+    return "Competing priorities may make it harder than usual to decide what should be handled first.";
+  }
 
-  const seedKey = `${params.dateISO}|${params.triggerLabel}|${params.houseNum}|${params.focus}|${params.headline}|${params.evidenceLine}`;
+  if (trigger.includes("responsibility pressure")) {
+    if (/money|budget|expense|payment/.test(text)) {
+      return "A practical responsibility may need a firm decision, especially around money, timing, or delivery.";
+    }
+    if (/career|work|client|role|business/.test(text)) {
+      return "A work or business responsibility may require a clear response instead of a delayed one.";
+    }
+    return "A practical responsibility may need a firm decision, especially around work, money, or delivery expectations.";
+  }
 
-  const opener = pickFromSeed(openers, seedKey, 1);
-  const scenario = pickFromSeed(pool, seedKey, 2);
-  const closer = pickFromSeed(closers, seedKey, 3);
+  if (trigger.includes("growth with responsibility")) {
+    if (/career|recognition|role|leadership|business/.test(text)) {
+      return "An opportunity to step forward may come with added responsibility, visibility, or expectation.";
+    }
+    return "A growth opportunity may appear, but only if you are willing to handle the responsibility that comes with it.";
+  }
 
-  const openerClean = opener.endsWith("around")
-    ? `${opener} ${scenario}.`
-    : `${opener} ${scenario}.`;
+ if (trigger.includes("partnership")) {
+  if (/work|routine|task|service|process|deadline/.test(text)) {
+    return "A colleague, client, or partner may ask for clarity on who is handling a task, deadline, or next step.";
+  }
 
-  return `${openerClean} ${closer}`;
+  if (/money|expense|bill|resource|cost|finance/.test(text)) {
+    return "A shared expense, payment, or practical responsibility may need to be discussed more directly.";
+  }
+
+  if (/family|home|close|support/.test(text)) {
+    return "A partner, family member, or close contact may want clarity about expectations, timing, or follow-through.";
+  }
+
+  if (/agreement|boundary|relationship|shared/.test(text)) {
+    return "A conversation about expectations, roles, or shared responsibilities may need to be addressed directly.";
+  }
+
+  return "A partner, colleague, or client may ask who is handling what before something can move ahead.";
+}
+
+  if (trigger.includes("pending task")) {
+    if (/document|paperwork|message|reply|email/.test(text)) {
+      return "A pending reply, update, or document may return for your attention.";
+    }
+    return "A pending task, reply, or follow-up may return for your attention.";
+  }
+
+  if (trigger.includes("money decision")) {
+    return "A payment, cost, or shared financial detail may need confirmation before plans move forward.";
+  }
+
+  if (trigger.includes("communication")) {
+    return "A message, unfinished conversation, or missing detail may need a proper response.";
+  }
+
+  // House-based fallback
+  if (houseNum === 6) {
+    return "A work task, follow-up, or routine responsibility may need attention sooner than expected.";
+  }
+
+  if (houseNum === 7) {
+    return "A partner, colleague, or close contact may want clarity before an agreement moves ahead.";
+  }
+
+  if (houseNum === 2) {
+    return "A money matter, expense, or practical family decision may need careful handling.";
+  }
+
+  if (houseNum === 4) {
+    return "A home or family matter may need coordination, especially around responsibilities or timing.";
+  }
+
+  if (houseNum === 10) {
+    return "A work, reputation, or leadership matter may require a clear response or visible follow-through.";
+  }
+
+  // Text-pattern fallback
+  if (/payment|expense|budget|resource|cost|finance/.test(text)) {
+    return "A payment, expense, or resource decision may need your attention.";
+  }
+
+  if (/document|paperwork|message|reply|follow.?up|communication/.test(text)) {
+    return "A message, document, or unfinished conversation may need a proper response.";
+  }
+
+  if (/relationship|partner|agreement|expectation|shared/.test(text)) {
+    return "A relationship or shared-responsibility conversation may require clarity.";
+  }
+
+  if (/work|task|deadline|workflow|routine|process/.test(text)) {
+    return "A practical work matter may need follow-through or clearer ownership.";
+  }
+
+  return "A practical matter may need your attention.";
 }
 
 function buildActionBias(params: {
@@ -4786,90 +4955,114 @@ function buildActionBias(params: {
   const text = `${params.focus} ${params.headline} ${params.evidenceLine}`.toLowerCase();
 
   if (
-    params.houseNum === 2 ||
-    params.houseNum === 8 ||
-    /money|finance|expense|budget|bill|payment|resource/.test(text)
+    /mars/.test(text) &&
+    /saturn/.test(text) &&
+    /(partner|relationship|communication|agreement)/.test(text)
   ) {
     const arr = [
-      "Watch for: verify numbers before agreeing to anything.",
-      "Best use: confirm amounts, terms, and responsibilities clearly.",
-      "Watch for: small money details that are easy to overlook.",
-      "Best use: get clarity on costs before committing.",
+      "Best use: define the responsibility clearly and settle who will handle what.",
+      "Watch for: stepping into conflict before roles and expectations are properly named.",
+      "Best use: slow the conversation down enough to assign ownership clearly.",
+      "Watch for: carrying more than your share because nobody named the boundary.",
+    ];
+    return pickFromSeed(arr, text, 9);
+  }
+
+  if (/jupiter/.test(text) && /saturn/.test(text)) {
+    const arr = [
+      "Best use: take the opportunity seriously, but accept only what you can support properly.",
+      "Watch for: saying yes to growth without defining the responsibility that comes with it.",
+      "Best use: move forward where effort, structure, and timing are aligned.",
+      "Watch for: stretching yourself too thin just because an opening appears.",
+    ];
+    return pickFromSeed(arr, text, 10);
+  }
+
+  if (
+    params.houseNum === 2 ||
+    params.houseNum === 8 ||
+    /money|finance|expense|budget|bill|payment|resource|cost|pricing|shared finance/.test(text)
+  ) {
+    const arr = [
+      "Best use: confirm the amount, timing, and who is covering what.",
+      "Watch for: agreeing in principle before the numbers are actually clear.",
+      "Best use: pause on the decision until costs, terms, or ownership are specific.",
+      "Watch for: small financial details creating bigger misunderstandings later.",
     ];
     return pickFromSeed(arr, text, 11);
   }
 
   if (
     params.houseNum === 3 ||
-    /communication|reply|message|paperwork|document|email|clarify|follow.?up/.test(text)
+    /communication|reply|message|paperwork|document|email|clarify|follow.?up|conversation/.test(text)
   ) {
     const arr = [
-      "Best use: respond early and close open communication loops.",
-      "Best use: clarify details before assumptions build up.",
-      "Watch for: delayed replies creating avoidable confusion.",
-      "Best use: send the update, document, or response promptly.",
+      "Best use: send the reply, update, or document before the gap gets awkward.",
+      "Watch for: assuming the other person understood what was never clearly said.",
+      "Best use: put the missing detail in writing instead of leaving it implied.",
+      "Watch for: a delayed response turning a small issue into a bigger one.",
     ];
     return pickFromSeed(arr, text, 12);
   }
 
   if (
     params.houseNum === 4 ||
-    /home|family|property|foundation|domestic/.test(text)
+    /home|family|property|foundation|domestic|household/.test(text)
   ) {
     const arr = [
-      "Best use: keep home or family logistics simple and practical.",
-      "Watch for: emotional reactions complicating a practical issue.",
-      "Best use: deal with the small domestic matter before it grows.",
-      "Best use: prioritize stability over perfection.",
+      "Best use: handle the home or family issue directly while it is still manageable.",
+      "Watch for: a practical issue becoming emotional before the basics are handled.",
+      "Best use: settle timing, errands, or responsibilities before opinions take over.",
+      "Watch for: postponing a small domestic matter that really needs closure.",
     ];
     return pickFromSeed(arr, text, 13);
   }
 
   if (
     params.houseNum === 6 ||
-    /work|routine|task|responsibility|admin|schedule/.test(text)
+    /work|routine|task|responsibility|admin|schedule|workflow|process|deadline|service/.test(text)
   ) {
     const arr = [
-      "Best use: deal with practical tasks before they pile up.",
-      "Watch for: avoidable friction caused by delay or poor sequencing.",
-      "Best use: organize the obvious next step and do it.",
-      "Best use: fix small process issues before they become bigger ones.",
+      "Best use: name the next task clearly and move it before backlog builds.",
+      "Watch for: poor sequencing creating pressure that was avoidable.",
+      "Best use: fix the small process issue now instead of working around it again.",
+      "Watch for: saying yes too quickly before priorities are properly ordered.",
     ];
     return pickFromSeed(arr, text, 14);
   }
 
   if (
     params.houseNum === 7 ||
-    /relationship|agreement|partner|partnership|expectation|commitment/.test(text)
+    /relationship|agreement|partner|partnership|expectation|commitment|shared|client|colleague/.test(text)
   ) {
     const arr = [
-      "Best use: align expectations before moving forward.",
-      "Watch for: vague agreements creating unnecessary strain.",
-      "Best use: make roles and responsibilities explicit.",
-      "Best use: keep communication transparent and balanced.",
+      "Best use: confirm who is doing what before the conversation moves on.",
+      "Watch for: vague expectations that sound agreed but are not actually aligned.",
+      "Best use: address the mismatch early instead of smoothing it over politely.",
+      "Watch for: assuming support, agreement, or follow-through without naming it.",
     ];
     return pickFromSeed(arr, text, 15);
   }
 
   if (
     params.houseNum === 10 ||
-    /career|leadership|role|visibility|reputation/.test(text)
+    /career|leadership|role|visibility|reputation|recognition|supervisor|client|business/.test(text)
   ) {
     const arr = [
-      "Best use: take initiative, but define expectations clearly.",
-      "Watch for: stepping into responsibility without enough clarity.",
-      "Best use: make one strong practical decision instead of overthinking.",
-      "Best use: act in a way that matches your longer-term priorities.",
+      "Best use: respond in a way that shows ownership without overcommitting.",
+      "Watch for: stepping into responsibility before scope and expectations are clear.",
+      "Best use: give one clear decision or update instead of leaving the matter open-ended.",
+      "Watch for: taking on pressure that should have been shared or defined first.",
     ];
     return pickFromSeed(arr, text, 16);
   }
 
   return pickFromSeed(
     [
-      "Best use: keep plans simple and close small loops.",
-      "Best use: respond steadily instead of rushing.",
-      "Watch for: scattered attention creating avoidable friction.",
-      "Best use: choose clarity over speed.",
+      "Best use: keep the next step clear, specific, and easy to act on.",
+      "Watch for: rushing past a small detail that changes the whole tone later.",
+      "Best use: close one open loop properly before moving to the next thing.",
+      "Watch for: scattered attention making a simple matter harder than it is.",
     ],
     text,
     17
@@ -5629,8 +5822,8 @@ const decisionWindows = React.useMemo(() => {
 const dateISO = String((d as any)?.dateISO ?? "").trim();
 
 const titleRaw = String((d as any)?.title ?? "");
-const textRaw = String((d as any)?.text ?? "");
-const focusRaw = String((d as any)?.focus ?? "");
+const textRaw = cleanNowCardText(String((d as any)?.text ?? ""));
+const focusRaw = cleanNowCardText(String((d as any)?.focus ?? ""));
 const triggerRaw = String((d as any)?.trigger ?? "");
 
 const lowerSource = `${titleRaw} ${textRaw} ${focusRaw} ${triggerRaw}`.toLowerCase();
@@ -5701,11 +5894,15 @@ const rawText = safeText(
   ""
 );
 const moodText = safeText((d as any)?.moodText ?? "");
-
+const dailyFeeling = safeText((d as any)?.dailyFeeling ?? "");
 const headlineRaw = safeText((d as any)?.headline ?? "");
 const focusText = safeText((d as any)?.focus ?? "");
 const subfocusText = safeText((d as any)?.subfocus ?? "");
-
+const adjustedFocus =
+  triggerLabel.toLowerCase().includes("misunderstanding") &&
+  /career growth|recognition/i.test(focusText || focusRaw)
+    ? "Communication and agreements"
+    : (safeText((d as any)?.focus ?? "") || (houseNum ? `H${houseNum} ${houseLabel}` : ""));
 const headline =
   headlineRaw ||
   (
@@ -5765,6 +5962,7 @@ const actionBias = buildActionBias({
   evidenceLine,
 });
 const fallbackLine =
+  dailyFeeling ||
   moodText ||
   evidenceLine ||
   "A steady day: keep it simple, choose one priority, and close loops.";
@@ -5791,8 +5989,8 @@ const scenarioLine = buildScenarioLine({
 });
 
 const likelyEventLine = (() => {
-  const s1 = String(scenarioLine || "").trim();
-  const s2 = String(aiLine || "").trim();
+  const s1 = strengthenEventLine(String(scenarioLine || "").trim());
+  const s2 = strengthenEventLine(String(aiLine || "").trim());
 
   if (!s2) return s1;
   if (!s1) return s2;
@@ -5800,21 +5998,60 @@ const likelyEventLine = (() => {
   const norm1 = s1.toLowerCase();
   const norm2 = s2.toLowerCase();
 
-  if (
-    norm1.includes("payment") && norm2.includes("payment") ||
-    norm1.includes("document") && norm2.includes("document") ||
-    norm1.includes("responsibil") && norm2.includes("responsibil") ||
-    norm1.includes("follow up") && norm2.includes("follow up") ||
-    norm1.includes("clarif") && norm2.includes("clarif")
-  ) {
-    return s1;
-  }
+  const overlapPairs = [
+  ["payment", "payment"],
+  ["document", "document"],
+  ["responsibil", "responsibil"],
+  ["follow up", "follow up"],
+  ["clarif", "clarif"],
+  ["priority", "priority"],
+  ["misunderstanding", "misunderstanding"],
+  ["agreement", "agreement"],
+  ["expectation", "expectation"],
+  ["task", "task"],
+  ["update", "update"],
+  ["client", "client"],
+  ["family", "family"],
+];
 
+if (
+  overlapPairs.some(([a, b]) => norm1.includes(a) && norm2.includes(b))
+) {
+  return s1;
+}
+const mismatch =
+  (norm1.includes("misunderstanding") && /save|reallocate|financial review|budget opportunity/.test(norm2)) ||
+  (norm1.includes("misunderstanding") && /career|recognition|growth/.test(norm2)) ||
+  (norm1.includes("growth opportunity") && /misunderstanding|communication gap/.test(norm2));
+
+if (mismatch) {
+  return s1;
+}
   return `${s1} ${s2}`;
 })();
 const contextLine = buildContextLine(headline, evidenceLine);
 
-const finalLine = [likelyEventLine, contextLine]
+const cleanedContextLine = (() => {
+  const c = String(contextLine || "").trim().toLowerCase();
+
+  if (!c) return "";
+
+  const bannedContext = [
+  "communication style or information flow may become especially important",
+  "responsibilities or long-term commitments may shape the situation",
+  "this may connect to long-term ambitions or unfamiliar territory",
+  "something may feel less important now",
+  "a practical obligation may need timely attention",
+  "clarify details before assumptions build up",
+  "keep communication transparent and balanced",
+  "make roles and responsibilities explicit",
+];
+
+  if (bannedContext.some((x) => c.includes(x))) return "";
+  return contextLine;
+})();
+
+const finalLine = [likelyEventLine, cleanedContextLine]
   .filter(Boolean)
   .join(" ");
 const confLabel =
@@ -5862,7 +6099,7 @@ const confClass =
                         </div>
 {(safeText((d as any)?.focus ?? "") || houseNum) && (
   <div className="mt-2 inline-flex rounded-full border border-indigo-300/20 bg-indigo-500/10 px-2 py-1 text-[10px] font-medium uppercase tracking-wide text-indigo-200">
-    {safeText((d as any)?.focus ?? "") || `H${houseNum} ${houseLabel}`}
+    {adjustedFocus}
   </div>
 )}
                         {/* Headline */}
@@ -5876,11 +6113,33 @@ const confClass =
 <div className="mt-3 whitespace-pre-line text-sm leading-relaxed text-white/75">
   {finalLine}
 </div>
-{interpretNatalInteraction(evidenceLine) && (
-  <div className="mt-2 text-[12px] text-indigo-200/80">
-    {interpretNatalInteraction(evidenceLine)}
+{dailyFeeling && (
+  <div className="mt-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white/75">
+    <span className="text-white/50 font-medium">How you may feel:</span>{" "}
+    {strengthenEventLine(dailyFeeling)}
   </div>
 )}
+{(() => {
+  const natalLine = strengthenEventLine(
+    String(interpretNatalInteraction(evidenceLine) || "").trim()
+  );
+
+  const banned = [
+    "responsibilities or long-term commitments may shape the situation",
+    "something may feel less important now, encouraging simplification",
+    "communication style or information flow may become especially important",
+    "this may connect to long-term ambitions or unfamiliar territory",
+  ];
+
+  if (!natalLine) return null;
+  if (banned.some((x) => natalLine.toLowerCase().includes(x))) return null;
+
+  return (
+    <div className="mt-2 text-[12px] text-indigo-200/80">
+      {natalLine}
+    </div>
+  );
+})()}
 {evidenceLine && (
   <div className="mt-2 text-[11px] text-white/50">
     {evidenceLine}

@@ -285,24 +285,246 @@ function detectTriggerFromEvidence(evidence: string[], focus?: string) {
   const text = evidence.join(" ").toLowerCase();
   const focusText = String(focus ?? "").toLowerCase();
 
-  if (text.includes("mercury")) return "Mercury Communication Trigger";
-  if (text.includes("venus")) return "Venus Relationship Trigger";
-  if (text.includes("saturn")) return "Saturn Responsibility Trigger";
+  // strongest combined patterns first
+  if (text.includes("jupiter") && text.includes("saturn")) {
+    return "Growth with Responsibility Trigger";
+  }
+
+  if (text.includes("square") && text.includes("saturn") && text.includes("mercury")) {
+    return "Misunderstanding Trigger";
+  }
+
+  if (text.includes("mars") && text.includes("rahu")) {
+    return "Priority Clash Trigger";
+  }
+
+  if (text.includes("mars") && text.includes("saturn")) {
+    return "Responsibility Pressure Trigger";
+  }
+
+  if (text.includes("sun") && text.includes("h7")) {
+    return "Partnership Focus Trigger";
+  }
+
+  if (text.includes("mercury") && text.includes("h6")) {
+    return "Pending Task Trigger";
+  }
+
+  // single-planet / simpler transit labels
   if (text.includes("jupiter")) return "Jupiter Opportunity Trigger";
+  if (text.includes("saturn")) return "Saturn Responsibility Trigger";
   if (text.includes("rahu")) return "Rahu Shift Trigger";
   if (text.includes("ketu")) return "Ketu Release Trigger";
   if (text.includes("mars")) return "Mars Action Trigger";
-
-  if (focusText.includes("communication")) return "Mercury Communication Trigger";
-  if (focusText.includes("relationship")) return "Venus Relationship Trigger";
-  if (focusText.includes("home")) return "Saturn Responsibility Trigger";
-  if (focusText.includes("money")) return "Venus Relationship Trigger";
-  if (focusText.includes("shared finances")) return "Mars Action Trigger";
-
+  if (text.includes("venus")) return "Venus Relationship Trigger";
+  if (text.includes("mercury")) return "Mercury Communication Trigger";
   if (text.includes("moon")) return "Moon Emotional Shift";
   if (text.includes("sun")) return "Sun Visibility Trigger";
 
+  // focus-based fallback
+  if (
+    focusText.includes("relationship") ||
+    focusText.includes("partner") ||
+    focusText.includes("agreement") ||
+    focusText.includes("shared")
+  ) {
+    return "Partnership Focus Trigger";
+  }
+
+  if (
+    focusText.includes("work") ||
+    focusText.includes("routine") ||
+    focusText.includes("task") ||
+    focusText.includes("service")
+  ) {
+    return "Workload Trigger";
+  }
+
+  if (
+    focusText.includes("money") ||
+    focusText.includes("finance") ||
+    focusText.includes("budget") ||
+    focusText.includes("resource")
+  ) {
+    return "Money Decision Trigger";
+  }
+
+  if (
+    focusText.includes("communication") ||
+    focusText.includes("message") ||
+    focusText.includes("document") ||
+    focusText.includes("paperwork")
+  ) {
+    return "Communication Trigger";
+  }
+
+  if (
+    focusText.includes("career") ||
+    focusText.includes("recognition") ||
+    focusText.includes("reputation") ||
+    focusText.includes("leadership")
+  ) {
+    return "Career Development Trigger";
+  }
+
   return "Transit Activation";
+}
+function cleanNowTabGuidance(text: string) {
+  const raw = String(text || "").trim();
+  if (!raw) return raw;
+
+const banned = [
+  "a little structure now will reduce friction later",
+  "a little structure and a timely response will make the situation easier to handle",
+  "the more clearly you respond the easier this becomes",
+  "a clear response will prevent unnecessary back and forth",
+  "this is easier to handle well when details are not rushed",
+  "handling it early should keep the rest of the day smoother",
+  "an opportunity for growth learning or expansion may emerge here",
+  "this may touch relationship expectations or financial priorities",
+  "responsibilities or long term commitments may shape the situation",
+  "something may feel less important now encouraging simplification",
+  "communication style or information flow may become especially important",
+  "you could find yourself needing to respond to a practical obligation that needs timely attention",
+  "a practical moment may come up around clarify expectations with someone important",
+  "you could find yourself needing to respond to a situation that rewards steadiness over speed",
+  "this may connect to long term ambitions or unfamiliar territory",
+  "a situation may arise where",
+  "themes are active",
+  "energy may shift",
+  "this day supports",
+  "focus on",
+  "this is a good day for"
+];
+
+  const normalize = (s: string) =>
+    s.toLowerCase().replace(/[^\w\s]/g, "").replace(/\s+/g, " ").trim();
+
+  const parts = raw.match(/[^.!?]+[.!?]?/g) || [raw];
+  const seen = new Set<string>();
+  const kept: string[] = [];
+
+  for (const part of parts.map((x) => x.trim()).filter(Boolean)) {
+    const key = normalize(part);
+    if (!key) continue;
+
+    const isBanned = banned.some((b) => key.includes(b));
+    if (isBanned) continue;
+    if (seen.has(key)) continue;
+
+    seen.add(key);
+    kept.push(part);
+
+    if (kept.length >= 2) break;
+  }
+
+  return kept.join(" ").replace(/\s{2,}/g, " ").trim();
+}
+function forcePredictionStyle(text: string) {
+  let raw = cleanNowTabGuidance(
+    removeLeadingDateLine(stripVisibleDashaText(text))
+  );
+
+  raw = raw.replace(/^a situation may arise where\s+/i, "");
+  raw = raw.replace(/^you may need to\s+/i, "You may need to ");
+  raw = raw.replace(/^someone may ask you to\s+/i, "Someone may ask you to ");
+
+  const parts =
+    raw.match(/[^.!?]+[.!?]?/g)?.map((s) => s.trim()).filter(Boolean) ?? [];
+
+  const kept = parts.slice(0, 2);
+  let out = kept.join(" ").replace(/\s{2,}/g, " ").trim();
+
+  if (!out) return "";
+
+  if (
+    /^(focus on|this is a good day|themes include|energy|this day|use the day)/i.test(out)
+  ) {
+    out = `A practical matter may need your attention. ${out}`;
+  }
+
+  return out;
+}
+function buildFeelingFromMoon(row: any, houseNum?: number | null) {
+  const nak = String(row?.moonNakshatra ?? "").trim().toLowerCase();
+  const sign = String(row?.moonSign ?? "").trim();
+
+  let feeling = "You may feel slightly more reactive than usual and want clarity before engaging deeply.";
+
+  if (nak.includes("ashwini")) {
+    feeling = "You may feel restless, fast-moving, and eager to act quickly, with less patience for delay.";
+  } else if (nak.includes("bharani")) {
+    feeling = "You may feel emotionally intense or burdened, as if something important needs to be handled properly.";
+  } else if (nak.includes("krittika")) {
+    feeling = "You may feel sharp, decisive, or slightly irritated, especially if others are unclear or inefficient.";
+  } else if (nak.includes("rohini")) {
+    feeling = "You may want emotional ease, comfort, and steadiness, and may dislike unnecessary tension around you.";
+  } else if (nak.includes("mrigashira")) {
+    feeling = "You may feel curious, mentally active, and slightly unsettled, as if still looking for the full picture.";
+  } else if (nak.includes("ardra")) {
+    feeling = "You may feel mentally heavy or emotionally charged, with a tendency to overthink what is unfolding.";
+  } else if (nak.includes("punarvasu")) {
+    feeling = "You may feel more hopeful and mentally reset, as if things can still be corrected or improved.";
+  } else if (nak.includes("pushya")) {
+    feeling = "You may feel responsible, composed, and more willing to support others than usual.";
+  } else if (nak.includes("ashlesha")) {
+    feeling = "You may feel inward, watchful, or psychologically alert, noticing what is not being openly said.";
+  } else if (nak.includes("magha")) {
+    feeling = "You may feel proud, self-aware, and more sensitive to respect, recognition, or status.";
+  } else if (nak.includes("purva phalguni") || nak.includes("purvaphalguni")) {
+    feeling = "You may want warmth, ease, and emotional validation, and may resist pressure or dryness.";
+  } else if (nak.includes("uttara phalguni") || nak.includes("uttaraphalguni")) {
+    feeling = "You may feel more practical about commitments and want reliability from people around you.";
+  } else if (nak.includes("hasta")) {
+    feeling = "You may feel like organizing, fixing, or controlling the details so things stay manageable.";
+  } else if (nak.includes("chitra")) {
+    feeling = "You may feel more image-conscious or perfection-driven, wanting things done properly and cleanly.";
+  } else if (nak.includes("swati")) {
+    feeling = "You may want space, flexibility, and freedom to handle things in your own way.";
+  } else if (nak.includes("vishakha")) {
+    feeling = "You may feel determined and goal-focused, but also somewhat impatient for visible progress.";
+  } else if (nak.includes("anuradha")) {
+    feeling = "You may feel loyal, emotionally invested, and more affected by closeness or trust dynamics.";
+  } else if (nak.includes("jyeshtha")) {
+    feeling = "You may feel protective, mentally charged, and sensitive to pressure, control, or hidden competition.";
+  } else if (nak.includes("mula")) {
+    feeling = "You may feel like cutting through the surface and dealing with the real issue directly.";
+  } else if (nak.includes("purva ashadha") || nak.includes("purvashadha")) {
+    feeling = "You may feel internally strong-willed and less open to advice unless it truly makes sense to you.";
+  } else if (nak.includes("uttara ashadha") || nak.includes("uttarashadha")) {
+    feeling = "You may feel serious, duty-bound, and more focused on what must be done than what feels easy.";
+  } else if (nak.includes("shravana")) {
+    feeling = "You may feel observant and mentally alert, listening carefully before deciding how to respond.";
+  } else if (nak.includes("dhanishta")) {
+    feeling = "You may feel driven to keep pace, stay productive, and avoid falling behind.";
+  } else if (nak.includes("shatabhisha")) {
+    feeling = "You may feel detached, inward, or less willing to explain yourself emotionally.";
+  } else if (nak.includes("purva bhadrapada") || nak.includes("purvabhadrapada")) {
+    feeling = "You may feel intense, thoughtful, and somewhat split between practicality and deeper concerns.";
+  } else if (nak.includes("uttara bhadrapada") || nak.includes("uttarabhadrapada")) {
+    feeling = "You may feel quieter, deeper, and more reflective, with less appetite for noise or superficiality.";
+  } else if (nak.includes("revati")) {
+    feeling = "You may feel softer, more inward, and more emotionally absorbent than usual.";
+  }
+
+  // small house-based modifier so it feels chart-linked, not just nakshatra-linked
+  if (houseNum === 6) {
+  feeling += " Small delays, unfinished work, or other people’s inefficiency may affect you more strongly that day.";
+} else if (houseNum === 7) {
+  feeling += " You may react more strongly to other people’s tone, expectations, or lack of clarity.";
+} else if (houseNum === 2) {
+  feeling += " Money, family tone, or practical security issues may sit more heavily on your mind.";
+} else if (houseNum === 10) {
+  feeling += " Recognition, performance, or whether things are moving forward may feel especially personal.";
+} else if (houseNum === 4) {
+  feeling += " Your inner comfort and emotional steadiness may matter more than usual.";
+}
+
+  return {
+    feeling,
+    moonTone: nak ? toTitleCase(nak) : "",
+    moonSign: sign,
+  };
 }
 function buildUnifiedNowNearFutureCards(nowPlan: any, dailyMoon: any[], transitNowFacts: string[]) {
   const cards: any[] = [];
@@ -341,43 +563,56 @@ function buildUnifiedNowNearFutureCards(nowPlan: any, dailyMoon: any[], transitN
 
   for (let i = 0; i < 7; i++) {
     const row = moonRows[i] ?? null;
+    const areaObjForFeeling =
+  i < 3
+    ? (focusAreas[i] ?? focusAreas[0] ?? {})
+    : (nextAreas[i - 3] ?? nextAreas[0] ?? {});
+
+const areaPartsForFeeling = splitArea(areaObjForFeeling?.area ?? "General themes");
+const feelingData = buildFeelingFromMoon(row, areaPartsForFeeling.houseNum);
     const dateISO = String(row?.dateISO ?? row?.date ?? "").slice(0, 10);
     if (!dateISO) continue;
 
     if (i < 3) {
       const areaObj = focusAreas[i] ?? focusAreas[0] ?? {};
-      const scenario = String(
-        likelyScenarios[i] ??
-          areaObj?.why ??
-          "Use the day for practical discussions and steady follow-through."
-      ).trim();
+      const scenario = cleanNowTabGuidance(
+  String(
+    likelyScenarios[i] ??
+      areaObj?.why ??
+      "Use the day for practical discussions and steady follow-through."
+  ).trim()
+);
 
       const areaParts = splitArea(areaObj?.area ?? "General themes");
      const evidence = transitNowFacts.slice(0, 2);
       cards.push({
-        kind: "day",
-        trigger: detectTriggerFromEvidence(evidence, areaParts.focus),
-        dateISO,
-        dateLabel: fmtDayLabel(dateISO),
-        confidence: "High",
-        energy: "High",
-        focus: areaParts.focus,
-        subfocus: areaParts.subfocus,
-        houseNum: areaParts.houseNum,
-        guidance: removeLeadingDateLine(stripVisibleDashaText(scenario)),
-        evidence: transitNowFacts.slice(0, 2),
-      });
+  kind: "day",
+  trigger: detectTriggerFromEvidence(evidence, areaParts.focus),
+  dateISO,
+  dateLabel: fmtDayLabel(dateISO),
+  confidence: "High",
+  energy: "High",
+  focus: areaParts.focus,
+  subfocus: areaParts.subfocus,
+  houseNum: areaParts.houseNum,
+  dailyFeeling: feelingData.feeling,
+  moonTone: feelingData.moonTone,
+  guidance: forcePredictionStyle(scenario),
+  evidence: transitNowFacts.slice(0, 2),
+});
     } else {
       const idx = i - 3;
 
       const areaObj = nextAreas[idx] ?? nextAreas[0] ?? {};
-      const scenario = String(
-  nextScenarios[idx] ??
-    nextTiming[idx]?.note ??
-    nextSteering[idx] ??
-    areaObj?.why ??
-    "A practical conversation, adjustment, or responsibility may need your attention."
-).trim();
+      const scenario = cleanNowTabGuidance(
+  String(
+    nextScenarios[idx] ??
+      nextTiming[idx]?.note ??
+      nextSteering[idx] ??
+      areaObj?.why ??
+      "A practical conversation, adjustment, or responsibility may need your attention."
+  ).trim()
+);
 
       const areaParts = splitArea(areaObj?.area ?? "General themes");
       const moonTone = String(row?.moonNakshatra ?? "").trim();
@@ -398,21 +633,23 @@ function buildUnifiedNowNearFutureCards(nowPlan: any, dailyMoon: any[], transitN
 ].filter(Boolean);
 
       cards.push({
-        kind: "day",
-        trigger: detectTriggerFromEvidence(evidence, areaParts.focus),
-        dateISO,
-        dateLabel: fmtDayLabel(dateISO),
-        confidence: "Medium",
-        energy: "High",
-        focus: areaParts.focus,
-        subfocus: areaParts.subfocus,
-        houseNum: areaParts.houseNum,
-        guidance: removeLeadingDateLine(stripVisibleDashaText(scenario)),
-        evidence: [
-          transitEvidence ? String(transitEvidence) : "",
-          moonTone ? `Moon tone: ${moonTone}.` : "",
-        ].filter(Boolean),
-      });
+  kind: "day",
+  trigger: detectTriggerFromEvidence(evidence, areaParts.focus),
+  dateISO,
+  dateLabel: fmtDayLabel(dateISO),
+  confidence: "Medium",
+  energy: "High",
+  focus: areaParts.focus,
+  subfocus: areaParts.subfocus,
+  houseNum: areaParts.houseNum,
+  dailyFeeling: feelingData.feeling,
+  moonTone: feelingData.moonTone,
+  guidance: forcePredictionStyle(scenario),
+  evidence: [
+    transitEvidence ? String(transitEvidence) : "",
+    moonTone ? `Moon tone: ${moonTone}.` : "",
+  ].filter(Boolean),
+});
     }
   }
 
@@ -789,29 +1026,35 @@ SCHEMA (output must match exactly):
 ABSOLUTE OUTPUT RULES (do not break):
 
 1) Tone & realism
-- Write in second person ("you"). Be direct, clear, calm.
-- Every bullet must describe a likely real-world event or situation the user may actually encounter.
-- Prefer natural "likely event" phrasing. Vary the sentence openings.
-Examples:
-  "A conversation may arise about..."
-  "You may find yourself needing to..."
-  "Expect a request or follow-up related to..."
-  "Someone could ask you to clarify..."
-  "A small delay or adjustment may appear around..."
-  "An opportunity may emerge to..."
-  "A practical matter may require your attention."
-
-- Avoid repeating the same opening phrase across multiple days.
-- Do NOT invent extreme life events (job loss, marriage, pregnancy, diagnosis, legal outcomes). Keep it realistic and plausible.
-- Each scenario must feel specific, practical, and time-bound.
-- Avoid vague statements like "energy may shift" or "themes are active."
-- Prefer concrete examples: meetings, clarifications, shared expenses, home repairs, paperwork, rescheduling, travel planning, collaboration, follow-ups, negotiations.
-- Keep visible guidance prediction-first, not philosophy-first.
-- Write 2-3 concise sentences. 
-The first sentence describes the likely situation. 
-The second explains how it may unfold or what it may involve.
-The third (optional) can suggest a practical response.
-
+- Write in second person ("you"). Be direct, calm, and practical.
+- Every visible scenario must describe a likely real-world event the user may actually encounter because of the chart and current transits.
+- Do NOT write abstract lines like:
+  "A situation may arise..."
+  "Themes are active..."
+  "Energy may shift..."
+- Start with a concrete likely event instead.
+- Good examples:
+  "Someone may message you asking for an update on something left pending."
+  "A partner, client, or family member may ask what exactly you are handling."
+  "A payment, transfer, or budget detail may need confirmation."
+  "A team discussion may expose different priorities or unclear ownership."
+  "You may need to clear up a misunderstanding before it grows."
+- Each day must feel different in wording and situation.
+- Prefer practical situations: delayed reply, missed follow-up, budget check, role confusion, backlog pressure, scheduling clash, shared responsibility, family coordination, repair, paperwork, negotiation, support request.
+- Keep each scenario to 2 short sentences.
+- Sentence 1 = what likely happens.
+- Sentence 2 = how it may unfold, what it may involve, or the best immediate response.
+- Do NOT append generic coaching after every day.
+- Do NOT reuse stock phrases like:
+  "clarify details"
+  "reduce friction"
+  "timely response"
+  "the easier this becomes"
+  "a little structure"
+  "details are not rushed"
+  "keep the rest of the day smoother"
+- Avoid repetition across days.
+- Make the output feel observed from the user's life, not written from a template.
 2) Astrology source-of-truth
 - Only reference planets present in FACTS. Only use: Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Rahu, Ketu.
 - Never describe natal anchors as "current transits". Natal anchors are ONLY background context.
@@ -860,7 +1103,13 @@ The third (optional) can suggest a practical response.
   "Focus on..."
   "This is a good day for..."
   "Themes include..."
-
+- Avoid generic helper lines repeated across days.
+- Do NOT append reusable coaching phrases after every scenario.
+- The daily note should feel like a fresh situation, not a templated reminder.
+- Use one main scenario and one supporting implication only.
+- Do NOT add a generic concluding sentence after every scenario.
+- Use one main scenario and one supporting implication only.
+- Do NOT append a generic concluding sentence after every day.
 7) Moon / nakshatra anti-hallucination rule
 - You may mention Moon nakshatra ONLY if you copy it exactly from MoonTodayNakshatraFact (today) or from dailyMoon rows (future days).
 - If MoonTodayNakshatraFact is null, do NOT mention any nakshatra by name.
@@ -1270,7 +1519,7 @@ export async function POST(req: Request) {
     // ----------------------------
     const decision90Key = `decision90:v4:${baseKey}`;
     // cache key for Now & Near Future plan
-    const nowPlanKey = `nowplan:v1:${baseKey}:${todayISO}`;
+    const nowPlanKey = `nowplan:v3:${baseKey}:${todayISO}`;
     const DECISION_TTL_SEC = 60 * 60 * 24 * 30;
 
     let nowPlan: any = null;
