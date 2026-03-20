@@ -9153,7 +9153,7 @@ const FullGuidanceV2UI: React.FC<{ fg: any }> = ({ fg }) => {
     const [time, setTime] = useState(initialTime);
     const [tz, setTz] = useState(initialTz);
     const [email, setEmail] = useState("");
-    const [countryCode, setCountryCode] = useState("+971");
+    const [countryCode, setCountryCode] = useState("");
     const [mobile, setMobile] = useState("");
     const [countrySearch, setCountrySearch] = useState("");
     const [showCountryList, setShowCountryList] = useState(false);
@@ -9181,7 +9181,7 @@ const FullGuidanceV2UI: React.FC<{ fg: any }> = ({ fg }) => {
     const [jobPredictionError, setJobPredictionError] = useState<string | null>(null);
     
 const selectedCountryLabel =
-  COUNTRY_CODES.find((c) => c.value === countryCode)?.label || countryCode;
+  COUNTRY_CODES.find((c) => c.value === countryCode)?.label || "Country code";
   const filteredCountries = COUNTRY_CODES_SORTED.filter((c) => {
   const q = countrySearch.toLowerCase().trim();
   return (
@@ -9703,7 +9703,10 @@ if (!isValidEmail(email)) {
   setLoading(false);
   return;
 }
-
+if (!countryCode) {
+  setError("Please select your country code.");
+  return;
+}
 if (!isValidMobile(mobile)) {
   setError("Please enter a valid mobile number.");
   setLoading(false);
@@ -12993,7 +12996,7 @@ const text = uniqueTextParts
     setCountrySearch("");
     setShowCountryList(true);
   }}
-  placeholder="+971"
+  placeholder="Country code"
   className="text-sm"
 />
 
