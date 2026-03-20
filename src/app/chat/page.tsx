@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import dynamic from "next/dynamic";
+import { useRouter } from "next/navigation";
 import { loadBirthProfile } from "@/lib/birth-profile";
 
 const LANBanner = dynamic(() => import("@/components/LANBanner"), { ssr: false });
@@ -68,6 +69,7 @@ function isProfileComplete(p: any) {
 }
 
 export default function AstroChatPage() {
+  const router = useRouter();
   const [report, setReport] = useState<LifeReportLike | null>(null);
   const [profile, setProfile] = useState<any>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -78,9 +80,15 @@ export default function AstroChatPage() {
   // Load saved Birth Profile + cached Life Report for chat
   useEffect(() => {
     try {
-      // 1) Load saved profile (for UI + requests)
+       // 1) Load saved profile (for UI + requests)
       const p = loadBirthProfile();
       setProfile(p);
+
+      // NEW: if no complete profile, send user to onboarding first
+      if (!isProfileComplete(p)) {
+        router.replace("/onboarding");
+        return;
+      }
 
       // 2) Load cached life report context (optional)
       const rawCache =
@@ -291,7 +299,7 @@ export default function AstroChatPage() {
     } catch (e) {
       console.warn("[astro-chat] failed to load Life Report cache", e);
     }
-  }, []);
+ }, [router]);
 
   const canSend = useMemo(() => q.trim().length > 0 && !loading, [q, loading]);
 
@@ -384,11 +392,11 @@ export default function AstroChatPage() {
               GPT-5
             </Badge>
 
-            {profile?.name ? (
-              <Badge className="rounded-lg text-xs">Profile loaded: {profile.name}</Badge>
+              {isProfileComplete(profile) ? (
+              <Badge className="rounded-lg text-xs">Profile loaded: {profile?.name || "User"}</Badge>
             ) : (
               <Badge variant="outline" className="rounded-lg text-xs">
-                No profile
+                No complete profile
               </Badge>
             )}
 
@@ -424,7 +432,16 @@ export default function AstroChatPage() {
               </div>
             ))}
           </div>
-
+<Button
+  variant="outline"
+  className="rounded-xl"
+  onClick={() => {
+    localStorage.removeItem("sarathi.birthProfile.v1");
+    router.replace("/onboarding");
+  }}
+>
+  Reset profile
+</Button>
           <div className="flex gap-2">
             <Input
               ref={inputRef}
