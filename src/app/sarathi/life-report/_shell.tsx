@@ -8526,7 +8526,7 @@ if (winSunSun) {
             <div className="mt-1 text-sm text-white/70">
               Enter your birth details above and click{" "}
               <span className="text-white/90 font-semibold">
-                Generate / Refresh Report
+                Generate My Report
               </span>{" "}
               to unlock Advanced insights.
             </div>
@@ -9705,6 +9705,7 @@ if (!isValidEmail(email)) {
 }
 if (!countryCode) {
   setError("Please select your country code.");
+  setLoading(false);
   return;
 }
 if (!isValidMobile(mobile)) {
@@ -9767,6 +9768,19 @@ if (!isValidMobile(mobile)) {
   placeName: place.name,
   notificationTz,
 };
+const normalizedProfile = {
+  name: (name || "User").trim(),
+  dobISO: dISO,
+  tob: t,
+  place: {
+    name: place.name,
+    tz,
+    lat: Number(place.lat),
+    lon: Number(place.lon),
+  },
+};
+
+saveBirthProfile(normalizedProfile);
       console.log("[PAYLOAD life-report]", payload);
 
       // --- call /api/life-report ---
@@ -11367,7 +11381,7 @@ try {
   } finally {
     setLoading(false);
   }
-  }, [name, dateISO, time, tz, place, profiles]);
+ }, [name, email, mobile, countryCode, dateISO, time, tz, place, notificationTz, profiles]);
 
 
   /* ---------------- Tab 1: Placements ---------------- */
