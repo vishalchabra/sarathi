@@ -380,13 +380,13 @@ export default function SarathiHome() {
             accent="indigo"
           />
           <StartCard
-            icon="✦"
-            title="Guidance"
-            desc="A clean, print-friendly view of your main charts plus a concise guidance summary based on your current dasha and life themes."
-            cta="Open Guidance"
-            href="/sarathi/life-guidance"
-            accent="emerald"
-          />
+  icon="✦"
+  title="Focused Reports"
+  desc="Get precise predictions for career, marriage, money and more using divisional charts with real timing and decision guidance."
+  cta="Explore Reports"
+  href="/sarathi/focused-reports"
+  accent="emerald"
+/>
           <StartCard
             icon="💬"
             title="Ask Sārathi"

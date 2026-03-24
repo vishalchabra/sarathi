@@ -557,6 +557,8 @@ const part = 360 / 27;
   /* 6) Life Milestones */
   const lifeMilestones = buildLifeMilestonesFromMD(dashaTimeline, input.birthDateISO, {
   planets: planetsWholeSign,
+  aspects,
+  activePeriods,
   todayISO,
 });
 
