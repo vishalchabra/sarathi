@@ -212,6 +212,12 @@ export default function AboutPage() {
     >
       Start with your Life Report
     </Link>
+     <Link
+      href="/sarathi/focused-reports"
+       className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white/90 hover:bg-white/10"
+    >
+      Focused reports 
+    </Link>
     <Link
       href="/sarathi/chat"
       className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white/90 hover:bg-white/10"

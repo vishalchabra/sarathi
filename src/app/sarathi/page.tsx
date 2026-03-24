@@ -278,52 +278,6 @@ export default function SarathiHome() {
       </div>
     </div>
   </div>
-
-  {/* What Sarathi can do */}
-  <div className="mt-6 grid gap-6 md:grid-cols-3">
-    <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.06)_inset]">
-      <div className="text-sm font-semibold text-white/90">Life Report</div>
-      <p className="mt-2 text-sm leading-relaxed text-white/70">
-        Your core patterns, strengths, blind spots, and life themes — clean and
-        practical.
-      </p>
-      <a
-        href="/sarathi/life-report"
-        className="mt-5 inline-flex rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white/85 hover:bg-white/10"
-      >
-        Open Life Report →
-      </a>
-    </div>
-
-    <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.06)_inset]">
-      <div className="text-sm font-semibold text-white/90">Timing Windows</div>
-      <p className="mt-2 text-sm leading-relaxed text-white/70">
-        Clear windows for career, money, relationships, health and inner work —
-        with confidence.
-      </p>
-      <a
-        href="/sarathi/chat"
-        className="mt-5 inline-flex rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white/85 hover:bg-white/10"
-      >
-        Ask about timing →
-      </a>
-    </div>
-
-    <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.06)_inset]">
-      <div className="text-sm font-semibold text-white/90">Daily Guide</div>
-      <p className="mt-2 text-sm leading-relaxed text-white/70">
-        Panchang + one-line personal alignment tip that updates through the day
-        — without you refreshing.
-      </p>
-      <a
-        href="/sarathi/life-report?tab=now"
-        className="mt-5 inline-flex rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white/85 hover:bg-white/10"
-      >
-        See Daily Guide →
-      </a>
-    </div>
-  </div>
-
   {/* Trust / links */}
   <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.06)_inset]">
     <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
