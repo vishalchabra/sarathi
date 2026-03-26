@@ -784,9 +784,14 @@
       // - handle invalid / missing dates safely
       // - keep focus on next 30 days for now/near-future
       // -------------------------
-      const planTodayISO = String(
-        enriched?.todayISO ?? new Date().toISOString().slice(0, 10)
-      ).slice(0, 10);
+      const todayRealISO = new Date().toISOString().slice(0, 10);
+
+const planTodayISO =
+  typeof enriched?.todayISO === "string" &&
+  enriched.todayISO.length >= 10 &&
+  enriched.todayISO.startsWith(todayRealISO.slice(0, 7)) // same month/year check
+    ? enriched.todayISO
+    : todayRealISO;
 
       const today = new Date(`${planTodayISO}T00:00:00Z`);
       const horizon30 = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
@@ -866,13 +871,20 @@
         ? enriched.transitPlanets
         : [];
 
-      const transitNowFacts = transitNow
-        .filter((p: any) => p?.name && p?.sign)
-        .map((p: any) => {
-          const h = Number(p?.house);
-          if (Number.isFinite(h)) return `${p.name} in ${p.sign} (H${h})`;
-          return `${p.name} in ${p.sign}`;
-        });
+      let transitNowFacts = transitNow
+  .filter((p: any) => p?.name && p?.sign)
+  .map((p: any) => {
+    const h = Number(p?.house);
+    if (Number.isFinite(h)) return `${p.name} in ${p.sign} (H${h})`;
+    return `${p.name} in ${p.sign}`;
+  });
+
+// 🔥 HARD FALLBACK (CRITICAL)
+if (!transitNowFacts.length && Array.isArray(topTransits) && topTransits.length > 0) {
+  transitNowFacts = topTransits.slice(0, 3).map((t: any) => {
+    return `${t.planet} active (${t.category || "general"})`;
+  });
+}
 
       const transitSnapshotHard = transitNowFacts.slice(0, 3);
       const whyAnchorFacts = transitNowFacts.slice(0, 5);
@@ -958,7 +970,11 @@
         .sort((a, b) => b.score - a.score)
         .slice(0, 5)
         .map((x) => x.f);
-
+      if (!primaryDrivers.length && topTransits.length > 0) {
+  primaryDrivers.push(
+    ...topTransits.slice(0, 3).map((t: any) => `${t.planet} ${t.category || ""}`)
+  );
+}
       console.log("[nowPlan] rankedDrivers:", primaryDrivers);
       console.log("[nowPlan] primaryDrivers:", primaryDrivers);
 
@@ -975,7 +991,8 @@
       const prompt = `
   You are Sārathi — a paid, practical Vedic guide.
   You may describe "likely scenarios" and "areas activated", but you must NOT claim certainty or guarantee events.
-
+  - Each likelyScenarios item MUST include a specific action or interaction (message, payment, meeting, task, request, coordination).
+  - If a scenario does not include a concrete real-world action, it is invalid.  
   Return STRICT JSON ONLY (one JSON object). No markdown. No extra keys. No commentary.
 
   SCHEMA (output must match exactly):
@@ -1266,7 +1283,7 @@
         cacheBuster,
       });
 
-      const cacheKey = `v2:${baseKey}`;
+      const cacheKey = `v3:${baseKey}`;
       
       // ----------------------------
       // 3) Build or load life report
@@ -1298,7 +1315,7 @@
             lat,
             lon,
           });
-          await cacheSet(cacheKey, report, 60 * 60);
+          await cacheSet(cacheKey, report, 60 * 5);
           cacheFlag = "miss";
         }
       }

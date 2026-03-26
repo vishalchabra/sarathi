@@ -5916,7 +5916,7 @@ const np: any = (report as any)?.nowPlan ?? (report as any)?.nowNearFuture ?? nu
           Active now
         </div>
 
-        {np.now3Days.likelyScenarios.map((text: any, idx: number) => {
+        {np.now3Days.likelyScenarios.slice(0, 3).map((text: any, idx: number) => {
           const focusArea = String(
             np?.now3Days?.focusAreas?.[idx]?.area ??
               np?.now3Days?.focusAreas?.[0]?.area ??
@@ -5968,7 +5968,22 @@ const np: any = (report as any)?.nowPlan ?? (report as any)?.nowNearFuture ?? nu
             className="rounded-2xl border border-white/10 bg-white/5 p-4"
           >
             <div className="text-sm font-semibold text-white">
-              {String(item?.window ?? "Upcoming window")}
+              {(() => {
+  const raw = String(item?.window ?? "").trim();
+  try {
+    if (!raw) return "Upcoming window";
+    const dt = new Date(raw + "T00:00:00");
+    if (Number.isNaN(dt.getTime())) return raw;
+    return dt.toLocaleDateString(undefined, {
+      weekday: "short",
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  } catch {
+    return raw || "Upcoming window";
+  }
+})()}
             </div>
 
             <div className="mt-2 text-xs text-white/75">
