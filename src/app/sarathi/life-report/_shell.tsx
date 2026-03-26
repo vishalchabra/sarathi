@@ -5028,49 +5028,78 @@ function buildPremiumWatchOrBestUse(area: string, text: string): { label: "Watch
 function buildNext14Action(text: string, idx: number = 0) {
   const src = String(text || "").toLowerCase();
 
-  const pick = (arr: string[]) => arr[idx % arr.length];
+  const early = idx === 0 || idx === 1;
+  const late = idx >= 2;
 
   if (/payment|expense|budget|money/.test(src)) {
-    return {
-      label: "Best use",
-      value: pick([
-        "confirm the amount, timing, and ownership before moving ahead.",
-        "double-check the numbers before agreeing or proceeding.",
-        "clarify who is responsible before the issue grows.",
-      ]),
-    };
+    return early
+      ? {
+          label: "Best use" as const,
+          value: "confirm the numbers and timing before assumptions build up.",
+        }
+      : {
+          label: "Best use" as const,
+          value: "settle ownership clearly so the issue does not drag on.",
+        };
   }
 
   if (/schedule|plan|timing/.test(src)) {
-    return {
-      label: "Best use",
-      value: pick([
-        "settle timing and responsibility early so it stays practical.",
-        "align availability before making commitments.",
-        "confirm the sequence before moving forward.",
-      ]),
-    };
+    return early
+      ? {
+          label: "Best use" as const,
+          value: "align availability early before other plans stack on top.",
+        }
+      : {
+          label: "Best use" as const,
+          value: "lock the sequence and responsibility down so things move cleanly.",
+        };
   }
 
   if (/message|reply|document/.test(src)) {
-    return {
-      label: "Watch for",
-      value: pick([
-        "a delayed response making a simple matter more complicated.",
-        "leaving a small message unresolved for too long.",
-        "assuming the other person understood without confirming.",
-      ]),
-    };
+    return early
+      ? {
+          label: "Watch for" as const,
+          value: "leaving a small message unresolved for longer than needed.",
+        }
+      : {
+          label: "Watch for" as const,
+          value: "a communication gap becoming bigger because nobody closed the loop.",
+        };
   }
 
-  return {
-    label: "Best use",
-    value: pick([
-      "handle the small practical step early before it grows.",
-      "clarify expectations before moving ahead.",
-      "resolve the loose end while it is still manageable.",
-    ]),
-  };
+  if (/shared|role|responsibility|task|project/.test(src)) {
+    return early
+      ? {
+          label: "Best use" as const,
+          value: "name who is handling the next step before assumptions form.",
+        }
+      : {
+          label: "Best use" as const,
+          value: "reconfirm ownership once the task starts moving again.",
+        };
+  }
+
+  if (/family|home|household/.test(src)) {
+    return early
+      ? {
+          label: "Best use" as const,
+          value: "settle timing and support early so emotions stay secondary.",
+        }
+      : {
+          label: "Best use" as const,
+          value: "keep the conversation practical and define the next concrete step.",
+        };
+  }
+
+  return early
+    ? {
+        label: "Best use" as const,
+        value: "handle the practical step early while the matter is still small.",
+      }
+    : {
+        label: "Best use" as const,
+        value: "close the loop properly before the issue repeats again.",
+      };
 }
 function buildPremiumDriver(report: any): string {
   const facts = Array.isArray(report?.transitNowFacts)
