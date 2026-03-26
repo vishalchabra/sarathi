@@ -414,11 +414,104 @@ function beefUpNext14Note(text: string, idx: number = 0): string {
 
   return applyProgressionTone(raw, idx);
 }
+function buildNow3Feeling(text: string): string {
+  const src = String(text || "").toLowerCase();
+
+  if (/conversation|message|reply|document/.test(src)) {
+    return "You may feel mentally occupied or slightly pressured to respond quickly.";
+  }
+  if (/payment|expense|budget|money|reimbursement/.test(src)) {
+    return "You may feel more cautious than usual and want clearer numbers before moving ahead.";
+  }
+  if (/home|family|household|repair/.test(src)) {
+    return "You may feel responsible for keeping things coordinated and emotionally steady.";
+  }
+  if (/work|task|deadline|backlog|schedule/.test(src)) {
+    return "You may feel some pressure to clear pending matters before they pile up.";
+  }
+  if (/relationship|partner|agreement|role|shared/.test(src)) {
+    return "You may feel alert to tone, expectations, and what is being left unsaid.";
+  }
+
+  return "You may feel slightly more reactive to practical matters that need closure.";
+}
+
+function buildNow3ActionLine(text: string): string {
+  const src = String(text || "").toLowerCase();
+
+  if (/conversation|message|reply|document/.test(src)) {
+    return "Watch for: a delayed reply turning a small issue into a bigger one.";
+  }
+  if (/payment|expense|budget|money|reimbursement/.test(src)) {
+    return "Best use: confirm the amount, timing, and who is covering what.";
+  }
+  if (/home|family|household|repair/.test(src)) {
+    return "Best use: settle timing and responsibility early before emotions lead the discussion.";
+  }
+  if (/work|task|deadline|backlog|schedule/.test(src)) {
+    return "Watch for: poor sequencing creating pressure that was avoidable.";
+  }
+  if (/relationship|partner|agreement|role|shared/.test(src)) {
+    return "Best use: make expectations explicit before you move the matter forward.";
+  }
+
+  return "Watch for: letting a small practical issue stay vague for too long.";
+}
+function fillNow3PremiumFields(cleaned: any) {
+  if (!cleaned?.now3Days) return cleaned;
+
+  const scenarios = Array.isArray(cleaned.now3Days.likelyScenarios)
+    ? cleaned.now3Days.likelyScenarios.slice(0, 3)
+    : [];
+
+  const focusAreas = Array.isArray(cleaned.now3Days.focusAreas)
+    ? cleaned.now3Days.focusAreas.slice(0, 3)
+    : [];
+
+  const snapshot = Array.isArray(cleaned.now3Days.transitSnapshot)
+    ? cleaned.now3Days.transitSnapshot.filter(Boolean)
+    : [];
+
+  if (!Array.isArray(cleaned.now3Days.drivers) || cleaned.now3Days.drivers.length < 3) {
+    cleaned.now3Days.drivers = Array.from({ length: 3 }, (_, i) => {
+      return String(
+        snapshot[i] ??
+        snapshot[0] ??
+        focusAreas[i]?.why ??
+        focusAreas[0]?.why ??
+        ""
+      ).trim();
+    });
+  }
+
+  if (!Array.isArray(cleaned.now3Days.feelings) || cleaned.now3Days.feelings.length < 3) {
+  cleaned.now3Days.feelings = scenarios.map((x: any) =>
+    buildNow3Feeling(String(x ?? ""))
+  );
+}
+
+if (!Array.isArray(cleaned.now3Days.actionLines) || cleaned.now3Days.actionLines.length < 3) {
+  cleaned.now3Days.actionLines = scenarios.map((x: any) =>
+    buildNow3ActionLine(String(x ?? ""))
+  );
+}
+
+  if (!Array.isArray(cleaned.now3Days.confidenceByDay) || cleaned.now3Days.confidenceByDay.length < 3) {
+    cleaned.now3Days.confidenceByDay = scenarios.map((_: any, i: number) =>
+      i === 0 ? "High" : "Medium"
+    );
+  }
+
+  cleaned.now3Days.likelyScenarios = scenarios;
+  cleaned.now3Days.focusAreas = focusAreas;
+
+  return cleaned;
+}
 function postProcessNowPlan(nowPlan: any, dailyMoon: any[], todayISO?: string) {
   if (!nowPlan || typeof nowPlan !== "object") return nowPlan;
 
   const cleaned = cleanVisibleTextDeep(nowPlan);
-
+  fillNow3PremiumFields(cleaned);
   // Make focus labels feel like real-life situations
   if (Array.isArray(cleaned?.now3Days?.focusAreas)) {
     cleaned.now3Days.focusAreas = cleaned.now3Days.focusAreas.map((x: any) => ({
@@ -1252,7 +1345,15 @@ if (!transitNowFacts.length && Array.isArray(topTransits) && topTransits.length 
   - Each likelyScenarios item MUST include a specific action or interaction (message, payment, meeting, task, request, coordination).
   - If a scenario does not include a concrete real-world action, it is invalid.  
   Return STRICT JSON ONLY (one JSON object). No markdown. No extra keys. No commentary.
-
+ - now3Days.drivers: exactly 3 short strings, one per visible day.
+- Each driver MUST quote either:
+  (a) one exact TransitNowFacts string, or
+  (b) one exact item from TransitSnapshotHard, or
+  (c) one exact topTransits title.
+- now3Days.feelings: exactly 3 short lines, one per visible day, grounded in the likely scenario.
+- now3Days.actionLines: exactly 3 items, one per visible day, each shaped as either "Watch for: ..." or "Best use: ...".
+- now3Days.confidenceByDay: exactly 3 values chosen only from High, Medium, Low.
+- Day 1 should usually be stronger than Day 3 unless facts are weak.
   SCHEMA (output must match exactly):
   {
     "headline": "",
@@ -1262,14 +1363,18 @@ if (!transitNowFacts.length && Array.isArray(topTransits) && topTransits.length 
       {"driver":"","meaning":"","howItShowsUp":""}
     ],
     "now3Days": {
-      "transitSnapshot": [],
-      "focusAreas": [{"area":"","why":""}],
-      "themes": [],
-      "likelyScenarios": [],
-      "do": [],
-      "avoid": [],
-      "remedies": []
-    },
+  "transitSnapshot": [],
+  "focusAreas": [{"area":"","why":""}],
+  "themes": [],
+  "likelyScenarios": [],
+  "drivers": [],
+  "feelings": [],
+  "actionLines": [],
+  "confidenceByDay": [],
+  "do": [],
+  "avoid": [],
+  "remedies": []
+},
     "next14Days": {
       "areasActivated": [{"area":"","why":""}],
       "likelyScenarios": [],

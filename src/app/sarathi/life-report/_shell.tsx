@@ -2399,7 +2399,12 @@ function buildContextLine(headline: string, evidenceLine: string) {
 
     return out;
   }
-
+function buildStandoutTag(idx: number): string {
+  if (idx === 0) return "Builds first";
+  if (idx === 1) return "Needs response";
+  if (idx === 2) return "Can create friction";
+  return "Best time to settle";
+}
   function buildMonthlyFallbackFromFeatures(
     features: MonthlyFeature[]
   ): MonthlyHighlight[] {
@@ -6100,11 +6105,29 @@ const np: any = (report as any)?.nowPlan ?? (report as any)?.nowNearFuture ?? nu
   const scenarioText =
     String(text ?? "").trim() || "No detailed guidance available for this day.";
 
-  const confidence = String(np?.now3Days?.confidence ?? "Medium").trim();
   const triggerLabel = buildPremiumTriggerLabel(focusArea, scenarioText);
-  const emotionText = buildPremiumEmotion(focusArea, scenarioText);
-  const driverText = buildPremiumDriver(report);
-  const actionLine = buildPremiumWatchOrBestUse(focusArea, scenarioText);
+
+  const emotionText =
+  idx === 0
+    ? "You may feel alert to what is still unresolved."
+    : idx === 1
+    ? "You may feel the need for clearer ownership or structure."
+    : idx === 2
+    ? "You may feel more reactive if basics are still not settled."
+    : "You may feel ready to close the loop and simplify things.";
+
+  const driverText = String(
+    np?.now3Days?.drivers?.[idx] ?? ""
+  ).trim();
+
+  const actionText = String(
+    np?.now3Days?.actionLines?.[idx] ?? ""
+  ).trim();
+
+  const confidence = String(
+    np?.now3Days?.confidenceByDay?.[idx] ??
+      (idx === 0 ? "High" : "Medium")
+  ).trim();
 
   return (
     <div
@@ -6132,15 +6155,17 @@ const np: any = (report as any)?.nowPlan ?? (report as any)?.nowNearFuture ?? nu
         <span className="text-white/45">How you may feel:</span> {emotionText}
       </div>
 
-      {driverText && driverText !== "Current transit pattern active" && (
-  <div className="mt-2 text-[11px] text-white/50">
-    {driverText}
-  </div>
-)}
+      {driverText && (
+        <div className="mt-2 text-[11px] text-white/50">
+          {driverText}
+        </div>
+      )}
 
-      <div className="mt-2 text-xs text-indigo-200">
-        {actionLine.label}: {actionLine.value}
-      </div>
+      {actionText && (
+        <div className="mt-2 text-xs text-indigo-200">
+          {actionText}
+        </div>
+      )}
 
       <div className="mt-2 text-[11px] text-white/45">
         Confidence: {confidence}
@@ -6205,7 +6230,9 @@ const np: any = (report as any)?.nowPlan ?? (report as any)?.nowNearFuture ?? nu
           return raw || "Upcoming window";
         }
       })();
-
+    <div className="mt-2 text-[11px] text-amber-200 font-semibold">
+  {buildStandoutTag(idx)}
+</div>
       return (
         <div
           key={`next14-${idx}`}
