@@ -457,6 +457,17 @@ function buildNow3ActionLine(text: string): string {
 
   return "Watch for: letting a small practical issue stay vague for too long.";
 }
+function formatDriverLine(text: string): string {
+  const t = String(text || "").trim();
+
+  if (!t) return "";
+
+  // Clean common messy patterns
+  return t
+    .replace(/\s+/g, " ")
+    .replace(/\.$/, "")
+    .trim();
+}
 function fillNow3PremiumFields(cleaned: any) {
   if (!cleaned?.now3Days) return cleaned;
 
@@ -468,33 +479,49 @@ function fillNow3PremiumFields(cleaned: any) {
     ? cleaned.now3Days.focusAreas.slice(0, 3)
     : [];
 
-  const snapshot = Array.isArray(cleaned.now3Days.transitSnapshot)
+  const snapshot = Array.isArray(cleaned?.now3Days?.transitSnapshot)
     ? cleaned.now3Days.transitSnapshot.filter(Boolean)
+    : [];
+
+  const transitFacts = Array.isArray(cleaned?.transitNowFacts)
+    ? cleaned.transitNowFacts.filter(Boolean)
+    : [];
+
+  const topTransits = Array.isArray(cleaned?.topTransits)
+    ? cleaned.topTransits
     : [];
 
   if (!Array.isArray(cleaned.now3Days.drivers) || cleaned.now3Days.drivers.length < 3) {
     cleaned.now3Days.drivers = Array.from({ length: 3 }, (_, i) => {
       return String(
-        snapshot[i] ??
-        snapshot[0] ??
-        focusAreas[i]?.why ??
-        focusAreas[0]?.why ??
-        ""
+        transitFacts[i] ??
+          transitFacts[0] ??
+          snapshot[i] ??
+          snapshot[0] ??
+          topTransits[i]?.title ??
+          topTransits[0]?.title ??
+          focusAreas[i]?.why ??
+          focusAreas[0]?.why ??
+          ""
       ).trim();
     });
   }
 
-  if (!Array.isArray(cleaned.now3Days.feelings) || cleaned.now3Days.feelings.length < 3) {
-  cleaned.now3Days.feelings = scenarios.map((x: any) =>
-    buildNow3Feeling(String(x ?? ""))
+  cleaned.now3Days.drivers = cleaned.now3Days.drivers.map((d: string) =>
+    formatDriverLine(d)
   );
-}
 
-if (!Array.isArray(cleaned.now3Days.actionLines) || cleaned.now3Days.actionLines.length < 3) {
-  cleaned.now3Days.actionLines = scenarios.map((x: any) =>
-    buildNow3ActionLine(String(x ?? ""))
-  );
-}
+  if (!Array.isArray(cleaned.now3Days.feelings) || cleaned.now3Days.feelings.length < 3) {
+    cleaned.now3Days.feelings = scenarios.map((x: any) =>
+      buildNow3Feeling(String(x ?? ""))
+    );
+  }
+
+  if (!Array.isArray(cleaned.now3Days.actionLines) || cleaned.now3Days.actionLines.length < 3) {
+    cleaned.now3Days.actionLines = scenarios.map((x: any) =>
+      buildNow3ActionLine(String(x ?? ""))
+    );
+  }
 
   if (!Array.isArray(cleaned.now3Days.confidenceByDay) || cleaned.now3Days.confidenceByDay.length < 3) {
     cleaned.now3Days.confidenceByDay = scenarios.map((_: any, i: number) =>
@@ -507,6 +534,7 @@ if (!Array.isArray(cleaned.now3Days.actionLines) || cleaned.now3Days.actionLines
 
   return cleaned;
 }
+
 function postProcessNowPlan(nowPlan: any, dailyMoon: any[], todayISO?: string) {
   if (!nowPlan || typeof nowPlan !== "object") return nowPlan;
 
@@ -1475,7 +1503,14 @@ if (!transitNowFacts.length && Array.isArray(topTransits) && topTransits.length 
   - In now3Days.focusAreas[].why: MUST include ONE EXACT TransitNowFacts string copied verbatim (example: "Mercury in Capricorn (H5)").
   - Do NOT write generic why-lines like "emotional climate is workable" without that TransitNowFacts anchor.
   - If a planet is not present in TransitNowFacts, DO NOT mention its house.
-  - If TransitNowFacts is empty, then set now3Days.focusAreas[].why to "Transit data missing today." (do not improvise).
+  - Transit data may sometimes be partial or missing.
+- You MUST still generate a meaningful, specific output using:
+  - dashaFocus (MD/AD house activation),
+  - dailyMoon (nakshatra movement),
+  - topTransits if available.
+- NEVER output placeholder text like "Transit data missing today."
+- NEVER mention missing data to the user.
+- Always produce a realistic scenario.
   - In now3Days.focusAreas[].why: MUST include ONE EXACT string copied from WhyAnchorFacts.
 
   5) Dasha handling (background only)
