@@ -1,0 +1,10 @@
+[35msrc/app/sarathi/life-report/_shell.tsx[m[36m:[m    [1;31mnowPlan[m?: any;
+[35msrc/app/sarathi/life-report/_shell.tsx[m[36m:[m  const np: any = (report as any)?.[1;31mnowPlan[m ?? (report as any)?.nowNearFuture ?? null;
+[35msrc/app/sarathi/life-report/_shell.tsx[m[36m:[m    (report as any)?.[1;31mnowPlan[m ??
+[35msrc/app/sarathi/life-report/_shell.tsx[m[36m:[m  // Unwrap: get the ACTUAL report object that contains [1;31mnowPlan[m/nowNearFuture
+[35msrc/app/sarathi/life-report/_shell.tsx[m[36m:[m    "[life-report] data.[1;31mnowPlan[m?",
+[35msrc/app/sarathi/life-report/_shell.tsx[m[36m:[m    !!data?.[1;31mnowPlan[m,
+[35msrc/app/sarathi/life-report/_shell.tsx[m[36m:[m  console.log("[life-report] headline:", data?.[1;31mnowPlan[m?.headline);
+[35msrc/app/sarathi/life-report/_shell.tsx[m[36m:[m    [1;31mnowPlan[m: (data as any)?.[1;31mnowPlan[m ?? (data as any)?.nowNearFuture ?? undefined,
+[35msrc/app/sarathi/life-report/_shell.tsx[m[36m:[m    nowNearFuture: (data as any)?.nowNearFuture ?? (data as any)?.[1;31mnowPlan[m ?? undefined,
+[35msrc/app/sarathi/life-report/_shell.tsx[m[36m:[m   const reportNowPlan = (report as any)?.[1;31mnowPlan[m ?? (report as any)?.nowNearFuture ?? null;
