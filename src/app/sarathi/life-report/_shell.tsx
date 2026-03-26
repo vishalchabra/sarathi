@@ -5803,7 +5803,7 @@ const decisionWindows = React.useMemo(() => {
               <CardTitle className="text-lg font-semibold !text-slate-100">
                 Today & next few days
              </CardTitle>
-
+<div className="text-red-400 text-xs">NOW TAB DEBUG V7</div>
 <div className="text-xs text-white/50">
   Current phase: {mdLord && adLord ? `${mdLord} main phase • ${adLord} sub-phase` : "Current dasha phase active"}
 </div>
