@@ -4946,7 +4946,107 @@ function scenarioPoolForCard(params: {
     "respond to a situation that rewards steadiness over speed",
   ];
 }
+function buildPremiumTriggerLabel(area: string, text: string): string {
+  const src = `${area} ${text}`.toLowerCase();
 
+  if (/partner|relationship|agreement|shared|role/.test(src)) {
+    return "Partnership Focus Trigger";
+  }
+  if (/payment|expense|budget|money|reimbursement/.test(src)) {
+    return "Money Clarity Trigger";
+  }
+  if (/message|reply|conversation|communication|document/.test(src)) {
+    return "Pending Task Trigger";
+  }
+  if (/work|task|deadline|backlog|schedule|coordination/.test(src)) {
+    return "Workload Trigger";
+  }
+  if (/home|family|household|repair/.test(src)) {
+    return "Family Coordination Trigger";
+  }
+  return "Current Focus Trigger";
+}
+
+function buildPremiumEmotion(area: string, text: string): string {
+  const src = `${area} ${text}`.toLowerCase();
+
+  if (/conversation|message|reply|document/.test(src)) {
+    return "You may feel mentally occupied or slightly pressured to respond quickly.";
+  }
+  if (/payment|expense|budget|money|reimbursement/.test(src)) {
+    return "You may feel more cautious than usual and want clearer numbers before moving ahead.";
+  }
+  if (/home|family|household|repair/.test(src)) {
+    return "You may feel responsible for keeping things coordinated and emotionally steady.";
+  }
+  if (/work|task|deadline|backlog|schedule/.test(src)) {
+    return "You may feel some pressure to clear pending matters before they pile up.";
+  }
+  if (/relationship|partner|agreement|role|shared/.test(src)) {
+    return "You may feel alert to tone, expectations, and what is being left unsaid.";
+  }
+  return "You may feel slightly more reactive to practical matters that need closure.";
+}
+
+function buildPremiumWatchOrBestUse(area: string, text: string): { label: "Watch for" | "Best use"; value: string } {
+  const src = `${area} ${text}`.toLowerCase();
+
+  if (/conversation|message|reply|document/.test(src)) {
+    return {
+      label: "Watch for",
+      value: "a delayed reply turning a small issue into a bigger one.",
+    };
+  }
+  if (/payment|expense|budget|money|reimbursement/.test(src)) {
+    return {
+      label: "Best use",
+      value: "confirm the amount, timing, and who is covering what.",
+    };
+  }
+  if (/home|family|household|repair/.test(src)) {
+    return {
+      label: "Best use",
+      value: "settle timing and responsibility early before emotions lead the discussion.",
+    };
+  }
+  if (/work|task|deadline|backlog|schedule/.test(src)) {
+    return {
+      label: "Watch for",
+      value: "poor sequencing creating pressure that was avoidable.",
+    };
+  }
+  if (/relationship|partner|agreement|role|shared/.test(src)) {
+    return {
+      label: "Best use",
+      value: "make expectations explicit before you move the matter forward.",
+    };
+  }
+  return {
+    label: "Watch for",
+    value: "letting a small practical issue stay vague for too long.",
+  };
+}
+
+function buildPremiumDriver(report: any): string {
+  const facts = Array.isArray(report?.transitNowFacts)
+    ? report.transitNowFacts.filter(Boolean)
+    : [];
+
+  if (facts.length > 0) {
+    return facts.slice(0, 2).join(" • ");
+  }
+
+  const np = report?.nowPlan ?? report?.nowNearFuture ?? null;
+  const snap = Array.isArray(np?.now3Days?.transitSnapshot)
+    ? np.now3Days.transitSnapshot.filter(Boolean)
+    : [];
+
+  if (snap.length > 0) {
+    return snap.slice(0, 2).join(" • ");
+  }
+
+  return "Current transit pattern active";
+}
 function buildScenarioLine(opts: {
   dateISO: string;
   triggerLabel?: string;
@@ -5917,38 +6017,61 @@ const np: any = (report as any)?.nowPlan ?? (report as any)?.nowNearFuture ?? nu
         </div>
 
         {np.now3Days.likelyScenarios.slice(0, 3).map((text: any, idx: number) => {
-          const focusArea = String(
-            np?.now3Days?.focusAreas?.[idx]?.area ??
-              np?.now3Days?.focusAreas?.[0]?.area ??
-              "Current focus"
-          ).trim();
+  const focusArea = String(
+    np?.now3Days?.focusAreas?.[idx]?.area ??
+      np?.now3Days?.focusAreas?.[0]?.area ??
+      "Current focus"
+  ).trim();
 
-          const confidence = String(
-            np?.now3Days?.confidence ?? "Medium"
-          ).trim();
+  const scenarioText =
+    String(text ?? "").trim() || "No detailed guidance available for this day.";
 
-          return (
-            <div
-              key={`now3-${idx}`}
-              className="rounded-2xl border border-white/10 bg-white/5 p-4"
-            >
-              <div className="flex items-center justify-between gap-3">
-                <div className="text-[11px] uppercase tracking-wide text-indigo-200 font-semibold">
-                  Day {idx + 1}
-                </div>
-                <div className="text-[11px] text-white/50">{focusArea}</div>
-              </div>
+  const confidence = String(np?.now3Days?.confidence ?? "Medium").trim();
+  const triggerLabel = buildPremiumTriggerLabel(focusArea, scenarioText);
+  const emotionText = buildPremiumEmotion(focusArea, scenarioText);
+  const driverText = buildPremiumDriver(report);
+  const actionLine = buildPremiumWatchOrBestUse(focusArea, scenarioText);
 
-              <div className="mt-2 text-xs text-white/75">
-                {String(text ?? "").trim() || "No detailed guidance available for this day."}
-              </div>
+  return (
+    <div
+      key={`now3-${idx}`}
+      className="rounded-2xl border border-white/10 bg-white/5 p-4"
+    >
+      <div className="flex items-center justify-between gap-3">
+        <div className="text-[11px] uppercase tracking-wide text-indigo-200 font-semibold">
+          {triggerLabel}
+        </div>
+        <div className="text-[11px] text-white/50">
+          Day {idx + 1}
+        </div>
+      </div>
 
-              <div className="mt-2 text-[11px] text-white/50">
-                Confidence: {confidence}
-              </div>
-            </div>
-          );
-        })}
+      <div className="mt-2 text-sm font-semibold text-white">
+        {focusArea}
+      </div>
+
+      <div className="mt-2 text-xs text-white/80">
+        {scenarioText}
+      </div>
+
+      <div className="mt-3 text-xs text-white/65">
+        <span className="text-white/45">How you may feel:</span> {emotionText}
+      </div>
+
+      <div className="mt-2 text-[11px] text-white/50">
+        {driverText}
+      </div>
+
+      <div className="mt-2 text-xs text-indigo-200">
+        {actionLine.label}: {actionLine.value}
+      </div>
+
+      <div className="mt-2 text-[11px] text-white/45">
+        Confidence: {confidence}
+      </div>
+    </div>
+  );
+})}
       </div>
     ) : (
       <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/70">
