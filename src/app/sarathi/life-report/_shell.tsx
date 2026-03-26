@@ -5804,12 +5804,6 @@ const np: any = (report as any)?.nowPlan ?? (report as any)?.nowNearFuture ?? nu
               <CardTitle className="text-lg font-semibold !text-slate-100">
                 Today & next few days
              </CardTitle>
-                <div className="text-xs text-cyan-300">
-      nowPlan={String(!!(report as any)?.nowPlan)} | nowNearFuture={String(!!(report as any)?.nowNearFuture)} | dailyHighlights={String(Array.isArray((report as any)?.dailyHighlights) ? (report as any)?.dailyHighlights.length : 0)}
-    </div>
-<pre className="text-[10px] whitespace-pre-wrap break-words text-yellow-300">
-  {JSON.stringify((report as any)?.nowPlan ?? (report as any)?.nowNearFuture ?? null, null, 2)}
-</pre>
 <div className="text-xs text-white/50">
   Current phase: {mdLord && adLord ? `${mdLord} main phase • ${adLord} sub-phase` : "Current dasha phase active"}
 </div>
