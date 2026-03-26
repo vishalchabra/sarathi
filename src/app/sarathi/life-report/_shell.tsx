@@ -5579,7 +5579,7 @@ const visible =
   list.length > 0
     ? list.slice(0, 7)
     : [];
-    
+
 console.log("[NOW TAB] todayNextFewDaysCards =", (report as any)?.todayNextFewDaysCards);
 console.log("[NOW TAB] fallbackFromNowPlan =", fallbackFromNowPlan);
 console.log("[NOW TAB] visible =", visible);
@@ -5791,6 +5791,7 @@ const weeklyFriction = React.useMemo(() => {
 const decisionWindows = React.useMemo(() => {
   return buildDecisionWindows(visible);
 }, [visible]);
+const np: any = (report as any)?.nowPlan ?? (report as any)?.nowNearFuture ?? null;
       return (
         <div
           className={
@@ -5913,47 +5914,128 @@ const decisionWindows = React.useMemo(() => {
               )}
 
               {/* Empty */}
-              {!dailyLoadingProp && !dailyErrorProp && visible.length === 0 && (
-                <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/70">
-                  No strong highlights for the next few days.
+             {!dailyLoadingProp && !dailyErrorProp && (
+  <>
+    {Array.isArray(np?.now3Days) && np.now3Days.length > 0 ? (
+      <div className="space-y-3">
+        <div className="text-[11px] uppercase tracking-wide text-white/60 font-semibold">
+          Active now
+        </div>
+
+        {np.now3Days.map((d: any, idx: number) => {
+          const dateISO = String(d?.dateISO ?? "").trim();
+
+          const dateLabel = (() => {
+            try {
+              if (!dateISO) return `Day ${idx + 1}`;
+              const dt = new Date(dateISO + "T00:00:00");
+              if (Number.isNaN(dt.getTime())) return `Day ${idx + 1}`;
+              return dt.toLocaleDateString(undefined, {
+                weekday: "short",
+                day: "2-digit",
+                month: "short",
+                year: "numeric",
+              });
+            } catch {
+              return `Day ${idx + 1}`;
+            }
+          })();
+
+          const transitSnapshot = String(d?.transitSnapshot ?? "").trim();
+          const text = String(d?.text ?? "").trim();
+          const confidence = String(d?.confidence ?? "Medium").trim();
+
+          return (
+            <div
+              key={`now3-${dateISO || idx}`}
+              className="rounded-2xl border border-white/10 bg-white/5 p-4"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div className="text-[11px] uppercase tracking-wide text-indigo-200 font-semibold">
+                  Day {idx + 1}
                 </div>
-              )}
-              {strongestTodayTransit && (
-  <div className="rounded-2xl border border-emerald-400/20 bg-emerald-500/10 p-4">
-    <div className="text-[11px] uppercase tracking-wide text-emerald-200 font-semibold">
-      Today’s strongest transit
-    </div>
+                <div className="text-[11px] text-white/50">{dateLabel}</div>
+              </div>
 
-    <div className="mt-1 text-sm font-semibold text-white">
-      {strongestTodayTransit}
-    </div>
+              <div className="mt-2 text-sm font-semibold text-white">
+                {transitSnapshot || "Current active pattern"}
+              </div>
 
-    <div className="mt-2 text-xs text-white/65">
-      This is the clearest active planetary tone influencing today’s decisions, mood, and response pattern.
-    </div>
-  </div>
-)}
-             {upcomingWindow && (
-  <div className="rounded-2xl border border-indigo-400/20 bg-indigo-500/10 p-4 mb-4">
-    <div className="text-[11px] uppercase tracking-wide text-indigo-200 font-semibold">
-      Upcoming Key Window
-    </div>
+              <div className="mt-2 text-xs text-white/75">
+                {text || "No detailed guidance available for this day."}
+              </div>
 
-    <div className="mt-1 text-sm font-semibold text-white">
-      {upcomingWindow.title || `${upcomingWindow.planet} Activation`}
-    </div>
+              <div className="mt-2 text-[11px] text-white/50">
+                Confidence: {confidence}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    ) : (
+      <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/70">
+        No strong highlights for the next few days.
+      </div>
+    )}
 
-    <div className="text-xs text-white/70 mt-1">
-  {upcomingWindow.isActiveNow ? "Active now" : "Starts soon"} • {upcomingWindow.start} to {upcomingWindow.end}
-</div>
+    {Array.isArray(np?.next14Days) && np.next14Days.length > 0 && (
+      <div className="space-y-3 pt-2">
+        <div className="text-[11px] uppercase tracking-wide text-white/60 font-semibold">
+          Next 14 days
+        </div>
 
-    <div className="text-xs text-white/60 mt-2">
-  {interpretTransitWindow(upcomingWindow.planet, upcomingWindow.target)}{" "}
-  {upcomingWindow.isActiveNow
-    ? "Because this window is already active, current decisions may carry more weight."
-    : "This influence is building, so decisions made during this period may shape the coming weeks."}
-</div>
-  </div>
+        {np.next14Days.map((item: any, idx: number) => (
+          <div
+            key={`next14-${idx}`}
+            className="rounded-2xl border border-white/10 bg-white/5 p-4"
+          >
+            <div className="text-sm font-semibold text-white">
+              {String(item?.window ?? "Upcoming window")}
+            </div>
+
+            <div className="mt-2 text-xs text-white/75">
+              {String(item?.theme ?? "")}
+            </div>
+
+            {String(item?.advice ?? "").trim() && (
+              <div className="mt-2 text-xs text-indigo-200">
+                Best use: {String(item.advice)}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    )}
+
+    {Array.isArray(np?.next30Days) && np.next30Days.length > 0 && (
+      <div className="space-y-3 pt-2">
+        <div className="text-[11px] uppercase tracking-wide text-white/60 font-semibold">
+          Next 30 days
+        </div>
+
+        {np.next30Days.map((item: any, idx: number) => (
+          <div
+            key={`next30-${idx}`}
+            className="rounded-2xl border border-white/10 bg-white/5 p-4"
+          >
+            <div className="text-sm font-semibold text-white">
+              {String(item?.window ?? "Longer window")}
+            </div>
+
+            <div className="mt-2 text-xs text-white/75">
+              {String(item?.theme ?? "")}
+            </div>
+
+            {String(item?.advice ?? "").trim() && (
+              <div className="mt-2 text-xs text-indigo-200">
+                Best use: {String(item.advice)}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    )}
+  </>
 )}
 
               {/* Cards */}
