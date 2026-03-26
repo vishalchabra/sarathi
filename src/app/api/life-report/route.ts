@@ -515,33 +515,63 @@ function fillNow3PremiumFields(cleaned: any) {
     ? cleaned.now3Days.transitSnapshot.filter(Boolean)
     : [];
 
-  const transitFacts = Array.isArray(cleaned?.transitNowFacts)
-    ? cleaned.transitNowFacts.filter(Boolean)
+  const evidenceTransitFacts = Array.isArray(cleaned?.evidence?.transitNowFactsUsed)
+    ? cleaned.evidence.transitNowFactsUsed.filter(Boolean)
+    : [];
+
+  const evidenceTransitsUsed = Array.isArray(cleaned?.evidence?.transitsUsed)
+    ? cleaned.evidence.transitsUsed.filter(Boolean)
+    : [];
+
+  const evidenceImpactFacts = Array.isArray(cleaned?.evidence?.impactFactsUsed)
+    ? cleaned.evidence.impactFactsUsed.filter(Boolean)
     : [];
 
   const topTransits = Array.isArray(cleaned?.topTransits)
     ? cleaned.topTransits
     : [];
 
+  const strongDriverPool = [
+    ...evidenceTransitFacts,
+    ...snapshot,
+    ...evidenceTransitsUsed,
+    ...evidenceImpactFacts,
+    ...topTransits.map((t: any) => String(t?.title ?? "").trim()),
+  ]
+    .map((x: any) => String(x ?? "").trim())
+    .filter(Boolean)
+    .filter((x: string) => {
+      const s = x.toLowerCase();
+      return (
+        /sun|moon|mars|mercury|venus|jupiter|saturn|rahu|ketu/.test(s) ||
+        /\(h\d+\)/i.test(s) ||
+        /conjunction|square|trine|opposition|sextile/.test(s)
+      );
+    });
+
   if (!Array.isArray(cleaned.now3Days.drivers) || cleaned.now3Days.drivers.length < 3) {
     cleaned.now3Days.drivers = Array.from({ length: 3 }, (_, i) => {
       return String(
-        transitFacts[i] ??
-          transitFacts[0] ??
-          snapshot[i] ??
-          snapshot[0] ??
-          topTransits[i]?.title ??
-          topTransits[0]?.title ??
-          focusAreas[i]?.why ??
-          focusAreas[0]?.why ??
-          ""
+        strongDriverPool[i] ??
+        strongDriverPool[0] ??
+        ""
       ).trim();
     });
   }
 
-  cleaned.now3Days.drivers = cleaned.now3Days.drivers.map((d: string) =>
-    formatDriverLine(d)
-  );
+  cleaned.now3Days.drivers = cleaned.now3Days.drivers
+    .map((d: string) => formatDriverLine(d))
+    .map((d: string) => {
+      const s = String(d || "").trim();
+      if (
+        /^emotional climate/i.test(s) ||
+        /^caution:/i.test(s) ||
+        /^money energy/i.test(s)
+      ) {
+        return "";
+      }
+      return s;
+    });
 
   if (!Array.isArray(cleaned.now3Days.feelings) || cleaned.now3Days.feelings.length < 3) {
     cleaned.now3Days.feelings = scenarios.map((x: any) =>
@@ -559,6 +589,14 @@ function fillNow3PremiumFields(cleaned: any) {
     cleaned.now3Days.confidenceByDay = scenarios.map((_: any, i: number) =>
       i === 0 ? "High" : "Medium"
     );
+  }
+
+  if (!Array.isArray(cleaned.now3Days.triggerLabels) || cleaned.now3Days.triggerLabels.length < 3) {
+    cleaned.now3Days.triggerLabels = scenarios.map((x: any, i: number) => {
+      const area = String(focusAreas[i]?.area ?? focusAreas[0]?.area ?? "");
+      const driver = String(cleaned.now3Days.drivers?.[i] ?? cleaned.now3Days.drivers?.[0] ?? "");
+      return buildPlanetTriggerLabel(driver, area, String(x ?? ""));
+    });
   }
 
   cleaned.now3Days.likelyScenarios = scenarios;
