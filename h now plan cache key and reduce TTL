@@ -1,0 +1,44 @@
+[35msrc/app/sarathi/life-report/_shell.tsx[m[36m:[m    [1;31mdailyHighlights[m: DailyHighlight[];
+[35msrc/app/sarathi/life-report/_shell.tsx[m[36m:[m      [1;31mdailyHighlights[m,
+[35msrc/app/sarathi/life-report/_shell.tsx[m[36m:[mconsole.log("[NOW TAB] [1;31mdailyHighlights[m fallback length =", Array.isArray([1;31mdailyHighlights[m) ? [1;31mdailyHighlights[m.length : 0);
+[35msrc/app/sarathi/life-report/_shell.tsx[m[36m:[m    [1;31mdailyHighlights[m: DailyHighlight[];
+[35msrc/app/sarathi/life-report/_shell.tsx[m[36m:[m    [1;31mdailyHighlights[m,
+[35msrc/app/sarathi/life-report/_shell.tsx[m[36m:[m      ([1;31mdailyHighlights[m?.[0]?.dateISO as string) ||
+[35msrc/app/sarathi/life-report/_shell.tsx[m[36m:[m    [1;31mdailyHighlights[m?: DailyHighlight[];
+[35msrc/app/sarathi/life-report/_shell.tsx[m[36m:[m    [1;31mdailyHighlights[m,
+[35msrc/app/sarathi/life-report/_shell.tsx[m[36m:[m    const [[1;31mdailyHighlights[m, setDailyHighlights] = useState<DailyHighlight[]>([]);
+[35msrc/app/sarathi/life-report/_shell.tsx[m[36m:[m    [1;31mdailyHighlights[m,
+[35msrc/app/sarathi/life-report/_shell.tsx[m[36m:[m    [1;31mdailyHighlights[m,
+[35msrc/app/sarathi/life-report/_shell.tsx[m[36m:[m  [1;31mdailyHighlights[m={
+[35msrc/app/sarathi/life-report/_shell.tsx[m[36m:[m      : Array.isArray([1;31mdailyHighlights[m) && [1;31mdailyHighlights[m.length > 0
+[35msrc/app/sarathi/life-report/_shell.tsx[m[36m:[m      ? [1;31mdailyHighlights[m
+[35msrc/app/sarathi/life-report/_shell.tsx.bak[m[36m:[m  [1;31mdailyHighlights[m: DailyHighlight[];
+[35msrc/app/sarathi/life-report/_shell.tsx.bak[m[36m:[m    [1;31mdailyHighlights[m,
+[35msrc/app/sarathi/life-report/_shell.tsx.bak[m[36m:[m            {!loading && !error && Array.isArray([1;31mdailyHighlights[m) && [1;31mdailyHighlights[m.length > 0 && (
+[35msrc/app/sarathi/life-report/_shell.tsx.bak[m[36m:[m                {[1;31mdailyHighlights[m.map((d) => (
+[35msrc/app/sarathi/life-report/_shell.tsx.bak[m[36m:[m              (!Array.isArray([1;31mdailyHighlights[m) || [1;31mdailyHighlights[m.length === 0) && (
+[35msrc/app/sarathi/life-report/_shell.tsx.bak[m[36m:[m  [1;31mdailyHighlights[m: { dateISO: string; text: string }[];
+[35msrc/app/sarathi/life-report/_shell.tsx.bak[m[36m:[m  [1;31mdailyHighlights[m,
+[35msrc/app/sarathi/life-report/_shell.tsx.bak[m[36m:[m  const [[1;31mdailyHighlights[m, setDailyHighlights] = useState<DailyHighlightLocal[]>([]);
+[35msrc/app/sarathi/life-report/_shell.tsx.bak[m[36m:[m      [1;31mdailyHighlights[m={[1;31mdailyHighlights[m}
+[35msrc/app/sarathi/life-report/_shell.tsx.bak[m[36m:[m          [1;31mdailyHighlights[m={[1;31mdailyHighlights[m}
+[35msrc/app/sarathi/life-report/_shell.tsx.bak-utf8-fix[m[36m:[mfunction buildMonthFromDaily([1;31mdailyHighlights[m: any) {
+[35msrc/app/sarathi/life-report/_shell.tsx.bak-utf8-fix[m[36m:[m  const days = Array.isArray([1;31mdailyHighlights[m) ? [1;31mdailyHighlights[m.slice(0, 30) : [];
+[35msrc/app/sarathi/life-report/_shell.tsx.bak-utf8-fix[m[36m:[m  [1;31mdailyHighlights[m: DailyHighlight[];
+[35msrc/app/sarathi/life-report/_shell.tsx.bak-utf8-fix[m[36m:[m    [1;31mdailyHighlights[m,
+[35msrc/app/sarathi/life-report/_shell.tsx.bak-utf8-fix[m[36m:[m    const list = Array.isArray([1;31mdailyHighlights[m) ? [1;31mdailyHighlights[m : [];
+[35msrc/app/sarathi/life-report/_shell.tsx.bak-utf8-fix[m[36m:[m  [1;31mdailyHighlights[m: { dateISO: string; text: string }[];
+[35msrc/app/sarathi/life-report/_shell.tsx.bak-utf8-fix[m[36m:[m  [1;31mdailyHighlights[m,
+[35msrc/app/sarathi/life-report/_shell.tsx.bak-utf8-fix[m[36m:[m    ([1;31mdailyHighlights[m?.[0]?.dateISO as string) ||
+[35msrc/app/sarathi/life-report/_shell.tsx.bak-utf8-fix[m[36m:[m  [1;31mdailyHighlights[m: DailyHighlight[];
+[35msrc/app/sarathi/life-report/_shell.tsx.bak-utf8-fix[m[36m:[m  const [[1;31mdailyHighlights[m, setDailyHighlights] = useState<DailyHighlightLocal[]>([]);
+[35msrc/app/sarathi/life-report/_shell.tsx.bak-utf8-fix[m[36m:[m      [1;31mdailyHighlights[m={[1;31mdailyHighlights[m}
+[35msrc/app/sarathi/life-report/_shell.tsx.bak-utf8-fix[m[36m:[m    [1;31mdailyHighlights[m={[1;31mdailyHighlights[m}
+[35msrc/app/sarathi/life-report/_shell.tsx.bak-utf8-fix[m[36m:[m  [1;31mdailyHighlights[m,
+[35msrc/app/sarathi/life-report/_shell.tsx.bak-utf8-fix[m[36m:[mconst month = buildMonthFromDaily([1;31mdailyHighlights[m);
+[35msrc/app/sarathi/life-report/_shell.tsx.bak-utf8-fix[m[36m:[m        const next7 = Array.isArray([1;31mdailyHighlights[m) ? [1;31mdailyHighlights[m.slice(0, 7) : [];
+[35msrc/app/sarathi/life-report/_shell.tsx.bak-utf8-fix[m[36m:[m          clean([1;31mdailyHighlights[m?.[0]?.text) ||
+[35msrc/app/sarathi/life-report/_shell.tsx.bak-utf8-fix[m[36m:[m      Array.isArray([1;31mdailyHighlights[m) &&
+[35msrc/app/sarathi/life-report/_shell.tsx.bak-utf8-fix[m[36m:[m      [1;31mdailyHighlights[m.length > 0) ? (
+[35msrc/app/sarathi/life-report/_shell.tsx.bak-utf8-fix[m[36m:[m      [1;31mdailyHighlights[m.slice(0, 3).map((h: any, idx: number) => {
+[35msrc/server/fullGuidance/buildBrief.ts[m[36m:[m  [1;31mdailyHighlights[m?: any[];
