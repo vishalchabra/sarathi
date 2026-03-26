@@ -4949,6 +4949,9 @@ function scenarioPoolForCard(params: {
 function buildPremiumTriggerLabel(area: string, text: string): string {
   const src = `${area} ${text}`.toLowerCase();
 
+  if (/home|family|household|repair/.test(src)) {
+    return "Family Coordination Trigger";
+  }
   if (/partner|relationship|agreement|shared|role/.test(src)) {
     return "Partnership Focus Trigger";
   }
@@ -4961,12 +4964,8 @@ function buildPremiumTriggerLabel(area: string, text: string): string {
   if (/work|task|deadline|backlog|schedule|coordination/.test(src)) {
     return "Workload Trigger";
   }
-  if (/home|family|household|repair/.test(src)) {
-    return "Family Coordination Trigger";
-  }
   return "Current Focus Trigger";
 }
-
 function buildPremiumEmotion(area: string, text: string): string {
   const src = `${area} ${text}`.toLowerCase();
 
@@ -5913,7 +5912,7 @@ const np: any = (report as any)?.nowPlan ?? (report as any)?.nowNearFuture ?? nu
 </div>
 
 <div className="text-xs text-white/60 mt-1">
-  A 7-day view shaped by your dasha, Moon movement, and strongest active transits.
+  Next few days view shaped by your dasha, Moon movement, and strongest active transits.
 </div>
 {!dailyLoadingProp && !dailyErrorProp && visible.length > 0 && weeklyPattern && (
   <>
@@ -6058,9 +6057,11 @@ const np: any = (report as any)?.nowPlan ?? (report as any)?.nowNearFuture ?? nu
         <span className="text-white/45">How you may feel:</span> {emotionText}
       </div>
 
-      <div className="mt-2 text-[11px] text-white/50">
-        {driverText}
-      </div>
+      {driverText && driverText !== "Current transit pattern active" && (
+  <div className="mt-2 text-[11px] text-white/50">
+    {driverText}
+  </div>
+)}
 
       <div className="mt-2 text-xs text-indigo-200">
         {actionLine.label}: {actionLine.value}
