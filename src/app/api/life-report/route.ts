@@ -134,70 +134,176 @@
     return m?.[0] ?? String(s ?? "").trim();
   }
 
-  function buildDay4to7Timing(nowPlan: any, dailyMoon: any[]) {
-    const areas = Array.isArray(nowPlan?.next14Days?.areasActivated)
-      ? nowPlan.next14Days.areasActivated
-      : [];
-    const scenarios = Array.isArray(nowPlan?.next14Days?.likelyScenarios)
-      ? nowPlan.next14Days.likelyScenarios
-      : [];
-    const originalTiming = Array.isArray(nowPlan?.next14Days?.timing)
-      ? nowPlan.next14Days.timing
-      : [];
+ function buildDay4to7Timing(nowPlan: any, dailyMoon: any[], todayISO?: string) {
+  const areas = Array.isArray(nowPlan?.next14Days?.areasActivated)
+    ? nowPlan.next14Days.areasActivated
+    : [];
 
-    const futureRows = Array.isArray(dailyMoon) ? dailyMoon.slice(3, 7) : [];
+  const scenarios = Array.isArray(nowPlan?.next14Days?.likelyScenarios)
+    ? nowPlan.next14Days.likelyScenarios
+    : [];
 
-    const out = futureRows.map((row: any, i: number) => {
-      const area = areas[i] ?? areas[0] ?? null;
-      const scenario = String(
-        scenarios[i] ??
-          area?.why ??
-          originalTiming[i]?.note ??
-          "Use the day for practical follow-through and clear communication."
-      ).trim();
+  const originalTiming = Array.isArray(nowPlan?.next14Days?.timing)
+    ? nowPlan.next14Days.timing
+    : [];
 
-      const dateISO = String(row?.dateISO ?? row?.date ?? "").trim();
-      const nak = String(row?.moonNakshatra ?? "").trim();
+  const safeTodayISO =
+    typeof todayISO === "string" && /^\d{4}-\d{2}-\d{2}$/.test(todayISO)
+      ? todayISO
+      : new Date().toISOString().slice(0, 10);
 
-      const noteParts = [
-        scenario,
-        nak ? `Moon tone: ${nak}.` : "",
-      ].filter(Boolean);
+  const baseDate = new Date(`${safeTodayISO}T00:00:00`);
 
-      return {
-        window: dateISO || extractFirstISODate(originalTiming[i]?.window ?? ""),
-        note: noteParts.join(" "),
-      };
-    });
+  const futureRows = Array.isArray(dailyMoon) ? dailyMoon.slice(3, 7) : [];
 
-    // fallback if dailyMoon rows are missing
-    if (out.length === 0) {
-      return originalTiming.slice(0, 4).map((t: any, i: number) => ({
-        window: extractFirstISODate(String(t?.window ?? "")),
-        note: String(
-          scenarios[i] ??
-            areas[i]?.why ??
-            t?.note ??
-            "Use the day for practical follow-through and clear communication."
-        ).trim(),
-      }));
-    }
+  const out = Array.from({ length: 4 }, (_, i) => {
+    const area = areas[i] ?? areas[0] ?? null;
 
-    return out;
+    const scenario = String(
+      scenarios[i] ??
+        area?.why ??
+        originalTiming[i]?.note ??
+        "A practical matter may need follow-through or a clearer response."
+    ).trim();
+
+    const generatedDate = new Date(baseDate);
+    generatedDate.setDate(baseDate.getDate() + 3 + i);
+
+    const generatedISO = generatedDate.toISOString().slice(0, 10);
+
+    const row = futureRows[i] ?? null;
+    const nak = String(row?.moonNakshatra ?? "").trim();
+
+    const noteParts = [
+      scenario,
+      nak ? `Moon tone: ${nak}.` : "",
+    ].filter(Boolean);
+
+    return {
+      window: generatedISO,
+      note: noteParts.join(" "),
+    };
+  });
+
+  return out;
+}
+function polishFocusLabel(label: string): string {
+  const t = String(label || "").trim().toLowerCase();
+
+  if (!t) return "Current focus";
+
+  if (/emotional steadiness.*communication|communication.*emotional/.test(t)) {
+    return "Pending conversation";
+  }
+  if (/money management|expense tracking|financial caution|financial management/.test(t)) {
+    return "Payment follow-up";
+  }
+  if (/self-directed progress|personal momentum|self direction/.test(t)) {
+    return "Delayed response";
+  }
+  if (/home|family|domestic|household/.test(t)) {
+    return "Home responsibility";
+  }
+  if (/relationship|partner|agreement|expectation/.test(t)) {
+    return "Role clarification";
+  }
+  if (/work|routine|task|workflow|schedule/.test(t)) {
+    return "Work backlog";
+  }
+  if (/communication|message|reply|document|paperwork/.test(t)) {
+    return "Pending conversation";
+  }
+  if (/money|budget|expense|payment|resource/.test(t)) {
+    return "Payment follow-up";
   }
 
-  function postProcessNowPlan(nowPlan: any, dailyMoon: any[]) {
-    if (!nowPlan || typeof nowPlan !== "object") return nowPlan;
+  return label;
+}
 
-    const cleaned = cleanVisibleTextDeep(nowPlan);
+function polishScenarioText(text: string): string {
+  const raw = String(text || "").trim();
+  if (!raw) return raw;
 
-    // Force next 4 visible entries to be single-day, prediction-style timing rows
-    if (cleaned?.next14Days) {
-      cleaned.next14Days.timing = buildDay4to7Timing(cleaned, dailyMoon);
-    }
+  const t = raw.toLowerCase();
 
-    return cleaned;
+  if (/someone may message you asking for an update/.test(t)) {
+    return "A pending message or shared task may come back to you today. Someone may want to know what has already been handled and what is still pending.";
   }
+
+  if (/payment or expense may require your review/.test(t)) {
+    return "A payment, transfer, or expense detail may need a second look. You may need to confirm the amount, timing, or who is responsible before moving ahead.";
+  }
+
+  if (/follow up with a colleague or friend about a delayed reply/.test(t)) {
+    return "A delayed reply or unfinished conversation may need to be reopened. This could turn into a quick check-in about timing, next steps, or what was left hanging.";
+  }
+
+  if (/family member may ask you to coordinate a gathering or event/.test(t)) {
+    return "A family or household plan may need your coordination. You may be asked to help decide timing, logistics, or who is handling what.";
+  }
+
+  if (/unexpected expense could arise/.test(t)) {
+    return "A money matter may need attention sooner than expected. This could be a cost, transfer, or budget detail that needs clarification before it becomes annoying.";
+  }
+
+  if (/clarify your role or responsibility/.test(t)) {
+    return "Someone may ask what exactly you are handling in a shared task or discussion. That conversation may expose an assumption, missed handoff, or loose end that now needs clarity.";
+  }
+
+  if (/delayed response.*quick catch-up|follow up about a delayed response/.test(t)) {
+    return "A delayed reply or postponed conversation may return to your attention. You may need to close the loop, reschedule, or confirm where things stand.";
+  }
+
+  return raw;
+}
+
+function polishTimingNote(text: string): string {
+  const raw = String(text || "").trim();
+  if (!raw) return raw;
+
+  return polishScenarioText(raw)
+    .replace(/\bMoon tone: [^.]+\.\s*/gi, "")
+    .trim();
+}
+function postProcessNowPlan(nowPlan: any, dailyMoon: any[], todayISO?: string) {
+  if (!nowPlan || typeof nowPlan !== "object") return nowPlan;
+
+  const cleaned = cleanVisibleTextDeep(nowPlan);
+
+  // Make focus labels feel like real-life situations
+  if (Array.isArray(cleaned?.now3Days?.focusAreas)) {
+    cleaned.now3Days.focusAreas = cleaned.now3Days.focusAreas.map((x: any) => ({
+      ...x,
+      area: polishFocusLabel(String(x?.area ?? "")),
+      why: String(x?.why ?? "").trim(),
+    }));
+  }
+
+  // Make active-now scenarios feel more relatable
+  if (Array.isArray(cleaned?.now3Days?.likelyScenarios)) {
+    cleaned.now3Days.likelyScenarios = cleaned.now3Days.likelyScenarios
+      .map((x: any) => polishScenarioText(String(x ?? "")))
+      .filter(Boolean)
+      .slice(0, 3);
+  }
+
+  // Force next 4 visible entries to be single-day, prediction-style timing rows
+  if (cleaned?.next14Days) {
+    cleaned.next14Days.timing = buildDay4to7Timing(cleaned, dailyMoon, todayISO).map((row: any) => ({
+      ...row,
+      note: polishTimingNote(String(row?.note ?? "")),
+    }));
+  }
+
+  // Optional cleanup for next14 likely scenarios too
+  if (Array.isArray(cleaned?.next14Days?.likelyScenarios)) {
+    cleaned.next14Days.likelyScenarios = cleaned.next14Days.likelyScenarios
+      .map((x: any) => polishScenarioText(String(x ?? "")))
+      .filter(Boolean);
+  }
+
+  return cleaned;
+}
   function stripVisibleDashaText(s: string) {
     return String(s ?? "")
       .replace(
@@ -1050,12 +1156,36 @@ if (!transitNowFacts.length && Array.isArray(topTransits) && topTransits.length 
     "Themes are active..."
     "Energy may shift..."
   - Start with a concrete likely event instead.
-  - Good examples:
-    "Someone may message you asking for an update on something left pending."
-    "A partner, client, or family member may ask what exactly you are handling."
-    "A payment, transfer, or budget detail may need confirmation."
-    "A team discussion may expose different priorities or unclear ownership."
-    "You may need to clear up a misunderstanding before it grows."
+ - Good examples:
+  "A pending message, work follow-up, or small obligation may come back to you today. Someone may want to know where things stand or what has already been handled."
+  "A payment, transfer, expense, or budget detail may need a second look. You may need to confirm numbers, timing, or who is covering what."
+  "A partner, client, colleague, or family member may ask you to clarify your role in something shared. This may expose a loose end, assumption, or missing handoff."
+  "A delayed reply, document, or practical conversation may need to be reopened. What looked minor can matter more once someone asks for an update."
+  "A home, family, or scheduling matter may need your coordination. This may involve deciding timing, responsibility, or the next concrete step."
+
+- Bad examples:
+  "Emotional steadiness in communication"
+  "Money management and expense tracking"
+  "Self-directed progress"
+  "A situation may arise"
+  "Themes around clarity are active"
+
+- Focus area labels must sound like real life, not astrology summaries.
+- Good focus labels:
+  "Pending conversation"
+  "Payment follow-up"
+  "Home responsibility"
+  "Role clarification"
+  "Delayed response"
+  "Shared task"
+  "Work backlog"
+  "Scheduling issue"
+  "Family coordination"
+
+- For now3Days.focusAreas[].area:
+  - Use 2 to 5 words only.
+  - Make it sound like a real situation the user will recognize immediately.
+  - Do NOT use abstract labels like "emotional steadiness", "self-directed progress", "communication dynamics", or "financial caution".
   - Each day must feel different in wording and situation.
   - Prefer practical situations: delayed reply, missed follow-up, budget check, role confusion, backlog pressure, scheduling clash, shared responsibility, family coordination, repair, paperwork, negotiation, support request.
   - Keep each scenario to 2 short sentences.
@@ -1228,7 +1358,7 @@ if (!transitNowFacts.length && Array.isArray(topTransits) && topTransits.length 
     return null;
   }
 
-  const finalObj = postProcessNowPlan(obj, dailyMoon);
+  const finalObj = postProcessNowPlan(obj, dailyMoon, planTodayISO);
   return finalObj;
     } catch (e) {
       console.warn("[nowPlan] buildNowNearFuturePlan failed:", e);
