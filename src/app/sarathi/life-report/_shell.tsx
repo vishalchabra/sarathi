@@ -6150,9 +6150,14 @@ const np: any = (report as any)?.nowPlan ?? (report as any)?.nowNearFuture ?? nu
   ).trim();
 
   const confidence = String(
-    np?.now3Days?.confidenceByDay?.[idx] ??
+  np?.now3Days?.confidenceByDay?.[idx] ??
+    (idx === 0 ? "High" : "Medium")
+).trim() === "Low"
+  ? "Medium"
+  : String(
+      np?.now3Days?.confidenceByDay?.[idx] ??
       (idx === 0 ? "High" : "Medium")
-  ).trim();
+    ).trim();
 
   return (
     <div
@@ -6180,7 +6185,10 @@ const np: any = (report as any)?.nowPlan ?? (report as any)?.nowNearFuture ?? nu
         <span className="text-white/45">How you may feel:</span> {emotionText}
       </div>
 
-      {driverText && (
+      {driverText &&
+ !/^you can handle tasks and conversations/i.test(driverText) &&
+ !/^emotional climate/i.test(driverText) &&
+ !/^caution:/i.test(driverText) && (
   <div className="mt-2 text-[11px] text-white/40">
     Driver: {driverText}
   </div>
@@ -6236,7 +6244,7 @@ const np: any = (report as any)?.nowPlan ?? (report as any)?.nowNearFuture ?? nu
           return "Work backlog";
         }
 
-        return "Near-future focus";
+        return "Coordination issue";
       })();
 
       const dateLabel = (() => {
