@@ -6155,9 +6155,9 @@ const np: any = (report as any)?.nowPlan ?? (report as any)?.nowNearFuture ?? nu
         <span className="text-white/45">How you may feel:</span> {emotionText}
       </div>
 
-      {driverText && driverText !== "Transit data missing today." && (
-  <div className="mt-2 text-[11px] text-white/50">
-    {driverText}
+      {driverText && (
+  <div className="mt-2 text-[11px] text-white/40">
+    Driver: {driverText}
   </div>
 )}
 
