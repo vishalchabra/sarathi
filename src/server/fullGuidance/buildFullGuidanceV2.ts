@@ -115,58 +115,258 @@ function astrologerShiftNarrative(domain: string, headline: string, mode: "next"
     : `This is the strongest inner wave ahead. The phase asks for less noise, less scattering, and more truth. What has been mentally tolerated may now need to be consciously released. ${h}`.trim();
 }
 
-function astrologerWeekNarrative(domain: string) {
+function astrologerWeekNarrative(
+  domain: string,
+  weekNumber: number,
+  headline?: string
+) {
+  const h = String(headline ?? "").trim();
+
+  const stage =
+    weekNumber === 1
+      ? "setup"
+      : weekNumber === 2
+      ? "pressure"
+      : weekNumber === 3
+      ? "decision"
+      : "result";
+
   if (domain === "Career") {
+    if (stage === "setup") {
+      return {
+        focus:
+          "This week sets the direction at work. Early signals show where visibility, ownership, or clearer positioning will matter more than usual." +
+          (h ? ` ${h}` : ""),
+        action:
+          "Prepare proof properly: what changed, what improved, and what you are actually carrying.",
+        avoid:
+          "Do not assume people fully understand your value without you showing it clearly.",
+      };
+    }
+
+    if (stage === "pressure") {
+      return {
+        focus:
+          "This week work pressure becomes more visible. If role, scope, or ownership stays loose, the burden can rise faster than the recognition." +
+          (h ? ` ${h}` : ""),
+        action:
+          "Put structure around what is pending and name ownership clearly.",
+        avoid:
+          "Do not keep carrying important work silently just because it is easier than speaking directly.",
+      };
+    }
+
+    if (stage === "decision") {
+      return {
+        focus:
+          "This week asks for a clear professional decision. A role, boundary, responsibility, or next-level ask may now need to be stated more directly." +
+          (h ? ` ${h}` : ""),
+        action:
+          "Say clearly what you own, what result you delivered, and what should happen next.",
+        avoid:
+          "Do not keep hinting when the situation now needs a direct position.",
+      };
+    }
+
     return {
       focus:
-        "This week is about being seen correctly. Work may already be happening, but unless your role, result, or ownership is made visible, the burden can grow faster than the recognition.",
+        "This week shows the result of earlier work and positioning. What was handled well can now turn into visibility, authority, or cleaner recognition." +
+        (h ? ` ${h}` : ""),
       action:
-        "Show proof clearly: result, numbers, ownership, and next step.",
+        "Consolidate progress and close loops with proof, not just effort.",
       avoid:
-        "Do not keep carrying useful work silently and assume people understand its value.",
+        "Do not dilute momentum by taking on fresh work before current gains are made visible.",
     };
   }
 
   if (domain === "Relationships") {
+    if (stage === "setup") {
+      return {
+        focus:
+          "This week begins to reveal where a relationship needs more clarity. The emotional tone may already be showing what can no longer stay vague." +
+          (h ? ` ${h}` : ""),
+        action:
+          "Observe behaviour carefully and prepare for a clear conversation.",
+        avoid:
+          "Do not explain away signs that are already showing you the truth.",
+      };
+    }
+
+    if (stage === "pressure") {
+      return {
+        focus:
+          "This week brings relational pressure. What has been emotionally vague or half-defined may start feeling heavier than before." +
+          (h ? ` ${h}` : ""),
+        action:
+          "Say what you mean simply and make expectations more visible.",
+        avoid:
+          "Do not keep something half-open just to postpone discomfort.",
+      };
+    }
+
+    if (stage === "decision") {
+      return {
+        focus:
+          "This week is about relationship definition. A decision about expectations, commitment, effort, or boundaries may now need to be faced honestly." +
+          (h ? ` ${h}` : ""),
+        action:
+          "Choose clarity over mixed signals and state your terms cleanly.",
+        avoid:
+          "Do not settle for ambiguity once the need for truth is already obvious.",
+      };
+    }
+
     return {
       focus:
-        "This week relationships ask for definition. What has been emotionally vague may now become harder to tolerate, and clarity will feel kinder than uncertainty.",
+        "This week shows what earlier emotional patterns were leading toward. Bonds may feel stronger through honesty, or weaker through continued inconsistency." +
+        (h ? ` ${h}` : ""),
       action:
-        "Say what you mean simply. Let behaviour and terms become clear.",
-      avoid:
-        "Do not keep something half-open just to postpone discomfort.",
-    };
+        "Respond to what is real, not to what you hoped this would become.",
+        avoid:
+          "Do not restart confusion after clarity has already been shown.",
+      };
   }
 
   if (domain === "Health") {
+    if (stage === "setup") {
+      return {
+        focus:
+          "This week shows early signs from the body. Small shifts in energy, sleep, digestion, or mood can tell you quickly whether rhythm is supporting you." +
+          (h ? ` ${h}` : ""),
+        action:
+          "Tighten your daily rhythm before imbalance builds.",
+        avoid:
+          "Do not ignore the early body signal just because it still feels manageable.",
+      };
+    }
+
+    if (stage === "pressure") {
+      return {
+        focus:
+          "This week increases pressure on routine. The body reacts faster than usual to neglect, overstimulation, irregular sleep, or poor timing." +
+          (h ? ` ${h}` : ""),
+        action:
+          "Protect sleep, meal timing, and daily movement with more discipline.",
+        avoid:
+          "Do not use willpower to override what the body is already showing you.",
+      };
+    }
+
+    if (stage === "decision") {
+      return {
+        focus:
+          "This week is about a health decision. You may need to choose rhythm over indulgence, steadiness over intensity, or correction over postponement." +
+          (h ? ` ${h}` : ""),
+        action:
+          "Make one clean routine correction and follow it properly.",
+        avoid:
+          "Do not keep negotiating with the habit that is causing the same issue.",
+      };
+    }
+
     return {
       focus:
-        "This week the body reacts quickly to neglect. Sleep, meals, and overstimulation matter more than usual, and small imbalance can show up as tiredness, irritability, or heaviness.",
+        "This week shows the result of your recent routine. If discipline improved, the body supports you; if not, the slowdown becomes more visible." +
+        (h ? ` ${h}` : ""),
       action:
-        "Protect rhythm: lighter dinner, fixed sleep window, and daily movement.",
+          "Keep what is working and repeat it consistently.",
       avoid:
-        "Do not use willpower to override what the body is already showing you.",
+          "Do not undo progress through one or two careless days.",
     };
   }
 
   if (domain === "Money") {
+    if (stage === "setup") {
+      return {
+        focus:
+          "This week helps you notice where money is actually going. Quiet leaks, repeat spends, and convenience habits become easier to see." +
+          (h ? ` ${h}` : ""),
+        action:
+          "Track the repeated spend before trying to solve the whole money picture.",
+        avoid:
+          "Do not dismiss small leaks just because each one looks harmless on its own.",
+      };
+    }
+
+    if (stage === "pressure") {
+      return {
+        focus:
+          "This week brings financial pressure through repetition, not drama. Loose spending, weak checking, or rushed decisions may now feel heavier." +
+          (h ? ` ${h}` : ""),
+        action:
+          "Pause, verify, and cut what is clearly unnecessary.",
+        avoid:
+          "Do not make quick comfort-based purchases without checking the pattern.",
+      };
+    }
+
+    if (stage === "decision") {
+      return {
+        focus:
+          "This week asks for a money decision. A purchase, commitment, correction, or spending boundary may now need a cleaner line." +
+          (h ? ` ${h}` : ""),
+        action:
+          "Choose control over impulse and verify before committing.",
+        avoid:
+          "Do not let convenience make the decision for you.",
+      };
+    }
+
     return {
       focus:
-        "This week money asks for discipline, not drama. The issue is not one large event but the repeated leak that quietly weakens stability.",
+          "This week shows the result of recent financial behaviour. Cleaner control brings relief; repeated leakage becomes harder to ignore." +
+          (h ? ` ${h}` : ""),
       action:
-        "Review recurring spends, convenience habits, and any decision made too quickly.",
+          "Keep the correction that worked and make it repeatable.",
       avoid:
-        "Do not dismiss small repeated expenses as harmless.",
+          "Do not reopen the same leak after finally seeing it clearly.",
+    };
+  }
+
+  if (stage === "setup") {
+    return {
+      focus:
+        "This week begins an inner reset. Mental overload, emotional clutter, or restlessness may be showing you what needs simplification." +
+        (h ? ` ${h}` : ""),
+      action:
+        "Notice what is draining attention and reduce one source of noise.",
+      avoid:
+        "Do not force answers before creating inner space.",
+    };
+  }
+
+  if (stage === "pressure") {
+    return {
+      focus:
+        "This week increases inner pressure. What feels like confusion may actually be overload, and the need for simplification becomes stronger." +
+        (h ? ` ${h}` : ""),
+      action:
+        "Protect one clean hour daily for silence, prayer, journaling, or undistracted work.",
+      avoid:
+        "Do not keep feeding the mind more stimulation when it already needs less.",
+    };
+  }
+
+  if (stage === "decision") {
+    return {
+      focus:
+        "This week is about an inner decision. You may need to consciously stop one draining pattern, one false attachment, or one noisy habit." +
+        (h ? ` ${h}` : ""),
+      action:
+        "Choose one thing to release and one thing to protect.",
+      avoid:
+        "Do not keep calling overload ‘normal’ once you can clearly feel the cost.",
     };
   }
 
   return {
     focus:
-      "This week the mind needs less noise and more honesty. What feels like confusion may really be overload, and simplicity will do more than intensity.",
+      "This week shows the result of simplification. Less noise, cleaner attention, and more honesty can start making life feel lighter again." +
+      (h ? ` ${h}` : ""),
     action:
-      "Protect one clean hour daily for silence, prayer, journaling, or one undistracted task.",
+      "Repeat what creates calm and remove what repeatedly scatters you.",
     avoid:
-      "Do not force answers out of mental noise.",
+      "Do not refill your life with noise just because the pressure has reduced.",
   };
 }
 export function buildFullGuidanceV2(input: {
@@ -801,7 +1001,11 @@ const weeklyPlaybook = (() => {
     const domain = String(focus?.domain ?? "Career");
     used.add(domain);
 
-    const rich = astrologerWeekNarrative(domain);
+    const rich = astrologerWeekNarrative(
+  domain,
+  w + 1,
+  String(focus?.headline ?? "").trim()
+);
 
     const action =
       Array.isArray(focus?.do) && focus.do.length
@@ -814,13 +1018,14 @@ const weeklyPlaybook = (() => {
         : rich.avoid;
 
     out.push({
-      week: w + 1,
-      range: `${startISO} → ${weekEndISO}`,
-      domain,
-      focus: rich.focus,
-      action,
-      avoid,
-    });
+  week: w + 1,
+  range: `${startISO} → ${weekEndISO}`,
+  domain,
+  headline: String(focus?.headline ?? "").trim(),
+  focus: rich.focus,
+  action,
+  avoid,
+});
   }
 
   return out;
