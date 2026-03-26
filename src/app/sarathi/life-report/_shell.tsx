@@ -5578,8 +5578,8 @@ const fallbackFromNowPlan = (() => {
 const visible =
   list.length > 0
     ? list.slice(0, 7)
-    : fallbackFromNowPlan.slice(0, 7);
-
+    : [];
+    
 console.log("[NOW TAB] todayNextFewDaysCards =", (report as any)?.todayNextFewDaysCards);
 console.log("[NOW TAB] fallbackFromNowPlan =", fallbackFromNowPlan);
 console.log("[NOW TAB] visible =", visible);
