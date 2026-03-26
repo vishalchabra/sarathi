@@ -5025,7 +5025,42 @@ function buildPremiumWatchOrBestUse(area: string, text: string): { label: "Watch
     value: "letting a small practical issue stay vague for too long.",
   };
 }
+function buildNext14Action(text: string): { label: "Watch for" | "Best use"; value: string } {
+  const src = String(text || "").toLowerCase();
 
+  if (/payment|expense|budget|money|transfer|reimbursement/.test(src)) {
+    return {
+      label: "Best use",
+      value: "confirm the amount, timing, and ownership before moving ahead.",
+    };
+  }
+
+  if (/family|home|household|schedule|plan/.test(src)) {
+    return {
+      label: "Best use",
+      value: "settle timing and responsibility early so it stays practical.",
+    };
+  }
+
+  if (/reply|message|document|follow up|follow-up|paperwork/.test(src)) {
+    return {
+      label: "Watch for",
+      value: "a delayed response making a simple matter more complicated.",
+    };
+  }
+
+  if (/role|responsibility|shared|task|project|handoff/.test(src)) {
+    return {
+      label: "Best use",
+      value: "name who is handling what before assumptions build up.",
+    };
+  }
+
+  return {
+    label: "Best use",
+    value: "handle the small practical step early before it grows.",
+  };
+}
 function buildPremiumDriver(report: any): string {
   const facts = Array.isArray(report?.transitNowFacts)
     ? report.transitNowFacts.filter(Boolean)
@@ -6081,42 +6116,57 @@ const np: any = (report as any)?.nowPlan ?? (report as any)?.nowNearFuture ?? nu
     )}
 
     {Array.isArray(np?.next14Days?.timing) && np.next14Days.timing.length > 0 && (
-      <div className="space-y-3 pt-2">
-        <div className="text-[11px] uppercase tracking-wide text-white/60 font-semibold">
-          Next 14 days
-        </div>
+  <div className="space-y-3 pt-2">
+    <div className="text-[11px] uppercase tracking-wide text-white/60 font-semibold">
+      Next 14 days
+    </div>
 
-        {np.next14Days.timing.map((item: any, idx: number) => (
-          <div
-            key={`next14-${idx}`}
-            className="rounded-2xl border border-white/10 bg-white/5 p-4"
-          >
-            <div className="text-sm font-semibold text-white">
-              {(() => {
-  const raw = String(item?.window ?? "").trim();
-  try {
-    if (!raw) return "Upcoming window";
-    const dt = new Date(raw + "T00:00:00");
-    if (Number.isNaN(dt.getTime())) return raw;
-    return dt.toLocaleDateString(undefined, {
-      weekday: "short",
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    });
-  } catch {
-    return raw || "Upcoming window";
-  }
-})()}
-            </div>
+    {np.next14Days.timing.slice(0, 4).map((item: any, idx: number) => {
+      const noteText = String(item?.note ?? "").trim();
+      const triggerLabel = buildPremiumTriggerLabel("", noteText);
+      const actionLine = buildNext14Action(noteText);
 
-            <div className="mt-2 text-xs text-white/75">
-              {String(item?.note ?? "")}
+      const dateLabel = (() => {
+        const raw = String(item?.window ?? "").trim();
+        try {
+          if (!raw) return "Upcoming window";
+          const dt = new Date(raw + "T00:00:00");
+          if (Number.isNaN(dt.getTime())) return raw;
+          return dt.toLocaleDateString(undefined, {
+            weekday: "short",
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+          });
+        } catch {
+          return raw || "Upcoming window";
+        }
+      })();
+
+      return (
+        <div
+          key={`next14-${idx}`}
+          className="rounded-2xl border border-white/10 bg-white/5 p-4"
+        >
+          <div className="flex items-center justify-between gap-3">
+            <div className="text-[11px] uppercase tracking-wide text-indigo-200 font-semibold">
+              {triggerLabel}
             </div>
+            <div className="text-[11px] text-white/50">{dateLabel}</div>
           </div>
-        ))}
-      </div>
-    )}
+
+          <div className="mt-2 text-xs text-white/80">
+            {noteText}
+          </div>
+
+          <div className="mt-2 text-xs text-indigo-200">
+            {actionLine.label}: {actionLine.value}
+          </div>
+        </div>
+      );
+    })}
+  </div>
+)}
 
     {Array.isArray(np?.next30Days?.timing) && np.next30Days.timing.length > 0 && (
       <div className="space-y-3 pt-2">
