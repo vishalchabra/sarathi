@@ -6118,13 +6118,36 @@ const np: any = (report as any)?.nowPlan ?? (report as any)?.nowNearFuture ?? nu
     {Array.isArray(np?.next14Days?.timing) && np.next14Days.timing.length > 0 && (
   <div className="space-y-3 pt-2">
     <div className="text-[11px] uppercase tracking-wide text-white/60 font-semibold">
-      Next 14 days
+      Coming up next
     </div>
 
     {np.next14Days.timing.slice(0, 4).map((item: any, idx: number) => {
       const noteText = String(item?.note ?? "").trim();
       const triggerLabel = buildPremiumTriggerLabel("", noteText);
       const actionLine = buildNext14Action(noteText);
+      const emotionText = buildPremiumEmotion("", noteText);
+
+      const focusLabel = (() => {
+        const src = noteText.toLowerCase();
+
+        if (/payment|expense|budget|money|transfer|reimbursement/.test(src)) {
+          return "Payment follow-up";
+        }
+        if (/family|home|household|schedule|plan/.test(src)) {
+          return "Family coordination";
+        }
+        if (/reply|message|document|follow up|follow-up|paperwork/.test(src)) {
+          return "Pending conversation";
+        }
+        if (/role|responsibility|shared|task|project|handoff/.test(src)) {
+          return "Role clarification";
+        }
+        if (/work|deadline|backlog|task/.test(src)) {
+          return "Work backlog";
+        }
+
+        return "Near-future focus";
+      })();
 
       const dateLabel = (() => {
         const raw = String(item?.window ?? "").trim();
@@ -6155,8 +6178,16 @@ const np: any = (report as any)?.nowPlan ?? (report as any)?.nowNearFuture ?? nu
             <div className="text-[11px] text-white/50">{dateLabel}</div>
           </div>
 
+          <div className="mt-2 text-sm font-semibold text-white">
+            {focusLabel}
+          </div>
+
           <div className="mt-2 text-xs text-white/80">
             {noteText}
+          </div>
+
+          <div className="mt-3 text-xs text-white/65">
+            <span className="text-white/45">How you may feel:</span> {emotionText}
           </div>
 
           <div className="mt-2 text-xs text-indigo-200">

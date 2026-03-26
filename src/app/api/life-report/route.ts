@@ -163,9 +163,9 @@
       scenarios[i] ??
         area?.why ??
         originalTiming[i]?.note ??
-        "A practical matter may need follow-through or a clearer response."
+        "A pending task, message, payment, or shared responsibility may need clearer handling."
     ).trim();
-
+   const richerScenario = beefUpNext14Note(scenario);
     const generatedDate = new Date(baseDate);
     generatedDate.setDate(baseDate.getDate() + 3 + i);
 
@@ -175,9 +175,9 @@
     const nak = String(row?.moonNakshatra ?? "").trim();
 
     const noteParts = [
-      scenario,
-      nak ? `Moon tone: ${nak}.` : "",
-    ].filter(Boolean);
+  richerScenario,
+  nak ? `Moon tone: ${nak}.` : "",
+].filter(Boolean);
 
     return {
       window: generatedISO,
@@ -265,6 +265,42 @@ function polishTimingNote(text: string): string {
     .replace(/\bMoon tone: [^.]+\.\s*/gi, "")
     .trim();
 }
+function beefUpNext14Note(text: string): string {
+  const raw = String(text || "").trim();
+  if (!raw) return raw;
+
+  const t = raw.toLowerCase();
+
+  if (/task.*set aside|review or complete a task|work task|backlog/.test(t)) {
+    return "A task, follow-up, or work item that was left pending may come back into focus. Someone may want progress, confirmation, or a clearer sense of what happens next.";
+  }
+
+  if (/shared responsibility|colleague|partner|new agreement|update/.test(t)) {
+    return "A shared responsibility may need clearer ownership or a fresh update. This may involve aligning expectations, confirming roles, or deciding who takes the next step.";
+  }
+
+  if (/clarification about your role|role in a group|role in a project|clarify your role/.test(t)) {
+    return "Someone may ask what exactly you are handling in a shared task or project. That conversation may expose an assumption, missing handoff, or loose end that now needs to be named clearly.";
+  }
+
+  if (/scheduling conflict|rearrange plans|schedule|timing/.test(t)) {
+    return "A scheduling issue or timing clash may require coordination. You may need to adjust plans, confirm availability, or settle who can do what and when.";
+  }
+
+  if (/payment|expense|budget|transfer|reimbursement|money/.test(t)) {
+    return "A money matter may need attention in a more concrete way. This could involve confirming an amount, checking timing, or clarifying who is covering what before the issue grows.";
+  }
+
+  if (/family|home|household|domestic/.test(t)) {
+    return "A home or family matter may need practical coordination. You may be asked to help decide timing, responsibility, or the next small step that keeps things moving.";
+  }
+
+  if (/message|reply|document|paperwork|follow up|follow-up/.test(t)) {
+    return "A delayed reply, message, or document may return to your attention. Someone may want closure, an update, or a clearer answer than what was given earlier.";
+  }
+
+  return raw;
+}
 function postProcessNowPlan(nowPlan: any, dailyMoon: any[], todayISO?: string) {
   if (!nowPlan || typeof nowPlan !== "object") return nowPlan;
 
@@ -289,11 +325,11 @@ function postProcessNowPlan(nowPlan: any, dailyMoon: any[], todayISO?: string) {
 
   // Force next 4 visible entries to be single-day, prediction-style timing rows
   if (cleaned?.next14Days) {
-    cleaned.next14Days.timing = buildDay4to7Timing(cleaned, dailyMoon, todayISO).map((row: any) => ({
-      ...row,
-      note: polishTimingNote(String(row?.note ?? "")),
-    }));
-  }
+  cleaned.next14Days.timing = buildDay4to7Timing(cleaned, dailyMoon, todayISO).map((row: any) => ({
+    ...row,
+    note: beefUpNext14Note(polishTimingNote(String(row?.note ?? ""))),
+  }));
+}
 
   // Optional cleanup for next14 likely scenarios too
   if (Array.isArray(cleaned?.next14Days?.likelyScenarios)) {
