@@ -5025,40 +5025,51 @@ function buildPremiumWatchOrBestUse(area: string, text: string): { label: "Watch
     value: "letting a small practical issue stay vague for too long.",
   };
 }
-function buildNext14Action(text: string): { label: "Watch for" | "Best use"; value: string } {
+function buildNext14Action(text: string, idx: number = 0) {
   const src = String(text || "").toLowerCase();
 
-  if (/payment|expense|budget|money|transfer|reimbursement/.test(src)) {
+  const pick = (arr: string[]) => arr[idx % arr.length];
+
+  if (/payment|expense|budget|money/.test(src)) {
     return {
       label: "Best use",
-      value: "confirm the amount, timing, and ownership before moving ahead.",
+      value: pick([
+        "confirm the amount, timing, and ownership before moving ahead.",
+        "double-check the numbers before agreeing or proceeding.",
+        "clarify who is responsible before the issue grows.",
+      ]),
     };
   }
 
-  if (/family|home|household|schedule|plan/.test(src)) {
+  if (/schedule|plan|timing/.test(src)) {
     return {
       label: "Best use",
-      value: "settle timing and responsibility early so it stays practical.",
+      value: pick([
+        "settle timing and responsibility early so it stays practical.",
+        "align availability before making commitments.",
+        "confirm the sequence before moving forward.",
+      ]),
     };
   }
 
-  if (/reply|message|document|follow up|follow-up|paperwork/.test(src)) {
+  if (/message|reply|document/.test(src)) {
     return {
       label: "Watch for",
-      value: "a delayed response making a simple matter more complicated.",
-    };
-  }
-
-  if (/role|responsibility|shared|task|project|handoff/.test(src)) {
-    return {
-      label: "Best use",
-      value: "name who is handling what before assumptions build up.",
+      value: pick([
+        "a delayed response making a simple matter more complicated.",
+        "leaving a small message unresolved for too long.",
+        "assuming the other person understood without confirming.",
+      ]),
     };
   }
 
   return {
     label: "Best use",
-    value: "handle the small practical step early before it grows.",
+    value: pick([
+      "handle the small practical step early before it grows.",
+      "clarify expectations before moving ahead.",
+      "resolve the loose end while it is still manageable.",
+    ]),
   };
 }
 function buildPremiumDriver(report: any): string {
@@ -6124,7 +6135,7 @@ const np: any = (report as any)?.nowPlan ?? (report as any)?.nowNearFuture ?? nu
     {np.next14Days.timing.slice(0, 4).map((item: any, idx: number) => {
       const noteText = String(item?.note ?? "").trim();
       const triggerLabel = buildPremiumTriggerLabel("", noteText);
-      const actionLine = buildNext14Action(noteText);
+      const actionLine = buildNext14Action(noteText, idx);
       const emotionText = buildPremiumEmotion("", noteText);
 
       const focusLabel = (() => {

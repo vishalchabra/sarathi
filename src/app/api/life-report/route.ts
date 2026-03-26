@@ -265,38 +265,61 @@ function polishTimingNote(text: string): string {
     .replace(/\bMoon tone: [^.]+\.\s*/gi, "")
     .trim();
 }
-function beefUpNext14Note(text: string): string {
+function beefUpNext14Note(text: string, idx: number = 0): string {
   const raw = String(text || "").trim();
   if (!raw) return raw;
 
   const t = raw.toLowerCase();
 
-  if (/task.*set aside|review or complete a task|work task|backlog/.test(t)) {
-    return "A task, follow-up, or work item that was left pending may come back into focus. Someone may want progress, confirmation, or a clearer sense of what happens next.";
+  // Rotation helper
+  const pick = (arr: string[]) => arr[idx % arr.length];
+
+  if (/task|backlog|work|review|complete/.test(t)) {
+    return pick([
+      "A task or follow-up that was left pending may come back into focus. Someone may expect progress or a clear update.",
+      "A previously delayed task may resurface and need your attention. You may need to confirm what has been done and what remains.",
+      "Work that was set aside may return for completion. This may involve clarifying next steps or resolving a small backlog item.",
+    ]);
   }
 
-  if (/shared responsibility|colleague|partner|new agreement|update/.test(t)) {
-    return "A shared responsibility may need clearer ownership or a fresh update. This may involve aligning expectations, confirming roles, or deciding who takes the next step.";
+  if (/shared responsibility|partner|role|clarify/.test(t)) {
+    return pick([
+      "A shared responsibility may need clearer ownership. This could involve confirming roles or aligning expectations.",
+      "Someone may ask who is handling what in a shared task. This may expose a gap in responsibility or a missed handoff.",
+      "A joint responsibility may need to be revisited. You may need to define who takes the next step before things move forward.",
+    ]);
   }
 
-  if (/clarification about your role|role in a group|role in a project|clarify your role/.test(t)) {
-    return "Someone may ask what exactly you are handling in a shared task or project. That conversation may expose an assumption, missing handoff, or loose end that now needs to be named clearly.";
+  if (/schedule|timing|plan|conflict/.test(t)) {
+    return pick([
+      "A timing or scheduling issue may require coordination. You may need to adjust plans or confirm availability with others.",
+      "A small scheduling clash could surface and need resolution. This may involve rearranging plans or syncing with someone.",
+      "Plans may need slight adjustment due to timing changes. You may be asked to confirm availability or next steps.",
+    ]);
   }
 
-  if (/scheduling conflict|rearrange plans|schedule|timing/.test(t)) {
-    return "A scheduling issue or timing clash may require coordination. You may need to adjust plans, confirm availability, or settle who can do what and when.";
+  if (/payment|expense|budget|money/.test(t)) {
+    return pick([
+      "A money matter may need clearer confirmation. This could involve checking an amount, timing, or shared responsibility.",
+      "A payment or expense may require a second look. You may need to confirm details before moving ahead.",
+      "A financial detail may come up for review. This may involve clarifying who is covering what or when it is due.",
+    ]);
   }
 
-  if (/payment|expense|budget|transfer|reimbursement|money/.test(t)) {
-    return "A money matter may need attention in a more concrete way. This could involve confirming an amount, checking timing, or clarifying who is covering what before the issue grows.";
+  if (/family|home|household/.test(t)) {
+    return pick([
+      "A home or family matter may need practical coordination. You may be asked to help organise timing or responsibilities.",
+      "A household task or family request may require your involvement. This could involve deciding who handles what.",
+      "A domestic matter may need attention. You may need to step in to organise or confirm next steps.",
+    ]);
   }
 
-  if (/family|home|household|domestic/.test(t)) {
-    return "A home or family matter may need practical coordination. You may be asked to help decide timing, responsibility, or the next small step that keeps things moving.";
-  }
-
-  if (/message|reply|document|paperwork|follow up|follow-up/.test(t)) {
-    return "A delayed reply, message, or document may return to your attention. Someone may want closure, an update, or a clearer answer than what was given earlier.";
+  if (/message|reply|document/.test(t)) {
+    return pick([
+      "A delayed reply or message may return to your attention. Someone may expect an update or clearer response.",
+      "A message or document you postponed may come back into focus. You may need to close the loop or respond properly.",
+      "A pending conversation may resurface. This may require a quick clarification or follow-up.",
+    ]);
   }
 
   return raw;
@@ -324,10 +347,13 @@ function postProcessNowPlan(nowPlan: any, dailyMoon: any[], todayISO?: string) {
   }
 
   // Force next 4 visible entries to be single-day, prediction-style timing rows
-  if (cleaned?.next14Days) {
-  cleaned.next14Days.timing = buildDay4to7Timing(cleaned, dailyMoon, todayISO).map((row: any) => ({
+ if (cleaned?.next14Days) {
+  cleaned.next14Days.timing = buildDay4to7Timing(cleaned, dailyMoon, todayISO).map((row: any, i: number) => ({
     ...row,
-    note: beefUpNext14Note(polishTimingNote(String(row?.note ?? ""))),
+    note: beefUpNext14Note(
+      polishTimingNote(String(row?.note ?? "")),
+      i
+    ),
   }));
 }
 
