@@ -5907,56 +5907,40 @@ const np: any = (report as any)?.nowPlan ?? (report as any)?.nowNearFuture ?? nu
                 </div>
               )}
 
-              {/* Empty */}
-             {!dailyLoadingProp && !dailyErrorProp && (
+              {/* Empty / nowPlan renderer */}
+{!dailyLoadingProp && !dailyErrorProp && (
   <>
-    {Array.isArray(np?.now3Days) && np.now3Days.length > 0 ? (
+    {Array.isArray(np?.now3Days?.likelyScenarios) && np.now3Days.likelyScenarios.length > 0 ? (
       <div className="space-y-3">
         <div className="text-[11px] uppercase tracking-wide text-white/60 font-semibold">
           Active now
         </div>
 
-        {np.now3Days.map((d: any, idx: number) => {
-          const dateISO = String(d?.dateISO ?? "").trim();
+        {np.now3Days.likelyScenarios.map((text: any, idx: number) => {
+          const focusArea = String(
+            np?.now3Days?.focusAreas?.[idx]?.area ??
+              np?.now3Days?.focusAreas?.[0]?.area ??
+              "Current focus"
+          ).trim();
 
-          const dateLabel = (() => {
-            try {
-              if (!dateISO) return `Day ${idx + 1}`;
-              const dt = new Date(dateISO + "T00:00:00");
-              if (Number.isNaN(dt.getTime())) return `Day ${idx + 1}`;
-              return dt.toLocaleDateString(undefined, {
-                weekday: "short",
-                day: "2-digit",
-                month: "short",
-                year: "numeric",
-              });
-            } catch {
-              return `Day ${idx + 1}`;
-            }
-          })();
-
-          const transitSnapshot = String(d?.transitSnapshot ?? "").trim();
-          const text = String(d?.text ?? "").trim();
-          const confidence = String(d?.confidence ?? "Medium").trim();
+          const confidence = String(
+            np?.now3Days?.confidence ?? "Medium"
+          ).trim();
 
           return (
             <div
-              key={`now3-${dateISO || idx}`}
+              key={`now3-${idx}`}
               className="rounded-2xl border border-white/10 bg-white/5 p-4"
             >
               <div className="flex items-center justify-between gap-3">
                 <div className="text-[11px] uppercase tracking-wide text-indigo-200 font-semibold">
                   Day {idx + 1}
                 </div>
-                <div className="text-[11px] text-white/50">{dateLabel}</div>
-              </div>
-
-              <div className="mt-2 text-sm font-semibold text-white">
-                {transitSnapshot || "Current active pattern"}
+                <div className="text-[11px] text-white/50">{focusArea}</div>
               </div>
 
               <div className="mt-2 text-xs text-white/75">
-                {text || "No detailed guidance available for this day."}
+                {String(text ?? "").trim() || "No detailed guidance available for this day."}
               </div>
 
               <div className="mt-2 text-[11px] text-white/50">
@@ -5972,13 +5956,13 @@ const np: any = (report as any)?.nowPlan ?? (report as any)?.nowNearFuture ?? nu
       </div>
     )}
 
-    {Array.isArray(np?.next14Days) && np.next14Days.length > 0 && (
+    {Array.isArray(np?.next14Days?.timing) && np.next14Days.timing.length > 0 && (
       <div className="space-y-3 pt-2">
         <div className="text-[11px] uppercase tracking-wide text-white/60 font-semibold">
           Next 14 days
         </div>
 
-        {np.next14Days.map((item: any, idx: number) => (
+        {np.next14Days.timing.map((item: any, idx: number) => (
           <div
             key={`next14-${idx}`}
             className="rounded-2xl border border-white/10 bg-white/5 p-4"
@@ -5988,26 +5972,20 @@ const np: any = (report as any)?.nowPlan ?? (report as any)?.nowNearFuture ?? nu
             </div>
 
             <div className="mt-2 text-xs text-white/75">
-              {String(item?.theme ?? "")}
+              {String(item?.note ?? "")}
             </div>
-
-            {String(item?.advice ?? "").trim() && (
-              <div className="mt-2 text-xs text-indigo-200">
-                Best use: {String(item.advice)}
-              </div>
-            )}
           </div>
         ))}
       </div>
     )}
 
-    {Array.isArray(np?.next30Days) && np.next30Days.length > 0 && (
+    {Array.isArray(np?.next30Days?.timing) && np.next30Days.timing.length > 0 && (
       <div className="space-y-3 pt-2">
         <div className="text-[11px] uppercase tracking-wide text-white/60 font-semibold">
           Next 30 days
         </div>
 
-        {np.next30Days.map((item: any, idx: number) => (
+        {np.next30Days.timing.map((item: any, idx: number) => (
           <div
             key={`next30-${idx}`}
             className="rounded-2xl border border-white/10 bg-white/5 p-4"
@@ -6017,21 +5995,14 @@ const np: any = (report as any)?.nowPlan ?? (report as any)?.nowNearFuture ?? nu
             </div>
 
             <div className="mt-2 text-xs text-white/75">
-              {String(item?.theme ?? "")}
+              {String(item?.note ?? "")}
             </div>
-
-            {String(item?.advice ?? "").trim() && (
-              <div className="mt-2 text-xs text-indigo-200">
-                Best use: {String(item.advice)}
-              </div>
-            )}
           </div>
         ))}
       </div>
     )}
   </>
 )}
-
               {/* Cards */}
               {!dailyLoadingProp && !dailyErrorProp && visible.length > 0 && (
                 <div className="space-y-3">
