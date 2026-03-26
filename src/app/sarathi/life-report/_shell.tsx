@@ -5106,6 +5106,28 @@ function buildNext14Action(text: string, idx: number = 0) {
         value: "close the loop properly before the issue repeats again.",
       };
 }
+function buildPlanetTriggerLabel(driver: string, area?: string, text?: string): string {
+  const d = String(driver || "").toLowerCase();
+  const src = `${area || ""} ${text || ""}`.toLowerCase();
+
+  if (d.includes("mercury")) return "Mercury Communication Trigger";
+  if (d.includes("venus")) return "Venus Relationship Trigger";
+  if (d.includes("mars")) return "Mars Action Trigger";
+  if (d.includes("jupiter")) return "Jupiter Growth Trigger";
+  if (d.includes("saturn")) return "Saturn Responsibility Trigger";
+  if (d.includes("sun")) return "Sun Visibility Trigger";
+  if (d.includes("moon")) return "Moon Emotional Trigger";
+  if (d.includes("rahu")) return "Rahu Pressure Trigger";
+  if (d.includes("ketu")) return "Ketu Reset Trigger";
+
+  if (/partner|relationship|agreement|shared|role/.test(src)) return "Partnership Focus Trigger";
+  if (/payment|expense|budget|money|reimbursement/.test(src)) return "Money Clarity Trigger";
+  if (/message|reply|conversation|communication|document/.test(src)) return "Pending Task Trigger";
+  if (/home|family|household|repair/.test(src)) return "Family Coordination Trigger";
+  if (/work|task|deadline|backlog|schedule|coordination/.test(src)) return "Workload Trigger";
+
+  return "Current Focus Trigger";
+}
 function buildPremiumDriver(report: any): string {
   const facts = Array.isArray(report?.transitNowFacts)
     ? report.transitNowFacts.filter(Boolean)
@@ -6105,7 +6127,10 @@ const np: any = (report as any)?.nowPlan ?? (report as any)?.nowNearFuture ?? nu
   const scenarioText =
     String(text ?? "").trim() || "No detailed guidance available for this day.";
 
-  const triggerLabel = buildPremiumTriggerLabel(focusArea, scenarioText);
+  const triggerLabel = String(
+  np?.now3Days?.triggerLabels?.[idx] ??
+  buildPremiumTriggerLabel(focusArea, scenarioText)
+).trim();
 
   const emotionText =
   idx === 0
@@ -6188,7 +6213,7 @@ const np: any = (report as any)?.nowPlan ?? (report as any)?.nowNearFuture ?? nu
 
     {np.next14Days.timing.slice(0, 4).map((item: any, idx: number) => {
       const noteText = String(item?.note ?? "").trim();
-      const triggerLabel = buildPremiumTriggerLabel("", noteText);
+      const triggerLabel = buildPlanetTriggerLabel("", "", noteText);
       const actionLine = buildNext14Action(noteText, idx);
       const emotionText = buildPremiumEmotion("", noteText);
 
