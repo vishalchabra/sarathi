@@ -386,3 +386,122 @@ export async function sweJulday(
 ): Promise<number> {
   return sweCall<number>("swe_julday", year, month, day, hour, gregFlag);
 }
+export async function getPlanetPositions(input: {
+  dateISO: string;
+  tz?: string;
+  lat: number;
+  lon: number;
+}) {
+  const { dateISO, lat, lon } = input;
+
+  const d = new Date(dateISO);
+  if (Number.isNaN(d.getTime())) {
+    throw new Error(`Invalid dateISO passed to getPlanetPositions: ${dateISO}`);
+  }
+
+  const year = d.getUTCFullYear();
+  const month = d.getUTCMonth() + 1;
+  const day = d.getUTCDate();
+  const hour =
+    d.getUTCHours() +
+    d.getUTCMinutes() / 60 +
+    d.getUTCSeconds() / 3600;
+
+  const C = await getSweConstants();
+  const jdUt = await sweJulday(year, month, day, hour, C.SE_GREG_CAL);
+
+  const houseData = await sweCall<any>("swe_houses", jdUt, lat, lon, "P");
+  const cusps: number[] =
+    houseData?.cusps || houseData?.houseCusps || [];
+
+  const planetMap: Array<{ id: keyof SweConstants | string; name: string; ipl: number }> = [
+    { id: "SE_SUN", name: "Sun", ipl: C.SE_SUN },
+    { id: "SE_MOON", name: "Moon", ipl: C.SE_MOON },
+    { id: "SE_MERCURY", name: "Mercury", ipl: C.SE_MERCURY },
+    { id: "SE_VENUS", name: "Venus", ipl: C.SE_VENUS },
+    { id: "SE_MARS", name: "Mars", ipl: C.SE_MARS },
+    { id: "SE_JUPITER", name: "Jupiter", ipl: C.SE_JUPITER },
+    { id: "SE_SATURN", name: "Saturn", ipl: C.SE_SATURN },
+    { id: "SE_MEAN_NODE", name: "Rahu", ipl: C.SE_MEAN_NODE },
+  ];
+
+  const ayanamsa = await sweCall<number>("swe_get_ayanamsa_ut", jdUt);
+
+  const planets = [];
+  for (const p of planetMap) {
+    const calc = await sweCall<any>(
+      "swe_calc_ut",
+      jdUt,
+      p.ipl,
+      C.SEFLG_SWIEPH | C.SEFLG_SPEED
+    );
+
+    const tropicalLon = Number(calc?.longitude ?? 0);
+    const siderealLon = wrap360(tropicalLon - ayanamsa);
+    const sign = zodiacSignFromLon(siderealLon);
+    const house = houseFromLon(siderealLon, cusps);
+    const deg = siderealLon % 30;
+
+    planets.push({
+      id: p.name,
+      name: p.name,
+      sign,
+      house,
+      deg,
+      siderealLongitude: siderealLon,
+    });
+  }
+
+  // Ketu from Rahu
+  const rahu = planets.find((p) => p.name === "Rahu");
+  if (rahu) {
+    const ketuLon = wrap360(Number(rahu.siderealLongitude) + 180);
+    planets.push({
+      id: "Ketu",
+      name: "Ketu",
+      sign: zodiacSignFromLon(ketuLon),
+      house: houseFromLon(ketuLon, cusps),
+      deg: ketuLon % 30,
+      siderealLongitude: ketuLon,
+    });
+  }
+
+  return { planets, houseCusps: cusps };
+}
+
+function zodiacSignFromLon(lon: number): string {
+  const signs = [
+    "Aries",
+    "Taurus",
+    "Gemini",
+    "Cancer",
+    "Leo",
+    "Virgo",
+    "Libra",
+    "Scorpio",
+    "Sagittarius",
+    "Capricorn",
+    "Aquarius",
+    "Pisces",
+  ];
+  return signs[Math.floor(wrap360(lon) / 30)] ?? "Aries";
+}
+
+function houseFromLon(lon: number, cusps: number[]): number {
+  if (!Array.isArray(cusps) || cusps.length < 12) return 1;
+
+  const x = wrap360(lon);
+
+  for (let i = 0; i < 12; i++) {
+    const start = wrap360(cusps[i]);
+    const end = wrap360(cusps[(i + 1) % 12]);
+
+    if (start <= end) {
+      if (x >= start && x < end) return i + 1;
+    } else {
+      if (x >= start || x < end) return i + 1;
+    }
+  }
+
+  return 1;
+}

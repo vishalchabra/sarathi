@@ -15,7 +15,15 @@ import type {
   AskSarathiTimingWindow,
   AskSarathiWindowStrength,
 } from "@/lib/ask-sarathi/types";
-
+import { buildProfessionFacts } from "@/server/astro/buildProfessionFacts";
+import { buildBaseChartFactors } from "@/server/astro/buildBaseChartFactors";
+import { buildCareerReading } from "@/server/astro/buildCareerReading";
+import { buildMarriageFacts } from "@/server/astro/buildMarriageFacts";
+import { buildMarriageReading } from "@/server/astro/buildMarriageReading";
+import { buildHistoricalSnapshot } from "@/server/astro/buildHistoricalSnapshot";
+import { buildMarriageEventVerification } from "@/server/astro/buildMarriageEventVerification";
+import { buildTransitSnapshotForDate } from "@/server/astro/buildTransitSnapshotForDate";
+import { buildDegreeHitsForDate } from "@/server/astro/buildDegreeHitsForDate";
 const chatContext = new Map<string, string[]>(); // memory of recent questions
 const lastFollowup = new Map<string, string>();  // last followup lane we offered
 const lastFacts = new Map<string, any>();        // last astroFacts bundle
@@ -550,6 +558,12 @@ function detectTimeAnchor(q: string): TimeAnchorInfo {
 
   return { kind: "none" };
 }
+function extractYearFromQuestion(question: string): number | null {
+  const m = question.match(/\b(19|20)\d{2}\b/);
+  if (!m) return null;
+  const y = Number(m[0]);
+  return Number.isFinite(y) ? y : null;
+}
 function detectGemstoneIntent(q: string): GemstoneInfo {
   const lower = String(q || "").toLowerCase().trim();
 
@@ -783,6 +797,10 @@ function buildRoutePlan(question: string): AskSarathiRoutePlan {
     gemstone,
   };
 }
+// ================= OPEN CHART MODE HELPERS =================
+
+
+
 function isFoodQuestion(q: string): boolean {
   const l = q.toLowerCase();
 
@@ -918,7 +936,58 @@ function canonicalTopic(t: string): "career" | "money" | "relationships" | "heal
 /* --------------------------------------------------
    Timing helpers
 -------------------------------------------------- */
+function buildCareerMicroAnswer(careerReading: any): string {
+  const roles: string[] = Array.isArray(careerReading?.likelyRoles)
+    ? careerReading.likelyRoles.slice(0, 3).map((x: any) => String(x))
+    : [];
 
+  const pattern = String(careerReading?.coreCareerPattern ?? "").toLowerCase();
+
+  const advisory = roles.filter((r: string) =>
+    /astrologer|advisor|consultant|specialist guide/i.test(r)
+  );
+
+ if (advisory.some((r: string) => /astrologer/i.test(r))) {
+  return "You are most likely in advisory or interpretive work — this looks closer to an astrologer, consultant, or specialist guide than a routine backend role.";
+}
+
+if (advisory.length) {
+  return "You are most likely in advisory or consultative work rather than a routine backend role.";
+}
+
+  if (roles.length) {
+    return `You are most likely in ${roles.join(", ")} work within a structured professional setting.`;
+  }
+
+  if (pattern.includes("institutional")) {
+    return "You are most likely in a structured institutional role involving responsibility, systems, and analytical work.";
+  }
+
+  return "Your chart points to structured professional work, but the exact role cluster is not clear enough from the current chart inputs alone.";
+}
+function buildJobVsBusinessMicroAnswer(careerReading: any): string {
+  const serviceVsBusiness = String(careerReading?.serviceVsBusiness ?? "hybrid");
+  const roles: string[] = Array.isArray(careerReading?.likelyRoles)
+    ? careerReading.likelyRoles.slice(0, 4).map((x: any) => String(x))
+    : [];
+
+  const advisory = roles.some((r) =>
+    /astrologer|advisor|consultant|specialist guide/i.test(r)
+  );
+
+  if (serviceVsBusiness === "service" && advisory) {
+    return "You are better suited to structured service work than pure business, but independent work can suit you if it is built around advisory, consulting, or interpretive expertise.";
+  }
+
+  if (serviceVsBusiness === "service") {
+  return "You are more naturally suited to structured service or expertise-based work than pure business. Independent work can still suit you if it is built around consulting, guidance, or specialist knowledge rather than high-risk entrepreneurship.";
+}
+  if (serviceVsBusiness === "business") {
+    return "You are more naturally suited to independent business or self-directed work than fixed service roles, especially where initiative and ownership matter.";
+  }
+
+  return "Your chart supports a hybrid path — stable service or job-based work suits you, but independent work can also succeed if built gradually around your expertise.";
+}
 function toneForLord(lord?: string): string {
   if (!lord) return "";
   const L = lord.toLowerCase();
@@ -1109,7 +1178,21 @@ function normalizeProfile(p: any) {
 
   return { name, dobISO, tob, place };
 }
+function buildMarriageEventVerificationAnswer(v: any, year: number): string {
+  if (!v) {
+    return `I could not verify ${year} clearly from the available timing data.`;
+  }
 
+  if (v.verdict === "strong_match") {
+    return `${year} was a strong marriage match in your chart. The active ${v.dashaSupport?.[0]?.includes("Mars") ? "Mars–Jupiter" : "dasha"} timing supported commitment and family formation, so this fits your chart well.`;
+  }
+
+  if (v.verdict === "possible_match") {
+    return `${year} was a possible marriage period in your chart. The support was present, but it was not the strongest timing window.`;
+  }
+
+  return `${year} was not a strong marriage period in your chart. The timing support looks weak compared with better windows.`;
+}
 function pickBestTransitWindows(
   report: any,
   topic: string
@@ -2364,6 +2447,39 @@ function interpretDegreeTrigger(hit?: any): string | null {
 
   return [phaseText, orbText].filter(Boolean).join(" ");
 }
+function buildProfessionAnswerHint(professionFacts: any): string {
+  const roles = Array.isArray(professionFacts?.likelyRoles)
+    ? professionFacts.likelyRoles.slice(0, 3)
+    : [];
+
+  const domains = Array.isArray(professionFacts?.likelyDomains)
+    ? professionFacts.likelyDomains.slice(0, 3)
+    : [];
+
+  const confidence = Number(professionFacts?.confidence ?? 0);
+
+  const parts: string[] = [];
+
+  if (roles.length) {
+    parts.push(`Top likely roles: ${roles.join(", ")}.`);
+  }
+
+  if (domains.length) {
+    parts.push(`Top likely domains: ${domains.join(", ")}.`);
+  }
+
+  parts.push(`Confidence: ${confidence}/100.`);
+
+  if (professionFacts?.serviceVsBusiness) {
+    parts.push(`Service vs business: ${professionFacts.serviceVsBusiness}.`);
+  }
+
+  if (professionFacts?.publicVsBackend) {
+    parts.push(`Public vs backend: ${professionFacts.publicVsBackend}.`);
+  }
+
+  return parts.join(" ");
+}
 function detectPressurePattern(
   report: any,
   strongestTransit: any,
@@ -2562,6 +2678,7 @@ const houseLordMap: Record<string, Record<string, number[]>> = {
     saturn: [11, 12],
   },
 };
+
 function interpretHouseLordRole(planet: string, report?: any): string | null {
   if (!planet || !report?.ascendantSign) return null;
 
@@ -2844,7 +2961,7 @@ function buildDomainAstroEvidence(opts: {
   const dashaFactors: string[] = [];
   const transitFactors: string[] = [];
   const synthesis: string[] = [];
-
+  
   const ascSign = report?.ascSign;
   if (ascSign) natalFactors.push(`Ascendant baseline: ${ascSign}.`);
 
@@ -3621,7 +3738,7 @@ function buildFoodGuide(report?: LifeReportLike | null): FoodGuide | null {
   const favourSet = new Set<string>();
   const moderateSet = new Set<string>();
   const notes: string[] = [];
-
+  
   for (const p of planets) {
     const cfg = baseMap[p as keyof typeof baseMap];
     if (!cfg) continue;
@@ -4981,6 +5098,7 @@ export async function POST(req: Request) {
     });
 
    const routePlan = buildRoutePlan(question);
+   
 const topic = routePlan.domain;
 const questionType = routePlan.questionType;
 
@@ -5153,7 +5271,7 @@ const core =
       .join("|");
 
     const questionSignature = question.toLowerCase().trim();
-
+    
     const styleGuide = {
       vibe: "clear, warm, direct; modern astrology guide; no fluff",
       coreRules: [
@@ -5238,7 +5356,116 @@ If you mention astrology, it must be supported by EVIDENCE_BULLETS_JSON or ASTRO
 `.trim();
 
     const rules = formatTier === "premium" ? premiumFormatRules : formatTier === "micro" ? microRules : standardRules;
+const baseChartFactors = buildBaseChartFactors({
+  natal: {
+    planets: report?.planets,
+    houses: report?.houses, // if exists, else null
+    ascSign: report?.ascSign,
+    moonSign: report?.core?.moonSign,
+    moonNakshatra: report?.core?.moonNakshatra,
+  },
+  d9: report?.vargas?.d9 || null,
+  d10: report?.vargas?.d10 || null,
+  activePeriods: report?.activePeriods,
+  topTransits: report?.topTransits,
+});
 
+const professionFacts = buildProfessionFacts({
+  natal: {
+    planets: report?.planets,
+    houses: report?.houses,
+    ascSign: report?.ascSign,
+  },
+  d10: report?.vargas?.d10 || null,
+  activePeriods: report?.activePeriods,
+});
+const careerReading = buildCareerReading({
+  baseChartFactors,
+  professionFacts,
+});
+
+console.log("FULL REPORT:", JSON.stringify(report, null, 2));
+console.log("FULL REPORT KEYS:", report ? Object.keys(report) : null);
+console.log("PROFESSION_FACTS:", professionFacts);
+console.log("CAREER_READING:", careerReading);
+console.log("REPORT PLANETS:", JSON.stringify(report?.planets, null, 2));
+console.log("REPORT VARGAS:", JSON.stringify(report?.vargas, null, 2));
+console.log("REPORT VARGAS D10:", JSON.stringify(report?.vargas?.d10, null, 2));
+console.log("REPORT VARGAS D9:", JSON.stringify(report?.vargas?.d9, null, 2));
+
+const isProfessionMicro =
+  routePlan.family !== "timing" &&
+  routePlan.family !== "decision" &&
+  /\b(profession|current profession|what do i do|what kind of work)\b/i.test(question);
+  const isJobVsBusinessMicro =
+  routePlan.family !== "timing" &&
+  routePlan.family !== "decision" &&
+  /\b(job|service|business|job or business|service or business)\b/i.test(question);
+  const marriageFacts = buildMarriageFacts({
+  baseChartFactors,
+});
+
+const marriageReading = buildMarriageReading({
+  baseChartFactors,
+  marriageFacts,
+});
+const targetYear = extractYearFromQuestion(question);
+const targetDateISO = targetYear ? `${targetYear}-07-01` : null;
+
+const historicalTransitPlanets = targetDateISO
+  ? await buildTransitSnapshotForDate({
+      birth: {
+        dateISO: report?.birthDateISO,
+        tz: report?.birthTz,
+        lat: report?.birthLat,
+        lon: report?.birthLon,
+      },
+      targetDateISO,
+    })
+  : null;
+  const historicalDegreeHits = historicalTransitPlanets
+  ? buildDegreeHitsForDate({
+      natalPlanets: report?.planets,
+      transitPlanets: historicalTransitPlanets,
+    })
+  : [];
+const historicalSnapshot = targetDateISO
+  ? buildHistoricalSnapshot({
+      birth: {
+        dateISO: report?.birthDateISO,
+        tz: report?.birthTz,
+        lat: report?.birthLat,
+        lon: report?.birthLon,
+      },
+      natal: {
+        ascSign: report?.ascSign,
+        planets: report?.planets,
+      },
+      dashaTimeline: report?.dashaTimeline,
+      transitPlanets: historicalTransitPlanets,
+      topTransits: [],
+      degreeHits: historicalDegreeHits,
+      targetDateISO,
+    })
+  : null; 
+
+  console.log("HISTORICAL TRANSIT PLANETS:", historicalTransitPlanets);
+  console.log("HISTORICAL SNAPSHOT:", historicalSnapshot);
+  console.log("HISTORICAL DEGREE HITS:", historicalDegreeHits);
+const marriageEventVerification = historicalSnapshot
+  ? buildMarriageEventVerification({
+      baseChartFactors,
+      marriageFacts,
+      historicalSnapshot,
+    })
+  : null;
+  const isMarriageVerification =
+  /\bmarried\b/i.test(question) &&
+  /\b(19|20)\d{2}\b/.test(question);
+  console.log("TARGET YEAR:", targetYear);
+console.log("HISTORICAL SNAPSHOT:", historicalSnapshot);
+console.log("DASHA TIMELINE:", JSON.stringify(report?.dashaTimeline, null, 2));
+console.log("MARRIAGE EVENT VERIFICATION:", marriageEventVerification);
     // payload for /api/naturalize
     const natPayload = {
   userQuestion: question,
@@ -5269,11 +5496,26 @@ If you mention astrology, it must be supported by EVIDENCE_BULLETS_JSON or ASTRO
   depth,
   timingLoaded,
   core,
+  baseChartFactors,
+  professionFacts,
+  careerReading,
+  marriageFacts,
+  marriageReading,
+  historicalSnapshot,
+  marriageEventVerification,
   domainAstroEvidence: buildDomainAstroEvidence({ topic, report }),
   coreTimingSummary: core.timing.summary,
   timingStrength: core.timing.windows?.[0]?.strength || null,
   verdictLine: core.verdict.line,
   primaryTimingWindow: core.timing.windows?.[0] || null,
+  natalSummary: `
+Ascendant: ${report?.ascSign}
+Moon: ${report?.core?.moonSign}
+Nakshatra: ${report?.core?.moonNakshatra}
+`,
+
+natalPlacements: report?.planets || null,
+houseLords: null,
 };
 if (
   questionType === "daily_outlook" ||
@@ -5296,6 +5538,78 @@ if (
         full: outText,
       },
     },
+  });
+}
+if (isProfessionMicro) {
+  const outText = buildCareerMicroAnswer(careerReading);
+
+  return okJson({
+    answer: outText,
+    evidenceBullets: dedupedEvidenceBullets,
+    followupMode,
+    distressed,
+    copy: { answer: outText, long: outText },
+    core: {
+      ...core,
+      prose: {
+        short: outText,
+        full: outText,
+      },
+    },
+  });
+}
+if (isJobVsBusinessMicro) {
+  const outText = buildJobVsBusinessMicroAnswer(careerReading);
+
+  return okJson({
+    answer: outText,
+    evidenceBullets: dedupedEvidenceBullets,
+    followupMode,
+    distressed,
+    copy: { answer: outText, long: outText },
+    core: {
+      ...core,
+      prose: {
+        short: outText,
+        full: outText,
+      },
+    },
+  });
+}
+if (isMarriageVerification && marriageEventVerification && targetYear) {
+  const outText = buildMarriageEventVerificationAnswer(
+    marriageEventVerification,
+    targetYear
+  );
+
+  return okJson({
+    answer: outText,
+    evidenceBullets: [
+      `Historical check year: ${targetYear}`,
+      `Verdict: ${marriageEventVerification.verdict}`,
+      ...marriageEventVerification.dashaSupport,
+      ...marriageEventVerification.natalSupport,
+      ...marriageEventVerification.divisionalSupport,
+      ...marriageEventVerification.transitSupport,
+    ].slice(0, 8),
+    followupMode,
+    distressed,
+    copy: { answer: outText, long: outText },
+    core: {
+      prose: {
+        short: outText,
+        full: outText,
+      },
+      timing: {
+        summary: `Historical verification for ${targetYear}`,
+        windows: [],
+      },
+      verdict: {
+        line: `${targetYear}: ${marriageEventVerification.verdict}`,
+      },
+    },
+    historicalSnapshot,
+    marriageEventVerification,
   });
 }
    // ---- call /api/naturalize ----
