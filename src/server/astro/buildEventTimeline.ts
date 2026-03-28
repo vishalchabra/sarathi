@@ -91,37 +91,66 @@ export async function buildEventTimeline(input: Input) {
     });
   }
 
-  return extractWindows(scores);
+  return extractWindows(scores, eventType);
 }
 
-function extractWindows(scores: YearScore[]) {
-  const strongYears = scores.filter((y) => y.score >= 75);
+function extractWindows(
+  scores: YearScore[],
+  eventType?: string
+) {
+  const minScore =
+    eventType === "marriage" ? 80 : 75;
 
-  const windows: Array<{ start: number; end: number; peak: number }> = [];
+  const strongYears = scores.filter(
+    (y) => y.score >= minScore && y.verdict === "strong_match"
+  );
 
-  let current: any = null;
+  const windows: Array<{
+    start: number;
+    end: number;
+    peak: number;
+    peakScore: number;
+  }> = [];
+
+  let current:
+    | { start: number; end: number; peak: number; peakScore: number }
+    | null = null;
 
   for (const y of strongYears) {
     if (!current) {
-      current = { start: y.year, end: y.year, peak: y.year, peakScore: y.score };
+      current = {
+        start: y.year,
+        end: y.year,
+        peak: y.year,
+        peakScore: y.score,
+      };
       continue;
     }
 
     if (y.year === current.end + 1) {
       current.end = y.year;
+
       if (y.score > current.peakScore) {
         current.peak = y.year;
         current.peakScore = y.score;
       }
     } else {
-      windows.push({ start: current.start, end: current.end, peak: current.peak });
-      current = { start: y.year, end: y.year, peak: y.year, peakScore: y.score };
+      windows.push(current);
+      current = {
+        start: y.year,
+        end: y.year,
+        peak: y.year,
+        peakScore: y.score,
+      };
     }
   }
 
   if (current) {
-    windows.push({ start: current.start, end: current.end, peak: current.peak });
+    windows.push(current);
   }
 
-  return windows.slice(0, 3);
+  return windows
+    .sort((a, b) => b.peakScore - a.peakScore || a.start - b.start)
+    .slice(0, 3)
+    .map(({ start, end, peak }) => ({ start, end, peak }));
 }

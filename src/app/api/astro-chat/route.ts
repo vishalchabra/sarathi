@@ -918,6 +918,22 @@ function isMicroIntentQuestion(q: string): boolean {
 /* --------------------------------------------------
    Follow-up classifier
 -------------------------------------------------- */
+function formatMonthLabel(label: string): string {
+  const [yearStr, monthStr] = String(label).split("-");
+  const year = Number(yearStr);
+  const month = Number(monthStr);
+
+  const months = [
+    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+  ];
+
+  if (!Number.isFinite(year) || !Number.isFinite(month) || month < 1 || month > 12) {
+    return label;
+  }
+
+  return `${months[month - 1]} ${year}`;
+}
 function buildEventTimelineAnswer(
   eventType: string,
   eventTimeline: Array<{ start: number; end: number; peak: number }> | null,
@@ -927,7 +943,7 @@ function buildEventTimelineAnswer(
 
   if (eventMonthTimeline && eventMonthTimeline.length > 0) {
     const top = eventMonthTimeline[0];
-    return `Your strongest ${label} window is ${top.start} to ${top.end}, with ${top.peak} as the peak month.`;
+    return `Your strongest ${label} window is ${formatMonthLabel(top.start)} to ${formatMonthLabel(top.end)}, with ${formatMonthLabel(top.peak)} as the peak month.`;
   }
 
   if (eventTimeline && eventTimeline.length > 0) {
@@ -971,6 +987,32 @@ function canonicalTopic(t: string): "career" | "money" | "relationships" | "heal
 /* --------------------------------------------------
    Timing helpers
 -------------------------------------------------- */
+function getPastMarriageYearScore(v: any): number {
+  if (!v) return 0;
+
+  let score = 0;
+
+  // natal promise should matter, but lightly
+  score += Math.min(12, Array.isArray(v.natalSupport) ? v.natalSupport.length * 2 : 0);
+
+  // dasha is the main driver
+  score += Math.min(35, Array.isArray(v.dashaSupport) ? v.dashaSupport.length * 6 : 0);
+
+  // transit triggers matter next
+  score += Math.min(18, Array.isArray(v.transitSupport) ? v.transitSupport.length * 3 : 0);
+
+  // divisional support if present
+  score += Math.min(10, Array.isArray(v.divisionalSupport) ? v.divisionalSupport.length * 3 : 0);
+
+  // blockers reduce confidence
+  score -= Math.min(10, Array.isArray(v.blockers) ? v.blockers.length * 2 : 0);
+
+  return Math.max(0, Math.min(100, score));
+}
+function getAgeAtYear(birthYear: number, year: number) {
+  return year - birthYear;
+}
+
 function buildEventMicroAnswer(v: any, year: number): string {
   if (!v) return `I could not verify ${year} clearly from your chart.`;
 
@@ -5403,11 +5445,19 @@ Give one clear suggestion + one short reason.
 If you mention astrology, it must be supported by EVIDENCE_BULLETS_JSON or ASTRO_FACTS_JSON.
 `.trim();
 
-    const rules = formatTier === "premium" ? premiumFormatRules : formatTier === "micro" ? microRules : standardRules;
+  const rules =
+  formatTier === "premium"
+    ? premiumFormatRules
+    : formatTier === "micro"
+      ? microRules
+      : standardRules;
+
+/* ---------------- base chart + domain engines ---------------- */
+
 const baseChartFactors = buildBaseChartFactors({
   natal: {
     planets: report?.planets,
-    houses: report?.houses, // if exists, else null
+    houses: report?.houses,
     ascSign: report?.ascSign,
     moonSign: report?.core?.moonSign,
     moonNakshatra: report?.core?.moonNakshatra,
@@ -5427,29 +5477,13 @@ const professionFacts = buildProfessionFacts({
   d10: report?.vargas?.d10 || null,
   activePeriods: report?.activePeriods,
 });
+
 const careerReading = buildCareerReading({
   baseChartFactors,
   professionFacts,
 });
 
-console.log("FULL REPORT:", JSON.stringify(report, null, 2));
-console.log("FULL REPORT KEYS:", report ? Object.keys(report) : null);
-console.log("PROFESSION_FACTS:", professionFacts);
-console.log("CAREER_READING:", careerReading);
-console.log("REPORT PLANETS:", JSON.stringify(report?.planets, null, 2));
-console.log("REPORT VARGAS:", JSON.stringify(report?.vargas, null, 2));
-console.log("REPORT VARGAS D10:", JSON.stringify(report?.vargas?.d10, null, 2));
-console.log("REPORT VARGAS D9:", JSON.stringify(report?.vargas?.d9, null, 2));
-
-const isProfessionMicro =
-  routePlan.family !== "timing" &&
-  routePlan.family !== "decision" &&
-  /\b(profession|current profession|what do i do|what kind of work)\b/i.test(question);
-  const isJobVsBusinessMicro =
-  routePlan.family !== "timing" &&
-  routePlan.family !== "decision" &&
-  /\b(job|service|business|job or business|service or business)\b/i.test(question);
-  const marriageFacts = buildMarriageFacts({
+const marriageFacts = buildMarriageFacts({
   baseChartFactors,
 });
 
@@ -5457,6 +5491,44 @@ const marriageReading = buildMarriageReading({
   baseChartFactors,
   marriageFacts,
 });
+
+const marriageLifeReading = buildMarriageLifeReading({
+  baseChartFactors,
+  marriageFacts,
+});
+
+/* ---------------- question detectors ---------------- */
+
+const isProfessionMicro =
+  routePlan.family !== "timing" &&
+  routePlan.family !== "decision" &&
+  /\b(profession|current profession|what do i do|what kind of work)\b/i.test(question);
+
+const isJobVsBusinessMicro =
+  routePlan.family !== "timing" &&
+  routePlan.family !== "decision" &&
+  /\b(job|service|business|job or business|service or business)\b/i.test(question);
+
+const eventType = detectEventType(question);
+
+const isTimelineQuestion =
+  /\b(when|best time|which year|when will|when did)\b/i.test(question) &&
+  !!eventType;
+
+const isPastEventQuery =
+  !!eventType &&
+  /\b(when did|when was|what year did)\b/i.test(question);
+
+const isMarriageVerification =
+  /\bmarried\b/i.test(question) &&
+  /\b(19|20)\d{2}\b/.test(question);
+
+const isEventMicro =
+  !!eventType &&
+  /was .* right|did .* support|was .* correct timing|was .* good timing/i.test(question);
+
+/* ---------------- historical single-date snapshot ---------------- */
+
 const targetYear = extractYearFromQuestion(question);
 const targetDateISO = targetYear ? `${targetYear}-07-01` : null;
 
@@ -5471,12 +5543,14 @@ const historicalTransitPlanets = targetDateISO
       targetDateISO,
     })
   : null;
-  const historicalDegreeHits = historicalTransitPlanets
+
+const historicalDegreeHits = historicalTransitPlanets
   ? buildDegreeHitsForDate({
       natalPlanets: report?.planets,
       transitPlanets: historicalTransitPlanets,
     })
   : [];
+
 const historicalSnapshot = targetDateISO
   ? buildHistoricalSnapshot({
       birth: {
@@ -5495,11 +5569,8 @@ const historicalSnapshot = targetDateISO
       degreeHits: historicalDegreeHits,
       targetDateISO,
     })
-  : null; 
+  : null;
 
-  console.log("HISTORICAL TRANSIT PLANETS:", historicalTransitPlanets);
-  console.log("HISTORICAL SNAPSHOT:", historicalSnapshot);
-  console.log("HISTORICAL DEGREE HITS:", historicalDegreeHits);
 const marriageEventVerification = historicalSnapshot
   ? buildMarriageEventVerification({
       baseChartFactors,
@@ -5507,24 +5578,23 @@ const marriageEventVerification = historicalSnapshot
       historicalSnapshot,
     })
   : null;
-  const isMarriageVerification =
-  /\bmarried\b/i.test(question) &&
-  /\b(19|20)\d{2}\b/.test(question);
-  console.log("TARGET YEAR:", targetYear);
-console.log("HISTORICAL SNAPSHOT:", historicalSnapshot);
-console.log("DASHA TIMELINE:", JSON.stringify(report?.dashaTimeline, null, 2));
-console.log("MARRIAGE EVENT VERIFICATION:", marriageEventVerification);
-const marriageLifeReading = buildMarriageLifeReading({
-  baseChartFactors,
-  marriageFacts,
-});
-const eventType = detectEventType(question);
-const isTimelineQuestion =
-  /when|best time|which year|when will|when did/i.test(question) &&
-  !!eventType;
+
+const eventVerification =
+  eventType && historicalSnapshot
+    ? buildEventVerification({
+        eventType,
+        baseChartFactors,
+        historicalSnapshot,
+        marriageFacts,
+        professionFacts,
+      })
+    : null;
+
+/* ---------------- timeline engines ---------------- */
+
 let eventTimeline: Array<{ start: number; end: number; peak: number }> | null = null;
 
-if (isTimelineQuestion && eventType) {
+if (isTimelineQuestion && eventType && !isPastEventQuery) {
   eventTimeline = await buildEventTimeline({
     eventType,
     baseChartFactors,
@@ -5537,23 +5607,10 @@ if (isTimelineQuestion && eventType) {
 
   console.log("EVENT TIMELINE:", eventTimeline);
 }
-const eventVerification =
-  eventType && historicalSnapshot
-    ? buildEventVerification({
-        eventType,
-        baseChartFactors,
-        historicalSnapshot,
-        marriageFacts,
-        professionFacts,
-      })
-    : null;
-    
-    const isEventMicro =
-  eventType &&
-  /was .* right|did .* support|was .* correct timing|was .* good timing/i.test(question);
-  let eventMonthTimeline = null;
 
-if (isTimelineQuestion && eventType) {
+let eventMonthTimeline: Array<{ start: string; end: string; peak: string }> | null = null;
+
+if (isTimelineQuestion && eventType && !isPastEventQuery) {
   eventMonthTimeline = await buildEventMonthTimeline({
     eventType,
     baseChartFactors,
@@ -5567,8 +5624,27 @@ if (isTimelineQuestion && eventType) {
   console.log("EVENT MONTH TIMELINE:", eventMonthTimeline);
 }
 
-    // payload for /api/naturalize
-    const natPayload = {
+const isEventTimelineMicro =
+  isTimelineQuestion &&
+  !!eventType &&
+  !isPastEventQuery &&
+  (
+    (Array.isArray(eventMonthTimeline) && eventMonthTimeline.length > 0) ||
+    (Array.isArray(eventTimeline) && eventTimeline.length > 0)
+  );
+
+/* ---------------- lightweight debug ---------------- */
+
+console.log("PROFESSION_FACTS:", professionFacts);
+console.log("CAREER_READING:", careerReading);
+console.log("TARGET YEAR:", targetYear);
+console.log("HISTORICAL SNAPSHOT:", historicalSnapshot);
+console.log("HISTORICAL DEGREE HITS:", historicalDegreeHits);
+console.log("MARRIAGE EVENT VERIFICATION:", marriageEventVerification);
+
+/* ---------------- payload for /api/naturalize ---------------- */
+
+const natPayload = {
   userQuestion: question,
   topic,
   questionType,
@@ -5587,9 +5663,10 @@ if (isTimelineQuestion && eventType) {
   lastFollowupKind: prevFollowKind,
   astroWindowSignature,
   questionSignature,
-  evidenceBullets: questionType === "daily_outlook" || questionType === "daily_micro"
-  ? dailyEvidenceBullets
-  : dedupedEvidenceBullets,
+  evidenceBullets:
+    questionType === "daily_outlook" || questionType === "daily_micro"
+      ? dailyEvidenceBullets
+      : dedupedEvidenceBullets,
   styleGuide,
   formatTier,
   formatRules: rules,
@@ -5597,36 +5674,41 @@ if (isTimelineQuestion && eventType) {
   depth,
   timingLoaded,
   core,
+
   baseChartFactors,
   professionFacts,
   careerReading,
+
   marriageFacts,
   marriageReading,
   marriageLifeReading,
+
   historicalSnapshot,
   marriageEventVerification,
+
   eventType,
   eventVerification,
   eventTimeline,
   eventMonthTimeline,
+
   domainAstroEvidence: buildDomainAstroEvidence({ topic, report }),
   coreTimingSummary: core.timing.summary,
   timingStrength: core.timing.windows?.[0]?.strength || null,
   verdictLine: core.verdict.line,
   primaryTimingWindow: core.timing.windows?.[0] || null,
+
   natalSummary: `
 Ascendant: ${report?.ascSign}
 Moon: ${report?.core?.moonSign}
 Nakshatra: ${report?.core?.moonNakshatra}
 `,
-
-natalPlacements: report?.planets || null,
-houseLords: null,
+  natalPlacements: report?.planets || null,
+  houseLords: null,
 };
-if (
-  questionType === "daily_outlook" ||
-  questionType === "daily_micro"
-) {
+
+/* ---------------- early returns ---------------- */
+
+if (questionType === "daily_outlook" || questionType === "daily_micro") {
   const outText = cleanUnknown(
     core?.prose?.full || core?.prose?.short || "This phase is active."
   );
@@ -5646,6 +5728,7 @@ if (
     },
   });
 }
+
 if (isProfessionMicro) {
   const outText = buildCareerMicroAnswer(careerReading);
 
@@ -5664,6 +5747,7 @@ if (isProfessionMicro) {
     },
   });
 }
+
 if (isJobVsBusinessMicro) {
   const outText = buildJobVsBusinessMicroAnswer(careerReading);
 
@@ -5682,6 +5766,7 @@ if (isJobVsBusinessMicro) {
     },
   });
 }
+
 if (isMarriageVerification && marriageEventVerification && targetYear) {
   const outText = buildMarriageEventVerificationAnswer(
     marriageEventVerification,
@@ -5718,6 +5803,7 @@ if (isMarriageVerification && marriageEventVerification && targetYear) {
     marriageEventVerification,
   });
 }
+
 if (isEventMicro && eventVerification && targetYear) {
   const outText = buildEventMicroAnswer(eventVerification, targetYear);
 
@@ -5736,33 +5822,132 @@ if (isEventMicro && eventVerification && targetYear) {
     },
   });
 }
-const isEventTimelineMicro =
-  isTimelineQuestion &&
-  !!eventType &&
-  (!!eventTimeline || !!eventMonthTimeline);
 
-if (isEventTimelineMicro && eventType) {
-  const outText = buildEventTimelineAnswer(
-    eventType,
-    eventTimeline,
-    eventMonthTimeline
-  );
+if (isPastEventQuery && eventType) {
+  const birthYear = Number(String(report?.birthDateISO).slice(0, 4));
 
-  return okJson({
-    answer: outText,
-    evidenceBullets: dedupedEvidenceBullets,
-    followupMode,
-    distressed,
-    copy: { answer: outText, long: outText },
-    core: {
-      ...core,
-      prose: {
-        short: outText,
-        full: outText,
+  const yearScores: Array<{ year: number; score: number; verdict: string }> = [];
+
+  for (let year = 1985; year <= 2023; year++) {
+    const age = year - birthYear;
+
+    // realistic age filter by event type
+    if (eventType === "marriage" && (age < 18 || age > 45)) continue;
+    if (eventType === "career_change" && (age < 18 || age > 65)) continue;
+
+    const targetDateISO = `${year}-07-01`;
+
+    const pastTransitPlanets = await buildTransitSnapshotForDate({
+      birth: {
+        dateISO: report?.birthDateISO,
+        tz: report?.birthTz,
+        lat: report?.birthLat,
+        lon: report?.birthLon,
       },
-    },
-  });
+      targetDateISO,
+    });
+
+    const pastDegreeHits = buildDegreeHitsForDate({
+      natalPlanets: report?.planets,
+      transitPlanets: pastTransitPlanets,
+    });
+
+    const pastSnapshot = buildHistoricalSnapshot({
+      birth: {
+        dateISO: report?.birthDateISO,
+        tz: report?.birthTz,
+        lat: report?.birthLat,
+        lon: report?.birthLon,
+      },
+      natal: {
+        ascSign: report?.ascSign,
+        planets: report?.planets,
+      },
+      dashaTimeline: report?.dashaTimeline,
+      transitPlanets: pastTransitPlanets,
+      topTransits: [],
+      degreeHits: pastDegreeHits,
+      targetDateISO,
+    });
+
+    const v = buildEventVerification({
+      eventType,
+      baseChartFactors,
+      historicalSnapshot: pastSnapshot,
+      marriageFacts,
+      professionFacts,
+    });
+
+    let rankingScore =
+  eventType === "marriage"
+    ? getPastMarriageYearScore(v)
+    : v.score;
+// softly down-rank very early marriage ages
+if (eventType === "marriage") {
+  const age = year - birthYear;
+  if (age < 23) rankingScore -= 8;
+  if (age < 21) rankingScore -= 12;
 }
+
+yearScores.push({
+  year,
+  score: rankingScore,
+  verdict: v.verdict,
+});
+
+  }
+
+  console.log("PAST EVENT YEAR SCORES:", yearScores);
+
+  if (yearScores.length > 0) {
+    const best = [...yearScores].sort((a, b) => b.score - a.score || a.year - b.year)[0];
+
+    // build a tight local window around the best year
+    const localWindowYears = yearScores
+      .filter(
+        (y) =>
+          Math.abs(y.year - best.year) <= 2 &&
+          y.score >= best.score - 8
+      )
+      .map((y) => y.year)
+      .sort((a, b) => a - b);
+
+    const start = localWindowYears.length ? localWindowYears[0] : best.year;
+    const end = localWindowYears.length
+      ? localWindowYears[localWindowYears.length - 1]
+      : best.year;
+
+    const label = eventType.replace("_", " ");
+    const outText = `Your most likely ${label} period was ${start} to ${end}, with ${best.year} as the peak year.`;
+
+    return okJson({
+      answer: outText,
+      evidenceBullets: [
+        `Past ${label} scan`,
+        `Peak year: ${best.year}`,
+        `Peak score: ${best.score}`,
+        `Window: ${start} → ${end}`,
+      ],
+      followupMode,
+      distressed,
+      copy: { answer: outText, long: outText },
+      core: {
+        prose: {
+          short: outText,
+          full: outText,
+        },
+        timing: {
+          summary: `Past ${label} detection`,
+          windows: [],
+        },
+        verdict: {
+          line: outText,
+        },
+      },
+    });
+  }
+}
+
 if (isEventTimelineMicro && eventType) {
   const outText = buildEventTimelineAnswer(
     eventType,
@@ -5775,9 +5960,10 @@ if (isEventTimelineMicro && eventType) {
     evidenceBullets: [
       `Event type: ${eventType}`,
       ...(Array.isArray(eventMonthTimeline)
-        ? eventMonthTimeline
-            .slice(0, 3)
-            .map((w) => `Month window: ${w.start} → ${w.end} (peak ${w.peak})`)
+        ? eventMonthTimeline.slice(0, 3).map(
+            (w) =>
+              `Month window: ${formatMonthLabel(w.start)} → ${formatMonthLabel(w.end)} (peak ${formatMonthLabel(w.peak)})`
+          )
         : []),
       ...(Array.isArray(eventTimeline)
         ? eventTimeline

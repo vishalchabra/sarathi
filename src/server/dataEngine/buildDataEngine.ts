@@ -7,8 +7,7 @@ import { buildVargaData } from "@/server/dataEngine/buildVargaData";
 import { buildDashaData } from "@/server/dataEngine/buildDashaData";
 import { buildTransitSnapshot } from "@/server/dataEngine/buildTransitSnapshot";
 import { buildCompareData } from "@/server/dataEngine/buildCompareData";
-import { buildLifeReport } from "@/server/astro/life-engine";
-
+import { getAscendant } from "@/server/astro/asc";
 export type DataEnginePlan = "light" | "pro";
 
 export type BirthInput = {
@@ -121,7 +120,42 @@ function normalizeReportPlanets(planets: any[]): any[] {
     };
   });
 }
+function getServerBaseUrl() {
+  const explicit = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL;
+  if (explicit) return explicit.replace(/\/$/, "");
 
+  const vercel = process.env.VERCEL_URL;
+  if (vercel) return `https://${vercel}`.replace(/\/$/, "");
+
+  return "http://localhost:3000";
+}
+
+async function fetchTrustedLifeReport(birth: BirthInput) {
+  const base = getServerBaseUrl();
+
+  const res = await fetch(`${base}/api/life-report`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      name: birth.name,
+      birthDateISO: birth.dateISO,
+      birthTime: birth.time,
+      birthTz: birth.timezone,
+      birthLat: birth.lat,
+      birthLon: birth.lon,
+    }),
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`life-report fetch failed: ${res.status} ${text.slice(0, 200)}`);
+  }
+
+  return res.json();
+}
 export async function buildDataEngine(
   params: BuildDataEngineParams
 ): Promise<DataEngineOutput> {
@@ -130,26 +164,32 @@ export async function buildDataEngine(
   const compareDateISO = String(params.compareDateISO || "").trim() || null;
 
   const birth = params.birth;
+  const asc = await getAscendant({
+  dateISO: birth.dateISO,
+  time: birth.time,
+  tz: birth.timezone,
+  lat: birth.lat,
+  lon: birth.lon,
+});
+  const reportData = await fetchTrustedLifeReport(birth);
 
-  const report = await (buildLifeReport as any)({
-    name: birth.name,
-    birthDateISO: birth.dateISO,
-    birthTime: birth.time,
-    birthTz: birth.timezone,
-    lat: birth.lat,
-    lon: birth.lon,
-  });
-
-  const reportData = report as any;
   const reportPlanets = normalizeReportPlanets(reportData?.planets ?? []);
   const ascSign = String(
-    reportData?.core?.ascSign ??
-      reportData?.ascSign ??
-      reportData?.ascendant?.ascSign ??
-      "—"
-  );
-  const ascSignNum = SIGN_TO_NUM[ascSign] ?? 0;
+  reportData?.core?.ascSign ??
+    reportData?._debugAsc?.ascSign ??
+    reportData?.ascSign ??
+    reportData?.ascendant?.ascSign ??
+    "—"
+);
 
+const ascSignNum = SIGN_TO_NUM[ascSign] ?? 0;
+
+const ascDeg =
+  typeof reportData?.core?.ascDeg === "number"
+    ? reportData.core.ascDeg
+    : typeof reportData?._debugAsc?.ascDeg === "number"
+    ? reportData._debugAsc.ascDeg
+    : null;
   const natal = {
     ayanamsa: "Lahiri",
     birthUTCISO: toBirthUTCISO(birth),
@@ -158,14 +198,16 @@ export async function buildDataEngine(
       reportPlanets.find((p: any) => p.planet === "Moon")?.lon ??
       null,
 
-    ascendant: {
-      sign: ascSign,
-      signNum: ascSignNum,
-      degree: null,
-      house: 1,
-      lon: null,
-    },
-
+ascendant: {
+  sign: ascSign,
+  signNum: ascSignNum,
+  degree: ascDeg,
+  house: 1,
+  lon:
+    ascSignNum > 0 && typeof ascDeg === "number"
+      ? (ascSignNum - 1) * 30 + ascDeg
+      : null,
+},
     planets: reportPlanets,
     sourceNote: "Mapped from trusted life-engine buildLifeReport",
   };
@@ -183,10 +225,12 @@ export async function buildDataEngine(
     natalPlanets: natalData?.planets,
   });
 
-  const vargas = await buildVargaData({
-    birth,
-    plan,
-  });
+const vargas = await buildVargaData({
+  birth,
+  plan,
+  natalPlanets: natalData?.planets,
+  natalAscendant: natalData?.ascendant,
+});
 
   const dasha = await buildDashaData({
     birth,
