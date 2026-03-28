@@ -24,6 +24,10 @@ import { buildHistoricalSnapshot } from "@/server/astro/buildHistoricalSnapshot"
 import { buildMarriageEventVerification } from "@/server/astro/buildMarriageEventVerification";
 import { buildTransitSnapshotForDate } from "@/server/astro/buildTransitSnapshotForDate";
 import { buildDegreeHitsForDate } from "@/server/astro/buildDegreeHitsForDate";
+import { buildMarriageLifeReading } from "@/server/astro/buildMarriageLifeReading";
+import { buildEventVerification } from "@/server/astro/buildEventVerification";
+import { buildEventTimeline } from "@/server/astro/buildEventTimeline";
+import { buildEventMonthTimeline } from "@/server/astro/buildEventMonthTimeline";
 const chatContext = new Map<string, string[]>(); // memory of recent questions
 const lastFollowup = new Map<string, string>();  // last followup lane we offered
 const lastFacts = new Map<string, any>();        // last astroFacts bundle
@@ -798,7 +802,20 @@ function buildRoutePlan(question: string): AskSarathiRoutePlan {
   };
 }
 // ================= OPEN CHART MODE HELPERS =================
+function detectEventType(question: string): import("@/server/astro/types").EventType | null {
+  const q = question.toLowerCase();
 
+  if (/marriage|married|wedding|got married/.test(q)) return "marriage";
+  if (/job change|career change|changed job|promotion|career move/.test(q)) return "career_change";
+  if (/business start|started business|new business/.test(q)) return "business_start";
+  if (/property|house purchase|bought house|home purchase|real estate/.test(q)) return "property";
+  if (/child birth|birth of child|had a child|pregnancy|baby/.test(q)) return "child_birth";
+  if (/relocation|moved|move abroad|shifted city|foreign move/.test(q)) return "relocation";
+  if (/health event|illness|surgery|health issue/.test(q)) return "health";
+  if (/transformation|major turning point|life changed|breakdown|rebirth/.test(q)) return "transformation";
+
+  return null;
+}
 
 
 function isFoodQuestion(q: string): boolean {
@@ -901,7 +918,25 @@ function isMicroIntentQuestion(q: string): boolean {
 /* --------------------------------------------------
    Follow-up classifier
 -------------------------------------------------- */
+function buildEventTimelineAnswer(
+  eventType: string,
+  eventTimeline: Array<{ start: number; end: number; peak: number }> | null,
+  eventMonthTimeline: Array<{ start: string; end: string; peak: string }> | null
+): string {
+  const label = eventType.replace("_", " ");
 
+  if (eventMonthTimeline && eventMonthTimeline.length > 0) {
+    const top = eventMonthTimeline[0];
+    return `Your strongest ${label} window is ${top.start} to ${top.end}, with ${top.peak} as the peak month.`;
+  }
+
+  if (eventTimeline && eventTimeline.length > 0) {
+    const top = eventTimeline[0];
+    return `Your strongest ${label} window is ${top.start} to ${top.end}, with ${top.peak} as the peak year.`;
+  }
+
+  return `I could not identify a strong ${label} window from the currently scanned period.`;
+}
 function isShortFollowup(q: string): boolean {
   const t = q.trim().toLowerCase();
 
@@ -936,6 +971,19 @@ function canonicalTopic(t: string): "career" | "money" | "relationships" | "heal
 /* --------------------------------------------------
    Timing helpers
 -------------------------------------------------- */
+function buildEventMicroAnswer(v: any, year: number): string {
+  if (!v) return `I could not verify ${year} clearly from your chart.`;
+
+  if (v.verdict === "strong_match") {
+    return `${year} was a strong ${v.eventType.replace("_", " ")} period in your chart. The timing clearly supported this event.`;
+  }
+
+  if (v.verdict === "possible_match") {
+    return `${year} was a possible ${v.eventType.replace("_", " ")} period in your chart. The support was present but not peak.`;
+  }
+
+  return `${year} was not a strong ${v.eventType.replace("_", " ")} period in your chart. The timing support looks weaker than your better windows.`;
+}
 function buildCareerMicroAnswer(careerReading: any): string {
   const roles: string[] = Array.isArray(careerReading?.likelyRoles)
     ? careerReading.likelyRoles.slice(0, 3).map((x: any) => String(x))
@@ -5466,6 +5514,59 @@ const marriageEventVerification = historicalSnapshot
 console.log("HISTORICAL SNAPSHOT:", historicalSnapshot);
 console.log("DASHA TIMELINE:", JSON.stringify(report?.dashaTimeline, null, 2));
 console.log("MARRIAGE EVENT VERIFICATION:", marriageEventVerification);
+const marriageLifeReading = buildMarriageLifeReading({
+  baseChartFactors,
+  marriageFacts,
+});
+const eventType = detectEventType(question);
+const isTimelineQuestion =
+  /when|best time|which year|when will|when did/i.test(question) &&
+  !!eventType;
+let eventTimeline: Array<{ start: number; end: number; peak: number }> | null = null;
+
+if (isTimelineQuestion && eventType) {
+  eventTimeline = await buildEventTimeline({
+    eventType,
+    baseChartFactors,
+    marriageFacts,
+    professionFacts,
+    report,
+    startYear: 2005,
+    endYear: 2030,
+  });
+
+  console.log("EVENT TIMELINE:", eventTimeline);
+}
+const eventVerification =
+  eventType && historicalSnapshot
+    ? buildEventVerification({
+        eventType,
+        baseChartFactors,
+        historicalSnapshot,
+        marriageFacts,
+        professionFacts,
+      })
+    : null;
+    
+    const isEventMicro =
+  eventType &&
+  /was .* right|did .* support|was .* correct timing|was .* good timing/i.test(question);
+  let eventMonthTimeline = null;
+
+if (isTimelineQuestion && eventType) {
+  eventMonthTimeline = await buildEventMonthTimeline({
+    eventType,
+    baseChartFactors,
+    marriageFacts,
+    professionFacts,
+    report,
+    startYear: 2024,
+    endYear: 2027,
+  });
+
+  console.log("EVENT MONTH TIMELINE:", eventMonthTimeline);
+}
+
     // payload for /api/naturalize
     const natPayload = {
   userQuestion: question,
@@ -5501,8 +5602,13 @@ console.log("MARRIAGE EVENT VERIFICATION:", marriageEventVerification);
   careerReading,
   marriageFacts,
   marriageReading,
+  marriageLifeReading,
   historicalSnapshot,
   marriageEventVerification,
+  eventType,
+  eventVerification,
+  eventTimeline,
+  eventMonthTimeline,
   domainAstroEvidence: buildDomainAstroEvidence({ topic, report }),
   coreTimingSummary: core.timing.summary,
   timingStrength: core.timing.windows?.[0]?.strength || null,
@@ -5610,6 +5716,91 @@ if (isMarriageVerification && marriageEventVerification && targetYear) {
     },
     historicalSnapshot,
     marriageEventVerification,
+  });
+}
+if (isEventMicro && eventVerification && targetYear) {
+  const outText = buildEventMicroAnswer(eventVerification, targetYear);
+
+  return okJson({
+    answer: outText,
+    evidenceBullets: dedupedEvidenceBullets,
+    followupMode,
+    distressed,
+    copy: { answer: outText, long: outText },
+    core: {
+      ...core,
+      prose: {
+        short: outText,
+        full: outText,
+      },
+    },
+  });
+}
+const isEventTimelineMicro =
+  isTimelineQuestion &&
+  !!eventType &&
+  (!!eventTimeline || !!eventMonthTimeline);
+
+if (isEventTimelineMicro && eventType) {
+  const outText = buildEventTimelineAnswer(
+    eventType,
+    eventTimeline,
+    eventMonthTimeline
+  );
+
+  return okJson({
+    answer: outText,
+    evidenceBullets: dedupedEvidenceBullets,
+    followupMode,
+    distressed,
+    copy: { answer: outText, long: outText },
+    core: {
+      ...core,
+      prose: {
+        short: outText,
+        full: outText,
+      },
+    },
+  });
+}
+if (isEventTimelineMicro && eventType) {
+  const outText = buildEventTimelineAnswer(
+    eventType,
+    eventTimeline,
+    eventMonthTimeline
+  );
+
+  return okJson({
+    answer: outText,
+    evidenceBullets: [
+      `Event type: ${eventType}`,
+      ...(Array.isArray(eventMonthTimeline)
+        ? eventMonthTimeline
+            .slice(0, 3)
+            .map((w) => `Month window: ${w.start} → ${w.end} (peak ${w.peak})`)
+        : []),
+      ...(Array.isArray(eventTimeline)
+        ? eventTimeline
+            .slice(0, 2)
+            .map((w) => `Year window: ${w.start} → ${w.end} (peak ${w.peak})`)
+        : []),
+    ],
+    followupMode,
+    distressed,
+    copy: { answer: outText, long: outText },
+    core: {
+      prose: {
+        short: outText,
+        full: outText,
+      },
+      timing: {
+        summary: `Predicted ${eventType.replace("_", " ")} timing`,
+        windows: [],
+      },
+      verdict: {
+        line: outText,
+      },
+    },
   });
 }
    // ---- call /api/naturalize ----

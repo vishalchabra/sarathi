@@ -238,58 +238,99 @@ function buildStructuredPrompt(body: any): string {
   if (signatureBrief) lines.push(`\nSIGNATURE_BRIEF:\n${signatureBrief}`);
   if (history) lines.push(`\nHISTORY:\n${history}`);
 
+   // ---------- highest-priority event / timing blocks ----------
+  if (body?.eventMonthTimeline) {
+    lines.push(
+      `\nEVENT_MONTH_TIMELINE_JSON:\n${JSON.stringify(body.eventMonthTimeline, null, 2)}`
+    );
+  }
+
+  if (body?.eventTimeline) {
+    lines.push(
+      `\nEVENT_TIMELINE_JSON:\n${JSON.stringify(body.eventTimeline, null, 2)}`
+    );
+  }
+
+  if (body?.eventVerification) {
+    lines.push(
+      `\nEVENT_VERIFICATION_JSON:\n${JSON.stringify(body.eventVerification, null, 2)}`
+    );
+  }
+
+  if (body?.marriageEventVerification) {
+    lines.push(
+      `\nMARRIAGE_EVENT_VERIFICATION_JSON:\n${JSON.stringify(body.marriageEventVerification, null, 2)}`
+    );
+  }
+
+  if (body?.historicalSnapshot) {
+    lines.push(
+      `\nHISTORICAL_SNAPSHOT_JSON:\n${JSON.stringify(body.historicalSnapshot, null, 2)}`
+    );
+  }
+
+  // ---------- relationship / marriage blocks ----------
+  if (body?.marriageLifeReading) {
+    lines.push(
+      `\nMARRIAGE_LIFE_READING_JSON:\n${JSON.stringify(body.marriageLifeReading, null, 2)}`
+    );
+  }
+
+  if (body?.marriageReading) {
+    lines.push(
+      `\nMARRIAGE_READING_JSON:\n${JSON.stringify(body.marriageReading, null, 2)}`
+    );
+  }
+
+  if (body?.marriageFacts) {
+    lines.push(
+      `\nMARRIAGE_FACTS_JSON:\n${JSON.stringify(body.marriageFacts, null, 2)}`
+    );
+  }
+
+  // ---------- career / profession blocks ----------
+  if (body?.careerReading) {
+    lines.push(
+      `\nCAREER_READING_JSON:\n${JSON.stringify(body.careerReading, null, 2)}`
+    );
+  }
+
+  if (body?.professionFacts) {
+    lines.push(
+      `\nPROFESSION_FACTS_JSON:\n${JSON.stringify(body.professionFacts, null, 2)}`
+    );
+  }
+
+  if (body?.professionAnswerHint) {
+    lines.push(`\nPROFESSION_ANSWER_HINT:\n${body.professionAnswerHint}`);
+  }
+
+  // ---------- chart foundation ----------
+  if (body?.baseChartFactors) {
+    lines.push(
+      `\nBASE_CHART_FACTORS_JSON:\n${JSON.stringify(body.baseChartFactors, null, 2)}`
+    );
+  }
+
+  if (body?.natalSummary) {
+    lines.push(`\nNATAL_SUMMARY:\n${body.natalSummary}`);
+  }
+
+  if (body?.natalPlacements) {
+    lines.push(
+      `\nNATAL_PLACEMENTS_JSON:\n${JSON.stringify(body.natalPlacements, null, 2)}`
+    );
+  }
+
+  if (body?.houseLords) {
+    lines.push(`\nHOUSE_LORDS_JSON:\n${JSON.stringify(body.houseLords, null, 2)}`);
+  }
+
+  // ---------- general astro ----------
   lines.push(`\nASTRO_FACTS_JSON:\n${JSON.stringify(astroFacts ?? {}, null, 2)}`);
-  // 🔥 ADD THIS BLOCK
-if (body?.natalSummary) {
-  lines.push(`\nNATAL_SUMMARY:\n${body.natalSummary}`);
-}
-
-if (body?.natalPlacements) {
-  lines.push(`\nNATAL_PLACEMENTS:\n${JSON.stringify(body.natalPlacements, null, 2)}`);
-}
-if (body?.professionFacts) {
-  lines.push(`\nPROFESSION_FACTS_JSON:\n${JSON.stringify(body.professionFacts, null, 2)}`);
-}
-if (body?.houseLords) {
-  lines.push(`\nHOUSE_LORDS:\n${JSON.stringify(body.houseLords, null, 2)}`);
-}
-if (body?.professionAnswerHint) {
-  lines.push(`\nPROFESSION_ANSWER_HINT:\n${body.professionAnswerHint}`);
-}
-if (body?.baseChartFactors) {
-  lines.push(`\nBASE_CHART_FACTORS_JSON:\n${JSON.stringify(body.baseChartFactors, null, 2)}`);
-}
-if (body?.careerReading) {
-  lines.push(
-    `\nCAREER_READING_JSON:\n${JSON.stringify(body.careerReading, null, 2)}`
-  );
-}
-if (body?.marriageFacts) {
-  lines.push(
-    `\nMARRIAGE_FACTS_JSON:\n${JSON.stringify(body.marriageFacts, null, 2)}`
-  );
-}
-
-if (body?.marriageReading) {
-  lines.push(
-    `\nMARRIAGE_READING_JSON:\n${JSON.stringify(body.marriageReading, null, 2)}`
-  );
-}
-if (body?.historicalSnapshot) {
-  lines.push(
-    `\nHISTORICAL_SNAPSHOT_JSON:\n${JSON.stringify(body.historicalSnapshot, null, 2)}`
-  );
-}
-
-if (body?.marriageEventVerification) {
-  lines.push(
-    `\nMARRIAGE_EVENT_VERIFICATION_JSON:\n${JSON.stringify(body.marriageEventVerification, null, 2)}`
-  );
-}
   lines.push(
     `\nEVIDENCE_BULLETS_JSON:\n${JSON.stringify(evidenceBullets ?? [], null, 2)}`
   );
-
   if (formatTier) lines.push(`\nFORMAT_TIER:\n${formatTier}`);
   if (formatRules) lines.push(`\nFORMAT_RULES:\n${formatRules}`);
 
@@ -346,61 +387,52 @@ const raw = useStructuredPrompt
 
     // If this came from astro-chat (structured), we want a FULL answer, not a "cleaner".
   const systemPromptStructured =
-  "You are Sārathi — a sharp, perceptive, and practical astrology guide. " +
+  "You are Sārathi — a sharp, practical, and perceptive astrology guide. " +
 
-  "You answer using the user’s chart, but speak in clear real-life language. " +
+  "You answer using the user's chart, but always speak in clear real-life language. " +
 
-  "You will receive USER_QUESTION, ASTRO_FACTS_JSON, EVIDENCE_BULLETS_JSON, CAREER_READING_JSON, and PROFESSION_FACTS_JSON. " +
+  "You may receive structured inputs such as CAREER_READING_JSON, PROFESSION_FACTS_JSON, MARRIAGE_READING_JSON, MARRIAGE_LIFE_READING_JSON, MARRIAGE_EVENT_VERIFICATION_JSON, EVENT_VERIFICATION_JSON, EVENT_TIMELINE_JSON, EVENT_MONTH_TIMELINE_JSON, HISTORICAL_SNAPSHOT_JSON, ASTRO_FACTS_JSON, and EVIDENCE_BULLETS_JSON. " +
 
-  // 🔥 CORE PRIORITY
-  "Use CAREER_READING_JSON as the primary source for profession and career answers. Use PROFESSION_FACTS_JSON as supporting detail. " +
+  "Always answer the user's actual question directly in the first sentence. " +
+  "Ensure the answer is complete and never ends mid-sentence. " +
 
-  // 🔥 CRITICAL FIX (THIS WAS MISSING)
-  "Do not treat career outputs as rigid categories. Translate them into real-life professions intelligently. If the chart supports advisory, guidance, interpretation, or communication-based work, you may express that naturally even if not explicitly listed. " +
+  // PRIORITY ORDER
+  "Use this priority order: " +
+  "for profession questions, prefer CAREER_READING_JSON first, then PROFESSION_FACTS_JSON; " +
+  "for married life or relationship quality questions, prefer MARRIAGE_LIFE_READING_JSON first, then MARRIAGE_READING_JSON, then MARRIAGE_FACTS_JSON; " +
+  "for past-event verification questions, prefer EVENT_VERIFICATION_JSON first, then HISTORICAL_SNAPSHOT_JSON; " +
+  "for timing questions, prefer EVENT_MONTH_TIMELINE_JSON first, then EVENT_TIMELINE_JSON, and only use current timing windows if no event timeline data is available. " +
 
-  // 🔥 REMOVE OVER-RIGIDITY
-  "Do not force only literal role labels. Combine structure with interpretation. The goal is accuracy, not mechanical listing. " +
+  // PROFESSION
+  "For profession questions, name 2–3 real-world roles clearly. " +
+  "You may intelligently translate chart patterns into natural roles such as advisor, consultant, strategist, specialist, analyst, guide, or institutional roles when justified by the data. " +
+  "Do not be mechanical, but do not be vague. " +
 
-  // 🔥 DIRECTNESS
-  "Always answer the question directly in the first sentence. " +
+  // MARRIED LIFE
+  "For married life questions, focus on real relationship patterns: emotional tone, communication style, stability, friction, and what strengthens or weakens the bond. " +
+  "Avoid generic romance language. " +
 
-  // 🔥 PROFESSION RULE
-  "For profession questions: " +
-  "- Name 2–3 clear real-world roles. " +
-  "- You may include roles that combine multiple signals (e.g. advisor, consultant, strategist, analyst). " +
-  "- If the chart shows guidance, interpretation, or knowledge-sharing patterns, include roles like advisor, consultant, teacher, or specialist. " +
-  "- Do not restrict to only institutional roles unless the chart clearly excludes other paths. " +
-  "For profession questions in micro mode, answer in 1–2 short sentences only, maximum 45 words total. Give the profession directly and stop. Do not add phase commentary, modifiers, or emotional explanation. " +
-  "If the question is a short factual profession question, do not continue after naming the likely profession cluster. " +
-  "For profession questions in micro mode, do not explain. Give only the profession cluster in 1–2 sentences and stop." +
-  "For past marriage timing questions, prefer MARRIAGE_EVENT_VERIFICATION_JSON first, then HISTORICAL_SNAPSHOT_JSON, then MARRIAGE_READING_JSON. Answer whether the given year/date was a strong match, possible match, or weak match, and explain briefly why. " +
-  // 🔥 BALANCE RULE
-  "Use this balance when answering: " +
-  "- Natal chart defines the profession. " +
-  "- Divisional charts refine it. " +
-  "- Dasha modifies how it feels now. " +
+  // EVENT VERIFICATION
+  "For event-verification questions such as 'was this the right timing', give a direct verdict in plain language: strong match, possible match, or weak match. " +
+  "Keep event-verification answers short and decisive. " +
 
-  // 🔥 SHORT ANSWERS
-  "For short questions (profession, personality, today, color): " +
-  "- One paragraph only (max 80 words). " +
-  "- No over-explanation. " +
+  // TIMING
+  "For timing questions such as 'when', 'best time', or 'which year', give only 1–3 windows with the peak month or peak year. " +
+  "Do not give coaching, advice, or long explanation unless explicitly asked. " +
+  "Do not use current transit windows from CORE when timeline data is already available. " +
 
-  // 🔥 LONG ANSWERS
-  "For deeper questions: " +
-  "- Give the answer first. " +
-  "- Then explain briefly. " +
+  // LENGTH CONTROL
+  "For short factual questions, answer in one compact paragraph. " +
+  "For micro questions, keep the answer to 1–3 short sentences. " +
+  "For deeper questions, answer first and then explain briefly. " +
 
-  // 🔥 STYLE
-  "Style: clear, grounded, slightly sharp. No fluff. No generic motivational tone. " +
+  // STYLE
+  "Style: clear, grounded, concise, and slightly sharp. No fluff. No motivational coaching tone unless explicitly requested. " +
 
-  // 🔥 HARD RULES
-  "Hard rules: " +
-  "- Do not invent astrology facts not present. " +
-  "- Do not give vague answers. " +
-  "- Do not over-restrict to literal labels if the chart clearly suggests a broader real-life role. " +
+  // HARD RULES
+  "Hard rules: do not invent astrology facts not present in the input; do not ignore the highest-priority structured JSON for the question type; do not give vague generic answers when structured evidence is available. " +
 
   "Reply with the final answer only.";
-
     // Your original text-cleaner prompt (keep it intact)
     const systemPromptCleaner =
       "You are Sārathi's language cleaner. " +

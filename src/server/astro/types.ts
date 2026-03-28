@@ -382,6 +382,7 @@ export type HistoricalSnapshot = {
   activatedNatalPlanets: PlanetId[];
   topTransitHits: string[];
   degreeHits?: DegreeHit[];
+
   summary: {
     relationshipActive: boolean;
     careerActive: boolean;
@@ -423,4 +424,18 @@ export type DegreeHit = {
   sameHouse: boolean;
   strength: number; // 0..1
   note: string;
+};
+/* ---------------------- Marriage life reading engine ---------------------- */
+
+export type MarriageLifeReading = {
+  overallTone: string;
+  emotionalPattern: string;
+  communicationPattern: string;
+  stabilityPattern: string;
+  frictionPattern: string;
+  whatStrengthensMarriage: string[];
+  whatWeakensMarriage: string[];
+  currentPhaseImpact: string[];
+  strongestSignals: string[];
+  confidence: number;
 };

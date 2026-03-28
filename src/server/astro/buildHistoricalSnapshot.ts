@@ -52,6 +52,7 @@ export function buildHistoricalSnapshot(input: Input): HistoricalSnapshot {
   const activatedNatalPlanets = getActivatedNatalPlanets(transitPlanets, natalPlanets);
   const topTransitHits = buildTopTransitHits(input.topTransits ?? [], targetDateISO);
   const degreeHits = Array.isArray(input.degreeHits) ? input.degreeHits : [];
+
   const summary = {
     relationshipActive: activeNatalHouses.some((h) => [2, 5, 7, 8].includes(h)),
     careerActive: activeNatalHouses.some((h) => [1, 6, 10, 11].includes(h)),
@@ -66,6 +67,7 @@ export function buildHistoricalSnapshot(input: Input): HistoricalSnapshot {
     activeNatalHouses,
     activatedNatalPlanets,
     topTransitHits,
+    degreeHits,
     summary,
   };
 }

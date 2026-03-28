@@ -122,28 +122,36 @@ export async function computePlacements(birth: BirthInput) {
 
     const res = await sweCall<any>("swe_calc_ut", jd, pid, flags);
 
-    let lon =
-      typeof res?.longitude === "number"
-        ? res.longitude
-        : Array.isArray(res?.x) && typeof res.x[0] === "number"
-        ? res.x[0]
-        : NaN;
+    let lonTrop =
+  typeof res?.longitude === "number"
+    ? res.longitude
+    : Array.isArray(res?.x) && typeof res.x[0] === "number"
+    ? res.x[0]
+    : NaN;
 
-    if (isNaN(lon)) continue;
+if (isNaN(lonTrop)) continue;
 
-    lon = norm360(lon);
-    if (P.name === "Rahu") rahuLon = lon;
+// convert tropical -> sidereal
+const lonSid = norm360(lonTrop - ayan);
 
-    const sign = signFromDeg(lon);
-    const degree = lon % 30;
-    let house: number | null = null;
+if (P.name === "Rahu") rahuLon = lonSid;
 
-    if (ascIdx != null) {
-      const signIdx = Math.floor(lon / 30);
-      house = ((signIdx - ascIdx + 12) % 12) + 1; // 1..12
-    }
+const sign = signFromDeg(lonSid);
+const degree = lonSid % 30;
+let house: number | null = null;
 
-    out.push({ planet: P.name, sign, house, degree, lon });
+if (ascIdx != null) {
+  const signIdx = Math.floor(lonSid / 30);
+  house = ((signIdx - ascIdx + 12) % 12) + 1; // 1..12
+}
+
+out.push({
+  planet: P.name,
+  sign,
+  house,
+  degree,
+  lon: lonSid,
+});
   }
 
   // Ketu as opposite of Rahu
