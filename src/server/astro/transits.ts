@@ -331,6 +331,7 @@ type TransitPlanet = {
   name: string;
   lon: number;
   speedLon?: number;
+  retrograde?: boolean;
 };
 
 /**
@@ -408,7 +409,45 @@ out.push({
 
   return out;
 }
+function signedAngleDeltaDeg(fromDeg: number, toDeg: number): number {
+  let d = ((toDeg - fromDeg + 540) % 360) - 180;
+  return d;
+}
 
+async function estimateSiderealMotionDegPerHour(
+  jdUt: number,
+  code: number,
+  flags: number
+): Promise<number | undefined> {
+  const prevJd = jdUt - 1 / 24;
+  const nextJd = jdUt + 1 / 24;
+
+  const prevRes = await sweCall<any>("swe_calc_ut", prevJd, code, flags);
+  const nextRes = await sweCall<any>("swe_calc_ut", nextJd, code, flags);
+
+  const prevLonRaw = extractLongitude(prevRes);
+  const nextLonRaw = extractLongitude(nextRes);
+
+  if (
+    typeof prevLonRaw !== "number" ||
+    !isFinite(prevLonRaw) ||
+    typeof nextLonRaw !== "number" ||
+    !isFinite(nextLonRaw)
+  ) {
+    return undefined;
+  }
+
+  const prevAyan = await lahiriAyanamsaDeg(prevJd);
+  const nextAyan = await lahiriAyanamsaDeg(nextJd);
+
+  const prevSid = toSiderealLon(wrap360(prevLonRaw), prevAyan);
+  const nextSid = toSiderealLon(wrap360(nextLonRaw), nextAyan);
+
+  const delta = signedAngleDeltaDeg(prevSid, nextSid);
+
+  // 2-hour span total, so convert to per-hour
+  return delta / 2;
+}
 /**
  * Transit planets (Sun, Mercury, Venus, Mars, Jupiter, Saturn)
  * for a specific UTC date.
@@ -421,21 +460,21 @@ async function computeTransitPlanetsForDay(
 
   const jdUt = await jdFromDateUTC(date, constants.SE_GREG_CAL);
 
-  // IMPORTANT: assume swe returns TROPICAL unless you fully trust the sidereal flag.
-  // So do manual sidereal conversion consistently.
   const flags =
     (constants.SEFLG_SWIEPH ?? 2) |
-    (constants.SEFLG_SPEED ?? 256); // <- notice: NO SIDEREAL FLAG here
+    (constants.SEFLG_SPEED ?? 256);
 
   const ayanDeg = await lahiriAyanamsaDeg(jdUt);
 
   const defs = [
     { name: "Sun", code: constants.SE_SUN },
+    { name: "Moon", code: constants.SE_MOON },
     { name: "Mercury", code: constants.SE_MERCURY },
     { name: "Venus", code: constants.SE_VENUS },
     { name: "Mars", code: constants.SE_MARS },
     { name: "Jupiter", code: constants.SE_JUPITER },
     { name: "Saturn", code: constants.SE_SATURN },
+    { name: "Rahu", code: constants.SE_TRUE_NODE ?? constants.SE_MEAN_NODE },
   ];
 
   const out: TransitPlanet[] = [];
@@ -445,26 +484,49 @@ async function computeTransitPlanetsForDay(
 
     const res = await sweCall<any>("swe_calc_ut", jdUt, p.code, flags);
 
+    const lonRaw = extractLongitude(res);
+    if (typeof lonRaw !== "number" || !isFinite(lonRaw)) continue;
 
-const lonRaw = extractLongitude(res);
-const speedLon =
-  Array.isArray(res?.xx) && typeof res.xx[3] === "number"
-    ? res.xx[3]
-    : undefined;
+    const lonDeg = wrap360(Number(lonRaw));
+    const lonSid = toSiderealLon(lonDeg, ayanDeg);
 
-if (typeof lonRaw !== "number" || !isFinite(lonRaw)) continue;
+    let speedLon =
+      Array.isArray(res?.xx) && typeof res.xx[3] === "number"
+        ? res.xx[3]
+        : undefined;
 
-const lonDeg = wrap360(Number(lonRaw));
+    if (typeof speedLon !== "number" || !isFinite(speedLon)) {
+      speedLon = await estimateSiderealMotionDegPerHour(jdUt, p.code, flags);
+    }
 
-const lonSid = toSiderealLon(lonDeg, ayanDeg);     // tropical -> sidereal
+    const retrograde =
+      p.name === "Rahu"
+        ? true
+        : p.name === "Sun" || p.name === "Moon"
+        ? false
+        : typeof speedLon === "number"
+        ? speedLon < 0
+        : false;
 
+    out.push({
+      name: p.name,
+      lon: lonSid,
+      speedLon,
+      retrograde,
+    });
+  }
 
-out.push({
-  name: p.name,
-  lon: lonSid,
-  speedLon,
-});
+  const rahu = out.find((p) => p.name === "Rahu");
 
+  if (rahu && typeof rahu.lon === "number") {
+    const ketuLon = wrap360(rahu.lon + 180);
+
+    out.push({
+      name: "Ketu",
+      lon: ketuLon,
+      speedLon: typeof rahu.speedLon === "number" ? rahu.speedLon : undefined,
+      retrograde: true,
+    });
   }
 
   return out;
@@ -1096,12 +1158,20 @@ if (process.env.NODE_ENV !== "production") {
   if (m) console.log("[sanity] Mercury sidereal lon:", m.lon);
 }
 
-  return {
-    name: p.name,
-    lon: sidLon, // ✅ store sidereal lon (consistent with the rest of the engine)
-    sign,
-    house,
-  };
+ return {
+  name: p.name,
+  lon: sidLon,
+  sign,
+  house,
+  retrograde:
+    typeof (p as any).retrograde === "boolean"
+      ? (p as any).retrograde
+      : false,
+  speedLon:
+    typeof (p as any).speedLon === "number"
+      ? (p as any).speedLon
+      : undefined,
+};
 });
 }
 

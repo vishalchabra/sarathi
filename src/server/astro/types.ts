@@ -351,9 +351,14 @@ export type MarriageFacts = {
 export type MarriageReading = {
   relationshipPattern: string;
   commitmentPattern: string;
+
+  verdict: string;
+  explanation: string;
+  action: string;
+
   spouseType: string[];
-  likelyMarriagePattern: "steady" | "delayed" | "mixed" | "unconventional";
-  loveVsArranged: "love" | "arranged" | "mixed";
+  likelyMarriagePattern: string;
+  loveVsArranged: string;
   strengths: string[];
   blockers: string[];
   currentPhaseModifier: string[];

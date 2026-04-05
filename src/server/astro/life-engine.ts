@@ -331,7 +331,36 @@ function computeAspects(planets: any[]) {
 
   return out;
 }
+function buildHouseLordsFromAsc(ascDeg: number) {
+  const out: Record<string, { sign: string; lord: string }> = {};
 
+  const signLords: Record<string, string> = {
+    Aries: "Mars",
+    Taurus: "Venus",
+    Gemini: "Mercury",
+    Cancer: "Moon",
+    Leo: "Sun",
+    Virgo: "Mercury",
+    Libra: "Venus",
+    Scorpio: "Mars",
+    Sagittarius: "Jupiter",
+    Capricorn: "Saturn",
+    Aquarius: "Saturn",
+    Pisces: "Jupiter",
+  };
+
+  for (let i = 0; i < 12; i++) {
+    const houseNum = i + 1;
+    const signDeg = wrap360(ascDeg + i * 30);
+    const sign = signOfDeg(signDeg);
+    out[`H${houseNum}`] = {
+      sign,
+      lord: signLords[sign] ?? "",
+    };
+  }
+
+  return out;
+}
 /* -------------------------------------------------------
    MAIN ENGINE
 ------------------------------------------------------- */
@@ -376,7 +405,7 @@ astroDebug("[JD CHECK FIXED]", { jdUt, birthUtcISO: birthUtc.toISOString() });
   
 
   // ✅ Vargas disabled for now (module not present). v2 fallback handles Asc + houses safely.
-  const vargas: any = null;
+  const vargas: any = {};
 
   // ✅ Ascendant: prefer Swiss/D1 if available, else fallback to v2 ascendant
   let ascDeg: number;
@@ -411,6 +440,7 @@ astroDebug("[ASC INPUTS]", {
   // ✅ Whole sign houses
   const houses = Array.from({ length: 12 }, (_, i) => wrap360(ascDeg + i * 30));
   const houseData = { ascDeg, ascSign, houses };
+  const houseLords = buildHouseLordsFromAsc(ascDeg);
 
   // ✅ Attach houses
   // ✅ Planets + Whole Sign houses (single source of truth)
@@ -510,17 +540,118 @@ if (sunSid !== null && moonSid !== null) {
 const part = 360 / 27;
 
   /* 5) Vimshottari Mahadasha timeline */
-  const dashaTimeline = await vimshottariMDTable({
+console.log("[life-engine] moon for dasha", {
+  moonSid,
+  moonName: moonBirth?.name ?? null,
+  moonNakshatra: moonBirth?.nakshatra ?? null,
+});
+
+console.log("[life-engine] moon for dasha", {
+  moonSid,
+  moonName: moonBirth?.name ?? null,
+  moonNakshatra: moonBirth?.nakshatra ?? null,
+  birthDateISO: input.birthDateISO,
+  birthTime: input.birthTime,
+  birthTz: input.birthTz,
+});
+
+const dashaTimeline = await vimshottariMDTable({
   dateISO: input.birthDateISO,
   time: input.birthTime,
   tz: input.birthTz,
   lat: input.lat,
   lon: input.lon,
-  moonSiderealLongitude: moonSid ?? undefined,
+  moonSiderealLongitude:
+    typeof moonSid === "number" && Number.isFinite(moonSid)
+      ? moonSid
+      : undefined,
 });
 
+console.log("[life-engine] MD table check", {
+  count: Array.isArray(dashaTimeline) ? dashaTimeline.length : 0,
+  first: Array.isArray(dashaTimeline) ? dashaTimeline[0] : null,
+});
+console.log("[life-engine] MD table check", {
+  count: Array.isArray(dashaTimeline) ? dashaTimeline.length : 0,
+  first: Array.isArray(dashaTimeline) ? dashaTimeline[0] : null,
+});
+console.log("[life-engine] MD table check", {
+  count: Array.isArray(dashaTimeline) ? dashaTimeline.length : 0,
+  first: Array.isArray(dashaTimeline) ? dashaTimeline[0] : null,
+  moonSid,
+  birthDateISO: input.birthDateISO,
+  birthTime: input.birthTime,
+  birthTz: input.birthTz,
+});
+const fullDashaTimeline: Array<{
+  start: string;
+  end: string;
+  md: string;
+  ad: string | null;
+  pd: string | null;
+}> = [];
 
+for (const md of dashaTimeline) {
+  const adTimeline = buildSubDashaTimeline(
+    md.startISO,
+    md.endISO,
+    md.planet as VimLord
+  );
 
+  if (!adTimeline.length) {
+    fullDashaTimeline.push({
+      start: md.startISO,
+      end: md.endISO,
+      md: md.planet,
+      ad: null,
+      pd: null,
+    });
+    continue;
+  }
+
+  for (const ad of adTimeline) {
+    const pdTimeline = buildSubDashaTimeline(
+      ad.startISO,
+      ad.endISO,
+      ad.planet as VimLord
+    );
+
+    if (!pdTimeline.length) {
+      fullDashaTimeline.push({
+        start: ad.startISO,
+        end: ad.endISO,
+        md: md.planet,
+        ad: ad.planet,
+        pd: null,
+      });
+      continue;
+    }
+
+    for (const pd of pdTimeline) {
+      fullDashaTimeline.push({
+        start: pd.startISO,
+        end: pd.endISO,
+        md: md.planet,
+        ad: ad.planet,
+        pd: pd.planet,
+      });
+    }
+  }
+}
+console.log("[life-engine] full dasha timeline check", {
+  mdCount: Array.isArray(dashaTimeline) ? dashaTimeline.length : 0,
+  fullCount: fullDashaTimeline.length,
+  firstFull: fullDashaTimeline[0] ?? null,
+  lastFull: fullDashaTimeline[fullDashaTimeline.length - 1] ?? null,
+});
+
+if (!Array.isArray(dashaTimeline) || dashaTimeline.length === 0) {
+  console.error("[life-engine] ERROR: vimshottariMDTable returned no MD rows");
+}
+
+if (Array.isArray(dashaTimeline) && dashaTimeline.length > 0 && fullDashaTimeline.length === 0) {
+  console.error("[life-engine] ERROR: fullDashaTimeline expansion failed");
+}
   const currentMD =
     dashaTimeline.find((row) => row.startISO <= todayISO && todayISO <= row.endISO) || null;
 
@@ -573,6 +704,7 @@ const part = 360 / 27;
   astroDebug("[LIFE-ENGINE RUN]", new Date().toISOString());
   astroDebug("[ASC CHECK]", { ascDeg, ascSign });
   astroDebug("[HOUSE DEBUG ASC]", { ascDeg, ascSign });
+ 
   return {
     meta: {
       name: input.name,
@@ -777,11 +909,22 @@ const part = 360 / 27;
       tip: fullPanchang.tip || null,
     },
 
-    dashaTimeline,
-    activePeriods,
-    vargas,
-    lifeMilestones,
-        foodToday,
+dashaTimeline:
+  fullDashaTimeline.length > 0
+    ? fullDashaTimeline
+    : dashaTimeline.map((row: any) => ({
+        start: row.startISO,
+        end: row.endISO,
+        md: row.planet,
+        ad: null,
+        pd: null,
+      })),
+activePeriods,
+houseLords,
+divisionalCharts: vargas,
+vargas,
+lifeMilestones,
+foodToday,
 
     version: "sarathi-v1.0",
   };

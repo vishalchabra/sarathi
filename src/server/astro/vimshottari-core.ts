@@ -173,10 +173,14 @@ async function moonSiderealDegAtBirth(birth: Birth): Promise<number> {
     flags
   );
 
-  const lonRaw = extractLongitude(res);
-  const lon = typeof lonRaw === "number" ? lonRaw : 0;
+const lonRaw = extractLongitude(res);
 
-  return norm360(lon);
+if (typeof lonRaw !== "number" || !Number.isFinite(lonRaw)) {
+  console.log("[vimshottari] Moon extraction failed", { res });
+  throw new Error("Failed to extract sidereal Moon longitude");
+}
+
+return norm360(lonRaw);
 }
 
 /* ---------------------- date math ---------------------- */
@@ -275,7 +279,11 @@ export async function vimshottariMDTable(birth: Birth): Promise<MDT[]> {
 
     const moonDeg = moonFromCaller ?? (await moonSiderealDegAtBirth(birth));
     const rows = buildMDFromMoonDeg(birth, moonDeg);
-
+    console.log("[vimshottari] final check", {
+  moonDeg,
+  rowsCount: rows.length,
+  firstRow: rows[0] ?? null,
+});
     if (process.env.NODE_ENV !== "production") {
       console.log(
         "[vimshottari] Moon°=",

@@ -38,7 +38,7 @@ const PLANETS = [
   { name: "Mars", key: "SE_MARS" as const },
   { name: "Jupiter", key: "SE_JUPITER" as const },
   { name: "Saturn", key: "SE_SATURN" as const },
-  { name: "Rahu", key: "SE_MEAN_NODE" as const }, // use SE_TRUE_NODE if you prefer
+  { name: "Rahu", key: "SE_MEAN_NODE" as const },
   // Ketu handled after Rahu as opposite point
 ];
 

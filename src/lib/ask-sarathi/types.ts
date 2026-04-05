@@ -4,11 +4,13 @@ export type AskSarathiDomain =
   | "relationships"
   | "health"
   | "property"
+  | "relocation"
   | "vehicle"
   | "disputes"
   | "marriage"
   | "inner"
   | "generic";
+  
 
 export type AskSarathiQuestionType =
   | "decision"

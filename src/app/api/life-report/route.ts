@@ -1107,16 +1107,102 @@ function postProcessNowPlan(nowPlan: any, dailyMoon: any[], todayISO?: string) {
   /* -------------------------------------------------------
     Enrich with MD / AD / PD
   -------------------------------------------------------- */
+  function normalizeDashaDate(x: any): string {
+  const s = String(x ?? "").trim();
+  if (!s) return "";
+  const d = new Date(s);
+  if (!Number.isNaN(+d)) return d.toISOString().slice(0, 10);
+  return s;
+}
+
+function buildDashaTimeline(report: any): Array<{
+  start: string;
+  end: string;
+  md?: string | null;
+  ad?: string | null;
+  pd?: string | null;
+}> {
+  const rows: Array<{
+    start: string;
+    end: string;
+    md?: string | null;
+    ad?: string | null;
+    pd?: string | null;
+  }> = [];
+
+  const source =
+    report?.dashaTimeline ??
+    report?.vimshottari ??
+    report?.dasha ??
+    report?.periods ??
+    null;
+
+  const mdList = Array.isArray(source?.mahadasha)
+    ? source.mahadasha
+    : Array.isArray(source)
+    ? source
+    : [];
+
+  for (const md of mdList) {
+    const mdLord =
+      String(md?.lord ?? md?.planet ?? md?.name ?? "").trim() || null;
+
+    const adList = Array.isArray(md?.antardasha) ? md.antardasha : [];
+
+    if (!adList.length) {
+      const start = normalizeDashaDate(md?.startISO ?? md?.start);
+      const end = normalizeDashaDate(md?.endISO ?? md?.end);
+      if (start && end) {
+        rows.push({ start, end, md: mdLord, ad: null, pd: null });
+      }
+      continue;
+    }
+
+    for (const ad of adList) {
+      const adLord =
+        String(ad?.lord ?? ad?.subLord ?? ad?.planet ?? ad?.name ?? "").trim() || null;
+
+      const pdList = Array.isArray(ad?.pratyantardasha)
+        ? ad.pratyantardasha
+        : Array.isArray(ad?.pd)
+        ? ad.pd
+        : [];
+
+      if (!pdList.length) {
+        const start = normalizeDashaDate(ad?.startISO ?? ad?.start);
+        const end = normalizeDashaDate(ad?.endISO ?? ad?.end);
+        if (start && end) {
+          rows.push({ start, end, md: mdLord, ad: adLord, pd: null });
+        }
+        continue;
+      }
+
+      for (const pd of pdList) {
+        const pdLord =
+          String(pd?.lord ?? pd?.subLord ?? pd?.planet ?? pd?.name ?? "").trim() || null;
+
+        const start = normalizeDashaDate(pd?.startISO ?? pd?.start);
+        const end = normalizeDashaDate(pd?.endISO ?? pd?.end);
+
+        if (start && end) {
+          rows.push({ start, end, md: mdLord, ad: adLord, pd: pdLord });
+        }
+      }
+    }
+  }
+
+  return rows;
+}
   function enrichWithActivePeriods(report: any) {
     if (!report) return report;
 
     const existing = report.activePeriods ?? null;
 
     const timeline =
-      report.dashaTimeline ??
-      report.timelineWindows ??
-      report.timeline ??
-      [];
+  report?.dashaTimeline ??
+  report?.timelineWindows ??
+  report?.timeline ??
+  [];
 
     const main =
       Array.isArray(timeline) && timeline.length > 0 ? timeline[0] : null;
@@ -1762,7 +1848,7 @@ if (!transitNowFacts.length && Array.isArray(topTransits) && topTransits.length 
       // ----------------------------
       // 2) Cache keys
       // ----------------------------
-      const cacheBuster = 1;
+      const cacheBuster = 2;
 
       const baseKey = makeCacheKey({
         name: body.name ?? body.placeName ?? "User",
@@ -1771,7 +1857,7 @@ if (!transitNowFacts.length && Array.isArray(topTransits) && topTransits.length 
         birthTz: body.birthTz,
         lat,
         lon,
-        version: "engine-v2b-asc-sidereal-2",
+        version: "engine-v2b-asc-sidereal-3",
         cacheBuster,
       });
 
@@ -1784,6 +1870,7 @@ if (!transitNowFacts.length && Array.isArray(topTransits) && topTransits.length 
       let cacheFlag: "hit" | "miss" | "miss-dev" = "miss";
 
       if (process.env.NODE_ENV !== "production") {
+ 
         report = await buildLifeReport({
           name: body.name ?? body.placeName,
           birthDateISO: body.birthDateISO,
@@ -1792,6 +1879,41 @@ if (!transitNowFacts.length && Array.isArray(topTransits) && topTransits.length 
           lat,
           lon,
         });
+        console.log("[life-report] after buildLifeReport", {
+  reportKeys: Object.keys(report ?? {}),
+  dashaTimelineCount: Array.isArray(report?.dashaTimeline) ? report.dashaTimeline.length : 0,
+  firstDashaRow: Array.isArray(report?.dashaTimeline) ? report.dashaTimeline[0] : null,
+});
+         console.log("[life-report] source report keys", {
+  topLevelKeys: Object.keys(report ?? {}),
+  natalKeys: Object.keys(report?.natal ?? {}),
+  houseLordKeys: Object.keys(report?.houseLords ?? report?.natal?.houseLords ?? {}),
+  divisionalKeys: Object.keys(report?.divisionalCharts ?? report?.vargas ?? {}),
+  hasD10: !!(
+    report?.divisionalCharts?.D10 ??
+    report?.divisionalCharts?.d10 ??
+    report?.vargas?.D10 ??
+    report?.vargas?.d10
+  ),
+});
+console.log("[life-report] buildLifeReport output keys", Object.keys(report ?? {}));
+console.log("[life-report] possible dasha sources", {
+  hasDashaTimeline: !!report?.dashaTimeline,
+  hasTimeline: !!report?.timeline,
+  hasTimelineWindows: !!report?.timelineWindows,
+  hasDasha: !!report?.dasha,
+  hasVimshottari: !!report?.vimshottari,
+  hasPeriods: !!report?.periods,
+  hasActivePeriods: !!report?.activePeriods,
+});
+console.log("[life-report] dasha source preview", {
+  dashaTimeline: report?.dashaTimeline?.[0] ?? null,
+  timeline: report?.timeline?.[0] ?? null,
+  timelineWindows: report?.timelineWindows?.[0] ?? null,
+  dasha: report?.dasha ?? null,
+  vimshottari: report?.vimshottari ?? null,
+  periods: report?.periods ?? null,
+});
         cacheFlag = "miss-dev";
       } else {
         const cached = await cacheGet<any>(cacheKey);
@@ -1807,6 +1929,9 @@ if (!transitNowFacts.length && Array.isArray(topTransits) && topTransits.length 
             lat,
             lon,
           });
+          
+          console.log("[life-report] dasha raw", report?.dasha);
+          console.log("[life-report] full report keys", Object.keys(report || {})); 
           await cacheSet(cacheKey, report, 60 * 5);
           cacheFlag = "miss";
         }
@@ -1815,8 +1940,25 @@ if (!transitNowFacts.length && Array.isArray(topTransits) && topTransits.length 
       // ----------------------------
       // 4) Enrich report with active periods
       // ----------------------------
-      const enriched = enrichWithActivePeriods(report);
+     
 
+console.log("[life-report] dasha timeline check", {
+  count: Array.isArray(report?.dashaTimeline) ? report.dashaTimeline.length : 0,
+  first: Array.isArray(report?.dashaTimeline) ? report.dashaTimeline[0] : null,
+  topLevelKeys: Object.keys(report ?? {}),
+});
+report.timeline =
+  Array.isArray(report?.dashaTimeline) && report.dashaTimeline.length > 0
+    ? report.dashaTimeline
+    : Array.isArray(report?.timeline)
+    ? report.timeline
+    : [];
+const enriched = enrichWithActivePeriods(report);
+console.log("[life-report] after enrichWithActivePeriods", {
+  enrichedKeys: Object.keys(enriched ?? {}),
+  dashaTimelineCount: Array.isArray(enriched?.dashaTimeline) ? enriched.dashaTimeline.length : 0,
+  firstDashaRow: Array.isArray(enriched?.dashaTimeline) ? enriched.dashaTimeline[0] : null,
+});
       const lagnaSign =
         (enriched as any)?.core?.ascSign ?? (enriched as any)?.ascSign ?? undefined;
 
@@ -2068,24 +2210,77 @@ console.log("[life-report] nowPlan generated?", !!nowPlan, "headline:", nowPlan?
     dailyMoon,
     transitNowFacts
   );
+  
       // ----------------------------
       // 14) Response payload
       // ----------------------------
-      const payload: any = {
-    ...enrichedWithDaily,
-    transitNowFacts,
-    nowNearFuture: nowPlan,
-    nowPlan,
-    todayNextFewDaysCards,
+    const payload: any = {
+  ...enrichedWithDaily,
 
-    notificationFacts,
-    previewNotifications,
-    _cache: cacheFlag,
-    _debugAsc: {
-      ascDeg: (enriched as any)?.core?.ascDeg ?? report?.core?.ascDeg,
-      ascSign: (enriched as any)?.core?.ascSign ?? report?.core?.ascSign,
+  // explicitly preserve career-critical structures
+  houseLords:
+    (enrichedWithDaily as any)?.houseLords ??
+    (enriched as any)?.houseLords ??
+    (report as any)?.houseLords ??
+    (report as any)?.natal?.houseLords ??
+    {},
+
+  divisionalCharts:
+    (enrichedWithDaily as any)?.divisionalCharts ??
+    (enriched as any)?.divisionalCharts ??
+    (report as any)?.divisionalCharts ??
+    (report as any)?.vargas ??
+    {},
+
+  // optional alias if some downstream logic still expects vargas
+  vargas:
+    (enrichedWithDaily as any)?.vargas ??
+    (enriched as any)?.vargas ??
+    (report as any)?.vargas ??
+    (report as any)?.divisionalCharts ??
+    {},
+
+  // preserve birth block for downstream debug/inference
+  birth:
+    (enrichedWithDaily as any)?.birth ??
+    (enriched as any)?.birth ??
+    (report as any)?.birth ??
+    {
+      name: body.name ?? body.placeName ?? "User",
+      dateISO: body.birthDateISO,
+      time: body.birthTime,
+      tz: body.birthTz,
+      lat,
+      lon,
     },
-  };
+  dashaTimeline:
+    (enrichedWithDaily as any)?.dashaTimeline ??
+    (enriched as any)?.dashaTimeline ??
+    (report as any)?.dashaTimeline ??
+    [],
+
+  timeline:
+    (enrichedWithDaily as any)?.dashaTimeline ??
+    (enriched as any)?.dashaTimeline ??
+    (report as any)?.dashaTimeline ??
+    (enrichedWithDaily as any)?.timeline ??
+    (enriched as any)?.timeline ??
+    (report as any)?.timeline ??
+    [],
+
+  transitNowFacts,
+  nowNearFuture: nowPlan,
+  nowPlan,
+  todayNextFewDaysCards,
+
+  notificationFacts,
+  previewNotifications,
+  _cache: cacheFlag,
+  _debugAsc: {
+    ascDeg: (enriched as any)?.core?.ascDeg ?? report?.core?.ascDeg,
+    ascSign: (enriched as any)?.core?.ascSign ?? report?.core?.ascSign,
+  },
+};
     payload.overviewSummary = buildOverviewSummary(payload);
   payload.todayISO = todayISO;
   payload.hiddenPattern = buildHiddenPattern(payload);
@@ -2108,7 +2303,26 @@ console.log("[life-report] nowPlan generated?", !!nowPlan, "headline:", nowPlan?
       });
 
       payload.fullGuidanceV2 = fullGuidanceV2;
+     console.log("[life-report] career payload check", {
+  hasHouseLords: !!payload?.houseLords,
+  houseLordKeys: Object.keys(payload?.houseLords ?? {}),
+  hasDivisionalCharts: !!payload?.divisionalCharts,
+  divisionalKeys: Object.keys(payload?.divisionalCharts ?? {}),
+  hasD10: !!(payload?.divisionalCharts?.D10 ?? payload?.divisionalCharts?.d10),
+});
 
+console.log("[life-report] payload timeline check", {
+  dashaTimelineCount: Array.isArray(payload?.dashaTimeline) ? payload.dashaTimeline.length : 0,
+  timelineCount: Array.isArray(payload?.timeline) ? payload.timeline.length : 0,
+  firstDashaRow: Array.isArray(payload?.dashaTimeline) ? payload.dashaTimeline[0] : null,
+});
+console.log("[life-report] final payload check", {
+  payloadKeys: Object.keys(payload ?? {}),
+  dashaTimelineCount: Array.isArray(payload?.dashaTimeline) ? payload.dashaTimeline.length : 0,
+  timelineCount: Array.isArray(payload?.timeline) ? payload.timeline.length : 0,
+  firstDashaRow: Array.isArray(payload?.dashaTimeline) ? payload.dashaTimeline[0] : null,
+  firstTimelineRow: Array.isArray(payload?.timeline) ? payload.timeline[0] : null,
+});
       return NextResponse.json(deepCleanStrings(payload));
     } catch (e: any) {
       console.error("life-report API error:", e);

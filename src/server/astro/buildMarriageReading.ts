@@ -59,19 +59,37 @@ export function buildMarriageReading(input: Input): MarriageReading {
 
   const relationshipPattern = getRelationshipPattern(facts);
   const commitmentPattern = getCommitmentPattern(facts);
+  const verdict = getMarriageVerdict({
+  strongestSignals,
+  blockers,
+  currentPhaseModifier,
+});
 
+const explanation = getMarriageExplanation({
+  relationshipPattern,
+  commitmentPattern,
+  currentPhaseModifier,
+});
+
+const action = getMarriageAction({
+  blockers,
+  currentPhaseModifier,
+});
   return {
-    relationshipPattern,
-    commitmentPattern,
-    spouseType: uniq(facts?.spouseQualities ?? []).slice(0, 5),
-    likelyMarriagePattern: facts?.likelyMarriagePattern ?? "mixed",
-    loveVsArranged: facts?.loveVsArranged ?? "mixed",
-    strengths: uniq(strengths).slice(0, 6),
-    blockers: uniq(blockers).slice(0, 6),
-    currentPhaseModifier: uniq(currentPhaseModifier).slice(0, 4),
-    strongestSignals: uniq(strongestSignals).slice(0, 6),
-    confidence: clamp(Number(facts?.confidence ?? 50), 0, 100),
-  };
+  relationshipPattern,
+  commitmentPattern,
+  verdict,
+  explanation,
+  action,
+  spouseType: uniq(facts?.spouseQualities ?? []).slice(0, 5),
+  likelyMarriagePattern: facts?.likelyMarriagePattern ?? "mixed",
+  loveVsArranged: facts?.loveVsArranged ?? "mixed",
+  strengths: uniq(strengths).slice(0, 6),
+  blockers: uniq(blockers).slice(0, 6),
+  currentPhaseModifier: uniq(currentPhaseModifier).slice(0, 4),
+  strongestSignals: uniq(strongestSignals).slice(0, 6),
+  confidence: clamp(Number(facts?.confidence ?? 50), 0, 100),
+};
 }
 
 function getRelationshipPattern(facts?: MarriageFacts | null): string {
@@ -101,7 +119,60 @@ function getCommitmentPattern(facts?: MarriageFacts | null): string {
 
   return "Commitment develops gradually and tends to need both emotional and practical trust.";
 }
+function getMarriageVerdict(opts: {
+  strongestSignals: string[];
+  blockers: string[];
+  currentPhaseModifier: string[];
+}): string {
+  const strong = opts.strongestSignals.length;
+  const block = opts.blockers.length;
 
+  if (strong >= 3 && block <= 1) {
+    return "Marriage timing looks supportive, with real scope for commitment or serious relationship movement.";
+  }
+
+  if (strong >= 2) {
+    return "Marriage timing is active, but it should be read as a broader commitment phase rather than a single sharp event.";
+  }
+
+  return "Marriage timing is present, but it looks slower-building than sharply immediate.";
+}
+
+function getMarriageExplanation(opts: {
+  relationshipPattern: string;
+  commitmentPattern: string;
+  currentPhaseModifier: string[];
+}): string {
+  const phaseLine = opts.currentPhaseModifier?.[0]
+    ? `What’s active now is this: ${opts.currentPhaseModifier[0]}`
+    : "This phase is more about relationship seriousness and alignment than instant closure.";
+
+  return [
+    opts.relationshipPattern,
+    opts.commitmentPattern,
+    phaseLine,
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
+
+function getMarriageAction(opts: {
+  blockers: string[];
+  currentPhaseModifier: string[];
+}): string {
+  const blockText = opts.blockers.join(" ").toLowerCase();
+  const phaseText = opts.currentPhaseModifier.join(" ").toLowerCase();
+
+  if (blockText.includes("delay") || blockText.includes("fear") || blockText.includes("hesitation")) {
+    return "Use this phase to reduce hesitation, increase clarity, and move serious conversations forward.";
+  }
+
+  if (phaseText.includes("serious") || phaseText.includes("commitment")) {
+    return "Use this phase for sincerity, clarity, and steady relationship progression rather than emotional pressure.";
+  }
+
+  return "Use this phase for seriousness, compatibility assessment, and commitment-building rather than forcing timing.";
+}
 function uniq(arr: string[]) {
   return Array.from(new Set(arr.map((x) => String(x).trim()).filter(Boolean)));
 }

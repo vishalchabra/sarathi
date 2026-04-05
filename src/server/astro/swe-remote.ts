@@ -85,6 +85,75 @@ function wrap360(x: number): number {
   if (v < 0) v += 360;
   return v;
 }
+function julianCenturiesSinceJ2000(jdUt: number): number {
+  return (jdUt - 2451545.0) / 36525.0;
+}
+
+function degToRad(deg: number): number {
+  return (deg * Math.PI) / 180.0;
+}
+
+function computeLunarMeanNodeLongitudeTropical(jdUt: number): number {
+  const t = julianCenturiesSinceJ2000(jdUt);
+
+  const omega =
+    125.0445479 +
+    (-1934.1362891 +
+      (0.0020754 +
+        (1.0 / 476441.0 - t / 60616000.0) * t) *
+        t) *
+      t;
+
+  return wrap360(omega);
+}
+
+function computeLunarTrueNodeLongitudeTropical(jdUt: number): number {
+  const t = julianCenturiesSinceJ2000(jdUt);
+
+  const omegaMean = computeLunarMeanNodeLongitudeTropical(jdUt);
+
+  const D =
+    297.8501921 +
+    (445267.1114034 +
+      (-0.0018819 +
+        (1.0 / 545868.0 - t / 113065000.0) * t) *
+        t) *
+      t;
+
+  const M =
+    357.5291092 +
+    (35999.0502909 + (-0.0001536 + t / 24490000.0) * t) * t;
+
+  const Mprime =
+    134.9633964 +
+    (477198.8675055 +
+      (0.0087414 +
+        (1.0 / 69699.9 + t / 14712000.0) * t) *
+        t) *
+      t;
+
+  const F =
+    93.2720950 +
+    (483202.0175233 +
+      (-0.0036539 +
+        (-1.0 / 3526000.0 + t / 863310000.0) * t) *
+        t) *
+      t;
+
+  const Dr = degToRad(wrap360(D));
+  const Mr = degToRad(wrap360(M));
+  const Mprimer = degToRad(wrap360(Mprime));
+  const Fr = degToRad(wrap360(F));
+
+  const corr =
+    -1.4979 * Math.sin(2.0 * (Dr - Fr)) -
+    0.15 * Math.sin(Mr) -
+    0.1226 * Math.sin(2.0 * Dr) +
+    0.1176 * Math.sin(2.0 * Fr) -
+    0.0801 * Math.sin(2.0 * (Mprimer - Fr));
+
+  return wrap360(omegaMean + corr);
+}
 
 // Approx Lahiri ayanamsa from JD (same model you used earlier)
 function approxLahiriAyanamsaDegFromJdUt(jdUt: number): number {
@@ -258,10 +327,16 @@ async function callSwe<T = any>(payload: SweCallPayload): Promise<T> {
 
   // Nodes: astronomy-engine doesn't expose these as simple bodies the same way.
   // Keep a stable fallback for nodes so the rest of the engine doesn't crash.
-  if (ipl === 10 || ipl === 11) {
-    const lon = computePlanetLongitudeTropicalFallback(jdUt, ipl);
-    return { longitude: lon } as T;
-  }
+  // ✅ Handle Rahu (true node) using astronomy-engine
+if (ipl === 10 || ipl === 11) {
+  // 10 = SE_MEAN_NODE, 11 = SE_TRUE_NODE
+  const lon =
+    ipl === 11
+      ? computeLunarTrueNodeLongitudeTropical(jdUt)
+      : computeLunarMeanNodeLongitudeTropical(jdUt);
+
+  return { longitude: lon } as T;
+}
 
   const Astronomy = await getAstronomy();
   const date = jdToDateUtc(jdUt);
