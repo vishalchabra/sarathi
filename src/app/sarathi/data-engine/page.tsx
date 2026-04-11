@@ -228,57 +228,59 @@ function LockingCityAutocomplete({
     if (timerRef.current) window.clearTimeout(timerRef.current);
 
     const query = q.trim();
-    if (query.length < 3) {
-      setItems([]);
-      setOpen(false);
-      return;
-    }
 
-    if (cityCache.has(query)) {
-      setItems(cityCache.get(query)!);
-      setOpen(true);
-      return;
-    }
+if (query.length < 2) {
+  setItems([]);
+  setOpen(false);
+  return;
+}
 
-    timerRef.current = window.setTimeout(async () => {
-      setLoading(true);
-      try {
-        const url = `https://nominatim.openstreetmap.org/search?format=json&limit=8&addressdetails=1&q=${encodeURIComponent(
-          query
-        )}`;
-        const res = await fetch(url, {
-          headers: { "Accept-Language": "en" },
-          referrerPolicy: "no-referrer",
-        });
+if (cityCache.has(query)) {
+  setItems(cityCache.get(query)!);
+  setOpen(true);
+  return;
+}
 
-        const json = (await res.json()) as any[];
-        const out = json.map((r) => {
-          const city =
-            r.address?.city ||
-            r.address?.town ||
-            r.address?.village ||
-            r.address?.state_district ||
-            r.address?.state ||
-            r.address?.county ||
-            r.address?.region;
-          const country = r.address?.country || "";
-          return {
-            name: [city, country].filter(Boolean).join(", ") || r.display_name,
-            lat: +r.lat,
-            lon: +r.lon,
-          };
-        });
+timerRef.current = window.setTimeout(async () => {
+  setLoading(true);
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?format=json&limit=5&addressdetails=1&accept-language=en&q=${encodeURIComponent(query)}`;
 
-        cityCache.set(query, out);
-        setItems(out);
-        setOpen(true);
-      } catch {
-        setItems([]);
-        setOpen(false);
-      } finally {
-        setLoading(false);
-      }
-    }, 250);
+    const res = await fetch(url, {
+      headers: { "Accept-Language": "en" },
+      referrerPolicy: "no-referrer",
+    });
+
+    const json = (await res.json()) as any[];
+    const out = json.map((r) => {
+      const city =
+        r.address?.city ||
+        r.address?.town ||
+        r.address?.village ||
+        r.address?.state_district ||
+        r.address?.state ||
+        r.address?.county ||
+        r.address?.region;
+
+      const country = r.address?.country || "";
+
+      return {
+        name: [city, country].filter(Boolean).join(", ") || r.display_name,
+        lat: +r.lat,
+        lon: +r.lon,
+      };
+    });
+
+    cityCache.set(query, out);
+    setItems(out);
+    setOpen(true);
+  } catch {
+    setItems([]);
+    setOpen(false);
+  } finally {
+    setLoading(false);
+  }
+}, 250);
 
     return () => {
       if (timerRef.current) window.clearTimeout(timerRef.current);
@@ -1014,12 +1016,7 @@ export default function DataEnginePage() {
 
               <div>
                 
-                <input
-                  type="date"
-                  value={compareDateISO}
-                  onChange={(e) => setCompareDateISO(e.target.value)}
-                  className="mt-1 w-full rounded-xl border border-white/15 bg-white/5/5 px-3 py-2 text-sm text-white outline-none focus:border-indigo-400"
-                />
+               
               </div>
             </div>
 
