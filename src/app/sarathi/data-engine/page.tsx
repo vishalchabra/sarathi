@@ -901,10 +901,6 @@ export default function DataEnginePage() {
       Built for astrologers who want technical depth, faster workflow, and cleaner chart judgement.
     </p>
   </div>
-
-  <div className="inline-flex w-fit items-center rounded-full border border-white/10 bg-white/5/5 px-3 py-1 text-xs font-medium text-white/75">
-    Built for astrologers
-  </div>
 </div>
 
 <div className="mt-6 rounded-2xl border border-white/10 bg-white/5/5 p-5 shadow-[0_0_0_1px_rgba(255,255,255,0.04)_inset]">
