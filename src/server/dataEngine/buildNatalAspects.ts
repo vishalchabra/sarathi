@@ -5,24 +5,18 @@ type NatalPlanet = {
   lon: number;
 };
 
-type TransitPlanet = {
-  name: string;
-  lon: number;
-};
-
 type AspectTone = "supportive" | "challenging" | "mixed" | "neutral";
 
-export type TransitContactRow = {
-  transitPlanet: string;
-  natalTarget: string;
-  type: "vedic_hit";
+export type NatalAspectRow = {
+  planetA: string; // aspecting planet
+  planetB: string; // aspected planet
+  type: "vedic_aspect";
   tone: AspectTone;
   label: string;
   rule: string;
   exactAngle: number;
   diff: number;
   orb: number;
-  applying: boolean | null;
   houseDistance: number;
 };
 
@@ -72,13 +66,16 @@ function getAspectAngleFromHouseDistance(houseNum: number): number {
 function getAspectTone(fromPlanet: string): AspectTone {
   if (fromPlanet === "Jupiter") return "supportive";
   if (fromPlanet === "Venus") return "supportive";
+
+  if (fromPlanet === "Saturn") return "challenging";
+  if (fromPlanet === "Mars") return "challenging";
+  if (fromPlanet === "Rahu") return "challenging";
+
   if (fromPlanet === "Moon") return "supportive";
   if (fromPlanet === "Sun") return "mixed";
   if (fromPlanet === "Mercury") return "neutral";
-  if (fromPlanet === "Mars") return "challenging";
-  if (fromPlanet === "Saturn") return "challenging";
-  if (fromPlanet === "Rahu") return "challenging";
   if (fromPlanet === "Ketu") return "mixed";
+
   return "neutral";
 }
 
@@ -116,72 +113,94 @@ function buildReadableLabel(
   return `${toPlanet} influenced by ${fromPlanet}`;
 }
 
-export function buildTransitContacts(params: {
+function buildAspectRow(
+  fromPlanet: NatalPlanet,
+  toPlanet: NatalPlanet,
+  hDist: number
+): NatalAspectRow {
+  const exactAngle = getAspectAngleFromHouseDistance(hDist);
+  const rawDiff = norm360(toPlanet.lon - fromPlanet.lon);
+  const orb = angleDiff(rawDiff, exactAngle);
+  const tone = getAspectTone(fromPlanet.planet);
+
+  return {
+    planetA: fromPlanet.planet,
+    planetB: toPlanet.planet,
+    type: "vedic_aspect",
+    tone,
+    label: buildReadableLabel(fromPlanet.planet, toPlanet.planet, tone),
+    rule: getRuleLabel(fromPlanet.planet, hDist),
+    exactAngle,
+    diff: Number(rawDiff.toFixed(2)),
+    orb: Number(orb.toFixed(2)),
+    houseDistance: hDist,
+  };
+}
+
+export function buildNatalAspects(params: {
   natalPlanets: NatalPlanet[];
-  transitPlanets: TransitPlanet[];
-}): TransitContactRow[] {
-  const natalPlanets = Array.isArray(params.natalPlanets)
-    ? params.natalPlanets
-    : [];
-  const transitPlanets = Array.isArray(params.transitPlanets)
-    ? params.transitPlanets
-    : [];
+}): NatalAspectRow[] {
+  const planets = Array.isArray(params.natalPlanets) ? params.natalPlanets : [];
 
-  const filteredNatal = natalPlanets.filter(
-    (n) =>
-      n &&
-      KEY_PLANETS.has(String(n.planet ?? "")) &&
-      typeof n.lon === "number" &&
-      !Number.isNaN(n.lon)
+  const filtered = planets.filter(
+    (p) =>
+      p &&
+      KEY_PLANETS.has(String(p.planet ?? "")) &&
+      typeof p.lon === "number" &&
+      !Number.isNaN(p.lon)
   );
 
-  const filteredTransit = transitPlanets.filter(
-    (t) =>
-      t &&
-      KEY_PLANETS.has(String(t.name ?? "")) &&
-      typeof t.lon === "number" &&
-      !Number.isNaN(t.lon)
-  );
+  const aspects: NatalAspectRow[] = [];
 
-  const contacts: TransitContactRow[] = [];
+  for (let i = 0; i < filtered.length; i++) {
+    for (let j = i + 1; j < filtered.length; j++) {
+      const A = filtered[i];
+      const B = filtered[j];
 
-  for (const t of filteredTransit) {
-    const rules = getVedicAspectRules(t.name);
+      const hDistAB = houseDistance(A.lon, B.lon);
+      const hDistBA = houseDistance(B.lon, A.lon);
 
-    for (const n of filteredNatal) {
-      const hDist = houseDistance(t.lon, n.lon);
+      const rulesA = getVedicAspectRules(A.planet);
+      const rulesB = getVedicAspectRules(B.planet);
 
-      if (!rules.includes(hDist)) continue;
+      if (rulesA.includes(hDistAB)) {
+  const row = buildAspectRow(A, B, hDistAB);
 
-      const exactAngle = getAspectAngleFromHouseDistance(hDist);
-      const rawDiff = norm360(n.lon - t.lon);
-      const orb = angleDiff(rawDiff, exactAngle);
+  if (row.orb <= 6) {   // ⭐ KEY FILTER
+    aspects.push(row);
+  }
+}
 
-      if (orb > 6) continue;
+     if (rulesB.includes(hDistBA)) {
+  const row = buildAspectRow(B, A, hDistBA);
 
-      const tone = getAspectTone(t.name);
-
-      contacts.push({
-        transitPlanet: t.name,
-        natalTarget: n.planet,
-        type: "vedic_hit",
-        tone,
-        label: buildReadableLabel(t.name, n.planet, tone),
-        rule: getRuleLabel(t.name, hDist),
-        exactAngle,
-        diff: Number(rawDiff.toFixed(2)),
-        orb: Number(orb.toFixed(2)),
-        applying: null,
-        houseDistance: hDist,
-      });
+  if (row.orb <= 6) {
+    aspects.push(row);
+  }
+}
     }
   }
 
-  return contacts.sort((a, b) => {
-    if (a.orb !== b.orb) return a.orb - b.orb;
-    if (a.transitPlanet !== b.transitPlanet) {
-      return a.transitPlanet.localeCompare(b.transitPlanet);
+  return aspects.sort((a, b) => {
+    const toneRank: Record<AspectTone, number> = {
+      supportive: 1,
+      challenging: 2,
+      mixed: 3,
+      neutral: 4,
+    };
+
+    if (toneRank[a.tone] !== toneRank[b.tone]) {
+      return toneRank[a.tone] - toneRank[b.tone];
     }
-    return a.natalTarget.localeCompare(b.natalTarget);
+
+    if (a.houseDistance !== b.houseDistance) {
+      return a.houseDistance - b.houseDistance;
+    }
+
+    if (a.planetB !== b.planetB) {
+      return a.planetB.localeCompare(b.planetB);
+    }
+
+    return a.planetA.localeCompare(b.planetA);
   });
 }

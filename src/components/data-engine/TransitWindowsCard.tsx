@@ -6,14 +6,14 @@ type Props = {
 
 export default function TransitWindowsCard({ windows }: Props) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-      <h2 className="text-lg font-semibold text-slate-900">
+    <div className="rounded-2xl border border-white/10 bg-white/5 p-5 shadow-sm">
+      <h2 className="text-lg font-semibold text-white">
         Transit Windows
       </h2>
 
       <div className="mt-4 overflow-x-auto">
         <table className="min-w-full text-sm text-left">
-          <thead className="border-b border-slate-200 text-slate-500">
+          <thead className="border-b border-white/10 text-white/50">
             <tr>
               <th className="px-3 py-2">Transit</th>
               <th className="px-3 py-2">Natal</th>
@@ -28,7 +28,7 @@ export default function TransitWindowsCard({ windows }: Props) {
           <tbody>
             {windows.length ? (
               windows.map((w, i) => (
-                <tr key={i} className="border-b border-slate-100">
+                <tr key={i} className="border-b border-white/10">
                   <td className="px-3 py-2">{w.transitPlanet}</td>
                   <td className="px-3 py-2">{w.natalPlanet}</td>
                   <td className="px-3 py-2">{w.startISO}</td>
@@ -40,7 +40,7 @@ export default function TransitWindowsCard({ windows }: Props) {
               ))
             ) : (
               <tr>
-                <td colSpan={7} className="px-3 py-4 text-slate-500">
+                <td colSpan={7} className="px-3 py-4 text-white/50">
                   No transit windows
                 </td>
               </tr>

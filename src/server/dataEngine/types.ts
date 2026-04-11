@@ -63,3 +63,20 @@ export type TransitContactRow = {
   orb?: number | null;
   applying?: boolean | null;
 };
+export type PanchangData = {
+  dateISO: string;
+  weekday: string;
+  tithi?: string | null;
+  nakshatra?: string | null;
+  yoga?: string | null;
+  karana?: string | null;
+  sunrise?: string | null;
+  sunset?: string | null;
+};
+
+export type MoonContextData = {
+  sign?: string | null;
+  nakshatra?: string | null;
+  houseFromLagna?: number | null;
+  houseFromMoon?: number | null;
+};

@@ -37,6 +37,68 @@ const SIGN_TO_NUM: Record<string, number> = {
   Aquarius: 11,
   Pisces: 12,
 };
+const SIGN_LORDS: Record<string, string> = {
+  Aries: "Mars",
+  Taurus: "Venus",
+  Gemini: "Mercury",
+  Cancer: "Moon",
+  Leo: "Sun",
+  Virgo: "Mercury",
+  Libra: "Venus",
+  Scorpio: "Mars",
+  Sagittarius: "Jupiter",
+  Capricorn: "Saturn",
+  Aquarius: "Saturn",
+  Pisces: "Jupiter",
+};
+
+const EXALTATION_SIGNS: Record<string, string | null> = {
+  Sun: "Aries",
+  Moon: "Taurus",
+  Mars: "Capricorn",
+  Mercury: "Virgo",
+  Jupiter: "Cancer",
+  Venus: "Pisces",
+  Saturn: "Libra",
+  Rahu: null,
+  Ketu: null,
+};
+
+const DEBILITATION_SIGNS: Record<string, string | null> = {
+  Sun: "Libra",
+  Moon: "Scorpio",
+  Mars: "Cancer",
+  Mercury: "Pisces",
+  Jupiter: "Capricorn",
+  Venus: "Virgo",
+  Saturn: "Aries",
+  Rahu: null,
+  Ketu: null,
+};
+
+const OWN_SIGNS: Record<string, string[]> = {
+  Sun: ["Leo"],
+  Moon: ["Cancer"],
+  Mars: ["Aries", "Scorpio"],
+  Mercury: ["Gemini", "Virgo"],
+  Jupiter: ["Sagittarius", "Pisces"],
+  Venus: ["Taurus", "Libra"],
+  Saturn: ["Capricorn", "Aquarius"],
+  Rahu: [],
+  Ketu: [],
+};
+
+const NATURAL_RELATIONSHIPS: Record<string, { friends: string[]; enemies: string[] }> = {
+  Sun: { friends: ["Moon", "Mars", "Jupiter"], enemies: ["Venus", "Saturn"] },
+  Moon: { friends: ["Sun", "Mercury"], enemies: [] },
+  Mars: { friends: ["Sun", "Moon", "Jupiter"], enemies: ["Mercury"] },
+  Mercury: { friends: ["Sun", "Venus"], enemies: ["Moon"] },
+  Jupiter: { friends: ["Sun", "Moon", "Mars"], enemies: ["Mercury", "Venus"] },
+  Venus: { friends: ["Mercury", "Saturn"], enemies: ["Sun", "Moon"] },
+  Saturn: { friends: ["Mercury", "Venus"], enemies: ["Sun", "Moon", "Mars"] },
+  Rahu: { friends: [], enemies: [] },
+  Ketu: { friends: [], enemies: [] },
+};
 const NAKSHATRAS_27 = [
   "Ashwini",
   "Bharani",
@@ -80,7 +142,9 @@ function getNakshatraFromLon(lon: number | null | undefined): string | null {
 function houseFromLagna(lagnaSignNum: number, transitSignNum: number): number {
   return ((transitSignNum - lagnaSignNum + 12) % 12) + 1;
 }
-
+function houseFromMoon(moonSignNum: number, planetSignNum: number): number {
+  return ((planetSignNum - moonSignNum + 12) % 12) + 1;
+}
 function toEngineBirth(birth: BirthInput) {
   return {
     dateISO: birth.dateISO,
@@ -104,7 +168,35 @@ function hhmmInTzForDate(dateISO: string, tz: string): string {
   const mm = parts.find((p) => p.type === "minute")?.value ?? "00";
   return `${hh}:${mm}`;
 }
+function getRelationship(planet: string, signLord: string | null) {
+  if (!signLord) return "n/a";
+  if (planet === signLord) return "self";
 
+  const rel = NATURAL_RELATIONSHIPS[planet];
+  if (!rel) return "n/a";
+
+  if (rel.friends.includes(signLord)) return "friend";
+  if (rel.enemies.includes(signLord)) return "enemy";
+  return "neutral";
+}
+
+function getDignity(p: string, sign: string, rel: string) {
+  if (EXALTATION_SIGNS[p] === sign) return "Exalted";
+  if (DEBILITATION_SIGNS[p] === sign) return "Debilitated";
+  if ((OWN_SIGNS[p] ?? []).includes(sign)) return "Own Sign";
+  if (rel === "friend") return "Friend Sign";
+  if (rel === "enemy") return "Enemy Sign";
+  return "Neutral Sign";
+}
+
+function getStrengthBand(dignity: string) {
+  if (dignity === "Exalted") return "very_strong";
+  if (dignity === "Own Sign") return "strong";
+  if (dignity === "Friend Sign") return "strong";
+  if (dignity === "Enemy Sign") return "weak";
+  if (dignity === "Debilitated") return "weak";
+  return "mixed";
+}
 export async function buildTransitSnapshot(
   params: BuildTransitSnapshotParams
 ) {
@@ -133,28 +225,39 @@ const allowedPlanets = new Set([
   "Rahu",
   "Ketu",
 ]);
- const mapped = (Array.isArray(transitNowRaw) ? transitNowRaw : []).map((p: any) => {
+const mapped = (Array.isArray(transitNowRaw) ? transitNowRaw : []).map((p: any) => {
   const planetName = String(p?.name ?? p?.planet ?? "").trim();
   const lon = typeof p?.lon === "number" ? p.lon : null;
   const sign = String(p?.sign ?? "");
   const signNum = SIGN_TO_NUM[sign] ?? 0;
 
-  return {
-    planet: planetName,
-    sign,
-    signNum,
-    degree: typeof lon === "number" ? Number((lon % 30).toFixed(2)) : null,
-    houseFromLagna:
-      typeof p?.house === "number"
-        ? p.house
-        : houseFromLagna(natalAscendant.signNum, signNum),
-    retrograde:
-      typeof p?.retrograde === "boolean"
-        ? p.retrograde
-        : planetName === "Rahu" || planetName === "Ketu",
-    nakshatra: getNakshatraFromLon(lon),
-    lon,
-  };
+  const signLord = SIGN_LORDS[sign] ?? null;
+const relationship = getRelationship(planetName, signLord);
+const dignity = getDignity(planetName, sign, relationship);
+const strengthBand = getStrengthBand(dignity);
+
+return {
+  planet: planetName,
+  sign,
+  signNum,
+  degree: typeof lon === "number" ? Number((lon % 30).toFixed(2)) : null,
+  houseFromLagna:
+    typeof p?.house === "number"
+      ? p.house
+      : houseFromLagna(natalAscendant.signNum, signNum),
+  retrograde:
+    typeof p?.retrograde === "boolean"
+      ? p.retrograde
+      : planetName === "Rahu" || planetName === "Ketu",
+  nakshatra: getNakshatraFromLon(lon),
+  lon,
+
+  // NEW
+  signLord,
+  relationshipToSignLord: relationship,
+  dignity,
+  strengthBand,
+};
 });
 
 const byPlanet = new Map(
@@ -172,7 +275,19 @@ const planets = [
   byPlanet.get("Rahu"),
   byPlanet.get("Ketu"),
 ].filter(Boolean);
+const moonPlanet = planets.find((p: any) => p.planet === "Moon") ?? null;
+const moonSignNum = moonPlanet?.signNum ?? null;
 
+// enrich planets with houseFromMoon
+const planetsWithMoon = planets.map((p: any) => {
+  return {
+    ...p,
+    houseFromMoon:
+      typeof moonSignNum === "number" && typeof p.signNum === "number"
+        ? houseFromMoon(moonSignNum, p.signNum)
+        : null,
+  };
+});
   // 2) Daily Moon rows anchored on selected date
   const dailyMoon = await computeDailyMoonNakshatras(
     {
@@ -187,14 +302,14 @@ const planets = [
     14
   );
 
-  const moonPlanet = planets.find((p: any) => p.planet === "Moon") ?? null;
+  
   const firstMoon =
   Array.isArray(dailyMoon) && dailyMoon.length > 0
     ? dailyMoon[0]
     : null;
 return {
   dateISO,
-  planets,
+  planets: planetsWithMoon,
   moonToday: firstMoon
     ? {
         sign: moonPlanet?.sign ?? null,

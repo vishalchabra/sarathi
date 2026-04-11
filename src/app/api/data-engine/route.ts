@@ -8,10 +8,10 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
 
     const result = await buildDataEngine({
-      birth: body.birth,
-      plan: body.plan,
-      selectedDateISO: body.selectedDateISO,
-      compareDateISO: body.compareDateISO,
+      birth: body?.birth,
+      plan: body?.plan ?? "light",
+      selectedDateISO: body?.selectedDateISO,
+      compareDateISO: body?.compareDateISO ?? null,
     });
 
     return NextResponse.json(result);

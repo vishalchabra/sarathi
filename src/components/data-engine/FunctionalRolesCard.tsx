@@ -11,11 +11,11 @@ type Props = {
 };
 
 function labelClass() {
-  return "text-xs font-medium uppercase tracking-wide text-slate-500";
+  return "text-xs font-medium uppercase tracking-wide text-white/50";
 }
 
 function valueClass() {
-  return "mt-1 text-sm text-slate-900";
+  return "mt-1 text-sm text-white";
 }
 
 function formatList(arr?: string[]) {
@@ -25,8 +25,8 @@ function formatList(arr?: string[]) {
 
 export default function FunctionalRolesCard({ roles }: Props) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-      <h2 className="text-base font-semibold text-slate-950">
+    <div className="rounded-2xl border border-white/10 bg-white/5 p-5 shadow-sm">
+      <h2 className="text-base font-semibold text-white">
         Functional Roles
       </h2>
 

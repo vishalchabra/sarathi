@@ -29,7 +29,7 @@ function badgeClass(planet: string) {
   const p = planet.toLowerCase();
 
   if (p === "sun") return "bg-amber-100 text-amber-800";
-  if (p === "moon") return "bg-slate-200 text-slate-800";
+  if (p === "moon") return "bg-indigo-100 text-indigo-800";
   if (p === "mars") return "bg-rose-100 text-rose-800";
   if (p === "mercury") return "bg-emerald-100 text-emerald-800";
   if (p === "jupiter") return "bg-yellow-100 text-yellow-800";
@@ -38,7 +38,7 @@ function badgeClass(planet: string) {
   if (p === "rahu") return "bg-violet-100 text-violet-800";
   if (p === "ketu") return "bg-cyan-100 text-cyan-800";
 
-  return "bg-slate-100 text-slate-800";
+  return "bg-white/10 text-white/90";
 }
 
 export default function PlanetTable({
@@ -47,12 +47,12 @@ export default function PlanetTable({
   title = "Planet Table",
 }: Props) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-      <h2 className="text-base font-semibold text-slate-950">{title}</h2>
+    <div className="rounded-2xl border border-white/10 bg-white/5 p-5 shadow-sm">
+      <h2 className="text-base font-semibold text-white">{title}</h2>
 
       <div className="mt-4 overflow-x-auto">
         <table className="min-w-full text-left text-sm">
-          <thead className="border-b border-slate-200 text-slate-500">
+          <thead className="border-b border-white/10 text-white/50">
             <tr>
               <th className="px-3 py-2 font-medium">Planet</th>
               <th className="px-3 py-2 font-medium">Sign</th>
@@ -72,8 +72,8 @@ export default function PlanetTable({
           </thead>
           <tbody>
             {planets.map((p) => (
-              <tr key={p.planet} className="border-b border-slate-100">
-                <td className="px-3 py-2 font-medium text-slate-900">
+              <tr key={p.planet} className="border-b border-white/10">
+                <td className="px-3 py-2 font-medium text-white">
                   <span
                     className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${badgeClass(
                       p.planet
@@ -82,27 +82,27 @@ export default function PlanetTable({
                     {p.planet}
                   </span>
                 </td>
-                <td className="px-3 py-2 text-slate-700">{p.sign ?? "—"}</td>
-                <td className="px-3 py-2 text-slate-700">
+                <td className="px-3 py-2 text-white/80">{p.sign ?? "—"}</td>
+                <td className="px-3 py-2 text-white/80">
                   {formatDegree(p.degree)}
                 </td>
-                <td className="px-3 py-2 text-slate-700">{p.house ?? "—"}</td>
-                <td className="px-3 py-2 text-slate-700">
+                <td className="px-3 py-2 text-white/80">{p.house ?? "—"}</td>
+                <td className="px-3 py-2 text-white/80">
                   {p.nakshatra ?? "—"}
                 </td>
-                <td className="px-3 py-2 text-slate-700">{p.pada ?? "—"}</td>
-                <td className="px-3 py-2 text-slate-700">
+                <td className="px-3 py-2 text-white/80">{p.pada ?? "—"}</td>
+                <td className="px-3 py-2 text-white/80">
                   {p.retrograde ? "Yes" : "No"}
                 </td>
-                <td className="px-3 py-2 text-slate-700">
+                <td className="px-3 py-2 text-white/80">
                   {p.combust ? "Yes" : "No"}
                 </td>
                 {rawMode ? (
                   <>
-                    <td className="px-3 py-2 text-slate-700">
+                    <td className="px-3 py-2 text-white/80">
                       {formatDegree(p.lon)}
                     </td>
-                    <td className="px-3 py-2 text-slate-700">
+                    <td className="px-3 py-2 text-white/80">
                       {p.signNum ?? "—"}
                     </td>
                   </>

@@ -1,10 +1,12 @@
 import "server-only";
 
-type UpcomingTransitRow = {
+type PlanetaryTransitEvent = {
   dateISO: string;
-  transitPlanet: string;
-  natalPlanet: string;
-  orb: number;
+  transitPlanet?: string;
+  natalPlanet?: string;
+  natalTarget?: string;
+  type?: string;
+  orb?: number | null;
 };
 
 type TransitWindow = {
@@ -17,14 +19,43 @@ type TransitWindow = {
   hitCount: number;
 };
 
-function rowKey(r: UpcomingTransitRow) {
-  return `${r.transitPlanet}__${r.natalPlanet}`;
+function rowKey(r: PlanetaryTransitEvent) {
+  return `${r.transitPlanet ?? "—"}__${r.natalPlanet ?? r.natalTarget ?? "—"}`;
 }
 
-export function buildTransitWindows(rows: UpcomingTransitRow[]): TransitWindow[] {
+function isTransitHit(
+  row: PlanetaryTransitEvent
+): row is PlanetaryTransitEvent & {
+  dateISO: string;
+  transitPlanet: string;
+  natalPlanet: string;
+  orb: number;
+} {
+  const natalPlanet = row?.natalPlanet ?? row?.natalTarget;
+
+  return (
+    row?.type === "vedic_hit" &&
+    typeof row?.dateISO === "string" &&
+    typeof row?.transitPlanet === "string" &&
+    typeof natalPlanet === "string" &&
+    typeof row?.orb === "number" &&
+    !Number.isNaN(row.orb)
+  );
+}
+
+export function buildTransitWindows(rows: PlanetaryTransitEvent[]): TransitWindow[] {
   if (!Array.isArray(rows) || !rows.length) return [];
 
-  const sorted = [...rows].sort((a, b) => {
+  const normalized = rows
+    .map((r) => ({
+      ...r,
+      natalPlanet: r?.natalPlanet ?? r?.natalTarget ?? undefined,
+    }))
+    .filter(isTransitHit);
+
+  if (!normalized.length) return [];
+
+  const sorted = [...normalized].sort((a, b) => {
     if (a.transitPlanet !== b.transitPlanet) {
       return a.transitPlanet.localeCompare(b.transitPlanet);
     }
@@ -63,7 +94,6 @@ export function buildTransitWindows(rows: UpcomingTransitRow[]): TransitWindow[]
       (thisDate.getTime() - prevDate.getTime()) / (1000 * 60 * 60 * 24)
     );
 
-    // Same transit window if dates are consecutive or 1 day apart
     if (gapDays <= 1) {
       current.endISO = row.dateISO;
       current.hitCount += 1;
@@ -84,6 +114,7 @@ export function buildTransitWindows(rows: UpcomingTransitRow[]): TransitWindow[]
         minOrb: row.orb,
         hitCount: 1,
       };
+      currentKey = key;
     }
   }
 
