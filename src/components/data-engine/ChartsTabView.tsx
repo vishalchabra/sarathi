@@ -279,7 +279,7 @@ export default function ChartsTabView({
   const [referenceMode, setReferenceMode] = useState<ReferenceMode>("md");
   const [showTransitOverlay, setShowTransitOverlay] = useState(false);
   const [expandedChart, setExpandedChart] = useState<ExpandedChartState>(null);
-
+  const [referenceMenuOpen, setReferenceMenuOpen] = useState(false);
   const chandraChart = buildChandraChartPlanets(natalPlanets);
 
   const mdReferenceChart = buildReferenceChartFromPlanet(
@@ -592,21 +592,60 @@ export default function ChartsTabView({
           subtitle={selectedReferenceChart.subtitle}
         >
           <div className="mb-4">
-            <label className="text-xs font-medium uppercase tracking-wide text-white/50">
-              Reference mode
-            </label>
-            <select
-              value={referenceMode}
-              onChange={(e) => setReferenceMode(e.target.value as ReferenceMode)}
-              className="mt-1 w-full rounded-xl border border-white/15 px-3 py-2 text-sm outline-none focus:border-slate-500"
-            >
-              <option value="lagna">Lagna</option>
-              <option value="moon">Moon</option>
-              <option value="md">Mahadasha</option>
-              <option value="ad">Antardasha</option>
-            </select>
-          </div>
+  <label className="text-xs font-medium uppercase tracking-wide text-white/50">
+    Reference mode
+  </label>
 
+  <div className="relative mt-1">
+    <button
+      type="button"
+      onClick={() => setReferenceMenuOpen((v) => !v)}
+      className="flex w-full items-center justify-between rounded-xl border border-white/15 bg-[#0C1222] px-3 py-2 text-sm text-white outline-none transition hover:bg-white/5"
+    >
+      <span>
+        {referenceMode === "lagna"
+          ? "Lagna"
+          : referenceMode === "moon"
+          ? "Moon"
+          : referenceMode === "md"
+          ? "Mahadasha"
+          : "Antardasha"}
+      </span>
+      <span className="text-white/50">▾</span>
+    </button>
+
+    {referenceMenuOpen ? (
+      <div className="absolute z-20 mt-2 w-full rounded-xl border border-white/10 bg-[#0C1222] p-1 shadow-xl">
+        {[
+          { key: "lagna", label: "Lagna" },
+          { key: "moon", label: "Moon" },
+          { key: "md", label: "Mahadasha" },
+          { key: "ad", label: "Antardasha" },
+        ].map((option) => {
+          const isActive = referenceMode === option.key;
+
+          return (
+            <button
+              key={option.key}
+              type="button"
+              onClick={() => {
+                setReferenceMode(option.key as ReferenceMode);
+                setReferenceMenuOpen(false);
+              }}
+              className={`flex w-full items-center rounded-lg px-3 py-2 text-left text-sm transition ${
+                isActive
+                  ? "bg-indigo-400/15 text-indigo-100"
+                  : "text-white/85 hover:bg-white/5"
+              }`}
+            >
+              {option.label}
+            </button>
+          );
+        })}
+      </div>
+    ) : null}
+  </div>
+</div>
           {selectedReferenceChart.ascSign && selectedReferenceChart.planets?.length ? (
             
             <MediumNorthIndianChart
@@ -722,7 +761,7 @@ export default function ChartsTabView({
 
       {expandedChart ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4">
-          <div className="relative w-full max-w-3xl rounded-3xl border border-white/10 bg-[#0C1222]/95 p-6 shadow-2xl backdrop-blur-md">s
+          <div className="relative w-full max-w-3xl rounded-3xl border border-white/10 bg-[#0C1222]/95 p-6 shadow-2xl backdrop-blur-md">
             <button
               type="button"
               onClick={() => setExpandedChart(null)}

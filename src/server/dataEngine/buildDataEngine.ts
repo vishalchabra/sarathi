@@ -66,6 +66,11 @@ export type DataEngineOutput = {
     lon: number;
     ayanamsa: string;
     panchang?: any;
+    hora?: string | null;
+    horaNumber?: number | null;
+    horaPhase?: string | null;
+    horaStartsAt?: string | null;
+    horaEndsAt?: string | null;
   };
   ascendant: any;
   natal: any;
@@ -169,6 +174,11 @@ birthMeta: {
   lon: number;
   ayanamsa: string;
   panchang?: any;
+  hora?: string | null;
+  horaNumber?: number | null;
+  horaPhase?: string | null;
+  horaStartsAt?: string | null;
+  horaEndsAt?: string | null;
 };
 natal: any;
 houses: any;
@@ -294,7 +304,193 @@ function getServerBaseUrl() {
 
   return "http://localhost:3000";
 }
+const HORA_SEQUENCE = [
+  "Sun",
+  "Venus",
+  "Mercury",
+  "Moon",
+  "Saturn",
+  "Jupiter",
+  "Mars",
+] as const;
 
+const WEEKDAY_LORDS = [
+  "Sun",     // Sunday
+  "Moon",    // Monday
+  "Mars",    // Tuesday
+  "Mercury", // Wednesday
+  "Jupiter", // Thursday
+  "Venus",   // Friday
+  "Saturn",  // Saturday
+] as const;
+
+function getHoraIndexForPlanet(planet: string) {
+  return HORA_SEQUENCE.findIndex((p) => p === planet);
+}
+
+function getNextWeekdayLord(date: any) {
+  const nextDay = date.plus({ days: 1 });
+  return WEEKDAY_LORDS[nextDay.weekday % 7];
+}
+
+function parseClockToDateTime(baseDate: string, timeLike: string | null | undefined, zone: string) {
+  if (!timeLike) return null;
+
+  const raw = String(timeLike).trim();
+
+  const hhmmMatch = raw.match(/^(\d{1,2}):(\d{2})/);
+  if (hhmmMatch) {
+    const hh = hhmmMatch[1].padStart(2, "0");
+    const mm = hhmmMatch[2];
+    return DateTime.fromISO(`${baseDate}T${hh}:${mm}:00`, { zone });
+  }
+
+  const isoParsed = DateTime.fromISO(raw, { zone });
+  if (isoParsed.isValid) return isoParsed;
+
+  return null;
+}
+
+function getAccurateHoraLord(params: {
+  birthDateISO: string;
+  birthTime: string;
+  timezone: string;
+  sunrise: string | null | undefined;
+  sunset: string | null | undefined;
+}) {
+  const { birthDateISO, birthTime, timezone, sunrise, sunset } = params;
+
+  const birthDT = DateTime.fromISO(`${birthDateISO}T${birthTime}`, {
+    zone: timezone,
+  });
+
+  if (!birthDT.isValid) {
+    return {
+      horaLord: null,
+      horaNumber: null,
+      phase: null,
+      startsAt: null,
+      endsAt: null,
+    };
+  }
+
+  const sunriseDT = parseClockToDateTime(birthDateISO, sunrise, timezone);
+  const sunsetDT = parseClockToDateTime(birthDateISO, sunset, timezone);
+
+  if (!sunriseDT?.isValid || !sunsetDT?.isValid) {
+    return {
+      horaLord: null,
+      horaNumber: null,
+      phase: null,
+      startsAt: null,
+      endsAt: null,
+    };
+  }
+
+  const weekdayLord = WEEKDAY_LORDS[birthDT.weekday % 7];
+  const startIndex = getHoraIndexForPlanet(weekdayLord);
+
+  if (startIndex < 0) {
+    return {
+      horaLord: null,
+      horaNumber: null,
+      phase: null,
+      startsAt: null,
+      endsAt: null,
+    };
+  }
+
+  // Day hora: sunrise -> sunset
+  if (birthDT >= sunriseDT && birthDT < sunsetDT) {
+    const dayMinutes = sunsetDT.diff(sunriseDT, "minutes").minutes;
+    const horaLength = dayMinutes / 12;
+
+    const elapsed = birthDT.diff(sunriseDT, "minutes").minutes;
+    const horaNumber = Math.min(12, Math.floor(elapsed / horaLength) + 1);
+    const sequenceIndex = (startIndex + (horaNumber - 1)) % 7;
+    const horaLord = HORA_SEQUENCE[sequenceIndex];
+
+    const startsAt = sunriseDT.plus({ minutes: (horaNumber - 1) * horaLength });
+    const endsAt = sunriseDT.plus({ minutes: horaNumber * horaLength });
+
+    return {
+      horaLord,
+      horaNumber,
+      phase: "day",
+      startsAt: startsAt.toFormat("HH:mm"),
+      endsAt: endsAt.toFormat("HH:mm"),
+    };
+  }
+
+  // Night hora: sunset -> next sunrise
+  const nextSunriseBase = birthDT < sunriseDT ? birthDT.minus({ days: 1 }) : birthDT;
+  const nextSunriseCandidate = parseClockToDateTime(
+    nextSunriseBase.plus({ days: 1 }).toISODate()!,
+    sunrise,
+    timezone
+  );
+
+  if (!nextSunriseCandidate?.isValid) {
+    return {
+      horaLord: null,
+      horaNumber: null,
+      phase: null,
+      startsAt: null,
+      endsAt: null,
+    };
+  }
+
+  const currentSunset =
+    birthDT < sunriseDT
+      ? parseClockToDateTime(nextSunriseBase.toISODate()!, sunset, timezone)
+      : sunsetDT;
+
+  if (!currentSunset?.isValid) {
+    return {
+      horaLord: null,
+      horaNumber: null,
+      phase: null,
+      startsAt: null,
+      endsAt: null,
+    };
+  }
+
+  const nextWeekdayLord = getNextWeekdayLord(currentSunset);
+  const nightStartIndex = getHoraIndexForPlanet(nextWeekdayLord);
+
+  if (nightStartIndex < 0) {
+    return {
+      horaLord: null,
+      horaNumber: null,
+      phase: null,
+      startsAt: null,
+      endsAt: null,
+    };
+  }
+
+  const nightMinutes = nextSunriseCandidate.diff(currentSunset, "minutes").minutes;
+  const horaLength = nightMinutes / 12;
+  const elapsed = birthDT.diff(currentSunset, "minutes").minutes;
+
+  const safeElapsed = birthDT < sunriseDT
+    ? birthDT.diff(currentSunset, "minutes").minutes
+    : elapsed;
+
+  const horaNumber = Math.min(12, Math.max(1, Math.floor(safeElapsed / horaLength) + 1));
+  const sequenceIndex = (nightStartIndex + (horaNumber - 1)) % 7;
+  const horaLord = HORA_SEQUENCE[sequenceIndex];
+
+  const startsAt = currentSunset.plus({ minutes: (horaNumber - 1) * horaLength });
+  const endsAt = currentSunset.plus({ minutes: horaNumber * horaLength });
+
+  return {
+    horaLord,
+    horaNumber,
+    phase: "night",
+    startsAt: startsAt.toFormat("HH:mm"),
+    endsAt: endsAt.toFormat("HH:mm"),
+  };
+}
 async function fetchTrustedLifeReport(birth: BirthInput) {
   const base = getServerBaseUrl();
 
@@ -754,7 +950,13 @@ const birthPanchang = birthPanchangSource
         plan,
       })
     : null;
-
+const horaInfo = getAccurateHoraLord({
+  birthDateISO: birth.dateISO,
+  birthTime: birth.time,
+  timezone: birth.timezone,
+  sunrise: birthPanchang?.sunrise ?? null,
+  sunset: birthPanchang?.sunset ?? null,
+});
 const birthMeta = {
   name: birth.name,
   dateISO: birth.dateISO,
@@ -764,7 +966,13 @@ const birthMeta = {
   lon: birth.lon,
   ayanamsa: natal.ayanamsa || "Lahiri",
   panchang: birthPanchang,
+  hora: horaInfo?.horaLord ?? null,
+  horaNumber: horaInfo?.horaNumber ?? null,
+  horaPhase: horaInfo?.phase ?? null,
+  horaStartsAt: horaInfo?.startsAt ?? null,
+  horaEndsAt: horaInfo?.endsAt ?? null,
 };
+
 const debugLifeReport = {
   topLevelKeys: Object.keys(reportData || {}),
   coreKeys: Object.keys(reportData?.core || {}),

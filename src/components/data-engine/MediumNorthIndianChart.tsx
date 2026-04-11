@@ -108,17 +108,17 @@ const HOUSE_ANCHORS: HouseAnchor[] = [
   { house: 12, x: 390, y: 40, width: 84 },
 
   { house: 3, x: 85, y: 120, width: 84 },
-  { house: 1, x: 260, y: 134, width: 104 },
-  { house: 11, x: 422, y: 120, width: 84 },
+  { house: 1, x: 260, y: 90, width: 104 },
+  { house: 11, x: 450, y: 120, width: 84 },
 
   { house: 4, x: 150, y: 236, width: 84 },
   { house: 10, x: 370, y: 236, width: 84 },
 
   { house: 5, x: 85, y: 332, width: 80 },
   { house: 7, x: 260, y: 342, width: 104 },
-  { house: 9, x: 450, y: 332, width: 84 },
+  { house: 9, x: 460, y: 312, width: 84 },
 
-  { house: 6, x: 150, y: 398, width: 84 },
+  { house: 6, x: 150, y: 380, width: 84 },
   { house: 8, x: 370, y: 398, width: 84 },
 ];
 
@@ -156,7 +156,7 @@ function getAscSignIndex(ascSign?: string | null) {
 
 function getPlanetTitle(p: ChartPlanet) {
   const parts = [
-    p.isTransit ? "Transit" : "foundations",
+    p.isTransit ? "Transit" : "Natal",
     p.planet,
     p.sign ? `in ${p.sign}` : null,
     typeof p.degree === "number" ? `${p.degree.toFixed(2)}°` : null,

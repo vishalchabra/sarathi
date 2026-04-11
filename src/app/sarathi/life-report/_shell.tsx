@@ -87,7 +87,7 @@
       if (timerRef.current) window.clearTimeout(timerRef.current);
 
       const query = q.trim();
-      if (query.length < 3) {
+      if (query.length < 2) {
         setItems([]);
         setOpen(false);
         return;
@@ -112,23 +112,37 @@
   });
 
           const json = (await res.json()) as any[];
-          const out = json.map((r) => {
-            const city =
-              r.address?.city ||
-              r.address?.town ||
-              r.address?.village ||
-              r.address?.state_district ||
-              r.address?.state ||
-              r.address?.county ||
-              r.address?.region;
-            const country = r.address?.country || "";
-            return {
-              name: [city, country].filter(Boolean).join(", ") || r.display_name,
-              lat: +r.lat,
-              lon: +r.lon,
-            };
-          });
+         const out = json.map((r) => {
+  const city =
+    r.address?.city ||
+    r.address?.town ||
+    r.address?.village ||
+    r.address?.municipality ||
+    r.address?.hamlet ||
+    r.address?.county ||
+    r.address?.region;
 
+  const state =
+    r.address?.state ||
+    r.address?.state_district ||
+    r.address?.province ||
+    r.address?.region ||
+    "";
+
+  const country = r.address?.country || "";
+
+  return {
+    name: [city, state, country]
+      .filter(Boolean)
+      .filter((value, index, arr) => {
+  if (index === 0) return true;
+  return value.toLowerCase() !== arr[0]?.toLowerCase();
+})
+      .join(", ") || r.display_name,
+    lat: +r.lat,
+    lon: +r.lon,
+  };
+});
           cityCache.set(query, out);
           setItems(out);
           setOpen(true);

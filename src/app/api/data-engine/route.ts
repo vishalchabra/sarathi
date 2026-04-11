@@ -5,8 +5,15 @@ export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
   try {
+    
     const body = await req.json();
-
+    console.log("=== DATA_ENGINE_HIT ===", {
+  time: new Date().toISOString(),
+  selectedDateISO: body?.selectedDateISO,
+  compareDateISO: body?.compareDateISO ?? null,
+  name: body?.birth?.name ?? null,
+  city: body?.birth?.city ?? null,
+});
     const result = await buildDataEngine({
       birth: body?.birth,
       plan: body?.plan ?? "light",

@@ -9,6 +9,11 @@ type Props = {
     lat?: number;
     lon?: number;
     ayanamsa?: string;
+    hora?: string | null;
+    horaNumber?: number | null;
+    horaPhase?: string | null;
+    horaStartsAt?: string | null;
+    horaEndsAt?: string | null;
   };
   natal?: {
     birthUTCISO?: string;
@@ -44,41 +49,49 @@ export default function BirthSummaryCard({ birthMeta, natal }: Props) {
 
   return (
     <div className="rounded-2xl border border-white/10 bg-white/5 p-5 shadow-sm">
-      <h2 className="text-base font-semibold texttext-white">Birth Summary</h2>
+      <h2 className="text-base font-semibold text-white">Birth Summary</h2>
 
       <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
         <div>
           <div className={labelClass()}>Name</div>
           <div className={valueClass()}>{birthMeta?.name ?? "—"}</div>
         </div>
+
         <div>
           <div className={labelClass()}>Birth date</div>
           <div className={valueClass()}>{birthMeta?.dateISO ?? "—"}</div>
         </div>
+
         <div>
           <div className={labelClass()}>Birth time</div>
           <div className={valueClass()}>{birthMeta?.time ?? "—"}</div>
         </div>
+
         <div>
           <div className={labelClass()}>Timezone</div>
           <div className={valueClass()}>{birthMeta?.timezone ?? "—"}</div>
         </div>
+
         <div>
           <div className={labelClass()}>Latitude</div>
           <div className={valueClass()}>{birthMeta?.lat ?? "—"}</div>
         </div>
+
         <div>
           <div className={labelClass()}>Longitude</div>
           <div className={valueClass()}>{birthMeta?.lon ?? "—"}</div>
         </div>
+
         <div>
           <div className={labelClass()}>Ayanamsa</div>
           <div className={valueClass()}>{birthMeta?.ayanamsa ?? "—"}</div>
         </div>
+
         <div>
           <div className={labelClass()}>Birth UTC</div>
           <div className={valueClass()}>{natal?.birthUTCISO ?? "—"}</div>
         </div>
+
         <div>
           <div className={labelClass()}>Ascendant</div>
           <div className={valueClass()}>
@@ -88,14 +101,34 @@ export default function BirthSummaryCard({ birthMeta, natal }: Props) {
               : ""}
           </div>
         </div>
+
         <div>
           <div className={labelClass()}>Moon sign</div>
           <div className={valueClass()}>{moonSign}</div>
         </div>
+
         <div>
           <div className={labelClass()}>Sun sign</div>
           <div className={valueClass()}>{sunSign}</div>
         </div>
+
+        <div>
+  <div className={labelClass()}>Hora</div>
+  <div className={valueClass()}>
+    {birthMeta?.hora
+      ? `${birthMeta.hora} Hora${
+          birthMeta?.horaNumber ? ` (${birthMeta.horaNumber})` : ""
+        }${
+          birthMeta?.horaPhase ? ` • ${birthMeta.horaPhase}` : ""
+        }${
+          birthMeta?.horaStartsAt && birthMeta?.horaEndsAt
+            ? ` • ${birthMeta.horaStartsAt}-${birthMeta.horaEndsAt}`
+            : ""
+        }`
+      : "—"}
+  </div>
+</div>
+
         <div>
           <div className={labelClass()}>Moon longitude</div>
           <div className={valueClass()}>
