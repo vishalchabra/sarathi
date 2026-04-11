@@ -124,7 +124,7 @@ export default function WheelChartElegant({
   return (
     <svg id={svgId} width={size} height={size}
       viewBox={`0 0 ${size} ${size}`}
-      className="w-full h-auto text-slate-700 dark:text-slate-200">
+      className="w-full h-auto text-white/80 dark:text-slate-200">
       {/* Outer ring */}
       <circle cx={cx} cy={cy} r={R} fill="none"
         stroke="currentColor" strokeOpacity={0.25} strokeWidth={1.5} />

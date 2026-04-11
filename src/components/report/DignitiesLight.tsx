@@ -98,7 +98,7 @@ export default function DignitiesLight({ planets = {} as any }) {
     <section>
       <div className="overflow-x-auto">
         <table className="min-w-full text-sm">
-          <thead className="text-gray-500 dark:text-slate-400">
+          <thead className="text-gray-500 dark:text-white/40">
             <tr>
               <th className="text-left py-1 pr-4">Planet</th>
               <th className="text-left py-1 pr-4">Sign</th>
@@ -120,7 +120,7 @@ export default function DignitiesLight({ planets = {} as any }) {
                   ? "text-rose-600 dark:text-rose-400"
                   : "text-inherit";
               return (
-                <tr key={name} className="border-t border-slate-100 dark:border-slate-700/50">
+                <tr key={name} className="border-t border-white/10 dark:border-slate-700/50">
                   <td className="py-1 pr-4">{name}</td>
                   <td className="py-1 pr-4">{sign}</td>
                   <td className={`py-1 ${cls}`}>{d.label}</td>
@@ -130,7 +130,7 @@ export default function DignitiesLight({ planets = {} as any }) {
           </tbody>
         </table>
       </div>
-      <p className="mt-2 text-xs text-gray-500 dark:text-slate-400">
+      <p className="mt-2 text-xs text-gray-500 dark:text-white/40">
         Light rules: sign-only checks for exaltation/debilitation, classical rulerships & natural friendships.
       </p>
     </section>

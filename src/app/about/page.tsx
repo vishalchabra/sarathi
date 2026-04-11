@@ -14,7 +14,7 @@ export default function AboutPage() {
             </div>
             <div className="leading-tight">
               <div className="text-sm font-semibold tracking-wide">Sārathi</div>
-              <div className="text-[11px] text-slate-400">
+              <div className="text-[11px] text-white/40">
                 The charioteer of your journey within
               </div>
             </div>
@@ -47,7 +47,7 @@ export default function AboutPage() {
       </header>
 
       <main className="mx-auto max-w-6xl px-4 py-10 md:py-14">
-        <Card className="rounded-3xl border border-white/10 bg-white/5 backdrop-blur-sm">
+        <Card className="rounded-3xl border border-white/10 bg-white/5/5 backdrop-blur-sm">
           <CardHeader className="pb-2">
             <CardTitle className="text-2xl md:text-3xl text-slate-50">
               About Sārathi

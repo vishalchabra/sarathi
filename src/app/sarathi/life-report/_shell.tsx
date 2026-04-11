@@ -4577,7 +4577,7 @@ function strengthenEventLine(text: string) {
       case "caution":
         return "bg-red-500/10 text-red-100 border border-red-400/25";
       default:
-        return "bg-white/5 text-white/70 border border-white/15";
+        return "bg-white/5/5 text-white/70 border border-white/15";
     }
   }
 
@@ -6028,7 +6028,7 @@ const np: any = (report as any)?.nowPlan ?? (report as any)?.nowNearFuture ?? nu
     </div>
 
     <div className="grid gap-2 md:grid-cols-2">
-      <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2">
+      <div className="rounded-xl border border-white/10 bg-white/5/5 px-3 py-2">
         <div className="text-[11px] uppercase tracking-wide text-white/60 font-semibold">
           Where momentum is strongest
         </div>
@@ -6037,7 +6037,7 @@ const np: any = (report as any)?.nowPlan ?? (report as any)?.nowNearFuture ?? nu
         </div>
       </div>
 
-      <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2">
+      <div className="rounded-xl border border-white/10 bg-white/5/5 px-3 py-2">
         <div className="text-[11px] uppercase tracking-wide text-white/60 font-semibold">
           Where friction may appear
         </div>
@@ -6048,7 +6048,7 @@ const np: any = (report as any)?.nowPlan ?? (report as any)?.nowNearFuture ?? nu
     </div>
 
     {decisionWindows.length > 0 && (
-      <div className="mt-3 rounded-xl border border-white/10 bg-white/5 px-3 py-3">
+      <div className="mt-3 rounded-xl border border-white/10 bg-white/5/5 px-3 py-3">
         <div className="text-[11px] uppercase tracking-wide text-white/60 font-semibold">
           Decision windows
         </div>
@@ -6096,7 +6096,7 @@ const np: any = (report as any)?.nowPlan ?? (report as any)?.nowNearFuture ?? nu
               {/* Loading */}
               
               {dailyLoadingProp && (
-                <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/70">
+                <div className="rounded-xl border border-white/10 bg-white/5/5 px-3 py-2 text-xs text-white/70">
                   Loading next few days
                 </div>
               )}
@@ -6162,7 +6162,7 @@ const np: any = (report as any)?.nowPlan ?? (report as any)?.nowNearFuture ?? nu
   return (
     <div
       key={`now3-${idx}`}
-      className="rounded-2xl border border-white/10 bg-white/5 p-4"
+      className="rounded-2xl border border-white/10 bg-white/5/5 p-4"
     >
       <div className="flex items-center justify-between gap-3">
         <div className="text-[11px] uppercase tracking-wide text-indigo-200 font-semibold">
@@ -6208,7 +6208,7 @@ const np: any = (report as any)?.nowPlan ?? (report as any)?.nowNearFuture ?? nu
 })}
       </div>
     ) : (
-      <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/70">
+      <div className="rounded-xl border border-white/10 bg-white/5/5 px-3 py-2 text-xs text-white/70">
         No strong highlights for the next few days.
       </div>
     )}
@@ -6269,7 +6269,7 @@ const np: any = (report as any)?.nowPlan ?? (report as any)?.nowNearFuture ?? nu
       return (
         <div
           key={`next14-${idx}`}
-          className="rounded-2xl border border-white/10 bg-white/5 p-4"
+          className="rounded-2xl border border-white/10 bg-white/5/5 p-4"
         >
           <div className="flex items-center justify-between gap-3">
             <div className="text-[11px] uppercase tracking-wide text-indigo-200 font-semibold">
@@ -6308,7 +6308,7 @@ const np: any = (report as any)?.nowPlan ?? (report as any)?.nowNearFuture ?? nu
         {np.next30Days.timing.map((item: any, idx: number) => (
           <div
             key={`next30-${idx}`}
-            className="rounded-2xl border border-white/10 bg-white/5 p-4"
+            className="rounded-2xl border border-white/10 bg-white/5/5 p-4"
           >
             <div className="text-sm font-semibold text-white">
               {String(item?.window ?? "Longer window")}
@@ -6575,7 +6575,7 @@ const confClass =
                      <div
   key={`${dateISO || "day"}-${idx}`}
   className={
-    "rounded-2xl border bg-white/5 p-4 " +
+    "rounded-2xl border bg-white/5/5 p-4 " +
     (conf === "high"
       ? "border-emerald-400/20"
       : conf === "low"
@@ -6622,7 +6622,7 @@ const confClass =
   {finalLine}
 </div>
 {dailyFeeling && (
-  <div className="mt-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white/75">
+  <div className="mt-2 rounded-xl border border-white/10 bg-white/5/5 px-3 py-2 text-sm text-white/75">
     <span className="text-white/50 font-medium">How you may feel:</span>{" "}
     {strengthenEventLine(dailyFeeling)}
   </div>
@@ -6660,14 +6660,14 @@ const confClass =
                         {(doList.length > 0 || avoidList.length > 0) && (
                           <div className="mt-3 grid gap-2 md:grid-cols-2">
                             {doList.length > 0 && (
-                              <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                              <div className="rounded-xl border border-white/10 bg-white/5/5 p-3">
                                 <div className="text-[11px] font-semibold text-white/70">
                                   DO
                                 </div>
                                 <ul className="mt-2 space-y-1 text-xs text-white/70">
                                   {doList.slice(0, 4).map((x: string, i: number) => (
                                     <li key={i} className="flex gap-2">
-                                      <span className="mt-[2px] h-1.5 w-1.5 rounded-full bg-white/40" />
+                                      <span className="mt-[2px] h-1.5 w-1.5 rounded-full bg-white/5/40" />
                                       <span>{x}</span>
                                     </li>
                                   ))}
@@ -6676,14 +6676,14 @@ const confClass =
                             )}
 
                             {avoidList.length > 0 && (
-                              <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                              <div className="rounded-xl border border-white/10 bg-white/5/5 p-3">
                                 <div className="text-[11px] font-semibold text-white/70">
                                   AVOID
                                 </div>
                                 <ul className="mt-2 space-y-1 text-xs text-white/70">
                                   {avoidList.slice(0, 4).map((x: string, i: number) => (
                                     <li key={i} className="flex gap-2">
-                                      <span className="mt-[2px] h-1.5 w-1.5 rounded-full bg-white/40" />
+                                      <span className="mt-[2px] h-1.5 w-1.5 rounded-full bg-white/5/40" />
                                       <span>{x}</span>
                                     </li>
                                   ))}
@@ -7130,7 +7130,7 @@ const confClass =
           </p>
 
           {fastingIsGoodDay !== null && (
-            <div className="mt-3 inline-flex rounded-full bg-white/10 px-2 py-1 text-[11px] font-medium text-amber-200">
+            <div className="mt-3 inline-flex rounded-full bg-white/5/10 px-2 py-1 text-[11px] font-medium text-amber-200">
               {fastingIsGoodDay
                 ? "Supportive day for fasting"
                 : "Not a strong day for full fasting  choose lightness instead."}
@@ -7139,7 +7139,7 @@ const confClass =
         </div>
 
         {/* Money */}
-        <div className="rounded-2xl border border-white/15 bg-white/5 p-4">
+        <div className="rounded-2xl border border-white/15 bg-white/5/5 p-4">
           <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
             Money
           </div>
@@ -8789,7 +8789,7 @@ if (winSunSun) {
 
   if (!mounted) {
     return (
-      <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-white/70">
+      <div className="rounded-2xl border border-white/10 bg-white/5/5 p-4 text-sm text-white/70">
         Loading Full Guidance…
       </div>
     );
@@ -8891,7 +8891,7 @@ if (winSunSun) {
     if (!report) {
       return (
         <div className="space-y-6">
-          <div className="rounded-2xl border border-white/15 bg-white/5 p-4">
+          <div className="rounded-2xl border border-white/15 bg-white/5/5 p-4">
             <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
               Advanced - Your deeper map
             </div>
@@ -8914,7 +8914,7 @@ if (winSunSun) {
           {topToday.length > 0 ? (
     <div className="mt-3 flex flex-wrap gap-2">
       {topToday.map((t: any, i: number) => (
-        <span key={(t?.id ?? i) as any} className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[11px] text-white/80">
+        <span key={(t?.id ?? i) as any} className="rounded-full border border-white/15 bg-white/5/5 px-3 py-1 text-[11px] text-white/80">
           {formatTransitChip(t)}
         </span>
       ))}
@@ -8924,7 +8924,7 @@ if (winSunSun) {
       <div className="text-xs text-white/60 mb-2">No strong transits active today. Next up:</div>
       <div className="flex flex-wrap gap-2">
         {nextUpcoming.map((t: any, i: number) => (
-          <span key={(t?.id ?? i) as any} className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[11px] text-white/80">
+          <span key={(t?.id ?? i) as any} className="rounded-full border border-white/15 bg-white/5/5 px-3 py-1 text-[11px] text-white/80">
             {formatTransitChip(t)}
           </span>
         ))}
@@ -8945,7 +8945,7 @@ if (winSunSun) {
               ].map((t) => (
                 <div
                   key={t}
-                  className="rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-white/80"
+                  className="rounded-xl border border-white/10 bg-white/5/5 p-3 text-sm text-white/80"
                 >
                   {t}
                 </div>
@@ -9248,7 +9248,7 @@ if (winSunSun) {
     const pctLabel = (n: number) => `${Math.max(0, Math.min(100, Math.round(Number(n) || 0)))}%`;
 
 const ScenarioCard: React.FC<{ s: any }> = ({ s }) => (
-  <div className="rounded-2xl border border-white/15 bg-white/5 p-4">
+  <div className="rounded-2xl border border-white/15 bg-white/5/5 p-4">
     <div className="flex items-start justify-between gap-3">
       <div>
         <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
@@ -9272,7 +9272,7 @@ const ScenarioCard: React.FC<{ s: any }> = ({ s }) => (
     </div>
 
     {Array.isArray(s?.mostLikelySign) && s.mostLikelySign.length ? (
-      <div className="mt-3 rounded-xl border border-white/10 bg-white/5 p-3">
+      <div className="mt-3 rounded-xl border border-white/10 bg-white/5/5 p-3">
         <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
           Most likely sign
         </div>
@@ -9328,7 +9328,7 @@ const ScenarioCard: React.FC<{ s: any }> = ({ s }) => (
 );
 
 const HorizonBlock: React.FC<{ title: string; items: any[] }> = ({ title, items }) => (
-  <details className="rounded-2xl border border-white/15 bg-white/5 p-4" open>
+  <details className="rounded-2xl border border-white/15 bg-white/5/5 p-4" open>
     <summary className="cursor-pointer list-none">
       <div className="text-sm font-semibold text-slate-100">{title}</div>
       <div className="mt-1 text-xs text-white/60">
@@ -9351,7 +9351,7 @@ const FullGuidanceV2UI: React.FC<{ fg: any }> = ({ fg }) => {
   return (
     <div className="space-y-6">
       {/* Reality Check */}
-      <div className="rounded-2xl border border-white/15 bg-white/5 p-4">
+      <div className="rounded-2xl border border-white/15 bg-white/5/5 p-4">
         <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
           Full Guidance — 90 days
         </div>
@@ -9392,7 +9392,7 @@ const FullGuidanceV2UI: React.FC<{ fg: any }> = ({ fg }) => {
             .filter((d: any) => ["Career", "Relationships", "Health", "Money"].includes(String(d?.domain)))
             .slice(0, 4)
             .map((d: any) => (
-              <div key={d.domain} className="rounded-2xl border border-white/15 bg-white/5 p-4">
+              <div key={d.domain} className="rounded-2xl border border-white/15 bg-white/5/5 p-4">
                 <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
                   {d.domain}
                 </div>
@@ -9415,14 +9415,14 @@ const FullGuidanceV2UI: React.FC<{ fg: any }> = ({ fg }) => {
       <HorizonBlock title="Next 90 days" items={fg?.next90d ?? []} />
 
       {/* Advisor Memo */}
-      <div className="rounded-2xl border border-white/15 bg-white/5 p-4">
+      <div className="rounded-2xl border border-white/15 bg-white/5/5 p-4">
         <div className="text-sm font-semibold text-slate-100">Advisor Memo</div>
         <div className="mt-1 text-xs text-white/60">
           What to push, what to refuse, what to enforce.
         </div>
 
         <div className="mt-4 grid gap-3 md:grid-cols-2">
-          <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+          <div className="rounded-xl border border-white/10 bg-white/5/5 p-3">
             <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
               Opportunity
             </div>
@@ -9433,7 +9433,7 @@ const FullGuidanceV2UI: React.FC<{ fg: any }> = ({ fg }) => {
             </ul>
           </div>
 
-          <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+          <div className="rounded-xl border border-white/10 bg-white/5/5 p-3">
             <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
               Risks
             </div>
@@ -9444,7 +9444,7 @@ const FullGuidanceV2UI: React.FC<{ fg: any }> = ({ fg }) => {
             </ul>
           </div>
 
-          <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+          <div className="rounded-xl border border-white/10 bg-white/5/5 p-3">
             <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
               Control levers
             </div>
@@ -9455,7 +9455,7 @@ const FullGuidanceV2UI: React.FC<{ fg: any }> = ({ fg }) => {
             </ul>
           </div>
 
-          <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+          <div className="rounded-xl border border-white/10 bg-white/5/5 p-3">
             <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
               Non-negotiables
             </div>
@@ -9965,7 +9965,7 @@ const selectedCountryLabel =
                   : d.weight === 1
                   ? "bg-teal-100 text-teal-800"
                   : d.weight === 0
-                  ? "bg-slate-100 text-white/70"
+                  ? "bg-white/10 text-white/70"
                   : "bg-red-100 text-red-800")
               }
             >
@@ -12173,7 +12173,7 @@ try {
                               ? "border-rose-400/30 bg-rose-500/10 text-rose-200"
                               : status === "Own"
                               ? "border-sky-400/30 bg-sky-500/10 text-sky-200"
-                              : "border-white/15 bg-white/5 text-white/70";
+                              : "border-white/15 bg-white/5/5 text-white/70";
 
                           return (
                             <div className="grid gap-3 sm:grid-cols-2">
@@ -12191,7 +12191,7 @@ try {
                                 return (
                                   <div
                                     key={`${name}-${idx}`}
-                                    className="rounded-xl border border-white/10 bg-white/5 px-4 py-3"
+                                    className="rounded-xl border border-white/10 bg-white/5/5 px-4 py-3"
                                   >
                                     <div className="flex items-center justify-between gap-3">
                                       <div className="text-sm font-semibold text-slate-50">
@@ -12872,7 +12872,7 @@ const currentChapterBody = (() => {
             return (
               <div
                 key={idx}
-                className="rounded-xl border border-white/10 bg-white/5 p-3"
+                className="rounded-xl border border-white/10 bg-white/5/5 p-3"
               >
                 <div className="text-sm font-semibold text-slate-100">
                   {label}
@@ -13399,13 +13399,13 @@ const text = uniqueTextParts
   setIsEditingCountry(false);
   setShowCountryList(false);
 }}
-                className="w-full px-3 py-2 text-left text-sm hover:bg-white/10"
+                className="w-full px-3 py-2 text-left text-sm hover:bg-white/5/10"
               >
                 {c.label}
               </button>
             ))
           ) : (
-            <div className="px-3 py-2 text-xs text-slate-400">
+            <div className="px-3 py-2 text-xs text-white/40">
               No match found
             </div>
           )}
@@ -13594,12 +13594,12 @@ const text = uniqueTextParts
       Full Guidance will populate after generation.
     </div>
   ) : (
-    <div className="mt-4 rounded-2xl border border-white/15 bg-white/5 p-4 text-sm text-white/80">
+    <div className="mt-4 rounded-2xl border border-white/15 bg-white/5/5 p-4 text-sm text-white/80">
       Full Guidance is not available yet.
     </div>
   )
 ) : (
-  <div className="mt-4 rounded-2xl border border-white/15 bg-white/5 p-4">
+  <div className="mt-4 rounded-2xl border border-white/15 bg-white/5/5 p-4">
     {(() => {
       try {
         return (
@@ -13631,7 +13631,7 @@ const text = uniqueTextParts
               type="button"
               variant="outline"
               size="sm"
-              className="w-full md:w-auto text-white hover:text-white border-white/20 hover:bg-white/10"
+              className="w-full md:w-auto text-white hover:text-white border-white/20 hover:bg-white/5/10"
 
 
             >
@@ -13703,7 +13703,7 @@ function TabFullPlan({
 }: any) {
   if (!mounted) {
     return (
-      <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-white/70">
+      <div className="rounded-2xl border border-white/10 bg-white/5/5 p-4 text-sm text-white/70">
         Loading…
       </div>
     );
@@ -13711,7 +13711,7 @@ function TabFullPlan({
 
   if (!isFull) {
     return (
-      <div className="rounded-2xl border border-white/15 bg-white/5 p-4 text-sm text-white/70">
+      <div className="rounded-2xl border border-white/15 bg-white/5/5 p-4 text-sm text-white/70">
         Full Guidance is locked.
       </div>
     );
@@ -13728,7 +13728,7 @@ function TabFullPlan({
 
   if (!hasReport) {
     return (
-      <div className="rounded-2xl border border-white/15 bg-white/5 p-5">
+      <div className="rounded-2xl border border-white/15 bg-white/5/5 p-5">
         <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
           Full Guidance
         </div>
@@ -13746,7 +13746,7 @@ function TabFullPlan({
 
   if (!fg) {
     return (
-      <div className="rounded-2xl border border-white/15 bg-white/5 p-4 text-sm text-white/70">
+      <div className="rounded-2xl border border-white/15 bg-white/5/5 p-4 text-sm text-white/70">
         Full guidance is loading…
       </div>
     );
@@ -13806,7 +13806,7 @@ const turningPointsTitle =
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="rounded-2xl border border-white/15 bg-white/5 p-5">
+      <div className="rounded-2xl border border-white/15 bg-white/5/5 p-5">
         <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
           Your Current Phase
         </div>
@@ -13828,7 +13828,7 @@ const turningPointsTitle =
       </div>
 
       {/* Current Life Chapter */}
-      <div className="rounded-2xl border border-white/15 bg-white/5 p-5">
+      <div className="rounded-2xl border border-white/15 bg-white/5/5 p-5">
         <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
           Current Life Chapter
         </div>
@@ -13852,7 +13852,7 @@ const turningPointsTitle =
 ) : null}
 
 {oneDecision ? (
-  <div className="mt-3 rounded-xl border border-white/10 bg-white/5 p-3">
+  <div className="mt-3 rounded-xl border border-white/10 bg-white/5/5 p-3">
     <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
       The one decision that changes this phase
     </div>
@@ -13862,7 +13862,7 @@ const turningPointsTitle =
   </div>
 ) : null}
 {biggestMistake ? (
-  <div className="mt-3 rounded-xl border border-white/10 bg-white/5 p-3">
+  <div className="mt-3 rounded-xl border border-white/10 bg-white/5/5 p-3">
     <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
       The mistake that will cost you the most in this phase
     </div>
@@ -13882,7 +13882,7 @@ const turningPointsTitle =
                 : [];
 
               return (
-                <div key={i} className="rounded-xl border border-white/10 bg-white/5 p-4">
+                <div key={i} className="rounded-xl border border-white/10 bg-white/5/5 p-4">
                   <div className="text-sm font-semibold text-slate-100">
                     {domain}
                   </div>
@@ -13945,7 +13945,7 @@ const turningPointsTitle =
         ) : null}
       </div>
 {probabilities.length ? (
-  <div className="rounded-2xl border border-white/15 bg-white/5 p-5">
+  <div className="rounded-2xl border border-white/15 bg-white/5/5 p-5">
     <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
       Probability of Major Themes (Next 90 Days)
     </div>
@@ -13964,7 +13964,7 @@ const turningPointsTitle =
 ) : null}
       {/* The Next Turn */}
       {nextShift ? (
-        <div className="rounded-2xl border border-white/15 bg-white/5 p-5">
+        <div className="rounded-2xl border border-white/15 bg-white/5/5 p-5">
           <div className="flex items-center justify-between gap-3">
             <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
               The Next Turn
@@ -14022,7 +14022,7 @@ const turningPointsTitle =
         </div>
       ) : null}
       {mostLikelyNextEvent ? (
-  <div className="rounded-2xl border border-white/15 bg-white/5 p-5">
+  <div className="rounded-2xl border border-white/15 bg-white/5/5 p-5">
     <div className="flex items-center justify-between gap-3">
       <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
         {String(mostLikelyNextEvent.title ?? "The event most likely to happen next")}
@@ -14069,7 +14069,7 @@ const turningPointsTitle =
   </div>
 ) : null}
 {strategicFocus ? (
-  <div className="rounded-2xl border border-white/15 bg-white/5 p-5">
+  <div className="rounded-2xl border border-white/15 bg-white/5/5 p-5">
     <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
       {String(strategicFocus.title ?? "Your Strategic Focus for the Next 90 Days")}
     </div>
@@ -14091,7 +14091,7 @@ const turningPointsTitle =
 ) : null}
       {/* Your Next 4 Weeks */}
       {weekly.length ? (
-        <div className="rounded-2xl border border-white/15 bg-white/5 p-5">
+        <div className="rounded-2xl border border-white/15 bg-white/5/5 p-5">
           <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
             Your Next 4 Weeks
           </div>
@@ -14101,7 +14101,7 @@ const turningPointsTitle =
 
           <div className="mt-3 space-y-3">
             {weekly.slice(0, 4).map((w: any, i: number) => (
-              <div key={i} className="rounded-xl border border-white/10 bg-white/5 p-3">
+              <div key={i} className="rounded-xl border border-white/10 bg-white/5/5 p-3">
                 <div className="flex items-center justify-between gap-3">
                   <div className="text-sm font-semibold text-slate-100">
                     Week {w.week}
@@ -14129,7 +14129,7 @@ const turningPointsTitle =
 
       {/* Remedies */}
       {remedies ? (
-        <div className="rounded-2xl border border-white/15 bg-white/5 p-5">
+        <div className="rounded-2xl border border-white/15 bg-white/5/5 p-5">
           <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
             Remedies for This Phase
           </div>
@@ -14185,7 +14185,7 @@ const turningPointsTitle =
 
       {/* Ask Sarathi */}
       {chatPrompts.length ? (
-        <div className="rounded-2xl border border-white/15 bg-white/5 p-5">
+        <div className="rounded-2xl border border-white/15 bg-white/5/5 p-5">
           <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
             Ask Sārathi
           </div>
@@ -14195,7 +14195,7 @@ const turningPointsTitle =
 
           <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
             {chatPrompts.slice(0, 6).map((c: any, i: number) => (
-              <div key={i} className="rounded-xl border border-white/10 bg-white/5 p-3">
+              <div key={i} className="rounded-xl border border-white/10 bg-white/5/5 p-3">
                 <div className="text-sm font-semibold text-slate-100">{c.label}</div>
                 <div className="mt-1 text-xs text-white/70">{c.prompt}</div>
               </div>

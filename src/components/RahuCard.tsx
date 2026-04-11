@@ -5,7 +5,7 @@ export function RahuCard({ data }: { data: any }) {
   const { natal, features, scores, windows, explain, remedies } = data || {};
 
   return (
-    <div className="p-4 rounded-xl shadow bg-white space-y-3">
+    <div className="p-4 rounded-xl shadow bg-white/5 space-y-3">
       <h2 className="text-xl font-bold">
         ☊ Rahu — {natal?.sign} • House {natal?.house}
         {natal?.nak ? ` • ${natal.nak.name} (p${natal.nak.pada})` : ""}

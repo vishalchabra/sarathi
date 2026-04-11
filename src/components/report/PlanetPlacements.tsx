@@ -25,11 +25,11 @@ export default function PlanetPlacements({ planets = {} as any }) {
   const P = normalizePlanets(planets);
 
   return (
-    <section className="rounded-xl border bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 p-4">
+    <section className="rounded-xl border bg-white/5 dark:bg-slate-800 border-white/10 dark:border-slate-700 p-4">
       <h3 className="text-lg font-semibold mb-2">Planet Placements (sidereal)</h3>
       <div className="overflow-x-auto">
         <table className="min-w-full text-sm">
-          <thead className="text-gray-500 dark:text-slate-400">
+          <thead className="text-gray-500 dark:text-white/40">
             <tr>
               <th className="text-left py-1 pr-4">Planet</th>
               <th className="text-left py-1 pr-4">Sign</th>
@@ -42,7 +42,7 @@ export default function PlanetPlacements({ planets = {} as any }) {
               if (deg == null || Number.isNaN(deg)) return null;
               const sign = SIGNS[sIdx(deg)];
               return (
-                <tr key={name} className="border-t border-slate-100 dark:border-slate-700/50">
+                <tr key={name} className="border-t border-white/10 dark:border-slate-700/50">
                   <td className="py-1 pr-4">{name}</td>
                   <td className="py-1 pr-4">{sign}</td>
                   <td className="py-1">{degMin(deg)}</td>

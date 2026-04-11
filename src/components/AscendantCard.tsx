@@ -42,24 +42,24 @@ export default function AscendantCard({
 }: AscendantCardProps) {
   return (
     <section className="space-y-4">
-      <h2 className="text-2xl font-semibold text-slate-900">Ascendant</h2>
+      <h2 className="text-2xl font-semibold text-white">Ascendant</h2>
 
-      <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-6">
+      <div className="rounded-2xl border border-white/10 bg-white/5 shadow-sm p-6">
         {/* Ascendant / Lagna block */}
         <div className="mb-6">
-          <div className="text-lg font-semibold text-slate-900">
+          <div className="text-lg font-semibold text-white">
             {ascSign} Ascendant (Sidereal / Lahiri)
           </div>
 
-          <div className="text-slate-600 text-base mt-3 leading-relaxed">
+          <div className="text-white/70 text-base mt-3 leading-relaxed">
             <div className="mb-2">
-              <span className="font-medium text-slate-800">
+              <span className="font-medium text-white/90">
                 Ascendant Nakshatra (Lagna star):
               </span>{" "}
               {ascNakshatraName} — {ascNakshatraBlurb}
             </div>
 
-            <div className="text-sm text-slate-500 leading-relaxed">
+            <div className="text-sm text-white/50 leading-relaxed">
               This shows how you operate in the world — control style, how you
               “run your life,” how you manage situations. It’s your outer
               strategy and how people first read you.
@@ -69,19 +69,19 @@ export default function AscendantCard({
 
         {/* Moon / Janma Nakshatra block */}
         <div className="mb-6">
-          <div className="text-lg font-semibold text-slate-900">
+          <div className="text-lg font-semibold text-white">
             Moon in {moonSign}
           </div>
 
-          <div className="text-slate-600 text-base mt-3 leading-relaxed">
+          <div className="text-white/70 text-base mt-3 leading-relaxed">
             <div className="mb-2">
-              <span className="font-medium text-slate-800">
+              <span className="font-medium text-white/90">
                 Birth Nakshatra (Moon’s star / Janma Nakshatra):
               </span>{" "}
               {moonNakshatraName} — {moonNakshatraBlurb}
             </div>
 
-            <div className="text-sm text-slate-500 leading-relaxed">
+            <div className="text-sm text-white/50 leading-relaxed">
               This is your emotional wiring, instinctive comfort zone, and the
               anchor for your Dasha timeline. This is the one most astrologers
               mean by “your birth nakshatra.”
@@ -91,29 +91,29 @@ export default function AscendantCard({
 
         {/* Panchang snapshot */}
         {panchang && (
-          <div className="border-t border-slate-200 pt-6">
-            <div className="text-lg font-semibold text-slate-900 mb-2">
+          <div className="border-t border-white/10 pt-6">
+            <div className="text-lg font-semibold text-white mb-2">
               Birth Panchang Snapshot
             </div>
 
-            <dl className="grid grid-cols-1 md:grid-cols-2 gap-y-2 text-sm text-slate-700">
+            <dl className="grid grid-cols-1 md:grid-cols-2 gap-y-2 text-sm text-white/80">
               <div>
-                <dt className="font-medium text-slate-800">Weekday</dt>
+                <dt className="font-medium text-white/90">Weekday</dt>
                 <dd>{panchang.weekday}</dd>
               </div>
 
               <div>
-                <dt className="font-medium text-slate-800">Tithi</dt>
+                <dt className="font-medium text-white/90">Tithi</dt>
                 <dd>{panchang.tithiName}</dd>
               </div>
 
               <div>
-                <dt className="font-medium text-slate-800">Yoga</dt>
+                <dt className="font-medium text-white/90">Yoga</dt>
                 <dd>{panchang.yogaName}</dd>
               </div>
 
               <div>
-                <dt className="font-medium text-slate-800">
+                <dt className="font-medium text-white/90">
                   Moon’s Nakshatra
                 </dt>
                 <dd>
@@ -126,7 +126,7 @@ export default function AscendantCard({
 
               {panchang.sunrise && panchang.sunset && (
                 <div>
-                  <dt className="font-medium text-slate-800">
+                  <dt className="font-medium text-white/90">
                     Sunrise / Sunset
                   </dt>
                   <dd>
@@ -137,7 +137,7 @@ export default function AscendantCard({
 
               {panchang.moonrise && panchang.moonset && (
                 <div>
-                  <dt className="font-medium text-slate-800">
+                  <dt className="font-medium text-white/90">
                     Moonrise / Moonset
                   </dt>
                   <dd>
@@ -148,21 +148,21 @@ export default function AscendantCard({
 
               {panchang.rahuKaal && (
                 <div>
-                  <dt className="font-medium text-slate-800">Rahu Kaal</dt>
+                  <dt className="font-medium text-white/90">Rahu Kaal</dt>
                   <dd>{panchang.rahuKaal}</dd>
                 </div>
               )}
 
               {panchang.gulikaKaal && (
                 <div>
-                  <dt className="font-medium text-slate-800">Gulika Kaal</dt>
+                  <dt className="font-medium text-white/90">Gulika Kaal</dt>
                   <dd>{panchang.gulikaKaal}</dd>
                 </div>
               )}
 
               {panchang.abhijitMuhurat && (
                 <div>
-                  <dt className="font-medium text-slate-800">
+                  <dt className="font-medium text-white/90">
                     Abhijit Muhurta
                   </dt>
                   <dd>{panchang.abhijitMuhurat}</dd>
@@ -171,10 +171,10 @@ export default function AscendantCard({
             </dl>
 
             {(panchang.festivalNote || panchang.guidanceLine) && (
-              <div className="mt-4 text-sm text-slate-600 leading-relaxed">
+              <div className="mt-4 text-sm text-white/70 leading-relaxed">
                 {panchang.festivalNote && (
                   <div className="mb-1">
-                    <span className="font-medium text-slate-800">
+                    <span className="font-medium text-white/90">
                       Festival / Vrat:
                     </span>{" "}
                     {panchang.festivalNote}
@@ -183,7 +183,7 @@ export default function AscendantCard({
 
                 {panchang.guidanceLine && (
                   <div>
-                    <span className="font-medium text-slate-800">
+                    <span className="font-medium text-white/90">
                       Birth-day guidance:
                     </span>{" "}
                     {panchang.guidanceLine}

@@ -28,7 +28,7 @@ export default function ContactPage() {
       </header>
 
       <section className="mx-auto max-w-4xl px-4 pb-14 pt-10">
-        <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/70">
+        <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5/5 px-3 py-1 text-xs text-white/70">
           Support · Feedback · Data requests
         </div>
 
@@ -37,7 +37,7 @@ export default function ContactPage() {
           Have feedback, found an issue, or want to request data deletion? We’d love to hear from you.
         </p>
 
-        <div className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-6 text-sm text-white/75 shadow-[0_0_0_1px_rgba(255,255,255,0.06)_inset]">
+        <div className="mt-8 rounded-2xl border border-white/10 bg-white/5/5 p-6 text-sm text-white/75 shadow-[0_0_0_1px_rgba(255,255,255,0.06)_inset]">
           <div className="text-sm font-semibold text-white/90">Email</div>
           <p className="mt-2">
             <span className="text-white/90">{supportEmail}</span>

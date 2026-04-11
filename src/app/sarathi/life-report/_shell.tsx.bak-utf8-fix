@@ -45,7 +45,7 @@ import { NAKSHATRA_INFO } from "@/lib/astrology/nakshatraMap";
 const AYANAMSA_LAHIRI_APPROX = 23.85;
 
 
-/* ---------------- Locking city autocomplete (simplified — always typeable) ---------------- */
+/* ---------------- Locking city autocomplete (simplified ï¿½ always typeable) ---------------- */
 
 
 const cityCache = new Map<string, Array<{ name: string; lat: number; lon: number }>>();
@@ -271,7 +271,7 @@ type PanchangInfo = {
   moonset?: string | null;
   moonsetISO?: string | null;
 
-  //  Kaal windows (we?ll still show ?? — ?? until backend sends structured ranges)
+  //  Kaal windows (we?ll still show ?? ï¿½ ?? until backend sends structured ranges)
   rahuKaal?: any;
   gulikaKaal?: any;
   abhijit?: any;
@@ -429,7 +429,7 @@ function buildMonthFromDaily(dailyHighlights: any) {
       .slice(0, 3);
 
     const text = lines.length
-  ? lines.map((s) => `• ${s}`).join("\n")
+  ? lines.map((s) => `ï¿½ ${s}`).join("\n")
   : "No guidance available for this week yet.";
 
     return { label, text, days: chunk };
@@ -561,7 +561,7 @@ function toNum(x: any): number | undefined {
 return Number.isFinite(n) ? (n as number) : undefined;
 }
 
-// --- Yoga / Karana from sidereal — & — ---
+// --- Yoga / Karana from sidereal ï¿½ & ï¿½ ---
 
 const KARANA_MOVABLE = [
   "Bava",
@@ -601,7 +601,7 @@ function computeKaranaName(
   const K = Math.floor(D / 6); // 0..59
 
   // Fixed (sthira) karanas at specific K values:
-  // 57 — Shakuni, 58 — Chatushpada, 59 — Naga, 0 — Kimstughna
+  // 57 ï¿½ Shakuni, 58 ï¿½ Chatushpada, 59 ï¿½ Naga, 0 ï¿½ Kimstughna
   if (K === 57) return "Shakuni";
   if (K === 58) return "Chatushpada";
   if (K === 59) return "Naga";
@@ -1147,7 +1147,7 @@ function parsePersonality(raw: unknown): { bullets: string[]; closing: string } 
     // ignore
   }
 
-  // plain text fallback — split into lines if it looks list-y
+  // plain text fallback ï¿½ split into lines if it looks list-y
   const lines = str
     .split("\n")
     .map((x) => x.trim())
@@ -1181,7 +1181,7 @@ function cleanText(input: string): string {
 
   return input
     // Common broken UTF-8 sequences
-    .replace(/\uFFFD/g, "")          // — replacement
+    .replace(/\uFFFD/g, "")          // ï¿½ replacement
     .replace(/\u00A0/g, " ")         // non-breaking space
     .replace(/\u2018|\u2019/g, "'")  // smart single quotes
     .replace(/\u201C|\u201D/g, '"')  // smart double quotes
@@ -1216,12 +1216,12 @@ function fixWeirdEncoding(input: string) {
     .replace(/\uFFFD/g, "")
 
     // 2) Common mojibake sequences
-    .replace(/\u00E2\u0080\u0099/g, "\u2019") // ’
-    .replace(/\u00E2\u0080\u009C/g, "\u201C") // “
-    .replace(/\u00E2\u0080\u009D/g, "\u201D") // ”
-    .replace(/\u00E2\u0080\u0093/g, "\u2013") // –
-    .replace(/\u00E2\u0080\u0094/g, "\u2014") // —
-    .replace(/\u00E2\u0080\u00A6/g, "\u2026") // …
+    .replace(/\u00E2\u0080\u0099/g, "\u2019") // ï¿½
+    .replace(/\u00E2\u0080\u009C/g, "\u201C") // ï¿½
+    .replace(/\u00E2\u0080\u009D/g, "\u201D") // ï¿½
+    .replace(/\u00E2\u0080\u0093/g, "\u2013") // ï¿½
+    .replace(/\u00E2\u0080\u0094/g, "\u2014") // ï¿½
+    .replace(/\u00E2\u0080\u00A6/g, "\u2026") // ï¿½
     .replace(/\u00E2\u0086\u0092/g, "\u2192") // ?
 
     // 3) Drop stray and NBSP
@@ -1235,23 +1235,23 @@ function fixWeirdEncoding(input: string) {
       "$1'$2"
     )
 
-    // 5) Fix numeric ranges where — stands for a dash (do this BEFORE degree fixes)
-    // 1?2 sentence/day/week/month -> 1–2 sentence/day/week/month
+    // 5) Fix numeric ranges where ï¿½ stands for a dash (do this BEFORE degree fixes)
+    // 1?2 sentence/day/week/month -> 1ï¿½2 sentence/day/week/month
     .replace(
       /(\d)\?(\d)(\s*(?:sentence|sentences|day|days|week|weeks|month|months)\b)/gi,
-      "$1–$2$3"
+      "$1ï¿½$2$3"
     )
 
     // 6) Fix degree symbol corruption (only when it looks like deg+minutes)
-    // 13?20' -> 13°20'
-    .replace(/(\d{1,2})\?(\d{2})(?=')/g, "$1°$2")
+    // 13?20' -> 13ï¿½20'
+    .replace(/(\d{1,2})\?(\d{2})(?=')/g, "$1ï¿½$2")
 
     // Also handle cases like 0?30 (common in astro text)
-    .replace(/(\d{1,2})\?(\d{2})(?!\d)/g, "$1°$2")
+    .replace(/(\d{1,2})\?(\d{2})(?!\d)/g, "$1ï¿½$2")
 
     // 7) Fix separators: "active? treat" or "Retrograde ?"
-    .replace(/([A-Za-z0-9])\?\s+(?=[A-Za-z])/g, "$1 — ")
-    .replace(/\s+\?\s+/g, " — ")
+    .replace(/([A-Za-z0-9])\?\s+(?=[A-Za-z])/g, "$1 ï¿½ ")
+    .replace(/\s+\?\s+/g, " ï¿½ ")
 
     // 8) Collapse extra spaces
     .replace(/\s{2,}/g, " ")
@@ -1263,14 +1263,14 @@ function sanitizeText(input: string): string {
   if (!input) return "";
 
   return input
-    // remove — replacement characters
+    // remove ï¿½ replacement characters
     .replace(/\uFFFD/g, "")
     // common mojibake fixes
-    .replace(/’/g, "")
-    .replace(/“|?/g, '"')
-    .replace(/‘|’/g, "'")
-    .replace(/–|—/g, "")
-    .replace(/…/g, "")
+    .replace(/ï¿½/g, "")
+    .replace(/ï¿½|?/g, '"')
+    .replace(/ï¿½|ï¿½/g, "'")
+    .replace(/ï¿½|ï¿½/g, "")
+    .replace(/ï¿½/g, "")
     .replace(/\s+/g, " ")
     .trim();
 }
@@ -2238,7 +2238,7 @@ if (Number.isFinite(moonSidDeg)) {
 }
 
 
-    // ?? This was missing — define relHouse safely from any of the fields
+    // ?? This was missing ï¿½ define relHouse safely from any of the fields
     const relHouse =
       typeof (m as any)?.relativeHouseFromMoon === "number"
         ? (m as any).relativeHouseFromMoon
@@ -2451,10 +2451,10 @@ function parseTimelineWindows(raw: string) {
   // 1) Primary: bullet lines that contain a date range in parentheses
   // Supports: ?, ->, , , to
   // Example:
-  // - Jupiter — Moon (2026-01-01 -> 2026-02-15) [career]
+  // - Jupiter ï¿½ Moon (2026-01-01 -> 2026-02-15) [career]
 
   const reRange =
-  /(?:^|\n)\s*[-•*]?\s*([^\n(]+?)\s*\(\s*(\d{4}-\d{2}-\d{2})\s*(?:\?|->|—|–|to)\s*(\d{4}-\d{2}-\d{2})\s*\)\s*(?:\[\s*([^\]]+?)\s*\])?\s*(?=\n|$)/gi;
+  /(?:^|\n)\s*[-ï¿½*]?\s*([^\n(]+?)\s*\(\s*(\d{4}-\d{2}-\d{2})\s*(?:\?|->|ï¿½|ï¿½|to)\s*(\d{4}-\d{2}-\d{2})\s*\)\s*(?:\[\s*([^\]]+?)\s*\])?\s*(?=\n|$)/gi;
 
   let m: RegExpExecArray | null;
   while ((m = reRange.exec(text))) {
@@ -2468,10 +2468,10 @@ function parseTimelineWindows(raw: string) {
     }
   }
 
-  // 2) Secondary: if your text has "Window: YYYY-MM-DD — YYYY-MM-DD"
+  // 2) Secondary: if your text has "Window: YYYY-MM-DD ï¿½ YYYY-MM-DD"
   // (helps when GPT output format changes)
   const reInline =
-  /(?:window|period|phase)\s*[:\-]\s*([^\n:]+?)\s*(\d{4}-\d{2}-\d{2})\s*(?:\?|->|—|–|to)\s*(\d{4}-\d{2}-\d{2})/gi;
+  /(?:window|period|phase)\s*[:\-]\s*([^\n:]+?)\s*(\d{4}-\d{2}-\d{2})\s*(?:\?|->|ï¿½|ï¿½|to)\s*(\d{4}-\d{2}-\d{2})/gi;
 
   while ((m = reInline.exec(text))) {
     const label = (m[1] ?? "").trim();
@@ -3001,7 +3001,7 @@ const guessSiderealDegFrom = (pl: PlanetRow): number | undefined => {
     return sidGuess;
   }
 
-  // If we can't be clever, still return the guess — better than nothing
+  // If we can't be clever, still return the guess ï¿½ better than nothing
   return sidGuess;
 };
 const PLANET_PRACTICE: Record<
@@ -3210,7 +3210,7 @@ function nakTheme(name?: string | null) {
   return map[name] ?? null;
 }
 
-/* ---- zodiac helpers for House — Sign legend ---- */
+/* ---- zodiac helpers for House ï¿½ Sign legend ---- */
 
 function wrapIndex(i: number) {
   return ((i % 12) + 12) % 12;
@@ -3341,8 +3341,8 @@ function PlanetWheelSVG({
           return (
             <g key={`${h}-${p.name}-${idx}`}>
               <title>{`${p.name}${
-                p.sign ? ` — ${p.sign}` : ""
-              }${p.house ? ` — House ${p.house}` : ""}`}</title>
+                p.sign ? ` ï¿½ ${p.sign}` : ""
+              }${p.house ? ` ï¿½ House ${p.house}` : ""}`}</title>
               <circle cx={x} cy={y} r={8} fill="currentColor" fillOpacity="0.1" />
               <circle
                 cx={x}
@@ -3488,7 +3488,7 @@ function buildPersonality(
     out.push({
       headline: `Ascendant  ${asc.sign}${
         asc.house ? `  House ${asc.house}` : ""
-      }${ascNakshatra ? ` — ${ascNakshatra}` : ""}`,
+      }${ascNakshatra ? ` ï¿½ ${ascNakshatra}` : ""}`,
       bullets: [
         d.theme
           ? `Core vibe: ${d.theme}.`
@@ -3608,7 +3608,7 @@ function toneColor(flag?: "caution" | "opportunity" | "mixed") {
     case "caution":
       return "bg-red-500/10 text-red-100 border border-red-400/25";
     default:
-      return "bg-white/5 text-white/70 border border-white/15";
+      return "bg-white/5/5 text-white/70 border border-white/15";
   }
 }
 
@@ -3834,7 +3834,7 @@ const TabTransits: React.FC<TabTransitsProps> = memo(
           <CardContent className="space-y-3">
             {/* Loading */}
             {dailyLoadingProp && (
-              <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/70">
+              <div className="rounded-xl border border-white/10 bg-white/5/5 px-3 py-2 text-xs text-white/70">
                 Loading next few days
               </div>
             )}
@@ -3848,7 +3848,7 @@ const TabTransits: React.FC<TabTransitsProps> = memo(
 
             {/* Empty */}
             {!dailyLoadingProp && !dailyErrorProp && visible.length === 0 && (
-              <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/70">
+              <div className="rounded-xl border border-white/10 bg-white/5/5 px-3 py-2 text-xs text-white/70">
                 No strong highlights for the next few days.
               </div>
             )}
@@ -3885,7 +3885,7 @@ const doList = Array.isArray((d as any)?.do) ? (d as any).do : [];
 const avoidList = Array.isArray((d as any)?.avoid) ? (d as any).avoid : [];
 
 // Keep your safety cleanup for any AI text
-// — If text already contains moodText, remove it to avoid repetition
+// ï¿½ If text already contains moodText, remove it to avoid repetition
 const textNoMood = moodText ? rawText.replace(moodText, "").trim() : rawText;
 const finalLine = normalizeHighlightText(stripNakshatraClaims(textNoMood), idx);
 
@@ -3903,7 +3903,7 @@ const confClass =
       return (
         <div
           key={dateISO || idx}
-          className="rounded-2xl border border-white/10 bg-white/5 p-4"
+          className="rounded-2xl border border-white/10 bg-white/5/5 p-4"
         >
           {/* Header */}
           <div className="flex items-start justify-between gap-3">
@@ -4001,7 +4001,7 @@ const confClass =
           {(doList.length > 0 || avoidList.length > 0) && (
   <div className="mt-3 grid gap-3 md:grid-cols-2">
     {doList.length > 0 && (
-      <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+      <div className="rounded-xl border border-white/10 bg-white/5/5 p-3">
         <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/60">
           Do
         </div>
@@ -4014,7 +4014,7 @@ const confClass =
     )}
 
     {avoidList.length > 0 && (
-      <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+      <div className="rounded-xl border border-white/10 bg-white/5/5 p-3">
         <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/60">
           Avoid
         </div>
@@ -4031,7 +4031,7 @@ const confClass =
 {((d as any)?.color || (d as any)?.luckyNumber || (d as any)?.bestTime) && (
   <div className="mt-4 grid grid-cols-3 gap-3 text-center">
     {(d as any)?.color && (
-      <div className="rounded-lg border border-white/10 bg-white/5 p-2">
+      <div className="rounded-lg border border-white/10 bg-white/5/5 p-2">
         <div className="text-[11px] uppercase tracking-wide text-white/50">
           Color
         </div>
@@ -4042,7 +4042,7 @@ const confClass =
     )}
 
     {(d as any)?.luckyNumber && (
-      <div className="rounded-lg border border-white/10 bg-white/5 p-2">
+      <div className="rounded-lg border border-white/10 bg-white/5/5 p-2">
         <div className="text-[11px] uppercase tracking-wide text-white/50">
           Supportive number
         </div>
@@ -4053,7 +4053,7 @@ const confClass =
     )}
 
     {(d as any)?.bestTime && (
-      <div className="rounded-lg border border-white/10 bg-white/5 p-2">
+      <div className="rounded-lg border border-white/10 bg-white/5/5 p-2">
         <div className="text-[11px] uppercase tracking-wide text-white/50">
           Best flow window
         </div>
@@ -4290,7 +4290,7 @@ function buildTodaysFocusV2(opts: {
 
   const finalCat: Cat = dashaFlavour ?? cat;
 
-  // 3) Map category — text
+  // 3) Map category ï¿½ text
   if (finalCat === "career") {
     return {
       area: "Career & long-term direction",
@@ -4504,7 +4504,7 @@ const TabDailyGuide: React.FC<{
         </p>
 
         {fastingIsGoodDay !== null && (
-          <div className="mt-3 inline-flex rounded-full bg-white/10 px-2 py-1 text-[11px] font-medium text-amber-200">
+          <div className="mt-3 inline-flex rounded-full bg-white/5/10 px-2 py-1 text-[11px] font-medium text-amber-200">
             {fastingIsGoodDay
               ? "Supportive day for fasting"
               : "Not a strong day for full fasting  choose lightness instead."}
@@ -4513,7 +4513,7 @@ const TabDailyGuide: React.FC<{
       </div>
 
       {/* Money */}
-      <div className="rounded-2xl border border-white/15 bg-white/5 p-4">
+      <div className="rounded-2xl border border-white/15 bg-white/5/5 p-4">
         <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
           Money
         </div>
@@ -4873,7 +4873,7 @@ function toISODate(v: any): string | null {
 // ===================== Advanced Pro: degree + nakshatra intelligence =====================
 
 // Lahiri-ish sidereal: you already store siderealDeg in [0..360).
-// Convert absolute degree — degree within sign (0..30)
+// Convert absolute degree ï¿½ degree within sign (0..30)
 function degInSignX(absDeg: any): number | null {
   const n = Number(absDeg);
   if (!Number.isFinite(n)) return null;
@@ -5333,7 +5333,7 @@ const isoDay = (d: Date) => d.toISOString().slice(0, 10);
 const TabAdvanced: React.FC<{
   report: LifeReportView | null;
   mounted: boolean;
-  isPro: boolean; // — Tier-2: Advanced Pro
+  isPro: boolean; // ï¿½ Tier-2: Advanced Pro
   timelineSummary?: string | null;
   dashaTransitSummary?: string | null;
   transits?: TransitHit[];
@@ -5360,7 +5360,7 @@ const hitsN: TransitHit[] = (Array.isArray(hits) ? hits : [])
   })
   .filter((h: any) => !!h?.startISO && !!h?.endISO);
 
-// For today — next 2 weeks chips
+// For today ï¿½ next 2 weeks chips
 const addDaysISO = (iso: string, days: number) => {
   const d = new Date(iso + "T00:00:00.000Z");
   d.setUTCDate(d.getUTCDate() + days);
@@ -5424,11 +5424,11 @@ const parsedFusion: any = (() => {
 
 
 
-  // — IMPORTANT: if no report yet, show clean empty-state (no demo data)
+  // ï¿½ IMPORTANT: if no report yet, show clean empty-state (no demo data)
   if (!report) {
     return (
       <div className="space-y-6">
-        <div className="rounded-2xl border border-white/15 bg-white/5 p-4">
+        <div className="rounded-2xl border border-white/15 bg-white/5/5 p-4">
           <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
             Advanced - Your deeper map
           </div>
@@ -5451,7 +5451,7 @@ const parsedFusion: any = (() => {
          {topToday.length > 0 ? (
   <div className="mt-3 flex flex-wrap gap-2">
     {topToday.map((t: any, i: number) => (
-      <span key={(t?.id ?? i) as any} className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[11px] text-white/80">
+      <span key={(t?.id ?? i) as any} className="rounded-full border border-white/15 bg-white/5/5 px-3 py-1 text-[11px] text-white/80">
         {formatTransitChip(t)}
       </span>
     ))}
@@ -5461,7 +5461,7 @@ const parsedFusion: any = (() => {
     <div className="text-xs text-white/60 mb-2">No strong transits active today. Next up:</div>
     <div className="flex flex-wrap gap-2">
       {nextUpcoming.map((t: any, i: number) => (
-        <span key={(t?.id ?? i) as any} className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[11px] text-white/80">
+        <span key={(t?.id ?? i) as any} className="rounded-full border border-white/15 bg-white/5/5 px-3 py-1 text-[11px] text-white/80">
           {formatTransitChip(t)}
         </span>
       ))}
@@ -5482,7 +5482,7 @@ const parsedFusion: any = (() => {
             ].map((t) => (
               <div
                 key={t}
-                className="rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-white/80"
+                className="rounded-xl border border-white/10 bg-white/5/5 p-3 text-sm text-white/80"
               >
                 {t}
               </div>
@@ -5497,14 +5497,14 @@ const parsedFusion: any = (() => {
     );
   }
 
-  // — Compute ONLY when report exists
+  // ï¿½ Compute ONLY when report exists
   const r: any = report;
   console.log("[TabAdvanced] prop transits len:", Array.isArray(transits) ? transits.length : "not-array", transits);
 console.log("[TabAdvanced] report.transits len:", Array.isArray((r as any)?.transits) ? (r as any).transits.length : "not-array", (r as any)?.transits);
 
 console.log("[TabAdvanced] planets[0]", report?.planets?.[0]);
-{/* — TODAYS STRONG TRANSITS (from /api/transits) */}
-<div className="rounded-2xl border border-white/15 bg-white/5 p-5">
+{/* ï¿½ TODAYS STRONG TRANSITS (from /api/transits) */}
+<div className="rounded-2xl border border-white/15 bg-white/5/5 p-5">
   <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
     Todays strong transits
   </div>
@@ -5514,7 +5514,7 @@ console.log("[TabAdvanced] planets[0]", report?.planets?.[0]);
       {topToday.map((t: any, i: number) => (
         <span
           key={(t?.id ?? i) as any}
-          className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[11px] text-white/80"
+          className="rounded-full border border-white/15 bg-white/5/5 px-3 py-1 text-[11px] text-white/80"
         >
           {formatTransitChip(t)}
         </span>
@@ -5605,7 +5605,7 @@ const moonHouse =
 }
 
 
-// ===================== Advanced Pro: no-generic builders (WHY — SO WHAT — HOW) =====================
+// ===================== Advanced Pro: no-generic builders (WHY ï¿½ SO WHAT ï¿½ HOW) =====================
 
 function getP_X(report: any, name: string) {
   const planets = Array.isArray(report?.planets) ? report.planets : [];
@@ -5860,7 +5860,7 @@ if (Number.isFinite(moonHouseN) && moonHouseN >= 1 && moonHouseN <= 12) {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="rounded-2xl border border-white/15 bg-white/5 p-4">
+      <div className="rounded-2xl border border-white/15 bg-white/5/5 p-4">
         <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
           {isPro ? "Advanced Pro - Decision intelligence" : "Advanced - Preview"}
         </div>
@@ -5902,7 +5902,7 @@ if (Number.isFinite(moonHouseN) && moonHouseN >= 1 && moonHouseN <= 12) {
             ].map((x) => (
               <div
                 key={x.h}
-                className="rounded-xl border border-white/10 bg-white/5 p-3"
+                className="rounded-xl border border-white/10 bg-white/5/5 p-3"
               >
                 <div className="text-xs font-semibold uppercase tracking-wide text-white/70">
                   {x.h}
@@ -5921,7 +5921,7 @@ if (Number.isFinite(moonHouseN) && moonHouseN >= 1 && moonHouseN <= 12) {
             <Link href="/sarathi/chat" className="w-full sm:w-auto">
               <Button
                 variant="outline"
-                className="w-full sm:w-auto border-white/20 hover:bg-white/10 text-white"
+                className="w-full sm:w-auto border-white/20 hover:bg-white/5/10 text-white"
               >
                 Ask Sarathi
               </Button>
@@ -5966,7 +5966,7 @@ if (Number.isFinite(moonHouseN) && moonHouseN >= 1 && moonHouseN <= 12) {
       </div>
 
       {/* NOW 3 DAYS (Upgraded) */}
-<div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+<div className="rounded-2xl border border-white/10 bg-white/5/5 p-4">
   <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
     Now and next 3 days
   </div>
@@ -5975,7 +5975,7 @@ if (Number.isFinite(moonHouseN) && moonHouseN >= 1 && moonHouseN <= 12) {
   {Array.isArray(plan.now3Days.focusAreas) && plan.now3Days.focusAreas.length > 0 && (
     <div className="mt-3 grid gap-2 md:grid-cols-2">
       {plan.now3Days.focusAreas.slice(0, 6).map((a: any, i: number) => (
-        <div key={i} className="rounded-xl border border-white/10 bg-white/5 p-3">
+        <div key={i} className="rounded-xl border border-white/10 bg-white/5/5 p-3">
           <div className="text-sm font-semibold text-white/90">{a?.area}</div>
           <div className="mt-1 text-xs text-white/70">{a.why}</div>
         </div>
@@ -6053,7 +6053,7 @@ if (Number.isFinite(moonHouseN) && moonHouseN >= 1 && moonHouseN <= 12) {
 </div>
 
       {/* NEXT 14 DAYS */}
-      <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+      <div className="rounded-2xl border border-white/10 bg-white/5/5 p-4">
         <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
           Next 14 days
         </div>
@@ -6061,7 +6061,7 @@ if (Number.isFinite(moonHouseN) && moonHouseN >= 1 && moonHouseN <= 12) {
         {Array.isArray(plan.next14Days.areasActivated) && plan.next14Days.areasActivated.length > 0 && (
           <div className="mt-3 grid gap-2 md:grid-cols-2">
             {plan.next14Days.areasActivated.slice(0, 6).map((a: any, i: number) => (
-              <div key={i} className="rounded-xl border border-white/10 bg-white/5 p-3">
+              <div key={i} className="rounded-xl border border-white/10 bg-white/5/5 p-3">
                 <div className="text-sm font-semibold text-white/90">{a?.area}</div>
                 <div className="mt-1 text-xs text-white/70">{a.why}</div>
               </div>
@@ -6096,7 +6096,7 @@ if (Number.isFinite(moonHouseN) && moonHouseN >= 1 && moonHouseN <= 12) {
         )}
 
         {Array.isArray(plan.next14Days.timing) && plan.next14Days.timing.length > 0 && (
-          <div className="mt-4 rounded-xl border border-white/10 bg-white/5 p-3">
+          <div className="mt-4 rounded-xl border border-white/10 bg-white/5/5 p-3">
             <div className="text-[11px] font-semibold uppercase tracking-wide text-white/60">
               Timing windows
             </div>
@@ -6119,7 +6119,7 @@ if (Number.isFinite(moonHouseN) && moonHouseN >= 1 && moonHouseN <= 12) {
       </div>
 
      {/* NEXT 30 DAYS (Upgraded) */}
-<div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+<div className="rounded-2xl border border-white/10 bg-white/5/5 p-4">
   <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
     Next 30 days
   </div>
@@ -6128,7 +6128,7 @@ if (Number.isFinite(moonHouseN) && moonHouseN >= 1 && moonHouseN <= 12) {
   {Array.isArray(plan.next30Days.areasActivated) && plan.next30Days.areasActivated.length > 0 && (
     <div className="mt-3 grid gap-2 md:grid-cols-2">
       {plan.next30Days.areasActivated.slice(0, 6).map((a: any, i: number) => (
-        <div key={i} className="rounded-xl border border-white/10 bg-white/5 p-3">
+        <div key={i} className="rounded-xl border border-white/10 bg-white/5/5 p-3">
           <div className="text-sm font-semibold text-white/90">{a?.area}</div>
           <div className="mt-1 text-xs text-white/70">{a?.why}</div>
         </div>
@@ -6184,7 +6184,7 @@ if (Number.isFinite(moonHouseN) && moonHouseN >= 1 && moonHouseN <= 12) {
       </ul>
     </div>
 
-    <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+    <div className="rounded-xl border border-white/10 bg-white/5/5 p-3">
       <div className="text-[11px] font-semibold uppercase tracking-wide text-white/60">
         System to install
       </div>
@@ -6213,7 +6213,7 @@ if (Number.isFinite(moonHouseN) && moonHouseN >= 1 && moonHouseN <= 12) {
       {plan.evidence.transitsUsed.slice(0, 8).map((x: string, i: number) => (
         <span
           key={i}
-          className="rounded-full border border-white/15 bg-white/5 px-2 py-1 text-[11px] text-white/80"
+          className="rounded-full border border-white/15 bg-white/5/5 px-2 py-1 text-[11px] text-white/80"
         >
           {x}
         </span>
@@ -6260,7 +6260,7 @@ if (Number.isFinite(moonHouseN) && moonHouseN >= 1 && moonHouseN <= 12) {
   </ul>
 
   {why.evidence.length ? (
-    <div className="mt-4 rounded-xl border border-white/10 bg-white/5 p-3">
+    <div className="mt-4 rounded-xl border border-white/10 bg-white/5/5 p-3">
       <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
         Based on your chart
       </div>
@@ -6268,7 +6268,7 @@ if (Number.isFinite(moonHouseN) && moonHouseN >= 1 && moonHouseN <= 12) {
         {why.evidence.map((e, i) => (
           <span
             key={i}
-            className="rounded-full border border-white/15 bg-white/5 px-2 py-1 text-[11px] text-white/70"
+            className="rounded-full border border-white/15 bg-white/5/5 px-2 py-1 text-[11px] text-white/70"
           >
             {e}
           </span>
@@ -6347,7 +6347,7 @@ if (Number.isFinite(moonHouseN) && moonHouseN >= 1 && moonHouseN <= 12) {
       )}
 
       {/* Final CTA */}
-      <div className="rounded-2xl border border-white/15 bg-white/5 p-4">
+      <div className="rounded-2xl border border-white/15 bg-white/5/5 p-4">
         <div className="text-sm font-semibold text-slate-100">
           Want the complete picture?
         </div>
@@ -6361,7 +6361,7 @@ if (Number.isFinite(moonHouseN) && moonHouseN >= 1 && moonHouseN <= 12) {
           <Link href="/sarathi/chat" className="w-full sm:w-auto">
             <Button
               variant="outline"
-              className="w-full sm:w-auto border-white/20 hover:bg-white/10 text-white"
+              className="w-full sm:w-auto border-white/20 hover:bg-white/5/10 text-white"
             >
               Ask Sarathi
             </Button>
@@ -6700,7 +6700,7 @@ const todaysFocus = useMemo(
   }
   
   const trimmedName = (name || "").trim() || "Default";
-  const profileId = `${trimmedName} — ${dateISO}`;
+  const profileId = `${trimmedName} ï¿½ ${dateISO}`;
 
   // Shape that Life Report / SavedProfile uses
   const savedProfile: SavedProfile = {
@@ -6803,7 +6803,7 @@ const todaysFocus = useMemo(
                 : d.weight === 1
                 ? "bg-teal-100 text-teal-800"
                 : d.weight === 0
-                ? "bg-slate-100 text-white/70"
+                ? "bg-white/10 text-white/70"
                 : "bg-red-100 text-red-800")
             }
           >
@@ -6984,7 +6984,7 @@ console.log("[life-report] response status", res.status);
 
 const envelope: any = await res.json();
 
-// — Unwrap: get the ACTUAL report object that contains nowPlan/nowNearFuture
+// ï¿½ Unwrap: get the ACTUAL report object that contains nowPlan/nowNearFuture
 const data: any =
   envelope?.report ??
   envelope?.lifeReport ??
@@ -7004,7 +7004,7 @@ console.log(
 );
 console.log("[life-report] headline:", data?.nowPlan?.headline);
 
-// — IMPORTANT: from this point forward, use `data` as your life report object
+// ï¿½ IMPORTANT: from this point forward, use `data` as your life report object
 
 
 // ?? STEP 2: call /api/ai-personality using the REAL life-report payload
@@ -7054,7 +7054,7 @@ try {
   setAiSummary(`(DEBUG) ai-personality crashed: ${e?.message ?? String(e)}`);
 }
 
-    // ?? Notifications from API — state (all 3 buckets)
+    // ?? Notifications from API ï¿½ state (all 3 buckets)
     const anyData = data as any;
     const preview = anyData.previewNotifications ?? null;
     if (preview && typeof preview === "object") {
@@ -7178,7 +7178,7 @@ try {
       activePeriods: data?.activePeriods,
       lifeMilestones: data?.lifeMilestones,
       dashaTimeline: data?.dashaTimeline,
-      // — Paid plan blocks from API
+      // ï¿½ Paid plan blocks from API
   nowPlan: (data as any)?.nowPlan ?? (data as any)?.nowNearFuture ?? undefined,
   nowNearFuture: (data as any)?.nowNearFuture ?? (data as any)?.nowPlan ?? undefined,
 
@@ -7372,7 +7372,7 @@ try {
     if (f.moonNakshatra) facts.push(`Transit Moon nakshatra: ${f.moonNakshatra}`);
     if (typeof f.houseFromMoon === "number")
       facts.push(`Transit Moon is ${f.houseFromMoon} from natal Moon`);
-    if (tr?.planet) facts.push(`Strongest transit: ${tr.planet} — ${tr.target || "natal point"}`);
+    if (tr?.planet) facts.push(`Strongest transit: ${tr.planet} ï¿½ ${tr.target || "natal point"}`);
     if (typeof tr?.strength === "number")
       facts.push(`Transit strength: ${Math.round(tr.strength * 100)}%`);
     if (tr?.category) facts.push(`Focus area: ${tr.category}`);
@@ -7421,7 +7421,7 @@ try {
     const extras = dailyFlavorExtras(dateISO || String(idx));
     const key = `${dateISO}::${idx}::${facts.join("|")}`;
 
-    // — Keep a REAL focus string
+    // ï¿½ Keep a REAL focus string
     const focusRaw =
       facts.find((x: string) => x.toLowerCase().includes("focus area:")) || "";
     const focusStr = String(focusRaw).split(":").slice(1).join(":").trim();
@@ -7438,7 +7438,7 @@ try {
     const moodFromMoon = inferMoodFromMoonFrom(moonFrom);
 const moodFallback = inferMoodFromFacts(facts, conf);
 
-// — single mood declaration (priority: AI mood — fallback — moon — balanced)
+// ï¿½ single mood declaration (priority: AI mood ï¿½ fallback ï¿½ moon ï¿½ balanced)
 const mood = String(
   (d.mood ?? "").trim() ||
   moodFallback.mood ||
@@ -7450,7 +7450,7 @@ const mood = String(
 
 const moodTextRaw = String(d.moodText ?? "").trim();
 
-// — If AI moodText is generic/repetitive, replace with relatable variation
+// ï¿½ If AI moodText is generic/repetitive, replace with relatable variation
 const moodText =
   moodTextRaw && !isGenericMoodText(moodTextRaw)
     ? moodTextRaw
@@ -7458,7 +7458,7 @@ const moodText =
 
 
 
-    // — Guidance pool based on focus
+    // ï¿½ Guidance pool based on focus
     const REL_GUIDES = [
       "Say the simple truth, kindly. One clear conversation beats ten half-replies.",
       "Ask one direct question instead of assuming the answer.",
@@ -7501,12 +7501,12 @@ const moodText =
       focusLower.includes("inner") ? INNER_GUIDES :
       GENERAL_GUIDES;
 
-    // — Varies by date (not by idx)
+    // ï¿½ Varies by date (not by idx)
    
     const guidance = pickKey(guidePool, dayKey);
 
 
-    // — Do/Avoid
+    // ï¿½ Do/Avoid
     const listKey = `${dateISO}:${focusLower}:${mood}`;
     const lists = doAvoidLists(focusLower, mood, listKey);
 
@@ -7521,7 +7521,7 @@ const moodText =
         ? "Mindset & emotions"
         : "Todays focus";
 
-    // — If AI repeats or is empty, we still show premium guidance
+    // ï¿½ If AI repeats or is empty, we still show premium guidance
     const aiText = String(d.text ?? "").trim();
     const finalText = aiText ? aiText : `${moodText} ${guidance}`.trim();
 
@@ -7550,7 +7550,7 @@ const moodText =
       throw new Error("ai daily returned empty");
     }
   } catch {
-    // — Meaningful fallback (varies by focus area + emotional tone)
+    // ï¿½ Meaningful fallback (varies by focus area + emotional tone)
 const fallback: DailyHighlightLocal[] = dayInputs.map((d: any, idx: number) => {
   const facts = Array.isArray(d.facts) ? (d.facts as string[]) : [];
 
@@ -7579,7 +7579,7 @@ const fallback: DailyHighlightLocal[] = dayInputs.map((d: any, idx: number) => {
   const moodFromMoon = inferMoodFromMoonFrom(moonFrom);
   const mood = String(moodFromMoon || moodObj.mood || "balanced");
 
-// — fallback doesnt use AI moodText at all  generate relatable mood line
+// ï¿½ fallback doesnt use AI moodText at all  generate relatable mood line
 const moodText = String(relatableMoodText(mood, key) ?? buildMoodLineText(mood, key) ?? "");
 
 
@@ -7642,7 +7642,7 @@ const moodText = String(relatableMoodText(mood, key) ?? buildMoodLineText(mood, 
       ? INNER_GUIDES
       : GENERAL_GUIDES;
 
-  // — Varies by dateISO (not only idx)
+  // ï¿½ Varies by dateISO (not only idx)
   const guideKey = dateISO || String(idx);
   const guidance = pickKey(guidePool, guideKey);
 
@@ -7679,7 +7679,7 @@ const dayKey = dateISO || String(idx);
 const microTip = pickKey(microPool, dayKey + "::micro");
 
 
-// — Make it feel like a human reading your day
+// ï¿½ Make it feel like a human reading your day
 const composed = `${guidance} ${microTip}`.trim();
 const finalText = stripMoodPrefix(composed, moodText);
 
@@ -7743,7 +7743,7 @@ const finalText = stripMoodPrefix(composed, moodText);
       console.error("ai-transits error", err);
     }
 
-    // 2) Dasha — Transits fusion
+    // 2) Dasha ï¿½ Transits fusion
     try {
       const fusionRes = await fetch("/api/ai-dasha-transits", {
         method: "POST",
@@ -7898,7 +7898,7 @@ try {
   setWeeklyLoading(false);
 }
 
-// — CLOSE the OUTER transits try/catch/finally correctly
+// ï¿½ CLOSE the OUTER transits try/catch/finally correctly
 } catch (err) {
   console.error("transits API error", err);
   setTransitsError("Could not load upcoming transits.");
@@ -8379,7 +8379,7 @@ const TabPlacements = () => {
                             ? "border-rose-400/30 bg-rose-500/10 text-rose-200"
                             : status === "Own"
                             ? "border-sky-400/30 bg-sky-500/10 text-sky-200"
-                            : "border-white/15 bg-white/5 text-white/70";
+                            : "border-white/15 bg-white/5/5 text-white/70";
 
                         return (
                           <div className="grid gap-3 sm:grid-cols-2">
@@ -8397,7 +8397,7 @@ const TabPlacements = () => {
                               return (
                                 <div
                                   key={`${name}-${idx}`}
-                                  className="rounded-xl border border-white/10 bg-white/5 px-4 py-3"
+                                  className="rounded-xl border border-white/10 bg-white/5/5 px-4 py-3"
                                 >
                                   <div className="flex items-center justify-between gap-3">
                                     <div className="text-sm font-semibold text-slate-50">
@@ -8717,7 +8717,7 @@ return (
           return (
             <div
               key={idx}
-              className="rounded-xl border border-white/10 bg-white/5 p-3"
+              className="rounded-xl border border-white/10 bg-white/5/5 p-3"
             >
               <div className="text-sm font-semibold text-slate-100">
                 {label}
@@ -9181,7 +9181,7 @@ useEffect(() => {
     };
 
     
-    // — NO HIDING: disable chat cache while we debug houses/asc
+    // ï¿½ NO HIDING: disable chat cache while we debug houses/asc
 window.localStorage.removeItem("sarathi.lifeReportCache.v2");
 // console.log("[life-report] chat cache disabled");
 
@@ -9343,7 +9343,7 @@ router.replace(`${pathname}?${sp.toString()}`, { scroll: false });
             type="button"
             variant="outline"
             size="sm"
-            className="w-full md:w-auto text-white hover:text-white border-white/20 hover:bg-white/10"
+            className="w-full md:w-auto text-white hover:text-white border-white/20 hover:bg-white/5/10"
 
 
           >
@@ -9435,7 +9435,7 @@ const TabFullPlan: React.FC<TabFullPlanProps> = ({
    const isPreview = !isPro;
   if (!mounted) {
     return (
-      <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-white/70">
+      <div className="rounded-2xl border border-white/10 bg-white/5/5 p-4 text-sm text-white/70">
         Loading Full Plan
       </div>
       
@@ -9461,7 +9461,7 @@ const month = buildMonthFromDaily(dailyHighlights);
 
   if (!hasReport) {
   return (
-    <div className="rounded-2xl border border-white/15 bg-white/5 p-5">
+    <div className="rounded-2xl border border-white/15 bg-white/5/5 p-5">
       <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
         Full plan
       </div>
@@ -9492,7 +9492,7 @@ const horizonISO = new Date(Date.now() + 365 * 24 * 3600 * 1000)
   .toISOString()
   .slice(0, 10);
 
-// — define FIRST
+// ï¿½ define FIRST
 const toISODate = (v: any): string => {
   const s = String(v || "").trim();
   if (!s) return "";
@@ -9570,7 +9570,7 @@ const adEndN = dayNum(adEndISO);
 // +/- 1 day tolerance (handles timezone shifts)
 const oneDay = 24 * 60 * 60 * 1000;
 
-  // — transits array to use everywhere in TabAdvanced
+  // ï¿½ transits array to use everywhere in TabAdvanced
 const hits = Array.isArray((report as any)?.transits) ? (report as any).transits : [];
 
 
@@ -9877,7 +9877,7 @@ const topToday = topActiveTransitsForToday(hitsToday, todayISOTransit, 5);
         return sentenceCase(trimToSentence(toWeekTone(base).replace(/^Over the next 7 days:\s*/i, "Watch for: "), 190));
       })();
 {/* 4.5) Next 30 days (4-week view) */}
-<details className="rounded-2xl border border-white/15 bg-white/5 p-4">
+<details className="rounded-2xl border border-white/15 bg-white/5/5 p-4">
   <summary className="cursor-pointer list-none">
     <div className="text-sm font-semibold text-slate-100">Next 30 days</div>
     <div className="mt-1 text-xs text-white/60">
@@ -10101,7 +10101,7 @@ const timing = (() => {
       return (
         <>
           {/* Header */}
-          <div className="rounded-2xl border border-white/15 bg-white/5 p-4">
+          <div className="rounded-2xl border border-white/15 bg-white/5/5 p-4">
             <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
               Full plan  explain + act
             </div>
@@ -10113,7 +10113,7 @@ const timing = (() => {
             </div>
           </div>
       {/* Todays strong transits */}
-      <div className="rounded-2xl border border-white/15 bg-white/5 p-4">
+      <div className="rounded-2xl border border-white/15 bg-white/5/5 p-4">
         <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
           Todays strongest transits
         </div>
@@ -10123,7 +10123,7 @@ const timing = (() => {
             {topToday.map((t: any, i: number) => (
               <span
                 key={(t?.id ?? i) as any}
-                className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[11px] text-white/80"
+                className="rounded-full border border-white/15 bg-white/5/5 px-3 py-1 text-[11px] text-white/80"
               >
                 {formatTransitChip(t)}
               </span>
@@ -10137,7 +10137,7 @@ const timing = (() => {
       </div>
 
           {/* 1) TODAY */}
-          <div className="rounded-2xl border border-white/15 bg-white/5 p-4">
+          <div className="rounded-2xl border border-white/15 bg-white/5/5 p-4">
             <div className="text-sm font-semibold text-slate-100">Today: your 3 biggest drivers</div>
             <div className="mt-1 text-sm text-white/70">
               Keep these in mind all day  they explain why your mood, focus, and timing feel the way they do.
@@ -10155,7 +10155,7 @@ const timing = (() => {
             </div>
           </div>
 
-          {/* 2) Timing Intelligence (today — next 72 hours) */}
+          {/* 2) Timing Intelligence (today ï¿½ next 72 hours) */}
 <details className="rounded-2xl border border-white/15 bg-indigo-950/40 p-4 backdrop-blur-md" open>
   <summary className="cursor-pointer list-none">
     <div className="text-sm font-semibold text-slate-100">Todays Energy Windows</div>
@@ -10165,7 +10165,7 @@ const timing = (() => {
   </summary>
 
   <div className="mt-4 space-y-3">
-    <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-white/75">
+    <div className="rounded-xl border border-white/10 bg-white/5/5 p-3 text-sm text-white/75">
       Use this like a GPS: <span className="text-white/85">do high-impact work in best windows</span>, and keep
       caution windows for low-risk tasks (admin, cleanup, light workouts).
     </div>
@@ -10183,7 +10183,7 @@ const timing = (() => {
               // Prefer w.why (new model), fallback to w.text (old model)
               const whyLine = stripRepeats(String(w.why || w.text || "")).trim();
               return (
-                <div key={w.key} className="rounded-lg border border-white/10 bg-white/5 p-3">
+                <div key={w.key} className="rounded-lg border border-white/10 bg-white/5/5 p-3">
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <div className="text-sm font-semibold text-slate-100">{w.label}</div>
@@ -10196,7 +10196,7 @@ const timing = (() => {
 
                   {/* Optional "Why" (1 short line) */}
                   {clean(w.why) ? (
-  <div className="mt-2 rounded-md border border-white/10 bg-white/5 p-2 text-sm text-white/75 leading-relaxed">
+  <div className="mt-2 rounded-md border border-white/10 bg-white/5/5 p-2 text-sm text-white/75 leading-relaxed">
     <span className="text-white/60 text-[11px] uppercase tracking-wide mr-2">Why</span>
     {w.why}
   </div>
@@ -10229,13 +10229,13 @@ const timing = (() => {
 
         <div className="mt-3 space-y-2">
           {(Array.isArray(timing.cautions) && timing.cautions.length ? timing.cautions : []).map((c: string, i: number) => (
-            <div key={i} className="rounded-lg border border-white/10 bg-white/5 p-3 text-sm text-white/85">
+            <div key={i} className="rounded-lg border border-white/10 bg-white/5/5 p-3 text-sm text-white/85">
               {c}
             </div>
           ))}
 
           {!timing.cautions?.length ? (
-            <div className="rounded-lg border border-white/10 bg-white/5 p-3 text-sm text-white/70">
+            <div className="rounded-lg border border-white/10 bg-white/5/5 p-3 text-sm text-white/70">
               No caution notes detected  still avoid rushed commitments when you feel pressured.
             </div>
           ) : null}
@@ -10252,7 +10252,7 @@ const timing = (() => {
 
           {/* 3) Next 35 days (optional but premium) */}
           {/* 3) Next 35 days (premium) */}
-<details className="rounded-2xl border border-white/15 bg-white/5 p-4">
+<details className="rounded-2xl border border-white/15 bg-white/5/5 p-4">
   <summary className="cursor-pointer list-none">
     <div className="text-sm font-semibold text-slate-100">Next 3 days</div>
     <div className="mt-1 text-xs text-white/60">
@@ -10279,7 +10279,7 @@ const timing = (() => {
                 {h?.dateISO || ""}
               </div>
               {clean(h?.confidence) ? (
-                <div className="rounded-full border border-white/15 bg-white/5 px-2 py-[2px] text-[10px] text-white/70">
+                <div className="rounded-full border border-white/15 bg-white/5/5 px-2 py-[2px] text-[10px] text-white/70">
                   {String(h.confidence).toUpperCase()}
                 </div>
               ) : null}
@@ -10341,7 +10341,7 @@ const timing = (() => {
 </details>
 
           {/* 4) Weekly insight */}
-          <details className="rounded-2xl border border-white/15 bg-white/5 p-4">
+          <details className="rounded-2xl border border-white/15 bg-white/5/5 p-4">
             <summary className="cursor-pointer list-none">
               <div className="text-sm font-semibold text-slate-100">This week (next 7 days)</div>
               <div className="mt-1 text-xs text-white/60">One theme + two priorities + one watch-out</div>
@@ -10369,14 +10369,14 @@ const timing = (() => {
           </details>
 
           {/* 5) Next 46 weeks */}
-          <details className="rounded-2xl border border-white/15 bg-white/5 p-4">
+          <details className="rounded-2xl border border-white/15 bg-white/5/5 p-4">
             <summary className="cursor-pointer list-none">
               <div className="text-sm font-semibold text-slate-100">Next 46 weeks</div>
               <div className="mt-1 text-xs text-white/60">The broader direction your energy is moving toward  not daily noise.</div>
             </summary>
 
             <div className="mt-4 space-y-3">
-              <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+              <div className="rounded-xl border border-white/10 bg-white/5/5 p-3">
                 <div className="text-xs font-semibold uppercase tracking-wide text-white/60">Core direction</div>
                 <div className="mt-1 text-sm text-white/85 leading-relaxed">{coreDirective}</div>
               </div>
@@ -10387,14 +10387,14 @@ const timing = (() => {
               </div>
 
               <div className="grid gap-3 md:grid-cols-2">
-                <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                <div className="rounded-xl border border-white/10 bg-white/5/5 p-3">
                   <div className="text-xs font-semibold uppercase tracking-wide text-white/60">Weeks 12</div>
                   <div className="mt-1 text-sm text-white/80 leading-relaxed">
                     {phase.w12.replace(/^Weeks 12:\s*/i, "")}
                   </div>
                 </div>
 
-                <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                <div className="rounded-xl border border-white/10 bg-white/5/5 p-3">
                   <div className="text-xs font-semibold uppercase tracking-wide text-white/60">Weeks 34</div>
                   <div className="mt-1 text-sm text-white/80 leading-relaxed">
                     {phase.w34.replace(/^Weeks 34:\s*/i, "")}
@@ -10428,14 +10428,14 @@ const timing = (() => {
             </summary>
 
             <div className="mt-4 space-y-3">
-              <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-white/75">
+              <div className="rounded-xl border border-white/10 bg-white/5/5 p-3 text-sm text-white/75">
                 <span className="text-white/85 font-semibold">How to read this:</span> Mahadasha is your big life chapter (years),
                 Antardasha is the sub-chapter (months/years). The most noticeable shift inside the next 12 months is usually
                 the next Antardasha change.
               </div>
 
               {(md || ad || pd) ? (
-                <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                <div className="rounded-xl border border-white/10 bg-white/5/5 p-3">
                   <div className="text-xs font-semibold uppercase tracking-wide text-white/60">Current cycle</div>
 
                   <div className="mt-2 text-sm text-white/85">
@@ -10446,7 +10446,7 @@ const timing = (() => {
 
                   <div className="mt-1 text-xs text-white/60">
                     {ap?.antardasha?.start && ap?.antardasha?.end
-                      ? `${String(ap.antardasha.start).slice(0, 10)} — ${String(ap.antardasha.end).slice(0, 10)}`
+                      ? `${String(ap.antardasha.start).slice(0, 10)} ï¿½ ${String(ap.antardasha.end).slice(0, 10)}`
                       : ""}
                   </div>
 
@@ -10481,12 +10481,12 @@ const timing = (() => {
 
               <div className="grid gap-3 md:grid-cols-2">
                 {nextAD ? (
-                  <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                  <div className="rounded-xl border border-white/10 bg-white/5/5 p-3">
                     <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
                       Next shift (Antardasha)
                     </div>
                     <div className="mt-1 text-sm font-semibold text-slate-100">AD: {nextAD.lord}</div>
-                    <div className="mt-1 text-xs text-white/60">{nextAD.start} — {nextAD.end}</div>
+                    <div className="mt-1 text-xs text-white/60">{nextAD.start} ï¿½ {nextAD.end}</div>
 
                     <div className="mt-3 rounded-lg border border-white/10 bg-indigo-950/40 p-3">
                       <div className="text-xs font-semibold uppercase tracking-wide text-white/60">What you may notice</div>
@@ -10509,19 +10509,19 @@ const timing = (() => {
                     </div>
                   </div>
                 ) : (
-                  <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-white/70">
+                  <div className="rounded-xl border border-white/10 bg-white/5/5 p-3 text-sm text-white/70">
                     <div className="text-xs font-semibold uppercase tracking-wide text-white/60">Next shift (Antardasha)</div>
                     No Antardasha boundary inside the next 12 months  the theme stays consistent. Focus on execution and compounding.
                   </div>
                 )}
 
                 {nextMD?.start ? (
-                  <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                  <div className="rounded-xl border border-white/10 bg-white/5/5 p-3">
                     <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
                       Major shift (Mahadasha)  longer term
                     </div>
                     <div className="mt-1 text-sm font-semibold text-slate-100">MD: {nextMD.planet}</div>
-                    <div className="mt-1 text-xs text-white/60">{nextMD.start} — {nextMD.end}</div>
+                    <div className="mt-1 text-xs text-white/60">{nextMD.start} ï¿½ {nextMD.end}</div>
 
                     <div className="mt-3 text-sm text-white/80 leading-relaxed">
                       {sentenceCase(
@@ -10554,14 +10554,14 @@ const timing = (() => {
 
             <div className="mt-4 grid gap-4 md:grid-cols-2">
   {(Array.isArray(timing?.windows) ? timing.windows : []).slice(0, 3).map((w: any, i: number) => (
-    <div key={w.key ?? i} className="rounded-xl border border-white/10 bg-white/5 p-4">
+    <div key={w.key ?? i} className="rounded-xl border border-white/10 bg-white/5/5 p-4">
       <div className="text-sm font-semibold text-slate-100">{w.label}</div>
 
       <div className="mt-1 text-xs text-white/70">
         {w.bestFor ? `Best for: ${w.bestFor}` : "Best for: "}
       </div>
 
-      <div className="mt-2 rounded-lg border border-white/10 bg-white/5 p-3 text-sm text-white/80">
+      <div className="mt-2 rounded-lg border border-white/10 bg-white/5/5 p-3 text-sm text-white/80">
         <span className="text-white/60 text-[11px] uppercase tracking-wide mr-2">One action</span>
         {w.oneAction || "Pick one meaningful action and finish it."}
       </div>
@@ -10573,7 +10573,7 @@ const timing = (() => {
   ))}
 
   {!timing?.windows?.length ? (
-    <div className="rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-white/70 md:col-span-2">
+    <div className="rounded-xl border border-white/10 bg-white/5/5 p-4 text-sm text-white/70 md:col-span-2">
       No windows available yet. Generate/refresh the report to compute timing windows.
     </div>
   ) : null}

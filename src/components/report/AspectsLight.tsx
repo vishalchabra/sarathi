@@ -50,7 +50,7 @@ export default function AspectsLight({
   if (!out.length) return null;
 
   return (
-    <section className="rounded-xl border bg-white p-4" style={{ breakInside: "avoid" }}>
+    <section className="rounded-xl border bg-white/5 p-4" style={{ breakInside: "avoid" }}>
       <h3 className="text-lg font-semibold mb-2">Aspects (light)</h3>
       <div className="overflow-x-auto">
         <table className="min-w-[480px] w-full text-sm">

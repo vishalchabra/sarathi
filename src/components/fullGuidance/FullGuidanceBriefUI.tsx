@@ -3,7 +3,7 @@ import React from "react";
 export default function FullGuidanceBriefUI({ brief }: { brief: any }) {
       if (!brief || typeof brief !== "object") {
     return (
-      <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-white/70">
+      <div className="rounded-2xl border border-white/10 bg-white/5/5 p-4 text-sm text-white/70">
         Building your full guidance…
       </div>
     );
@@ -34,7 +34,7 @@ export default function FullGuidanceBriefUI({ brief }: { brief: any }) {
       {hasLifeStory ? (
         <>
           {/* 1) Life Architecture */}
-          <div className="rounded-2xl border border-white/15 bg-white/5 p-4">
+          <div className="rounded-2xl border border-white/15 bg-white/5/5 p-4">
             <div className="text-sm font-semibold text-slate-100">Life Architecture</div>
             <div className="mt-1 text-xs text-white/60">
               {brief?.lifeArchitecture?.oneLine || "—"}
@@ -140,7 +140,7 @@ const predictions90d = Array.isArray(paid?.predictions90d) ? paid.predictions90d
         {mdLine || adLine || pdLine ? (
           <div className="space-y-2">
             {mdLine ? (
-              <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+              <div className="rounded-xl border border-white/10 bg-white/5/5 p-3">
                 <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
                   {mdLine.label}
                 </div>
@@ -172,7 +172,7 @@ const predictions90d = Array.isArray(paid?.predictions90d) ? paid.predictions90d
             ) : null}
 
             {pdLine ? (
-              <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+              <div className="rounded-xl border border-white/10 bg-white/5/5 p-3">
                 <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
                   {pdLine.label}
                 </div>
@@ -195,7 +195,7 @@ const predictions90d = Array.isArray(paid?.predictions90d) ? paid.predictions90d
 
         {/* Compact MD timeline (optional) */}
         {timeline.length ? (
-          <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+          <div className="rounded-xl border border-white/10 bg-white/5/5 p-3">
             <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
               Mahadasha timeline (compact)
             </div>
@@ -227,7 +227,7 @@ const predictions90d = Array.isArray(paid?.predictions90d) ? paid.predictions90d
 </details>
 
           {/* 3) Current Chapter */}
-          <div className="rounded-2xl border border-white/15 bg-white/5 p-4">
+          <div className="rounded-2xl border border-white/15 bg-white/5/5 p-4">
             <div className="text-sm font-semibold text-slate-100">Current Chapter</div>
 
             <div className="mt-1 text-xs text-white/60">
@@ -273,7 +273,7 @@ const predictions90d = Array.isArray(paid?.predictions90d) ? paid.predictions90d
          ========================= */}
 
       {/* Snapshot */}
-      <div className="rounded-2xl border border-white/15 bg-white/5 p-4">
+      <div className="rounded-2xl border border-white/15 bg-white/5/5 p-4">
         <div className="flex items-center justify-between gap-3">
           <div>
             <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
@@ -283,7 +283,7 @@ const predictions90d = Array.isArray(paid?.predictions90d) ? paid.predictions90d
             <div className="mt-1 text-sm text-white/70">Probability + confidence + triggers + actions.</div>
           </div>
 
-          <span className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[11px] text-white/80">
+          <span className="rounded-full border border-white/15 bg-white/5/5 px-3 py-1 text-[11px] text-white/80">
             Confidence: {brief?.overallConfidence ?? "—"}
           </span>
         </div>
@@ -308,7 +308,7 @@ const predictions90d = Array.isArray(paid?.predictions90d) ? paid.predictions90d
       <div className="rounded-2xl border border-white/15 bg-indigo-950/40 p-4">
         <div className="text-xs font-semibold uppercase tracking-wide text-white/60">Today</div>
 
-        <div className="mt-2 rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-white/85">
+        <div className="mt-2 rounded-xl border border-white/10 bg-white/5/5 p-3 text-sm text-white/85">
           <div>
             <span className="font-semibold">Directive:</span> {brief?.today?.directive ?? "—"}
           </div>
@@ -319,7 +319,7 @@ const predictions90d = Array.isArray(paid?.predictions90d) ? paid.predictions90d
 
         <div className="mt-3 grid gap-3 md:grid-cols-3">
           {(brief?.today?.bestWindows ?? []).map((w: any, i: number) => (
-            <div key={i} className="rounded-xl border border-white/10 bg-white/5 p-3">
+            <div key={i} className="rounded-xl border border-white/10 bg-white/5/5 p-3">
               <div className="text-sm font-semibold text-slate-100">{w?.label ?? "—"}</div>
               <div className="mt-1 text-xs text-white/70">Best for: {w?.bestFor ?? "—"}</div>
               {w?.whyFact ? <div className="mt-2 text-xs text-white/60">Why: {w.whyFact}</div> : null}
@@ -343,21 +343,21 @@ const predictions90d = Array.isArray(paid?.predictions90d) ? paid.predictions90d
 
       {/* 14/30/60/90 */}
       {(sections as any[]).map((sec: any) => (
-  <div key={String(sec?.key ?? sec?.title ?? Math.random())} className="rounded-2xl border border-white/15 bg-white/5 p-4">
+  <div key={String(sec?.key ?? sec?.title ?? Math.random())} className="rounded-2xl border border-white/15 bg-white/5/5 p-4">
     <div className="text-sm font-semibold text-slate-100">{sec?.title ?? "—"}</div>
 
     <div className="mt-3 space-y-3">
       {(Array.isArray(sec?.list) ? sec.list : []).map((p: any, i: number) => (
-        <div key={i} className="rounded-xl border border-white/15 bg-white/5 p-3">
+        <div key={i} className="rounded-xl border border-white/15 bg-white/5/5 p-3">
           <div className="flex items-center justify-between gap-3">
             <div className="text-xs text-white/60">
               {String(p?.domain ?? "—").toUpperCase()} • {p?.startISO ?? "—"} → {p?.endISO ?? "—"}
             </div>
             <div className="flex items-center gap-2">
-              <span className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[11px] text-white/80">
+              <span className="rounded-full border border-white/15 bg-white/5/5 px-3 py-1 text-[11px] text-white/80">
                 {p?.probability ?? "—"}%
               </span>
-              <span className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[11px] text-white/80">
+              <span className="rounded-full border border-white/15 bg-white/5/5 px-3 py-1 text-[11px] text-white/80">
                 {p?.confidence ?? "—"}
               </span>
             </div>
@@ -408,7 +408,7 @@ const predictions90d = Array.isArray(paid?.predictions90d) ? paid.predictions90d
 
       {/* fallback when list is empty */}
       {(!Array.isArray(sec?.list) || sec.list.length === 0) ? (
-        <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-white/70">
+        <div className="rounded-xl border border-white/10 bg-white/5/5 p-3 text-sm text-white/70">
           No items found for {sec?.title ?? "this section"}.
         </div>
       ) : null}
@@ -416,20 +416,20 @@ const predictions90d = Array.isArray(paid?.predictions90d) ? paid.predictions90d
   </div>
 ))}
       {/* Risk + Protocol */}
-      <div className="rounded-2xl border border-white/15 bg-white/5 p-4">
+      <div className="rounded-2xl border border-white/15 bg-white/5/5 p-4">
         <div className="text-sm font-semibold text-slate-100">Risk Index</div>
 
         <div className="mt-3 grid gap-3 md:grid-cols-2">
-          <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-white/85">
+          <div className="rounded-xl border border-white/10 bg-white/5/5 p-3 text-sm text-white/85">
             <span className="font-semibold">Likely mistake:</span> {brief?.riskIndex?.likelyMistake ?? "—"}
           </div>
-          <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-white/85">
+          <div className="rounded-xl border border-white/10 bg-white/5/5 p-3 text-sm text-white/85">
             <span className="font-semibold">Emotional trap:</span> {brief?.riskIndex?.emotionalTrap ?? "—"}
           </div>
-          <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-white/85">
+          <div className="rounded-xl border border-white/10 bg-white/5/5 p-3 text-sm text-white/85">
             <span className="font-semibold">Structural trap:</span> {brief?.riskIndex?.structuralTrap ?? "—"}
           </div>
-          <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-white/85">
+          <div className="rounded-xl border border-white/10 bg-white/5/5 p-3 text-sm text-white/85">
             <span className="font-semibold">Financial trap:</span> {brief?.riskIndex?.financialTrap ?? "—"}
           </div>
         </div>

@@ -39,7 +39,7 @@ export default function HouseLords({
   });
 
   return (
-    <section className="rounded-xl border bg-white p-4">
+    <section className="rounded-xl border bg-white/5 p-4">
       <h3 className="text-lg font-semibold mb-2">House Lords from Lagna</h3>
       <div className="overflow-x-auto">
         <table className="min-w-[520px] w-full text-sm">

@@ -240,46 +240,46 @@ export function DailyRhythmCard({ report }: { report: LifeReportLike | null }) {
   const rhythm = buildDailyRhythm(report || undefined);
 
   return (
-    <Card className="mt-4 border-slate-200">
+    <Card className="mt-4 border-white/10">
       <CardHeader className="pb-2">
         <CardTitle className="text-sm font-semibold">
           Daily Rhythm (MD/AD + Moon flavour)
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-3 text-xs text-slate-700">
+      <CardContent className="space-y-3 text-xs text-white/80">
         <div>
-          <div className="font-semibold text-slate-900">Tone of the day</div>
+          <div className="font-semibold text-white">Tone of the day</div>
           <p>{rhythm.tone}</p>
         </div>
 
         <div className="grid gap-3 md:grid-cols-2">
           <div>
-            <div className="font-semibold text-slate-900">Focus</div>
+            <div className="font-semibold text-white">Focus</div>
             <p>{rhythm.focus}</p>
           </div>
           <div>
-            <div className="font-semibold text-slate-900">Avoid</div>
+            <div className="font-semibold text-white">Avoid</div>
             <p>{rhythm.avoid}</p>
           </div>
         </div>
 
         <div className="grid gap-3 md:grid-cols-3">
           <div>
-            <div className="font-semibold text-slate-900">Food</div>
+            <div className="font-semibold text-white">Food</div>
             <p>{rhythm.foodHint}</p>
           </div>
           <div>
-            <div className="font-semibold text-slate-900">Relationships</div>
+            <div className="font-semibold text-white">Relationships</div>
             <p>{rhythm.relationshipHint}</p>
           </div>
           <div>
-            <div className="font-semibold text-slate-900">Money</div>
+            <div className="font-semibold text-white">Money</div>
             <p>{rhythm.moneyHint}</p>
           </div>
         </div>
 
         <div className="border-t pt-3 mt-1">
-          <div className="font-semibold text-slate-900">One next step</div>
+          <div className="font-semibold text-white">One next step</div>
           <p>{rhythm.oneStep}</p>
         </div>
       </CardContent>

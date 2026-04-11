@@ -13,7 +13,7 @@ export default function ContactPage() {
             </div>
             <div className="leading-tight">
               <div className="text-sm font-semibold tracking-wide">Sārathi</div>
-              <div className="text-[11px] text-slate-400">
+              <div className="text-[11px] text-white/40">
                 The charioteer of your journey within
               </div>
             </div>
@@ -37,7 +37,7 @@ export default function ContactPage() {
       </header>
 
       <main className="mx-auto max-w-6xl px-4 py-10 md:py-14">
-        <Card className="rounded-3xl border border-white/10 bg-white/5 backdrop-blur-sm">
+        <Card className="rounded-3xl border border-white/10 bg-white/5/5 backdrop-blur-sm">
           <CardHeader>
             <CardTitle className="text-2xl md:text-3xl text-slate-50">
               Contact
@@ -55,7 +55,7 @@ export default function ContactPage() {
               </div>
               <p className="mt-2">
                 Replace this with your official support email:
-                <span className="ml-2 rounded-md border border-white/10 bg-white/5 px-2 py-0.5 text-xs text-slate-100">
+                <span className="ml-2 rounded-md border border-white/10 bg-white/5/5 px-2 py-0.5 text-xs text-slate-100">
                   support@sarathi.app
                 </span>
               </p>
@@ -64,7 +64,7 @@ export default function ContactPage() {
               </p>
             </div>
 
-            <div className="text-xs text-slate-400">
+            <div className="text-xs text-white/40">
               <Link href="/" className="hover:text-slate-200">
                 ← Back to Home
               </Link>

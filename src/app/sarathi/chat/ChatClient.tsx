@@ -285,7 +285,7 @@ function AssistantProse({ data }: { data: QAResponse }) {
           <button
             type="button"
             onClick={() => setShowLong((s) => !s)}
-            className="text-xs rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 hover:bg-white/10"
+            className="text-xs rounded-lg border border-white/10 bg-white/5/5 px-2.5 py-1 hover:bg-white/5/10"
           >
             {showLong ? "Hide full explanation" : "Show full explanation"}
           </button>
@@ -539,7 +539,7 @@ const [showEvidence, setShowEvidence] = useState(false);
       ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-200"
       : confidenceLevel === "Medium"
       ? "border-amber-400/30 bg-amber-500/10 text-amber-200"
-      : "border-white/10 bg-white/5 text-slate-200/90";
+      : "border-white/10 bg-white/5/5 text-slate-200/90";
 
   const timingBadgeClass =
     timingStrength === "Strong"
@@ -550,7 +550,7 @@ const [showEvidence, setShowEvidence] = useState(false);
       ? "border-amber-400/30 bg-amber-500/10 text-amber-200"
       : timingStrength === "Caution"
       ? "border-rose-400/30 bg-rose-500/10 text-rose-200"
-      : "border-white/10 bg-white/5 text-slate-200/90";
+      : "border-white/10 bg-white/5/5 text-slate-200/90";
   return (
          <div>
         <div className="text-xs uppercase tracking-[0.18em] text-slate-300/60">
@@ -564,13 +564,13 @@ const [showEvidence, setShowEvidence] = useState(false);
 
         <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
           {confidenceText ? (
-            <div className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-slate-200/85">
+            <div className="rounded-full border border-white/10 bg-white/5/5 px-2.5 py-1 text-[11px] text-slate-200/85">
   {confidenceText}
 </div>
           ) : null}
 
           {nowLabel ? (
-            <div className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-slate-200/85">
+            <div className="rounded-full border border-white/10 bg-white/5/5 px-2.5 py-1 text-[11px] text-slate-200/85">
               Current timing: {nowLabel}
             </div>
           ) : null}
@@ -589,7 +589,7 @@ const [showEvidence, setShowEvidence] = useState(false);
         </div>
 
                  {answer ? (
-  <div className="mt-4 rounded-[22px] border border-white/10 bg-white/[0.05] p-5 md:p-6">
+  <div className="mt-4 rounded-[22px] border border-white/10 bg-white/5/[0.05] p-5 md:p-6">
   <div className="whitespace-pre-wrap text-[15px] leading-8 text-slate-100/95">
       {expanded ? answer : answer.slice(0, 520)}
       {answer.length > 520 && !expanded ? "…" : ""}
@@ -610,7 +610,7 @@ const [showEvidence, setShowEvidence] = useState(false);
       {timingSummary || confidenceReason ? (
   <div className="mt-4 grid gap-3 md:grid-cols-2">
     {timingSummary ? (
-      <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+      <div className="rounded-2xl border border-white/10 bg-white/5/[0.04] p-4">
         <div className="text-[11px] uppercase tracking-[0.14em] text-slate-300/45">
           Current timing
         </div>
@@ -619,7 +619,7 @@ const [showEvidence, setShowEvidence] = useState(false);
     ) : null}
 
     {confidenceReason ? (
-      <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+      <div className="rounded-2xl border border-white/10 bg-white/5/[0.04] p-4">
         <div className="text-[11px] uppercase tracking-[0.14em] text-slate-300/45">
           How clear this looks
         </div>
@@ -631,14 +631,14 @@ const [showEvidence, setShowEvidence] = useState(false);
             {(how || (whyBullets && whyBullets.length)) ? (
         <div className="mt-4 grid gap-3 md:grid-cols-2">
           {how ? (
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+            <div className="rounded-2xl border border-white/10 bg-white/5/5 p-4">
               <div className="text-xs uppercase tracking-[0.14em] text-slate-300/60">What to do now</div>
               <div className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-100/90">{how}</div>
             </div>
           ) : null}
 
           {whyBullets && whyBullets.length ? (
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+            <div className="rounded-2xl border border-white/10 bg-white/5/5 p-4">
               <div className="text-xs uppercase tracking-[0.14em] text-slate-300/60">Why this works</div>
               <ul className="mt-2 list-disc pl-5 space-y-1 text-sm leading-6 text-slate-100/90">
                 {whyBullets.slice(0, 3).map((w, i) => (
@@ -651,7 +651,7 @@ const [showEvidence, setShowEvidence] = useState(false);
       ) : null}
 
                 {evidenceBullets && evidenceBullets.length ? (
-        <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 p-4">
+        <div className="mt-4 rounded-2xl border border-white/10 bg-white/5/5 p-4">
           <button
             type="button"
             onClick={() => setShowEvidence((s) => !s)}
@@ -681,7 +681,7 @@ const [showEvidence, setShowEvidence] = useState(false);
       ) : null}
 
       {detailNote ? (
-        <div className="mt-4 border-t border-white/10 pt-3 text-xs text-slate-400/80">
+        <div className="mt-4 border-t border-white/10 pt-3 text-xs text-white/40/80">
           {detailNote}
         </div>
       ) : null}
@@ -1122,7 +1122,7 @@ const stripEvidenceMarker = (s?: string) => {
 
           <div className="ml-auto flex items-center gap-2 text-xs">
   {safeMode && (
-    <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-slate-200/80">
+    <span className="rounded-full border border-white/10 bg-white/5/5 px-2 py-0.5 text-slate-200/80">
       Safe
     </span>
   )}
@@ -1147,7 +1147,7 @@ const stripEvidenceMarker = (s?: string) => {
           {!hasProfile && (
             <a
               href="/sarathi/life-report"
-              className="rounded-full border border-white/10 bg-white/5 px-3 py-1 hover:bg-white/10 text-slate-100"
+              className="rounded-full border border-white/10 bg-white/5/5 px-3 py-1 hover:bg-white/5/10 text-slate-100"
             >
               Open Life Report
             </a>
@@ -1167,7 +1167,7 @@ const stripEvidenceMarker = (s?: string) => {
                 localStorage.removeItem("sarathi-chat");
               } catch {}
             }}
-            className="ml-auto rounded-full border border-white/10 bg-white/5 px-3 py-1 hover:bg-white/10 text-slate-100"
+            className="ml-auto rounded-full border border-white/10 bg-white/5/5 px-3 py-1 hover:bg-white/5/10 text-slate-100"
             title="Clear chat history"
           >
             Clear
@@ -1409,7 +1409,7 @@ console.log("[chat] keys:", {
         <button
           onClick={() => send()}
           disabled={!canSend}
-          className="inline-flex items-center justify-center h-11 rounded-xl px-4 text-sm font-semibold border border-white/10 bg-white/10 hover:bg-white/15 disabled:opacity-50 text-slate-100"
+          className="inline-flex items-center justify-center h-11 rounded-xl px-4 text-sm font-semibold border border-white/10 bg-white/5/10 hover:bg-white/5/15 disabled:opacity-50 text-slate-100"
         >
           Send
         </button>

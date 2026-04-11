@@ -178,11 +178,11 @@ export default function Page() {
       {/* Recent */}
       {history.length > 0 && (
         <section className="rounded-xl border p-4">
-          <div className="text-sm uppercase text-slate-500 mb-2">Recent</div>
+          <div className="text-sm uppercase text-white/50 mb-2">Recent</div>
           <div className="space-y-2 text-sm">
             {history.map((h) => (
               <div key={h.id} className="flex gap-2">
-                <div className={`px-2 py-1 rounded-md ${h.role === "user" ? "bg-slate-100" : "bg-emerald-50"}`}>
+                <div className={`px-2 py-1 rounded-md ${h.role === "user" ? "bg-white/10" : "bg-emerald-50"}`}>
                   <span className="font-medium">{h.role === "user" ? "You" : "Sārathi"}:</span> {h.content}
                 </div>
               </div>
@@ -217,9 +217,9 @@ export default function Page() {
         <section className="grid gap-6 sm:grid-cols-3">
           {/* Left: Answer */}
           <div className="sm:col-span-2 rounded-xl border p-4 space-y-3">
-            <div className="text-sm uppercase text-slate-500">Answer</div>
+            <div className="text-sm uppercase text-white/50">Answer</div>
             <div className="whitespace-pre-wrap leading-relaxed">{answerText}</div>
-            <div className="text-xs text-slate-500">
+            <div className="text-xs text-white/50">
               Confidence: <span className="font-medium">{resp.answer.confidence}</span>
             </div>
             {resp.answer.actions?.length ? (
@@ -232,10 +232,10 @@ export default function Page() {
           {/* Right: Context */}
           <div className="space-y-3">
             <div className="rounded-xl border p-4">
-              <div className="text-sm uppercase text-slate-500 mb-1">Why</div>
+              <div className="text-sm uppercase text-white/50 mb-1">Why</div>
               {!!(resp.why?.facts?.length) && (
                 <>
-                  <div className="text-xs text-slate-500">Facts</div>
+                  <div className="text-xs text-white/50">Facts</div>
                   <ul className="list-disc pl-5 text-sm">
                     {resp.why.facts.map((f, i) => <li key={i}>{f}</li>)}
                   </ul>
@@ -243,7 +243,7 @@ export default function Page() {
               )}
               {!!(resp.why?.rules?.length) && (
                 <>
-                  <div className="text-xs text-slate-500 mt-2">Rules</div>
+                  <div className="text-xs text-white/50 mt-2">Rules</div>
                   <ul className="list-disc pl-5 text-sm">
                     {resp.why.rules.map((r, i) => <li key={i}>{r}</li>)}
                   </ul>
@@ -251,7 +251,7 @@ export default function Page() {
               )}
               {!!(resp.why?.warnings?.length) && (
                 <>
-                  <div className="text-xs text-slate-500 mt-2">Warnings</div>
+                  <div className="text-xs text-white/50 mt-2">Warnings</div>
                   <ul className="list-disc pl-5 text-sm">
                     {resp.why.warnings.map((w, i) => <li key={i}>{w}</li>)}
                   </ul>
@@ -260,7 +260,7 @@ export default function Page() {
             </div>
 
             <div className="rounded-xl border p-4">
-              <div className="text-sm uppercase text-slate-500 mb-1">Today’s Panchang</div>
+              <div className="text-sm uppercase text-white/50 mb-1">Today’s Panchang</div>
               <div className="text-sm">
                 <div>Tithi: {ctx.panchang?.tithi ?? "—"}</div>
                 <div>Nakshatra: {ctx.panchang?.nakshatra ?? "—"}</div>
@@ -268,7 +268,7 @@ export default function Page() {
             </div>
 
             <div className="rounded-xl border p-4">
-              <div className="text-sm uppercase text-slate-500 mb-1">Dasha</div>
+              <div className="text-sm uppercase text-white/50 mb-1">Dasha</div>
               <div className="text-sm">
                 {ctx.dasha?.md ? `MD: ${ctx.dasha.md}` : "—"}
                 {ctx.dasha?.ad ? ` • AD: ${ctx.dasha.ad}` : ""}

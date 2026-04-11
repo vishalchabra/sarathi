@@ -65,8 +65,8 @@ export function CareerWindowCard({ category = "job", windows, natalScore }: Prop
 
   if (!primary) {
     return (
-      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
-        <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
+      <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-white/70">
+        <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-white/50">
           {category === "job" ? "Career window" : "Timing window"}
         </div>
         <div>No strong timing window detected in the current horizon.</div>
@@ -75,45 +75,45 @@ export function CareerWindowCard({ category = "job", windows, natalScore }: Prop
   }
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+    <div className="rounded-2xl border border-white/10 bg-white/5 p-4 shadow-sm">
       <div className="mb-1 flex items-center justify-between gap-2">
-        <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+        <div className="text-xs font-semibold uppercase tracking-wide text-white/50">
           {category === "job" ? "Career window" : "Timing window"}
         </div>
         {confidence && (
-          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium uppercase text-slate-600">
+          <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-medium uppercase text-white/70">
             Confidence: {confidence}
           </span>
         )}
       </div>
 
-      <div className="mb-3 text-sm font-medium text-slate-900">
+      <div className="mb-3 text-sm font-medium text-white">
         {category === "job"
           ? "When is a good time to switch or move up?"
           : "Best timing windows ahead"}
       </div>
 
       {/* Primary window */}
-      <div className="mb-3 rounded-xl bg-slate-50 p-3">
+      <div className="mb-3 rounded-xl bg-white/5 p-3">
         <div className="flex items-center justify-between gap-2">
-          <div className="text-xs font-semibold text-slate-600">
+          <div className="text-xs font-semibold text-white/70">
             {labelPhrase(primary.label)}
           </div>
-          <div className="text-xs text-slate-500">
+          <div className="text-xs text-white/50">
             {strengthBar(primary.score)}
           </div>
         </div>
-        <div className="mt-1 text-sm font-medium text-slate-900">
+        <div className="mt-1 text-sm font-medium text-white">
           {fmtRange(primary.from, primary.to)}
         </div>
         {primary.why && primary.why.length > 0 && (
-          <div className="mt-1 text-xs text-slate-600">
+          <div className="mt-1 text-xs text-white/70">
             <span className="font-semibold">Why:</span>{" "}
             {primary.why.join("; ")}
           </div>
         )}
         {category === "job" && (
-          <div className="mt-2 text-xs text-slate-600">
+          <div className="mt-2 text-xs text-white/70">
             <span className="font-semibold">Use it for:</span> interviews,
             visibility moves, serious conversations about role/comp.
           </div>
@@ -122,26 +122,26 @@ export function CareerWindowCard({ category = "job", windows, natalScore }: Prop
 
       {/* Secondary window (optional) */}
       {secondary && (
-        <div className="mb-3 rounded-xl border border-dashed border-slate-200 p-3">
+        <div className="mb-3 rounded-xl border border-dashed border-white/10 p-3">
           <div className="flex items-center justify-between gap-2">
-            <div className="text-xs font-semibold text-slate-600">
+            <div className="text-xs font-semibold text-white/70">
               {labelPhrase(secondary.label)}
             </div>
-            <div className="text-xs text-slate-500">
+            <div className="text-xs text-white/50">
               {strengthBar(secondary.score)}
             </div>
           </div>
-          <div className="mt-1 text-sm font-medium text-slate-900">
+          <div className="mt-1 text-sm font-medium text-white">
             {fmtRange(secondary.from, secondary.to)}
           </div>
           {secondary.why && secondary.why.length > 0 && (
-            <div className="mt-1 text-xs text-slate-600">
+            <div className="mt-1 text-xs text-white/70">
               <span className="font-semibold">Why:</span>{" "}
               {secondary.why.join("; ")}
             </div>
           )}
           {category === "job" && (
-            <div className="mt-2 text-xs text-slate-600">
+            <div className="mt-2 text-xs text-white/70">
               <span className="font-semibold">Use it for:</span> follow-up
               talks, finalising offers, or internal transitions.
             </div>
@@ -150,7 +150,7 @@ export function CareerWindowCard({ category = "job", windows, natalScore }: Prop
       )}
 
       {/* Footer tip */}
-      <div className="mt-1 text-xs text-slate-500">
+      <div className="mt-1 text-xs text-white/50">
         Today: stack proof and close loose ends. Use these windows to{" "}
         <span className="font-semibold">step forward</span> instead of waiting
         to be picked.

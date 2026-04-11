@@ -156,7 +156,7 @@ function getAscSignIndex(ascSign?: string | null) {
 
 function getPlanetTitle(p: ChartPlanet) {
   const parts = [
-    p.isTransit ? "Transit" : "Natal",
+    p.isTransit ? "Transit" : "foundations",
     p.planet,
     p.sign ? `in ${p.sign}` : null,
     typeof p.degree === "number" ? `${p.degree.toFixed(2)}°` : null,

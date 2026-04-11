@@ -381,7 +381,7 @@ export default function FocusedReportsPage() {
                 <h1 className="text-xl font-semibold text-slate-100">
                   Focused Reports
                 </h1>
-                <Badge className="border border-white/10 bg-white/5 text-slate-200">
+                <Badge className="border border-white/10 bg-white/5/5 text-slate-200">
                   Paid report
                 </Badge>
               </div>
@@ -395,7 +395,7 @@ export default function FocusedReportsPage() {
             <Button
               onClick={loadSavedProfile}
               variant="outline"
-              className="rounded-xl border-white/10 bg-white/5 hover:bg-white/10"
+              className="rounded-xl border-white/10 bg-white/5/5 hover:bg-white/5/10"
             >
               Load saved profile
             </Button>
@@ -403,7 +403,7 @@ export default function FocusedReportsPage() {
             <Button
               onClick={printPage}
               variant="outline"
-              className="rounded-xl border-white/10 bg-white/5 hover:bg-white/10"
+              className="rounded-xl border-white/10 bg-white/5/5 hover:bg-white/5/10"
             >
               <Printer className="mr-2 h-4 w-4" />
               Print
@@ -412,7 +412,7 @@ export default function FocusedReportsPage() {
             <Button
               onClick={downloadPDF}
               variant="outline"
-              className="rounded-xl border-white/10 bg-white/5 hover:bg-white/10"
+              className="rounded-xl border-white/10 bg-white/5/5 hover:bg-white/5/10"
             >
               <Download className="mr-2 h-4 w-4" />
               Download PDF
@@ -421,7 +421,7 @@ export default function FocusedReportsPage() {
         </div>
 
         <div className="grid gap-6">
-          <Card className="rounded-3xl border border-white/10 bg-white/5 backdrop-blur">
+          <Card className="rounded-3xl border border-white/10 bg-white/5/5 backdrop-blur">
             <CardHeader>
               <CardTitle className="text-slate-100">
                 Enter birth details
@@ -500,7 +500,7 @@ export default function FocusedReportsPage() {
                         className={`px-3 py-1 rounded-full text-xs border ${
                           reportType === item.key
                             ? "bg-indigo-500 text-white"
-                            : "bg-white/5 text-white/70 border-white/10"
+                            : "bg-white/5/5 text-white/70 border-white/10"
                         }`}
                       >
                         {item.label}
@@ -511,7 +511,7 @@ export default function FocusedReportsPage() {
 
                 <div className="flex flex-col gap-2 md:flex-row md:items-center">
                   <div className="relative flex-1">
-                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
                     <input
                       value={placeQuery}
                       onChange={(e) => {
@@ -529,7 +529,7 @@ export default function FocusedReportsPage() {
                     type="button"
                     variant="outline"
                     onClick={useMyLocation}
-                    className="rounded-xl border-white/10 bg-white/5 hover:bg-white/10"
+                    className="rounded-xl border-white/10 bg-white/5/5 hover:bg-white/5/10"
                   >
                     Use my location
                   </Button>
@@ -565,7 +565,7 @@ export default function FocusedReportsPage() {
                             e.preventDefault();
                             pickSuggestion(s);
                           }}
-                          className="w-full px-4 py-3 text-left hover:bg-white/5"
+                          className="w-full px-4 py-3 text-left hover:bg-white/5/5"
                         >
                           <div className="text-sm text-slate-100">{label}</div>
                           <div className="text-xs text-slate-300/70">{meta}</div>
@@ -611,7 +611,7 @@ export default function FocusedReportsPage() {
             </CardContent>
           </Card>
 
-          <Card className="rounded-3xl border border-white/10 bg-white/5 backdrop-blur">
+          <Card className="rounded-3xl border border-white/10 bg-white/5/5 backdrop-blur">
             <CardHeader>
               <CardTitle className="text-slate-100">Report Preview</CardTitle>
               <p className="text-sm text-slate-300/80">

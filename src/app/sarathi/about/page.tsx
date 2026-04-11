@@ -23,7 +23,7 @@ function PageShell({
       <header className="sticky top-0 z-40 border-b border-white/10 bg-[#070A14]/70 backdrop-blur">
         <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-4">
           <Link href="/sarathi" className="flex items-center gap-3">
-            <div className="grid h-10 w-10 place-items-center rounded-xl border border-white/10 bg-white/5">
+            <div className="grid h-10 w-10 place-items-center rounded-xl border border-white/10 bg-white/5/5">
               <span className="text-lg">✧</span>
             </div>
             <div className="leading-tight">
@@ -58,7 +58,7 @@ function PageShell({
       </header>
 
       <section className="mx-auto max-w-4xl px-4 pb-14 pt-10">
-        <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/70">
+        <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5/5 px-3 py-1 text-xs text-white/70">
           Why astrology · Why Sārathi · The story
         </div>
 
@@ -102,7 +102,7 @@ function Card({
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.06)_inset]">
+    <div className="rounded-2xl border border-white/10 bg-white/5/5 p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.06)_inset]">
       <div className="text-sm font-semibold text-white/90">{title}</div>
       <div className="mt-3 text-sm leading-relaxed text-white/70">{children}</div>
     </div>
@@ -214,19 +214,19 @@ export default function AboutPage() {
     </Link>
      <Link
       href="/sarathi/focused-reports"
-       className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white/90 hover:bg-white/10"
+       className="rounded-full border border-white/10 bg-white/5/5 px-4 py-2 text-sm font-semibold text-white/90 hover:bg-white/5/10"
     >
       Focused reports 
     </Link>
     <Link
       href="/sarathi/chat"
-      className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white/90 hover:bg-white/10"
+      className="rounded-full border border-white/10 bg-white/5/5 px-4 py-2 text-sm font-semibold text-white/90 hover:bg-white/5/10"
     >
       Ask Sārathi
     </Link>
     <Link
       href="/sarathi/contact"
-      className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white/90 hover:bg-white/10"
+      className="rounded-full border border-white/10 bg-white/5/5 px-4 py-2 text-sm font-semibold text-white/90 hover:bg-white/5/10"
     >
       Contact
     </Link>

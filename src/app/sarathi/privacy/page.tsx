@@ -34,7 +34,7 @@ function Shell({
           Last updated: {new Date().toISOString().slice(0, 10)}
         </p>
 
-        <div className="mt-8 space-y-5 rounded-2xl border border-white/10 bg-white/5 p-6 text-sm leading-relaxed text-white/75 shadow-[0_0_0_1px_rgba(255,255,255,0.06)_inset]">
+        <div className="mt-8 space-y-5 rounded-2xl border border-white/10 bg-white/5/5 p-6 text-sm leading-relaxed text-white/75 shadow-[0_0_0_1px_rgba(255,255,255,0.06)_inset]">
           {children}
         </div>
 

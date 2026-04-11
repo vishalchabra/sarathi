@@ -160,7 +160,7 @@ export default function DashaTimeline({ dasha }: { dasha: any }) {
   }, [rows, now]);
 
   return (
-    <section className="rounded-xl border bg-white p-4" style={{ breakInside: "avoid" }}>
+    <section className="rounded-xl border bg-white/5 p-4" style={{ breakInside: "avoid" }}>
       <div className="flex items-start justify-between">
         <h3 className="text-lg font-semibold">Vimshottari Timeline</h3>
         {current ? (

@@ -15,7 +15,7 @@ export default function SarathiHome() {
       <header className="sticky top-0 z-40 border-b border-white/10 bg-[#070A14]/70 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
           <Link href="/sarathi" className="flex items-center gap-3">
-            <div className="grid h-10 w-10 place-items-center rounded-xl border border-white/10 bg-white/5">
+            <div className="grid h-10 w-10 place-items-center rounded-xl border border-white/10 bg-white/5/5">
               <span className="text-lg">✧</span>
             </div>
             <div className="leading-tight">
@@ -36,6 +36,9 @@ export default function SarathiHome() {
             <Link className="hover:text-white" href="/sarathi/chat">
               Ask Sārathi
             </Link>
+            <Link className="hover:text-white" href="/sarathi/data-engine">
+  Sārathi Astrologer’s Desk
+</Link>
             <Link className="hover:text-white" href="/sarathi/privacy">
               Privacy
             </Link>
@@ -66,7 +69,7 @@ export default function SarathiHome() {
         <div className="grid gap-10 md:grid-cols-2 md:items-start">
           {/* Left: Hero copy */}
           <div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/70">
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5/5 px-3 py-1 text-xs text-white/70">
               Vedic astrology · Purpose · Practical guidance
             </div>
 
@@ -92,7 +95,7 @@ export default function SarathiHome() {
 
               <Link
                 href="#start"
-                className="rounded-full border border-white/10 bg-white/5 px-5 py-2.5 text-sm font-semibold text-white/90 hover:bg-white/10"
+                className="rounded-full border border-white/10 bg-white/5/5 px-5 py-2.5 text-sm font-semibold text-white/90 hover:bg-white/5/10"
               >
                 Explore Sārathi
               </Link>
@@ -105,7 +108,7 @@ export default function SarathiHome() {
           </div>
 
           {/* Right: "What you get in minutes" card */}
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.06)_inset]">
+          <div className="rounded-2xl border border-white/10 bg-white/5/5 p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.06)_inset]">
             <div className="flex items-center gap-2">
               <span className="text-yellow-300">★</span>
               <h3 className="text-sm font-semibold text-white/90">
@@ -134,7 +137,7 @@ export default function SarathiHome() {
         </div>
 
         {/* Anxiety-free strip */}
-        <div className="mt-10 rounded-2xl border border-white/10 bg-white/5 px-6 py-5 shadow-[0_0_0_1px_rgba(255,255,255,0.06)_inset]">
+        <div className="mt-10 rounded-2xl border border-white/10 bg-white/5/5 px-6 py-5 shadow-[0_0_0_1px_rgba(255,255,255,0.06)_inset]">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
               <div className="text-sm font-semibold text-white/90">
@@ -165,7 +168,7 @@ export default function SarathiHome() {
 <section className="mx-auto max-w-6xl px-4 pb-16">
   <div className="grid gap-6 md:grid-cols-2">
     {/* Why astrology */}
-    <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.06)_inset]">
+    <div className="rounded-2xl border border-white/10 bg-white/5/5 p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.06)_inset]">
       <div className="text-xs font-semibold tracking-wide text-white/60">
         WHY ASTROLOGY
       </div>
@@ -190,14 +193,14 @@ export default function SarathiHome() {
         </li>
       </ul>
 
-      <div className="mt-4 rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-white/65">
+      <div className="mt-4 rounded-xl border border-white/10 bg-white/5/5 p-4 text-sm text-white/65">
         <span className="text-white/80">Promise:</span> The point isn’t
         prediction. The point is direction.
       </div>
     </div>
 
     {/* Why Sarathi */}
-    <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.06)_inset]">
+    <div className="rounded-2xl border border-white/10 bg-white/5/5 p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.06)_inset]">
       <div className="text-xs font-semibold tracking-wide text-white/60">
         WHY SĀRATHI
       </div>
@@ -228,7 +231,7 @@ export default function SarathiHome() {
   </div>
 
   {/* Mahabharata story */}
-  <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-7 shadow-[0_0_0_1px_rgba(255,255,255,0.06)_inset]">
+  <div className="mt-6 rounded-2xl border border-white/10 bg-white/5/5 p-7 shadow-[0_0_0_1px_rgba(255,255,255,0.06)_inset]">
     <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
       <div className="max-w-3xl">
         <div className="text-xs font-semibold tracking-wide text-white/60">
@@ -265,7 +268,7 @@ export default function SarathiHome() {
       <div className="flex shrink-0 flex-wrap gap-3">
         <a
           href="/sarathi/about"
-          className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white/85 hover:bg-white/10"
+          className="rounded-full border border-white/10 bg-white/5/5 px-4 py-2 text-sm font-semibold text-white/85 hover:bg-white/5/10"
         >
           Read the full story →
         </a>
@@ -279,7 +282,7 @@ export default function SarathiHome() {
     </div>
   </div>
   {/* Trust / links */}
-  <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.06)_inset]">
+  <div className="mt-6 rounded-2xl border border-white/10 bg-white/5/5 p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.06)_inset]">
     <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
       <div>
         <div className="text-sm font-semibold text-white/90">
@@ -294,19 +297,19 @@ export default function SarathiHome() {
       <div className="flex flex-wrap gap-3">
         <a
           href="/sarathi/privacy"
-          className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white/85 hover:bg-white/10"
+          className="rounded-full border border-white/10 bg-white/5/5 px-4 py-2 text-sm font-semibold text-white/85 hover:bg-white/5/10"
         >
           Privacy
         </a>
         <a
           href="/sarathi/terms"
-          className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white/85 hover:bg-white/10"
+          className="rounded-full border border-white/10 bg-white/5/5 px-4 py-2 text-sm font-semibold text-white/85 hover:bg-white/5/10"
         >
           Terms
         </a>
         <a
           href="/sarathi/contact"
-          className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white/85 hover:bg-white/10"
+          className="rounded-full border border-white/10 bg-white/5/5 px-4 py-2 text-sm font-semibold text-white/85 hover:bg-white/5/10"
         >
           Contact
         </a>
@@ -389,7 +392,7 @@ function Step({
 }) {
   return (
     <div className="flex gap-4">
-      <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/5 text-xs font-semibold text-white/70 ring-1 ring-white/10">
+      <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/5/5 text-xs font-semibold text-white/70 ring-1 ring-white/10">
         {n}
       </div>
       <div>
@@ -422,7 +425,7 @@ function StartCard({
   };
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.06)_inset]">
+    <div className="rounded-2xl border border-white/10 bg-white/5/5 p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.06)_inset]">
       <div className="flex items-center gap-3">
         <div className={`text-lg ${accentMap[accent]}`}>{icon}</div>
         <div className="text-sm font-semibold text-white/90">{title}</div>
@@ -433,7 +436,7 @@ function StartCard({
       <div className="mt-6">
         <Link
           href={href}
-          className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white/85 hover:bg-white/10"
+          className="inline-flex items-center rounded-full border border-white/10 bg-white/5/5 px-4 py-2 text-sm font-semibold text-white/85 hover:bg-white/5/10"
         >
           {cta}
         </Link>

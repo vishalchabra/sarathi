@@ -461,6 +461,48 @@ export async function sweJulday(
 ): Promise<number> {
   return sweCall<number>("swe_julday", year, month, day, hour, gregFlag);
 }
+const NAKSHATRA_NAMES = [
+  "Ashwini",
+  "Bharani",
+  "Krittika",
+  "Rohini",
+  "Mrigashira",
+  "Ardra",
+  "Punarvasu",
+  "Pushya",
+  "Ashlesha",
+  "Magha",
+  "Purva Phalguni",
+  "Uttara Phalguni",
+  "Hasta",
+  "Chitra",
+  "Swati",
+  "Vishakha",
+  "Anuradha",
+  "Jyeshtha",
+  "Mula",
+  "Purva Ashadha",
+  "Uttara Ashadha",
+  "Shravana",
+  "Dhanishtha",
+  "Shatabhisha",
+  "Purva Bhadrapada",
+  "Uttara Bhadrapada",
+  "Revati",
+];
+
+function getNakshatraFromLon(lon: number) {
+  const x = wrap360(lon);
+  const nakSpan = 360 / 27; // 13°20'
+  const idx = Math.floor(x / nakSpan);
+  const withinNak = x % nakSpan;
+  const pada = Math.floor(withinNak / (nakSpan / 4)) + 1;
+
+  return {
+    nakshatra: NAKSHATRA_NAMES[idx] ?? null,
+    pada,
+  };
+}
 export async function getPlanetPositions(input: {
   dateISO: string;
   tz?: string;
@@ -517,28 +559,36 @@ export async function getPlanetPositions(input: {
     const house = houseFromLon(siderealLon, cusps);
     const deg = siderealLon % 30;
 
-    planets.push({
-      id: p.name,
-      name: p.name,
-      sign,
-      house,
-      deg,
-      siderealLongitude: siderealLon,
-    });
+    const nak = getNakshatraFromLon(siderealLon);
+
+planets.push({
+  id: p.name,
+  name: p.name,
+  sign,
+  house,
+  deg,
+  siderealLongitude: siderealLon,
+  nakshatra: nak.nakshatra,
+  pada: nak.pada,
+});
   }
 
   // Ketu from Rahu
   const rahu = planets.find((p) => p.name === "Rahu");
   if (rahu) {
     const ketuLon = wrap360(Number(rahu.siderealLongitude) + 180);
-    planets.push({
-      id: "Ketu",
-      name: "Ketu",
-      sign: zodiacSignFromLon(ketuLon),
-      house: houseFromLon(ketuLon, cusps),
-      deg: ketuLon % 30,
-      siderealLongitude: ketuLon,
-    });
+    const ketuNak = getNakshatraFromLon(ketuLon);
+
+planets.push({
+  id: "Ketu",
+  name: "Ketu",
+  sign: zodiacSignFromLon(ketuLon),
+  house: houseFromLon(ketuLon, cusps),
+  deg: ketuLon % 30,
+  siderealLongitude: ketuLon,
+  nakshatra: ketuNak.nakshatra,
+  pada: ketuNak.pada,
+});
   }
 
   return { planets, houseCusps: cusps };

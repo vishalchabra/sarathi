@@ -67,9 +67,9 @@ export default function DashaTimeline({ dasha }: { dasha: Dasha | undefined }) {
   const md = getMD(dasha || {});
   if (!md.length) {
     return (
-      <section className="rounded-xl border bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 p-4">
+      <section className="rounded-xl border bg-white/5 dark:bg-slate-800 border-white/10 dark:border-slate-700 p-4">
         <h3 className="text-lg font-semibold mb-2">Dasha Timeline</h3>
-        <div className="text-sm text-gray-500 dark:text-slate-400">No dasha data.</div>
+        <div className="text-sm text-gray-500 dark:text-white/40">No dasha data.</div>
       </section>
     );
   }
@@ -83,14 +83,14 @@ export default function DashaTimeline({ dasha }: { dasha: Dasha | undefined }) {
   } → ${md[md.length - 1].end?.slice(0, 10)}`;
 
   return (
-    <section className="rounded-xl border bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 p-4">
+    <section className="rounded-xl border bg-white/5 dark:bg-slate-800 border-white/10 dark:border-slate-700 p-4">
       <div className="flex items-center justify-between mb-2">
         <h3 className="text-lg font-semibold">Dasha Timeline</h3>
-        <small className="text-gray-500 dark:text-slate-400">{horizonStr}</small>
+        <small className="text-gray-500 dark:text-white/40">{horizonStr}</small>
       </div>
 
       {/* MD row */}
-      <div className="w-full rounded overflow-hidden border border-slate-200 dark:border-slate-700">
+      <div className="w-full rounded overflow-hidden border border-white/10 dark:border-slate-700">
         <div className="relative h-9">
           {md.map((m, i) => {
             const m0 = toDate(m.start).getTime();
@@ -112,7 +112,7 @@ export default function DashaTimeline({ dasha }: { dasha: Dasha | undefined }) {
         </div>
 
         {/* AD row */}
-        <div className="relative h-6 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700">
+        <div className="relative h-6 bg-white/5 dark:bg-slate-900 border-t border-white/10 dark:border-slate-700">
           {md.flatMap((m, mi) => {
             const ads = getADsFor(m, dasha || {});
             const m0 = toDate(m.start).getTime();
