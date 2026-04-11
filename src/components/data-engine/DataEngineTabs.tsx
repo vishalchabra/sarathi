@@ -1,6 +1,12 @@
 "use client";
 
-type TabKey = "foundations" | "timing" | "transits" | "vargas" | "charts" | "strength";
+type TabKey =
+  | "foundations"
+  | "timing"
+  | "transits"
+  | "vargas"
+  | "charts"
+  | "strength";
 
 type Props = {
   activeTab: TabKey;

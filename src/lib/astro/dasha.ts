@@ -296,7 +296,177 @@ export function getPratyantardashaTimeline(
 
   return triPeriods;
 }
+export type SookshmaDashaPeriod = {
+  mahaLord: P;
+  antarLord: P;
+  pratyLord: P;
+  sookshmaLord: P;
+  start: Date;
+  end: Date;
+  approxYears: number;
+};
 
+export function getSookshmaDashaTimeline(
+  praty: PratyantardashaPeriod
+): SookshmaDashaPeriod[] {
+  const {
+    mahaLord,
+    antarLord,
+    subSubLord: pratyLord,
+    start,
+    end,
+  } = praty;
+
+  const pratyYears = msToYears(end.getTime() - start.getTime());
+
+  const startIdx = DASHA_ORDER.indexOf(pratyLord);
+  if (startIdx === -1) {
+    throw new Error(`Praty lord ${pratyLord} not found`);
+  }
+
+  const out: SookshmaDashaPeriod[] = [];
+  let cursor = new Date(start.getTime());
+
+  for (let i = 0; i < DASHA_ORDER.length; i++) {
+    const sookshmaLord = DASHA_ORDER[(startIdx + i) % DASHA_ORDER.length]!;
+
+    const frac = DASHA_YEARS[sookshmaLord] / TOTAL_VIMSHOTTARI_YEARS;
+    const durYears = pratyYears * frac;
+
+    const next = addYears(cursor, durYears);
+
+    const clipped =
+      next.getTime() > end.getTime() ? new Date(end) : next;
+
+    out.push({
+      mahaLord,
+      antarLord,
+      pratyLord,
+      sookshmaLord,
+      start: cursor,
+      end: clipped,
+      approxYears: durYears,
+    });
+
+    cursor = clipped;
+    if (cursor.getTime() >= end.getTime()) break;
+  }
+
+  return out;
+}
+export type PranaDashaPeriod = {
+  mahaLord: P;
+  antarLord: P;
+  pratyLord: P;
+  sookshmaLord: P;
+  pranaLord: P;
+  start: Date;
+  end: Date;
+  approxYears: number;
+};
+
+export function getPranaDashaTimeline(sookshma: any): PranaDashaPeriod[] {
+  const {
+    mahaLord,
+    antarLord,
+    pratyLord,
+    sookshmaLord,
+    start,
+    end,
+  } = sookshma;
+
+  const sookshmaYears = msToYears(end.getTime() - start.getTime());
+
+  const startIdx = DASHA_ORDER.indexOf(sookshmaLord);
+  if (startIdx === -1) throw new Error("Invalid sookshma lord");
+
+  const out: PranaDashaPeriod[] = [];
+  let cursor = new Date(start);
+
+  for (let i = 0; i < DASHA_ORDER.length; i++) {
+    const pranaLord = DASHA_ORDER[(startIdx + i) % DASHA_ORDER.length];
+
+    const frac = DASHA_YEARS[pranaLord] / TOTAL_VIMSHOTTARI_YEARS;
+    const durYears = sookshmaYears * frac;
+
+    const next = addYears(cursor, durYears);
+    const clipped = next > end ? new Date(end) : next;
+
+    out.push({
+      mahaLord,
+      antarLord,
+      pratyLord,
+      sookshmaLord,
+      pranaLord,
+      start: cursor,
+      end: clipped,
+      approxYears: durYears,
+    });
+
+    cursor = clipped;
+    if (cursor >= end) break;
+  }
+
+  return out;
+}
+export type DehaDashaPeriod = {
+  mahaLord: P;
+  antarLord: P;
+  pratyLord: P;
+  sookshmaLord: P;
+  pranaLord: P;
+  dehaLord: P;
+  start: Date;
+  end: Date;
+  approxYears: number;
+};
+
+export function getDehaDashaTimeline(prana: any): DehaDashaPeriod[] {
+  const {
+    mahaLord,
+    antarLord,
+    pratyLord,
+    sookshmaLord,
+    pranaLord,
+    start,
+    end,
+  } = prana;
+
+  const pranaYears = msToYears(end.getTime() - start.getTime());
+
+  const startIdx = DASHA_ORDER.indexOf(pranaLord);
+  if (startIdx === -1) throw new Error("Invalid prana lord");
+
+  const out: DehaDashaPeriod[] = [];
+  let cursor = new Date(start);
+
+  for (let i = 0; i < DASHA_ORDER.length; i++) {
+    const dehaLord = DASHA_ORDER[(startIdx + i) % DASHA_ORDER.length];
+
+    const frac = DASHA_YEARS[dehaLord] / TOTAL_VIMSHOTTARI_YEARS;
+    const durYears = pranaYears * frac;
+
+    const next = addYears(cursor, durYears);
+    const clipped = next > end ? new Date(end) : next;
+
+    out.push({
+      mahaLord,
+      antarLord,
+      pratyLord,
+      sookshmaLord,
+      pranaLord,
+      dehaLord,
+      start: cursor,
+      end: clipped,
+      approxYears: durYears,
+    });
+
+    cursor = clipped;
+    if (cursor >= end) break;
+  }
+
+  return out;
+}
 /* ------------------------------------------
    Figure out "what period am I in on this date?"
 ------------------------------------------ */
