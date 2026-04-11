@@ -30,6 +30,7 @@ import { buildPrasthara } from "./buildPrasthara";
 import { buildBhavMadhya } from "./buildBhavMadhya";
 import { buildFiveFoldFriendship } from "./buildFiveFoldFriendship";
 import { buildAvakhada } from "./buildAvakhada";
+
 export type DataEnginePlan = "light" | "pro";
 
 export type BirthInput = {
@@ -48,124 +49,7 @@ export type BuildDataEngineParams = {
   compareDateISO?: string;
 };
 
-export type DataEngineOutput = {
-  meta: {
-    generatedAtISO: string;
-    plan: DataEnginePlan;
-    selectedDateISO: string;
-    compareDateISO: string | null;
-  };
-
-  foundations: {
-  birthMeta: {
-    name?: string;
-    dateISO: string;
-    time: string;
-    timezone: string;
-    lat: number;
-    lon: number;
-    ayanamsa: string;
-    panchang?: any;
-    hora?: string | null;
-    horaNumber?: number | null;
-    horaPhase?: string | null;
-    horaStartsAt?: string | null;
-    horaEndsAt?: string | null;
-  };
-  ascendant: any;
-  natal: any;
-  houses: any;
-  roles: any;
-  vedicAspects: any;
-  houseJudgement: any;
-};
-
-  timing: {
-  dasha: any;
-  selectedDate: any;
-  panchang: any;
-  moonContext: any;
-  dashaContext: any;
-  nakshatraContext: any;
-};
-
-  transits: {
-  transitNow: any;
-  transitContacts: any[];
-  transitInteractions: any[];
-  upcomingEvents: {
-    moonTransits: any[];
-    planetaryTransits: any[];
-    allEvents: any[];
-  };
-  transitWindows: any[];
-  compare: any | null;
-};
-strength: {
-  shadbala: Array<{
-    planet: string;
-    total: number;
-    sthana: number;
-    dig: number;
-    kala: number;
-    chestha: number;
-    naisargika: number;
-    drik: number;
-  }>;
-  ashtakvarga: {
-    planets: Array<{
-      planet: string;
-      houses: number[];
-      total: number;
-    }>;
-    sarva: number[];
-  };
-  prasthara: Record<
-  string,
-  Record<string, number[]>
->;
- bhavMadhya: Array<{
-  house: number;
-  cusp: {
-    lon: number;
-    sign: string;
-    degree: number;
-  } | null;
-  start: {
-    lon: number;
-    sign: string;
-    degree: number;
-  } | null;
-  end: {
-    lon: number;
-    sign: string;
-    degree: number;
-  } | null;
-}>;
-fiveFoldFriendship: Array<{
-  planet: string;
-  relationships: Array<{
-    withPlanet: string;
-    natural: string;
-    temporary: string;
-    final: string;
-  }>;
-}>;
-avakhada: {
-  nakshatra: string;
-  pada: number | null;
-  rashi: string | null;
-  gana: string;
-  yoni: string;
-  nadi: string;
-  varna: string;
-} | null;
-};
-
-vargas: any;
-
-// backward compatibility
-birthMeta: {
+type BirthMeta = {
   name?: string;
   dateISO: string;
   time: string;
@@ -180,26 +64,128 @@ birthMeta: {
   horaStartsAt?: string | null;
   horaEndsAt?: string | null;
 };
-natal: any;
-houses: any;
-roles: any;
-vedicAspects: any;
-houseJudgement: any;
-bhavaChalit: any;
-classicChalit: any;
-dasha: any;
-transitNow: any;
-debugLifeReport: any;
-transitContacts: any[];
-transitInteractions: any[];
-upcomingTransits: {
-  moonTransits: any[];
-  planetaryTransits: any[];
-  allEvents: any[];
-};
-transitWindows: any[];
-selectedDate: any;
-compare: any | null;
+
+export type DataEngineOutput = {
+  meta: {
+    generatedAtISO: string;
+    plan: DataEnginePlan;
+    selectedDateISO: string;
+    compareDateISO: string | null;
+  };
+
+  foundations: {
+    birthMeta: BirthMeta;
+    ascendant: any;
+    natal: any;
+    houses: any;
+    roles: any;
+    vedicAspects: any;
+    houseJudgement: any;
+  };
+
+  timing: {
+    dasha: any;
+    selectedDate: any;
+    panchang: any;
+    moonContext: any;
+    dashaContext: any;
+    nakshatraContext: any;
+  };
+
+  transits: {
+    transitNow: any;
+    transitContacts: any[];
+    transitInteractions: any[];
+    upcomingEvents: {
+      moonTransits: any[];
+      planetaryTransits: any[];
+      allEvents: any[];
+    };
+    transitWindows: any[];
+    compare: any | null;
+  };
+
+  strength: {
+    shadbala: Array<{
+      planet: string;
+      total: number;
+      sthana: number;
+      dig: number;
+      kala: number;
+      chestha: number;
+      naisargika: number;
+      drik: number;
+    }>;
+    ashtakvarga: {
+      planets: Array<{
+        planet: string;
+        houses: number[];
+        total: number;
+      }>;
+      sarva: number[];
+    };
+    prasthara: Record<string, Record<string, number[]>>;
+    bhavMadhya: Array<{
+      house: number;
+      cusp: {
+        lon: number;
+        sign: string;
+        degree: number;
+      } | null;
+      start: {
+        lon: number;
+        sign: string;
+        degree: number;
+      } | null;
+      end: {
+        lon: number;
+        sign: string;
+        degree: number;
+      } | null;
+    }>;
+    fiveFoldFriendship: Array<{
+      planet: string;
+      relationships: Array<{
+        withPlanet: string;
+        natural: string;
+        temporary: string;
+        final: string;
+      }>;
+    }>;
+    avakhada: {
+      nakshatra: string;
+      pada: number | null;
+      rashi: string | null;
+      gana: string;
+      yoni: string;
+      nadi: string;
+      varna: string;
+    } | null;
+  };
+
+  vargas: any;
+
+  // backward compatibility
+  birthMeta: BirthMeta;
+  natal: any;
+  houses: any;
+  roles: any;
+  vedicAspects: any;
+  houseJudgement: any;
+  bhavaChalit: any;
+  classicChalit: any;
+  dasha: any;
+  transitNow: any;
+  transitContacts: any[];
+  transitInteractions: any[];
+  upcomingTransits: {
+    moonTransits: any[];
+    planetaryTransits: any[];
+    allEvents: any[];
+  };
+  transitWindows: any[];
+  selectedDate: any;
+  compare: any | null;
 };
 
 const SIGN_TO_NUM: Record<string, number> = {
@@ -237,73 +223,6 @@ function toBirthUTCISO(birth: BirthInput): string {
   );
 }
 
-function normalizeReportPlanets(planets: any[], planetsByName?: Record<string, any>): any[] {
-  return (Array.isArray(planets) ? planets : []).map((p) => {
-    const planet = String(p?.planet ?? p?.name ?? "Unknown");
-    const byName = planetsByName?.[planet] ?? null;
-
-    const lon =
-      typeof p?.lon === "number"
-        ? p.lon
-        : typeof p?.siderealLongitude === "number"
-        ? p.siderealLongitude
-        : typeof byName?.lon === "number"
-        ? byName.lon
-        : typeof byName?.siderealLongitude === "number"
-        ? byName.siderealLongitude
-        : null;
-
-    const sign =
-      String(
-        p?.sign ??
-          byName?.sign ??
-          "—"
-      );
-
-    const signNum = SIGN_TO_NUM[sign] ?? 0;
-
-    return {
-      planet,
-      sign,
-      signNum,
-      degree:
-        typeof p?.degree === "number"
-          ? p.degree
-          : typeof p?.deg === "number"
-          ? p.deg
-          : typeof lon === "number"
-          ? lon % 30
-          : null,
-      house:
-        typeof p?.house === "number"
-          ? p.house
-          : typeof byName?.house === "number"
-          ? byName.house
-          : null,
-      nakshatra: p?.nakshatra ?? byName?.nakshatra ?? null,
-      pada: p?.pada ?? byName?.pada ?? null,
-      retrograde:
-        typeof p?.retrograde === "boolean"
-          ? p.retrograde
-          : ["Rahu", "Ketu"].includes(planet),
-      combust:
-        typeof p?.combust === "boolean"
-          ? p.combust
-          : false,
-      lon,
-      lordships: Array.isArray(p?.lordships) ? p.lordships : [],
-    };
-  });
-}
-function getServerBaseUrl() {
-  const explicit = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL;
-  if (explicit) return explicit.replace(/\/$/, "");
-
-  const vercel = process.env.VERCEL_URL;
-  if (vercel) return `https://${vercel}`.replace(/\/$/, "");
-
-  return "http://localhost:3000";
-}
 const HORA_SEQUENCE = [
   "Sun",
   "Venus",
@@ -315,13 +234,13 @@ const HORA_SEQUENCE = [
 ] as const;
 
 const WEEKDAY_LORDS = [
-  "Sun",     // Sunday
-  "Moon",    // Monday
-  "Mars",    // Tuesday
-  "Mercury", // Wednesday
-  "Jupiter", // Thursday
-  "Venus",   // Friday
-  "Saturn",  // Saturday
+  "Sun",
+  "Moon",
+  "Mars",
+  "Mercury",
+  "Jupiter",
+  "Venus",
+  "Saturn",
 ] as const;
 
 function getHoraIndexForPlanet(planet: string) {
@@ -333,7 +252,11 @@ function getNextWeekdayLord(date: any) {
   return WEEKDAY_LORDS[nextDay.weekday % 7];
 }
 
-function parseClockToDateTime(baseDate: string, timeLike: string | null | undefined, zone: string) {
+function parseClockToDateTime(
+  baseDate: string,
+  timeLike: string | null | undefined,
+  zone: string
+) {
   if (!timeLike) return null;
 
   const raw = String(timeLike).trim();
@@ -400,12 +323,11 @@ function getAccurateHoraLord(params: {
     };
   }
 
-  // Day hora: sunrise -> sunset
   if (birthDT >= sunriseDT && birthDT < sunsetDT) {
     const dayMinutes = sunsetDT.diff(sunriseDT, "minutes").minutes;
     const horaLength = dayMinutes / 12;
-
     const elapsed = birthDT.diff(sunriseDT, "minutes").minutes;
+
     const horaNumber = Math.min(12, Math.floor(elapsed / horaLength) + 1);
     const sequenceIndex = (startIndex + (horaNumber - 1)) % 7;
     const horaLord = HORA_SEQUENCE[sequenceIndex];
@@ -422,7 +344,6 @@ function getAccurateHoraLord(params: {
     };
   }
 
-  // Night hora: sunset -> next sunrise
   const nextSunriseBase = birthDT < sunriseDT ? birthDT.minus({ days: 1 }) : birthDT;
   const nextSunriseCandidate = parseClockToDateTime(
     nextSunriseBase.plus({ days: 1 }).toISODate()!,
@@ -471,10 +392,7 @@ function getAccurateHoraLord(params: {
   const nightMinutes = nextSunriseCandidate.diff(currentSunset, "minutes").minutes;
   const horaLength = nightMinutes / 12;
   const elapsed = birthDT.diff(currentSunset, "minutes").minutes;
-
-  const safeElapsed = birthDT < sunriseDT
-    ? birthDT.diff(currentSunset, "minutes").minutes
-    : elapsed;
+  const safeElapsed = birthDT < sunriseDT ? elapsed : elapsed;
 
   const horaNumber = Math.min(12, Math.max(1, Math.floor(safeElapsed / horaLength) + 1));
   const sequenceIndex = (nightStartIndex + (horaNumber - 1)) % 7;
@@ -491,32 +409,7 @@ function getAccurateHoraLord(params: {
     endsAt: endsAt.toFormat("HH:mm"),
   };
 }
-async function fetchTrustedLifeReport(birth: BirthInput) {
-  const base = getServerBaseUrl();
 
-  const res = await fetch(`${base}/api/life-report`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      name: birth.name,
-      birthDateISO: birth.dateISO,
-      birthTime: birth.time,
-      birthTz: birth.timezone,
-      birthLat: birth.lat,
-      birthLon: birth.lon,
-    }),
-    cache: "no-store",
-  });
-
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(`life-report fetch failed: ${res.status} ${text.slice(0, 200)}`);
-  }
-
-  return res.json();
-}
 async function getTrueNodeSiderealLongitudes(birth: BirthInput) {
   const d = DateTime.fromISO(`${birth.dateISO}T${birth.time}`, {
     zone: birth.timezone,
@@ -556,16 +449,16 @@ async function getTrueNodeSiderealLongitudes(birth: BirthInput) {
     ketuLonSid,
   };
 }
+
 export async function buildDataEngine(
   params: BuildDataEngineParams
 ): Promise<DataEngineOutput> {
   const plan = normalizePlan(params.plan);
   const selectedDateISO = resolveSelectedDateISO(params.selectedDateISO);
   const compareDateISO = String(params.compareDateISO || "").trim() || null;
-
   const birth = params.birth;
 
-  await getAscendant({
+  const asc = await getAscendant({
     dateISO: birth.dateISO,
     time: birth.time,
     tz: birth.timezone,
@@ -573,17 +466,6 @@ export async function buildDataEngine(
     lon: birth.lon,
   });
 
-  const reportData = await fetchTrustedLifeReport(birth);
-  console.log("🔥 BUILD DATA ENGINE CALLED");
- console.log("LIFE REPORT TOP LEVEL KEYS", Object.keys(reportData || {}));
-console.log("LIFE REPORT CORE KEYS", Object.keys(reportData?.core || {}));
-console.log("LIFE REPORT DEBUG ASC KEYS", Object.keys(reportData?._debugAsc || {}));
-console.log("LIFE REPORT PLANETS SAMPLE", reportData?.planets?.[0]);
-console.log("LIFE REPORT PLANETSBYNAME MOON", reportData?.planetsByName?.Moon);
-console.log(
-  "LIFE REPORT SNAPSHOT",
-  JSON.stringify(reportData, null, 2).slice(0, 12000)
-);
   const trueNodeLons = await getTrueNodeSiderealLongitudes(birth);
 
   const rawPlacements = await computePlacements({
@@ -600,10 +482,7 @@ console.log(
       .map((p: any) => [p.planet, p.lon])
   );
 
-  const reportPlanets = normalizeReportPlanets(
-    reportData?.planets ?? [],
-    reportData?.planetsByName ?? {}
-  ).map((p: any) => {
+  const reportPlanets = (Array.isArray(rawPlacements) ? rawPlacements : []).map((p: any) => {
     if (p.planet === "Rahu") {
       return {
         ...p,
@@ -615,6 +494,12 @@ console.log(
           typeof rawNodeLonMap.get("Rahu") === "number"
             ? Number((rawNodeLonMap.get("Rahu") % 30).toFixed(2))
             : Number((trueNodeLons.rahuLonSid % 30).toFixed(2)),
+        signNum: SIGN_TO_NUM[p.sign] ?? 0,
+        nakshatra: null,
+        pada: null,
+        retrograde: true,
+        combust: false,
+        lordships: [],
       };
     }
 
@@ -629,41 +514,30 @@ console.log(
           typeof rawNodeLonMap.get("Ketu") === "number"
             ? Number((rawNodeLonMap.get("Ketu") % 30).toFixed(2))
             : Number((trueNodeLons.ketuLonSid % 30).toFixed(2)),
+        signNum: SIGN_TO_NUM[p.sign] ?? 0,
+        nakshatra: null,
+        pada: null,
+        retrograde: true,
+        combust: false,
+        lordships: [],
       };
     }
 
-    return p;
+    return {
+      ...p,
+      signNum: SIGN_TO_NUM[p.sign] ?? 0,
+      nakshatra: null,
+      pada: null,
+      retrograde: false,
+      combust: false,
+      lordships: [],
+    };
   });
 
-  const ascSign = String(
-    reportData?.core?.ascSign ??
-      reportData?._debugAsc?.ascSign ??
-      reportData?.ascSign ??
-      reportData?.ascendant?.ascSign ??
-      "—"
-  );
-
-  const ascSignNum = SIGN_TO_NUM[ascSign] ?? 0;
-
-  const ascDegRaw =
-    typeof reportData?.core?.ascDeg === "number"
-      ? reportData.core.ascDeg
-      : typeof reportData?._debugAsc?.ascDeg === "number"
-      ? reportData._debugAsc.ascDeg
-      : null;
-
+  const ascSign = String(asc?.sign ?? "—");
   const ascLon =
-    typeof reportData?.core?.ascLon === "number"
-      ? reportData.core.ascLon
-      : typeof reportData?._debugAsc?.ascLon === "number"
-      ? reportData._debugAsc.ascLon
-      : typeof ascDegRaw === "number"
-      ? ascDegRaw > 30
-        ? ascDegRaw
-        : ascSignNum > 0
-        ? (ascSignNum - 1) * 30 + ascDegRaw
-        : null
-      : null;
+    typeof asc?.lon === "number" && !Number.isNaN(asc.lon) ? asc.lon : null;
+  const ascSignNum = SIGN_TO_NUM[ascSign] ?? 0;
 
   const natalAspects = buildNatalAspects({
     natalPlanets: reportPlanets,
@@ -673,9 +547,7 @@ console.log(
     ayanamsa: "Lahiri",
     birthUTCISO: toBirthUTCISO(birth),
     moonLonSidDeg:
-      reportData?.planetsByName?.Moon?.lon ??
-      reportPlanets.find((p: any) => p.planet === "Moon")?.lon ??
-      null,
+      reportPlanets.find((p: any) => p.planet === "Moon")?.lon ?? null,
 
     ascendant: {
       sign: ascSign,
@@ -690,154 +562,150 @@ console.log(
 
     planets: reportPlanets,
     aspects: natalAspects,
-    sourceNote: "Mapped from trusted life-engine buildLifeReport",
+    sourceNote: "Built directly from placements + ascendant",
   };
 
-  const natalData = natalBase as any;
+  const natal = {
+    ...natalBase,
+    strengths: buildPlanetStrength({
+      natalPlanets: reportPlanets,
+      vargaData: {},
+    }),
+  };
+const ascendantForBuilders = {
+  sign: natalBase.ascendant?.sign ?? "—",
+  signNum: natalBase.ascendant?.signNum ?? 0,
+  degree: natalBase.ascendant?.degree ?? null,
+  house: 1,
+  lon: natalBase.ascendant?.lon ?? null,
+} as any;
+const houses = await buildHouseData({
+  ascendant: ascendantForBuilders,
+  natalPlanets: natalBase.planets,
+});
 
-  const houses = await buildHouseData({
-    ascendant: natalData?.ascendant,
-    natalPlanets: natalData?.planets,
-  });
-
-  const roles = await buildFunctionalRoles({
-    ascendant: natalData?.ascendant,
-    houses,
-    natalPlanets: natalData?.planets,
-  });
+const roles = await buildFunctionalRoles({
+  ascendant: ascendantForBuilders,
+  houses,
+  natalPlanets: natalBase.planets,
+});
 
   const vargas = await buildVargaData({
     birth,
     plan,
-    natalPlanets: natalData?.planets,
+    natalPlanets: natal.planets,
     natalAscendant: {
-  sign: natalData?.ascendant?.sign ?? null,
-  lon: natalData?.ascendant?.lon ?? null,
-},
+      sign: natal.ascendant?.sign ?? null,
+      lon: natal.ascendant?.lon ?? null,
+    },
   });
 
-  const planetStrength = buildPlanetStrength({
-    natalPlanets: reportPlanets,
-    vargaData: vargas,
+  const natalWithStrengths = {
+    ...natalBase,
+    strengths: buildPlanetStrength({
+      natalPlanets: reportPlanets,
+      vargaData: vargas,
+    }),
+  };
+
+  const shadbala = buildShadbala({
+    natalPlanets: natalWithStrengths.planets,
+    aspects: (natalWithStrengths.aspects ?? []) as any[],
+    isDayBirth: true,
   });
 
-  const natal = {
-  ...natalBase,
-  strengths: planetStrength,
-};
-const shadbala = buildShadbala({
-  natalPlanets: natal.planets,
-  aspects: (natal.aspects ?? []) as any[],
-  isDayBirth: true,
-});
-const ashtakvarga = buildAshtakvarga({
-  natalPlanets: natal.planets,
-});
-const prasthara = buildPrasthara();
-const houseCusps = await buildHouseCusps({
-  birth,
-  ascLon: natal.ascendant?.lon ?? 0,
-  coreHouses: reportData?.core?.houses ?? [],
-});
-const bhavMadhya = buildBhavMadhya({
-  cusps: houseCusps.cusps ?? [],
-});
-const fiveFoldFriendship = buildFiveFoldFriendship({
-  natalPlanets: natal.planets,
-});
-const avakhada = buildAvakhada({
-  natalPlanets: natal.planets,
-});
-const bhavaChalit = await buildBhavaChalitData({
-  ascendant: {
-    sign: natal.ascendant?.sign ?? "—",
-    signNum: natal.ascendant?.signNum ?? 0,
-    degree: natal.ascendant?.degree ?? 0,
-    house: 1,
-  },
-  natalPlanets: natal.planets,
-  cusps: houseCusps.cusps,
-  system: houseCusps.system,
-});
-const classicChalit = await buildClassicChalit({
-  ascendant: {
-    sign: natal.ascendant?.sign ?? "—",
-    signNum: natal.ascendant?.signNum ?? 0,
-  },
-  natalPlanets: natal.planets,
-});
-const vedicAspects = buildVedicAspects({
-  natalPlanets: natal.planets,
-});
-
-const houseJudgement = buildHouseJudgement({
-  houses,
-  natal,
-  vedicAspects,
-});
-const natalAscendantForEngine = {
-  sign: natal.ascendant?.sign ?? null,
-  signNum: natal.ascendant?.signNum ?? null,
-  degree: natal.ascendant?.degree ?? null,
-  house: natal.ascendant?.house ?? 1,
-  lon: natal.ascendant?.lon ?? null,
-};
-
-  console.log("ASC DEBUG", {
-    ascSign,
-    ascDegRaw,
-    ascLon,
+  const ashtakvarga = buildAshtakvarga({
+    natalPlanets: natalWithStrengths.planets,
   });
 
-  console.log(
-    "NODE DEBUG",
-    reportPlanets.filter((p: any) => p.planet === "Rahu" || p.planet === "Ketu")
-  );
+  const prasthara = buildPrasthara();
+
+  const houseCusps = await buildHouseCusps({
+    birth,
+    ascLon: natalWithStrengths.ascendant?.lon ?? 0,
+    coreHouses: [],
+  });
+
+  const bhavMadhya = buildBhavMadhya({
+    cusps: houseCusps.cusps ?? [],
+  });
+
+  const fiveFoldFriendship = buildFiveFoldFriendship({
+    natalPlanets: natalWithStrengths.planets,
+  });
+
+  const avakhada = buildAvakhada({
+    natalPlanets: natalWithStrengths.planets,
+  });
+
+  const bhavaChalit = await buildBhavaChalitData({
+    ascendant: {
+      sign: natalWithStrengths.ascendant?.sign ?? "—",
+      signNum: natalWithStrengths.ascendant?.signNum ?? 0,
+      degree: natalWithStrengths.ascendant?.degree ?? 0,
+      house: 1,
+    },
+    natalPlanets: natalWithStrengths.planets,
+    cusps: houseCusps.cusps,
+    system: houseCusps.system,
+  });
+
+  const classicChalit = await buildClassicChalit({
+    ascendant: {
+      sign: natalWithStrengths.ascendant?.sign ?? "—",
+      signNum: natalWithStrengths.ascendant?.signNum ?? 0,
+    },
+    natalPlanets: natalWithStrengths.planets,
+  });
+
+  const vedicAspects = buildVedicAspects({
+    natalPlanets: natalWithStrengths.planets,
+  });
+
+  const houseJudgement = buildHouseJudgement({
+    houses,
+    natal: natalWithStrengths,
+    vedicAspects,
+  });
+
+  const natalAscendantForEngine = {
+    sign: natalWithStrengths.ascendant?.sign ?? null,
+    signNum: natalWithStrengths.ascendant?.signNum ?? null,
+    degree: natalWithStrengths.ascendant?.degree ?? null,
+    house: natalWithStrengths.ascendant?.house ?? 1,
+    lon: natalWithStrengths.ascendant?.lon ?? null,
+  };
 
   const dasha = await buildDashaData({
     birth,
     selectedDateISO,
     plan,
     natal: {
-      birthUTCISO: natal.birthUTCISO,
-      moonLonSidDeg: natal.moonLonSidDeg,
+      birthUTCISO: natalWithStrengths.birthUTCISO,
+      moonLonSidDeg: natalWithStrengths.moonLonSidDeg,
     },
   });
-  console.log("BHAVA CHALIT SYSTEM", bhavaChalit?.system);
-console.log("BHAVA CHALIT CUSPS", bhavaChalit?.cusps);
-console.log(
-  "BHAVA CHALIT PLANETS",
-  (bhavaChalit?.planets ?? []).map((p: any) => ({
-    planet: p.planet,
-    rashiHouse: p.rashiHouse,
-    chalitHouse: p.house,
-    lon: p.lon,
-  }))
-);
-const dashaContext = buildDashaLordContext({
-  dasha,
-  natal,
-  houses,
-  vargas,
-});
+
   const transitNow = await buildTransitSnapshot({
     birth,
     dateISO: selectedDateISO,
     natalAscendant: {
-  sign: natalAscendantForEngine.sign ?? "—",
-  signNum: natalAscendantForEngine.signNum ?? 0,
-  degree: natalAscendantForEngine.degree ?? 0,
-  house: 1,
-},
-    natalPlanets: natal.planets,
+      sign: natalAscendantForEngine.sign ?? "—",
+      signNum: natalAscendantForEngine.signNum ?? 0,
+      degree: natalAscendantForEngine.degree ?? 0,
+      house: 1,
+    },
+    natalPlanets: natalWithStrengths.planets,
     plan,
   });
-const nakshatraContext = buildNakshatraContext({
-  natal,
-  vargas,
-  dasha,
-  transitNow,
-});
+
+  const nakshatraContext = buildNakshatraContext({
+    natal: natalWithStrengths,
+    vargas,
+    dasha,
+    transitNow,
+  });
+
   const panchang = await buildPanchangData({
     dateISO: selectedDateISO,
     timezone: birth.timezone,
@@ -845,52 +713,15 @@ const nakshatraContext = buildNakshatraContext({
     lon: birth.lon,
     transitNow,
   });
-  const birthPanchangSource = reportData?.panchang as any;
 
-const birthPanchang = birthPanchangSource
-  ? {
-      dateISO: birth.dateISO,
-      weekday:
-        birthPanchangSource?.weekday ??
-        birthPanchangSource?.weekdayName ??
-        null,
-      tithi:
-        birthPanchangSource?.tithi ??
-        birthPanchangSource?.tithiName ??
-        null,
-      nakshatra: (() => {
-  const moonRow = reportPlanets.find((p: any) => p.planet === "Moon");
+  const birthPanchang = await buildPanchangData({
+    dateISO: birth.dateISO,
+    timezone: birth.timezone,
+    lat: birth.lat,
+    lon: birth.lon,
+    transitNow: null,
+  });
 
-  const nak =
-    moonRow?.nakshatra ??
-    birthPanchangSource?.nakshatra ??
-    birthPanchangSource?.moonNakshatraName ??
-    null;
-
-  const pada = moonRow?.pada ?? null;
-
-  if (nak && pada) return `${nak} - ${pada}`;
-  return nak;
-})(),
-      yoga:
-        birthPanchangSource?.yoga ??
-        birthPanchangSource?.yogaName ??
-        null,
-      karana:
-        birthPanchangSource?.karana ??
-        birthPanchangSource?.karanaName ??
-        null,
-      sunrise:
-        birthPanchangSource?.sunrise ??
-        birthPanchangSource?.sunriseISO ??
-        null,
-      sunset:
-        birthPanchangSource?.sunset ??
-        birthPanchangSource?.sunsetISO ??
-        null,
-    }
-  : null;
-  
   const moonContext = {
     sign: transitNow?.moonToday?.sign ?? null,
     nakshatra: transitNow?.moonToday?.nakshatra ?? null,
@@ -905,20 +736,22 @@ const birthPanchang = birthPanchangSource
   };
 
   const transitContacts = buildTransitContacts({
-    natalPlanets: natal.planets,
+    natalPlanets: natalWithStrengths.planets,
     transitPlanets: (transitNow?.planets ?? []).map((p: any) => ({
       name: p.planet,
       lon: p.lon,
     })),
   });
+
   const transitInteractions = buildTransitNatalInteractions({
-  transitContacts,
-  transitStrengths: transitNow?.planets ?? [],
-  natalStrengths: natal.strengths ?? [],
-});
+    transitContacts,
+    transitStrengths: transitNow?.planets ?? [],
+    natalStrengths: natalWithStrengths.strengths ?? [],
+  });
+
   const upcomingTransits = await buildUpcomingTransits({
     birth,
-    natalPlanets: natal.planets,
+    natalPlanets: natalWithStrengths.planets,
     natalAscendant: {
       sign: natalAscendantForEngine.sign ?? null,
       lon: natalAscendantForEngine.lon ?? null,
@@ -937,50 +770,51 @@ const birthPanchang = birthPanchangSource
         dateAISO: selectedDateISO,
         dateBISO: compareDateISO,
         natalAscendant: {
-  sign: natalAscendantForEngine.sign ?? "—",
-  signNum: natalAscendantForEngine.signNum ?? 0,
-  degree: natalAscendantForEngine.degree ?? 0,
-  house: 1,
-},
-        natalPlanets: natal.planets,
+          sign: natalAscendantForEngine.sign ?? "—",
+          signNum: natalAscendantForEngine.signNum ?? 0,
+          degree: natalAscendantForEngine.degree ?? 0,
+          house: 1,
+        },
+        natalPlanets: natalWithStrengths.planets,
         natal: {
-          birthUTCISO: natal.birthUTCISO,
-          moonLonSidDeg: natal.moonLonSidDeg,
+          birthUTCISO: natalWithStrengths.birthUTCISO,
+          moonLonSidDeg: natalWithStrengths.moonLonSidDeg,
         },
         plan,
       })
     : null;
-const horaInfo = getAccurateHoraLord({
-  birthDateISO: birth.dateISO,
-  birthTime: birth.time,
-  timezone: birth.timezone,
-  sunrise: birthPanchang?.sunrise ?? null,
-  sunset: birthPanchang?.sunset ?? null,
-});
-const birthMeta = {
-  name: birth.name,
-  dateISO: birth.dateISO,
-  time: birth.time,
-  timezone: birth.timezone,
-  lat: birth.lat,
-  lon: birth.lon,
-  ayanamsa: natal.ayanamsa || "Lahiri",
-  panchang: birthPanchang,
-  hora: horaInfo?.horaLord ?? null,
-  horaNumber: horaInfo?.horaNumber ?? null,
-  horaPhase: horaInfo?.phase ?? null,
-  horaStartsAt: horaInfo?.startsAt ?? null,
-  horaEndsAt: horaInfo?.endsAt ?? null,
-};
 
-const debugLifeReport = {
-  topLevelKeys: Object.keys(reportData || {}),
-  coreKeys: Object.keys(reportData?.core || {}),
-  debugAscKeys: Object.keys(reportData?._debugAsc || {}),
-  planetSample: reportData?.planets?.[0] ?? null,
-  moonByName: reportData?.planetsByName?.Moon ?? null,
-  snapshot: JSON.stringify(reportData, null, 2).slice(0, 12000),
-};
+  const horaInfo = getAccurateHoraLord({
+    birthDateISO: birth.dateISO,
+    birthTime: birth.time,
+    timezone: birth.timezone,
+    sunrise: birthPanchang?.sunrise ?? null,
+    sunset: birthPanchang?.sunset ?? null,
+  });
+
+  const birthMeta: BirthMeta = {
+    name: birth.name,
+    dateISO: birth.dateISO,
+    time: birth.time,
+    timezone: birth.timezone,
+    lat: birth.lat,
+    lon: birth.lon,
+    ayanamsa: natalWithStrengths.ayanamsa || "Lahiri",
+    panchang: birthPanchang,
+    hora: horaInfo?.horaLord ?? null,
+    horaNumber: horaInfo?.horaNumber ?? null,
+    horaPhase: horaInfo?.phase ?? null,
+    horaStartsAt: horaInfo?.startsAt ?? null,
+    horaEndsAt: horaInfo?.endsAt ?? null,
+  };
+
+  const dashaContext = buildDashaLordContext({
+    dasha,
+    natal: natalWithStrengths,
+    houses,
+    vargas,
+  });
+
   return {
     meta: {
       generatedAtISO: new Date().toISOString(),
@@ -990,14 +824,14 @@ const debugLifeReport = {
     },
 
     foundations: {
-  birthMeta,
-  ascendant: natal.ascendant,
-  natal,
-  houses,
-  roles,
-  vedicAspects,
-  houseJudgement,
-},
+      birthMeta,
+      ascendant: natalWithStrengths.ascendant,
+      natal: natalWithStrengths,
+      houses,
+      roles,
+      vedicAspects,
+      houseJudgement,
+    },
 
     timing: {
       dasha,
@@ -1016,18 +850,20 @@ const debugLifeReport = {
       transitWindows,
       compare,
     },
-strength: {
-  shadbala,
-  ashtakvarga,
-  prasthara,
-  bhavMadhya,
-  fiveFoldFriendship,
-  avakhada,
-},
+
+    strength: {
+      shadbala,
+      ashtakvarga,
+      prasthara,
+      bhavMadhya,
+      fiveFoldFriendship,
+      avakhada,
+    },
+
     vargas,
 
     birthMeta,
-    natal,
+    natal: natalWithStrengths,
     houses,
     roles,
     vedicAspects,
@@ -1042,6 +878,5 @@ strength: {
     transitWindows,
     bhavaChalit,
     classicChalit,
-    debugLifeReport,
   };
 }
