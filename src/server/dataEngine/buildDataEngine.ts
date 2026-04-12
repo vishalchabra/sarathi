@@ -252,34 +252,12 @@ function getNextWeekdayLord(date: any) {
   return WEEKDAY_LORDS[nextDay.weekday % 7];
 }
 
-function parseClockToDateTime(
-  baseDate: string,
-  timeLike: string | null | undefined,
-  zone: string
-) {
-  if (!timeLike) return null;
-
-  const raw = String(timeLike).trim();
-
-  const hhmmMatch = raw.match(/^(\d{1,2}):(\d{2})/);
-  if (hhmmMatch) {
-    const hh = hhmmMatch[1].padStart(2, "0");
-    const mm = hhmmMatch[2];
-    return DateTime.fromISO(`${baseDate}T${hh}:${mm}:00`, { zone });
-  }
-
-  const isoParsed = DateTime.fromISO(raw, { zone });
-  if (isoParsed.isValid) return isoParsed;
-
-  return null;
-}
-
 function getAccurateHoraLord(params: {
   birthDateISO: string;
   birthTime: string;
   timezone: string;
-  sunrise: string | null | undefined;
-  sunset: string | null | undefined;
+  sunrise: any | null;
+  sunset: any | null;
 }) {
   const { birthDateISO, birthTime, timezone, sunrise, sunset } = params;
 
@@ -297,8 +275,8 @@ function getAccurateHoraLord(params: {
     };
   }
 
-  const sunriseDT = parseClockToDateTime(birthDateISO, sunrise, timezone);
-  const sunsetDT = parseClockToDateTime(birthDateISO, sunset, timezone);
+  const sunriseDT = sunrise;
+  const sunsetDT = sunset;
 
   if (!sunriseDT?.isValid || !sunsetDT?.isValid) {
     return {
@@ -323,6 +301,7 @@ function getAccurateHoraLord(params: {
     };
   }
 
+  // Day hora: sunrise -> sunset
   if (birthDT >= sunriseDT && birthDT < sunsetDT) {
     const dayMinutes = sunsetDT.diff(sunriseDT, "minutes").minutes;
     const horaLength = dayMinutes / 12;
@@ -344,50 +323,25 @@ function getAccurateHoraLord(params: {
     };
   }
 
-  const nextSunriseBase = birthDT < sunriseDT ? birthDT.minus({ days: 1 }) : birthDT;
-  const nextSunriseCandidate = parseClockToDateTime(
-    nextSunriseBase.plus({ days: 1 }).toISODate()!,
-    sunrise,
-    timezone
-  );
-
-  if (!nextSunriseCandidate?.isValid) {
-    return {
-      horaLord: null,
-      horaNumber: null,
-      phase: null,
-      startsAt: null,
-      endsAt: null,
-    };
-  }
-
-  const currentSunset =
-    birthDT < sunriseDT
-      ? parseClockToDateTime(nextSunriseBase.toISODate()!, sunset, timezone)
-      : sunsetDT;
-
-  if (!currentSunset?.isValid) {
-    return {
-      horaLord: null,
-      horaNumber: null,
-      phase: null,
-      startsAt: null,
-      endsAt: null,
-    };
-  }
-
+  // Night hora: sunset -> next day's sunrise
+  const nextSunriseDT = sunriseDT.plus({ days: 1 });
   const nightStartIndex = (startIndex + 12) % 7;
 
-  const nightMinutes = nextSunriseCandidate.diff(currentSunset, "minutes").minutes;
+  const nightMinutes = nextSunriseDT.diff(sunsetDT, "minutes").minutes;
   const horaLength = nightMinutes / 12;
-  const safeElapsed = birthDT.diff(currentSunset, "minutes").minutes;
 
+  let effectiveBirthDT = birthDT;
+  if (birthDT < sunriseDT) {
+    effectiveBirthDT = birthDT.plus({ days: 1 });
+  }
+
+  const safeElapsed = effectiveBirthDT.diff(sunsetDT, "minutes").minutes;
   const horaNumber = Math.min(12, Math.max(1, Math.floor(safeElapsed / horaLength) + 1));
   const sequenceIndex = (nightStartIndex + (horaNumber - 1)) % 7;
   const horaLord = HORA_SEQUENCE[sequenceIndex];
 
-  const startsAt = currentSunset.plus({ minutes: (horaNumber - 1) * horaLength });
-  const endsAt = currentSunset.plus({ minutes: horaNumber * horaLength });
+  const startsAt = sunsetDT.plus({ minutes: (horaNumber - 1) * horaLength });
+  const endsAt = sunsetDT.plus({ minutes: horaNumber * horaLength });
 
   return {
     horaLord,
@@ -776,8 +730,8 @@ const roles = await buildFunctionalRoles({
     birthDateISO: birth.dateISO,
     birthTime: birth.time,
     timezone: birth.timezone,
-    sunrise: birthPanchang?.sunrise ?? null,
-    sunset: birthPanchang?.sunset ?? null,
+    sunrise: birthPanchang?._sunriseDT ?? null,
+    sunset: birthPanchang?._sunsetDT ?? null,
   });
 
   const birthMeta: BirthMeta = {

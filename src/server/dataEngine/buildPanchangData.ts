@@ -228,7 +228,13 @@ return {
   nakshatra,
   yoga: getYogaFromSunMoon(sunLon, moonLon),
   karana: getKaranaFromSunMoon(sunLon, moonLon),
-  sunrise: solarTimes.sunrise,
-  sunset: solarTimes.sunset,
+
+  // keep display values
+  sunrise: formatHm(solarTimes.sunrise),
+  sunset: formatHm(solarTimes.sunset),
+
+  // add real values for calculations
+  _sunriseDT: solarTimes.sunrise,
+  _sunsetDT: solarTimes.sunset,
 };
 }
