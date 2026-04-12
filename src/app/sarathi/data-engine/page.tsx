@@ -252,24 +252,34 @@ timerRef.current = window.setTimeout(async () => {
     });
 
     const json = (await res.json()) as any[];
-    const out = json.map((r) => {
-      const city =
-        r.address?.city ||
-        r.address?.town ||
-        r.address?.village ||
-        r.address?.state_district ||
-        r.address?.state ||
-        r.address?.county ||
-        r.address?.region;
+   const out = json.map((r) => {
+  const city =
+    r.address?.city ||
+    r.address?.town ||
+    r.address?.village ||
+    r.address?.municipality ||
+    r.address?.hamlet ||
+    r.address?.county ||
+    r.address?.region;
 
-      const country = r.address?.country || "";
+  const state =
+    r.address?.state ||
+    r.address?.state_district ||
+    r.address?.province ||
+    r.address?.region ||
+    "";
 
-      return {
-        name: [city, country].filter(Boolean).join(", ") || r.display_name,
-        lat: +r.lat,
-        lon: +r.lon,
-      };
-    });
+  const country = r.address?.country || "";
+
+  return {
+    name: [city, state, country]
+      .filter(Boolean)
+      .filter((value, index, arr) => arr.indexOf(value) === index)
+      .join(", ") || r.display_name,
+    lat: +r.lat,
+    lon: +r.lon,
+  };
+});
 
     cityCache.set(query, out);
     setItems(out);

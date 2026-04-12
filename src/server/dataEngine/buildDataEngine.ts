@@ -376,23 +376,11 @@ function getAccurateHoraLord(params: {
     };
   }
 
-  const nextWeekdayLord = getNextWeekdayLord(currentSunset);
-  const nightStartIndex = getHoraIndexForPlanet(nextWeekdayLord);
-
-  if (nightStartIndex < 0) {
-    return {
-      horaLord: null,
-      horaNumber: null,
-      phase: null,
-      startsAt: null,
-      endsAt: null,
-    };
-  }
+  const nightStartIndex = (startIndex + 12) % 7;
 
   const nightMinutes = nextSunriseCandidate.diff(currentSunset, "minutes").minutes;
   const horaLength = nightMinutes / 12;
-  const elapsed = birthDT.diff(currentSunset, "minutes").minutes;
-  const safeElapsed = birthDT < sunriseDT ? elapsed : elapsed;
+  const safeElapsed = birthDT.diff(currentSunset, "minutes").minutes;
 
   const horaNumber = Math.min(12, Math.max(1, Math.floor(safeElapsed / horaLength) + 1));
   const sequenceIndex = (nightStartIndex + (horaNumber - 1)) % 7;
