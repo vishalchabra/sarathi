@@ -230,11 +230,9 @@ return {
   karana: getKaranaFromSunMoon(sunLon, moonLon),
 
   // keep display values
-  sunrise: formatHm(solarTimes.sunrise),
-  sunset: formatHm(solarTimes.sunset),
-
-  // add real values for calculations
-  _sunriseDT: solarTimes.sunrise,
-  _sunsetDT: solarTimes.sunset,
+sunrise: solarTimes.sunrise,
+sunset: solarTimes.sunset,
+_sunriseDT: solarTimes.sunriseDT,
+_sunsetDT: solarTimes.sunsetDT,
 };
 }

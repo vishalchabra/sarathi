@@ -4,6 +4,7 @@ import { DateTime } from "luxon";
 
 // NOAA-style approximation.
 // Good enough for sunrise/sunset display in the data engine.
+
 function degToRad(d: number) {
   return (d * Math.PI) / 180;
 }
@@ -27,16 +28,29 @@ function dayOfYear(dateISO: string, timezone: string) {
   return dt.isValid ? dt.ordinal : 1;
 }
 
-function localHourToHHMM(dateISO: string, timezone: string, localHour: number | null) {
+function localHourToDateTime(
+  dateISO: string,
+  timezone: string,
+  localHour: number | null
+) {
   if (localHour == null || !Number.isFinite(localHour)) return null;
 
   const hh = Math.floor(localHour);
-  const mm = Math.round((localHour - hh) * 60);
+  const rawMinutes = (localHour - hh) * 60;
+  const mm = Math.floor(rawMinutes);
+  const ss = Math.round((rawMinutes - mm) * 60);
 
-  const dt = DateTime.fromISO(`${dateISO}T00:00:00`, { zone: timezone })
-    .plus({ hours: hh, minutes: mm });
+  const dt = DateTime.fromISO(`${dateISO}T00:00:00`, { zone: timezone }).plus({
+    hours: hh,
+    minutes: mm,
+    seconds: ss,
+  });
 
-  if (!dt.isValid) return null;
+  return dt.isValid ? dt : null;
+}
+
+function formatHm(dt: any) {
+  if (!dt || !dt.isValid) return null;
   return dt.toFormat("HH:mm");
 }
 
@@ -99,7 +113,7 @@ function computeSunTime(params: {
 
   const localTime = normalizeHours(UT + offsetHours);
 
-  return localHourToHHMM(dateISO, timezone, localTime);
+  return localHourToDateTime(dateISO, timezone, localTime);
 }
 
 export async function buildSolarTimes(params: {
@@ -108,18 +122,20 @@ export async function buildSolarTimes(params: {
   lat: number;
   lon: number;
 }) {
-  const sunrise = computeSunTime({
+  const sunriseDT = computeSunTime({
     ...params,
     isSunrise: true,
   });
 
-  const sunset = computeSunTime({
+  const sunsetDT = computeSunTime({
     ...params,
     isSunrise: false,
   });
 
   return {
-    sunrise,
-    sunset,
+    sunrise: formatHm(sunriseDT),
+    sunset: formatHm(sunsetDT),
+    sunriseDT,
+    sunsetDT,
   };
 }
