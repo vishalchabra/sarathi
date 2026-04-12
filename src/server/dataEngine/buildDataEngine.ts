@@ -251,7 +251,45 @@ function getNextWeekdayLord(date: any) {
   const nextDay = date.plus({ days: 1 });
   return WEEKDAY_LORDS[nextDay.weekday % 7];
 }
+function normalizeSolarDateTime(
+  value: any,
+  baseDateISO: string,
+  timezone: string
+) {
+  if (!value) return null;
 
+  // Luxon DateTime
+  if (typeof value === "object" && typeof value.isValid === "boolean") {
+    return value.isValid ? value : null;
+  }
+
+  // JS Date
+  if (value instanceof Date) {
+    const dt = DateTime.fromJSDate(value, { zone: timezone });
+    return dt.isValid ? dt : null;
+  }
+
+  // String
+  const raw = String(value).trim();
+
+  // HH:mm or HH:mm:ss
+  const hhmmMatch = raw.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+  if (hhmmMatch) {
+    const hh = hhmmMatch[1].padStart(2, "0");
+    const mm = hhmmMatch[2];
+    const ss = hhmmMatch[3] ?? "00";
+    const dt = DateTime.fromISO(`${baseDateISO}T${hh}:${mm}:${ss}`, {
+      zone: timezone,
+    });
+    return dt.isValid ? dt : null;
+  }
+
+  // ISO-like string
+  const iso = DateTime.fromISO(raw, { zone: timezone });
+  if (iso.isValid) return iso;
+
+  return null;
+}
 function getAccurateHoraLord(params: {
   birthDateISO: string;
   birthTime: string;
@@ -275,10 +313,10 @@ function getAccurateHoraLord(params: {
     };
   }
 
-  const sunriseDT = sunrise;
-  const sunsetDT = sunset;
+  const sunriseDT = normalizeSolarDateTime(sunrise, birthDateISO, timezone);
+  const sunsetDT = normalizeSolarDateTime(sunset, birthDateISO, timezone);
 
-  if (!sunriseDT?.isValid || !sunsetDT?.isValid) {
+  if (!sunriseDT || !sunsetDT) {
     return {
       horaLord: null,
       horaNumber: null,
@@ -288,7 +326,11 @@ function getAccurateHoraLord(params: {
     };
   }
 
-  const weekdayLord = WEEKDAY_LORDS[birthDT.weekday % 7];
+  // IMPORTANT:
+  // If birth is before sunrise, Hora still belongs to the previous sunrise-based day
+  const horaDayDT = birthDT < sunriseDT ? birthDT.minus({ days: 1 }) : birthDT;
+
+  const weekdayLord = WEEKDAY_LORDS[horaDayDT.weekday % 7];
   const startIndex = getHoraIndexForPlanet(weekdayLord);
 
   if (startIndex < 0) {
@@ -336,7 +378,10 @@ function getAccurateHoraLord(params: {
   }
 
   const safeElapsed = effectiveBirthDT.diff(sunsetDT, "minutes").minutes;
-  const horaNumber = Math.min(12, Math.max(1, Math.floor(safeElapsed / horaLength) + 1));
+  const horaNumber = Math.min(
+    12,
+    Math.max(1, Math.floor(safeElapsed / horaLength) + 1)
+  );
   const sequenceIndex = (nightStartIndex + (horaNumber - 1)) % 7;
   const horaLord = HORA_SEQUENCE[sequenceIndex];
 

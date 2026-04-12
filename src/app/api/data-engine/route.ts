@@ -4,6 +4,7 @@ import { buildDataEngine } from "@/server/dataEngine/buildDataEngine";
 export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
+   console.log("=== DATA_ENGINE_HIT ===");
   try {
     
     const body = await req.json();

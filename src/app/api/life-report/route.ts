@@ -1829,6 +1829,7 @@ if (!transitNowFacts.length && Array.isArray(topTransits) && topTransits.length 
   }
 
   export async function POST(req: Request) {
+    console.log("=== LIFE_REPORT_ROUTE_HIT ===");
     try {
       const body = await req.json();
 

@@ -1008,17 +1008,7 @@ export default function DataEnginePage() {
                 />
               </div>
 
-              <div>
-                <label className="text-xs font-medium uppercase tracking-wide text-white/45">
-                  Selected date
-                </label>
-                <input
-                  type="date"
-                  value={selectedDateISO}
-                  onChange={(e) => setSelectedDateISO(e.target.value)}
-                  className="mt-1 w-full rounded-xl border border-white/15 bg-white/5/5 px-3 py-2 text-sm text-white outline-none focus:border-indigo-400"
-                />
-              </div>
+    
 
               <div>
                 
