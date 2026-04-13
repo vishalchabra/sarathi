@@ -66,6 +66,7 @@ type DataEngineResponse = {
   classicChalit?: any;
   debugLifeReport?: any;
   vargas?: Record<string, any>;
+  arudhas?: Record<string, { sign: string }>;
   dasha?: {
     current?: Record<string, any>;
     timelines?: {
@@ -1314,6 +1315,7 @@ useEffect(() => {
                   null
                 }
                 sarvaAshtakvarga={data?.strength?.ashtakvarga?.sarva ?? []}
+                arudhas={data?.arudhas ?? {}}
               />
             ) : null}
           </div>

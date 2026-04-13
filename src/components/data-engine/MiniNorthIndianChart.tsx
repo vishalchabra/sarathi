@@ -167,15 +167,15 @@ export default function MiniNorthIndianChart({
               }}
             >
               <div
-  className={`text-[10px] font-semibold leading-none ${
-    isAscHouse ? "text-indigo-700" : "text-white/80"
-  }`}
+  className={`text-[11px] font-semibold leading-none ${
+  isAscHouse ? "text-indigo-200" : "text-white/80"
+}`}
   style={{
     transform: `translateY(${anchor.numberOffsetY ?? 0}px)`,
   }}
 >
   {rashiNumber}
-  {isAscHouse ? " ↑" : ""}
+  {isAscHouse ? " Asc" : ""}
 </div>
               <div
   className={`mt-1 flex flex-col gap-[2px] ${getAlignmentClass(anchor.align)} overflow-hidden`}

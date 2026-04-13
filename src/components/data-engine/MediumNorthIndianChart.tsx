@@ -14,7 +14,7 @@ type ChartPlanet = {
   combust?: boolean;
   isTransit?: boolean;
 };
-
+type ArudhaMap = Record<string, { sign: string }>;
 type MediumNorthIndianChartProps = {
   title?: string;
   ascSign?: string | null;
@@ -23,7 +23,8 @@ type MediumNorthIndianChartProps = {
   onPlanetClick?: (planet: ChartPlanet) => void;
   mode?: "rashi" | "chalit";
   sarvaAshtakvarga?: number[];
-  showPlanetDetails?: boolean;   // ✅ ADD THIS
+  showPlanetDetails?: boolean;
+  arudhas?: ArudhaMap;
 };
 
 const PLANET_SHORT: Record<string, string> = {
@@ -184,6 +185,32 @@ function getHouseSignNumber(house: number, ascSign?: string | null) {
   if (ascIndex < 0) return "—";
   return String(((ascIndex + (house - 1)) % 12) + 1);
 }
+function getHouseSignName(house: number, ascSign?: string | null) {
+  const ascIndex = getAscSignIndex(ascSign);
+  if (ascIndex < 0) return null;
+  return SIGNS[(ascIndex + (house - 1)) % 12] ?? null;
+}
+
+function getArudhasByHouse(arudhas: ArudhaMap | undefined, ascSign?: string | null) {
+  const map = new Map<number, string[]>();
+
+  if (!arudhas || !ascSign) return map;
+
+  for (const [label, value] of Object.entries(arudhas)) {
+    const sign = value?.sign;
+    if (!sign) continue;
+
+    for (let house = 1; house <= 12; house++) {
+      const houseSign = getHouseSignName(house, ascSign);
+      if (houseSign === sign) {
+        if (!map.has(house)) map.set(house, []);
+        map.get(house)!.push(label);
+      }
+    }
+  }
+
+  return map;
+}
 export default function MediumNorthIndianChart({
   title = "North Indian Chart",
   ascSign,
@@ -192,7 +219,8 @@ export default function MediumNorthIndianChart({
   onPlanetClick,
   mode = "rashi",
   sarvaAshtakvarga = [],
-  showPlanetDetails = true,   // ✅ ADD THIS
+  showPlanetDetails = true,
+  arudhas = {},
 }: MediumNorthIndianChartProps) {
   const [selected, setSelected] = useState<ChartPlanet | null>(null);
   const [hovered, setHovered] = useState<ChartPlanet | null>(null);
@@ -201,7 +229,10 @@ const transitPlanetsByHouse = useMemo(
   () => getPlanetsByHouse(transitPlanets),
   [transitPlanets]
 );
-
+  const arudhasByHouse = useMemo(
+    () => getArudhasByHouse(arudhas, ascSign),
+    [arudhas, ascSign]
+  );
   return (
     <div className="rounded-2xl border border-white/10 bg-white/[0.06] p-4 shadow-[0_10px_30px_rgba(0,0,0,0.22)] backdrop-blur-sm">
       <div className="flex flex-col gap-1 md:flex-row md:items-end md:justify-between">
@@ -221,9 +252,9 @@ const transitPlanetsByHouse = useMemo(
       </div>
 
       <div className="mt-4 overflow-x-auto">
-        <div className="relative mx-auto h-[500px] w-[520px] rounded-xl bg-white/[0.03] ring-1 ring-white/10">
+        <div className="relative mx-auto h-[560px] w-[600px] rounded-xl bg-white/[0.03] ring-1 ring-white/10">
           <svg
-            viewBox="0 0 520 500"
+            viewBox="0 0 600 560"
             className="absolute inset-0 h-full w-full"
             aria-label="North Indian astrology chart"
           >
@@ -258,20 +289,26 @@ const shownTransitPlanets = houseTransitPlanets;
   const isAscHouse = anchor.house === 1;
   const houseLabel = getHouseSignNumber(anchor.house, ascSign);
   const sarvaValue = sarvaAshtakvarga?.[anchor.house - 1] ?? null;
-  const planetShift = HOUSE_PLANET_SHIFTS[anchor.house] || "translate(0,0)";
-  const allForTitle = [...housePlanets, ...houseTransitPlanets];
+  let planetShift = HOUSE_PLANET_SHIFTS[anchor.house] || "translate(0,0)";
 
+// reduce bottom crowding
+if (anchor.house === 1 || anchor.house === 11 || anchor.house === 12) {
+  planetShift = "translate(0,-12px)";
+}
+  const allForTitle = [...housePlanets, ...houseTransitPlanets];
+  const houseArudhas = arudhasByHouse.get(anchor.house) ?? [];
   return (
     <div
-      key={anchor.house}
-      className="absolute"
-      style={{
-        left: anchor.x - anchor.width / 2,
-        top: anchor.y,
-        width: anchor.width,
-      }}
-    >
-      <div className="flex flex-col items-center">
+  key={anchor.house}
+  className="absolute"
+  style={{
+    left: anchor.x - anchor.width / 2,
+    top: anchor.y,
+    width: anchor.width,
+    minHeight: 150,
+  }}
+>
+  <div className="flex flex-col items-center h-full">
   <div
     className={`text-base font-semibold ${
       isAscHouse ? "text-indigo-200" : "text-white/75"
@@ -287,10 +324,10 @@ const shownTransitPlanets = houseTransitPlanets;
   ) : null}
 </div>
 
-     <div
+    <div
   className="mt-1 grid grid-cols-2 content-start justify-items-start gap-[2px] overflow-hidden"
   style={{
-    maxHeight: 92,
+    maxHeight: 58,
     transform: planetShift,
   }}
   title={allForTitle.map(getPlanetTitle).join(" • ")}
@@ -309,7 +346,7 @@ const shownTransitPlanets = houseTransitPlanets;
               setSelected(p);
               onPlanetClick?.(p);
             }}
-           className={`rounded px-[4px] py-[2px] text-[12px] leading-none transition ${
+           className={`rounded px-[3px] py-[1px] text-[11px] leading-none transition ${
   p.rashiHouse !== p.house
     ? "bg-orange-400/15 text-orange-200 ring-1 ring-orange-400/25 font-semibold"
     : p.planet === "Moon"
@@ -342,7 +379,7 @@ const shownTransitPlanets = houseTransitPlanets;
               setSelected(p);
               onPlanetClick?.(p);
             }}
-           className={`rounded px-[4px] py-[2px] text-[12px] leading-none transition ${
+           className={`rounded px-[3px] py-[1px] text-[11px] leading-none transition ${
   selected?.planet === p.planet && selected?.isTransit
     ? "bg-emerald-400/20 text-emerald-100 ring-1 ring-emerald-300/40"
     : hovered?.planet === p.planet && hovered?.isTransit
@@ -355,6 +392,40 @@ const shownTransitPlanets = houseTransitPlanets;
           </button>
         ))}
       </div>
+        {houseArudhas.length ? (
+  <div
+    className="mt-auto flex flex-wrap justify-center gap-[3px] opacity-70"
+    style={{
+      lineHeight: "10px",
+      transform:
+  anchor.house === 6 ? "translateY(-6px)" :
+  anchor.house === 7 ? "translateY(-4px)" :
+  anchor.house === 8 ? "translateY(-4px)" :
+  "translateY(0px)"
+    }}
+  >
+    {houseArudhas.map((label) => {
+      const isAL = label === "AL";
+      const isUL = label === "UL";
+
+      return (
+        <span
+          key={`${anchor.house}-${label}`}
+          className={
+            isAL
+              ? "rounded bg-fuchsia-400/30 px-[2px] py-0 text-[8px] font-bold text-white"
+              : isUL
+              ? "rounded bg-fuchsia-400/20 px-[2px] py-0 text-[8px] font-semibold text-fuchsia-100"
+              : "rounded bg-fuchsia-400/6 px-[2px] py-0 text-[8px] font-medium text-fuchsia-200/70"
+          }
+          title={`${label} in ${getHouseSignName(anchor.house, ascSign) ?? "—"}`}
+        >
+          {label}
+        </span>
+      );
+    })}
+  </div>
+) : null}
     </div>
   );
 })}

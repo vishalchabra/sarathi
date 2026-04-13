@@ -31,6 +31,7 @@ import { buildBhavMadhya } from "./buildBhavMadhya";
 import { buildFiveFoldFriendship } from "./buildFiveFoldFriendship";
 import { buildAvakhada } from "./buildAvakhada";
 import tzLookup from "tz-lookup";
+import { buildArudhas } from "./buildArudhaLagna";
 
 export type DataEnginePlan = "light" | "pro";
 
@@ -65,7 +66,12 @@ type BirthMeta = {
   horaStartsAt?: string | null;
   horaEndsAt?: string | null;
 };
-
+type ArudhaMap = Record<
+  string,
+  {
+    sign: string;
+  }
+>;
 export type DataEngineOutput = {
   meta: {
     generatedAtISO: string;
@@ -106,7 +112,7 @@ export type DataEngineOutput = {
     compare: any | null;
   };
 
-  strength: {
+    strength: {
     shadbala: Array<{
       planet: string;
       total: number;
@@ -165,7 +171,7 @@ export type DataEngineOutput = {
   };
 
   vargas: any;
-
+  arudhas: ArudhaMap;
   // backward compatibility
   birthMeta: BirthMeta;
   natal: any;
@@ -729,7 +735,10 @@ const roles = await buildFunctionalRoles({
     house: natalWithStrengths.ascendant?.house ?? 1,
     lon: natalWithStrengths.ascendant?.lon ?? null,
   };
-
+  const arudhas = buildArudhas({
+  ascSign: natalBase.ascendant.sign,
+  planets: reportPlanets,
+});
   const dasha = await buildDashaData({
     birth,
     selectedDateISO,
@@ -915,6 +924,7 @@ const roles = await buildFunctionalRoles({
     },
 
     vargas,
+    arudhas,
 
     birthMeta,
     natal: natalWithStrengths,

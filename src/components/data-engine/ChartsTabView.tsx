@@ -256,6 +256,7 @@ export default function ChartsTabView({
   currentMdPlanet,
   currentAdPlanet,
   sarvaAshtakvarga,
+  arudhas,
 }: {
   selectedDateISO: string;
   setSelectedDateISO: (value: string) => void;
@@ -272,6 +273,7 @@ export default function ChartsTabView({
   currentMdPlanet: string | null;
   currentAdPlanet: string | null;
   sarvaAshtakvarga?: number[];
+  arudhas?: Record<string, { sign: string }>;
 }) {
   const [transitPlanets, setTransitPlanets] = useState<any[]>([]);
   const [transitLoading, setTransitLoading] = useState(false);
@@ -443,96 +445,103 @@ export default function ChartsTabView({
 
   return (
     <div className="mt-6 space-y-6">
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-        <ChartCard
-          title="Natal Lagna Chart"
-          subtitle="Primary natal D1 chart."
-        >
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <label className="inline-flex items-center gap-3 text-base font-medium text-white/80">
-              <input
-                type="checkbox"
-                checked={showTransitOverlay}
-                onChange={(e) => setShowTransitOverlay(e.target.checked)}
-                className="h-5 w-5 rounded border-white/15"
-              />
-              Show transits
-            </label>
-
-            {showTransitOverlay ? (
-              <div className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-xs text-emerald-200">
-  Transit overlay active
-</div>
-            ) : null}
-          </div>
-<div className="text-xs text-white/50 mb-2 flex items-center gap-2">
-  <span className="font-medium text-white/70">Sarva AV</span>
-  <span>values shown inside each house</span>
-</div>
-          <MediumNorthIndianChart
-  title=""
-  ascSign={natalAscSign}
-  planets={normalizeChartPlanets(natalPlanets)}
-  transitPlanets={
-    showTransitOverlay
-      ? normalizeTransitPlanets(transitPlanets, natalAscSign)
-      : []
-  }
-  sarvaAshtakvarga={sarvaAshtakvarga}
-/>
-        </ChartCard>
-
-        <MediumChartCard
-          title="Chandra Chart"
-          subtitle="Moon-reference chart."
-          ascSign={chandraChart.ascSign}
-          planets={chandraChart.planets}
+      <div className="space-y-6">
+  <ChartCard
+    title="Natal Lagna Chart"
+    subtitle="Primary natal D1 chart."
+  >
+    <div className="mb-4 flex items-center justify-between gap-3">
+      <label className="inline-flex items-center gap-3 text-base font-medium text-white/80">
+        <input
+          type="checkbox"
+          checked={showTransitOverlay}
+          onChange={(e) => setShowTransitOverlay(e.target.checked)}
+          className="h-5 w-5 rounded border-white/15"
         />
+        Show transits
+      </label>
 
-        <div className="xl:col-span-2">
-          <ChartCard
-            title="Bhava Chalit Chart"
-            subtitle={`Classic Bhava Chalit${classicChalit?.system ? ` (${classicChalit.system})` : ""}.`}
-          >
-            {classicChalit?.ascendant?.sign &&
-            Array.isArray(classicChalit?.planets) &&
-            classicChalit.planets.length ? (
-              <>
-              
-                <MediumNorthIndianChart
-                  title=""
-                  ascSign={classicChalit?.ascendant?.sign ?? null}
-                  planets={classicChalit?.planets ?? []}
-                  mode="chalit"
-                />
-
-                <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.05] p-4 shadow-[0_6px_20px_rgba(0,0,0,0.16)]">
-                  <div className="mb-2 text-sm font-semibold text-white">Planet Shifts</div>
-
-                  <div className="space-y-1">
-                    {getPlanetShifts(classicChalit?.planets ?? []).map((s) => (
-                      <div key={s.planet} className="flex justify-between text-sm">
-                        <span>{s.planet}</span>
-                        <span
-                          className={
-                            s.changed
-                              ? "font-semibold text-orange-200"
-                              : "text-white/50"
-                          }
-                        >
-                          {s.from} → {s.to}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </>
-            ) : (
-              <PlaceholderChart label="Bhava Chalit Chart unavailable" height="h-40" />
-            )}
-          </ChartCard>
+      {showTransitOverlay ? (
+        <div className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-xs text-emerald-200">
+          Transit overlay active
         </div>
-      </div>
+      ) : null}
+    </div>
+
+    <div className="mb-2 flex items-center gap-2 text-xs text-white/50">
+      <span className="font-medium text-white/70">Sarva AV</span>
+      <span>values shown inside each house</span>
+    </div>
+
+    <MediumNorthIndianChart
+      title=""
+      ascSign={natalAscSign}
+      planets={normalizeChartPlanets(natalPlanets)}
+      transitPlanets={
+        showTransitOverlay
+          ? normalizeTransitPlanets(transitPlanets, natalAscSign)
+          : []
+      }
+      sarvaAshtakvarga={sarvaAshtakvarga}
+      arudhas={arudhas}
+    />
+  </ChartCard>
+
+  <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+    <MediumChartCard
+      title="Chandra Chart"
+      subtitle="Moon-reference chart."
+      ascSign={chandraChart.ascSign}
+      planets={chandraChart.planets}
+    />
+
+    <ChartCard
+      title="Bhava Chalit Chart"
+      subtitle={`Classic Bhava Chalit${classicChalit?.system ? ` (${classicChalit.system})` : ""}.`}
+    >
+      {classicChalit?.ascendant?.sign &&
+      Array.isArray(classicChalit?.planets) &&
+      classicChalit.planets.length ? (
+        <>
+          <MediumNorthIndianChart
+            title=""
+            ascSign={classicChalit?.ascendant?.sign ?? null}
+            planets={classicChalit?.planets ?? []}
+            mode="chalit"
+          />
+
+          <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.05] p-4 shadow-[0_6px_20px_rgba(0,0,0,0.16)]">
+            <div className="mb-2 text-sm font-semibold text-white">
+              Planet Shifts
+            </div>
+
+            <div className="space-y-1">
+              {getPlanetShifts(classicChalit?.planets ?? []).map((s) => (
+                <div key={s.planet} className="flex justify-between text-sm">
+                  <span>{s.planet}</span>
+                  <span
+                    className={
+                      s.changed
+                        ? "font-semibold text-orange-200"
+                        : "text-white/50"
+                    }
+                  >
+                    {s.from} → {s.to}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </>
+      ) : (
+        <PlaceholderChart
+          label="Bhava Chalit Chart unavailable"
+          height="h-40"
+        />
+      )}
+    </ChartCard>
+  </div>
+</div>
 
       <ChartCard
         title="Divisional Chart Gallery"
