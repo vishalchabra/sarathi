@@ -1153,10 +1153,10 @@ return tPlanets.map((p) => {
   const sidLon = p.lon; // ✅ already sidereal now
   const sign = signFromLonSidereal(sidLon);
   const house = houseFromLagnaWholeSign(sign, ascSign);
-if (process.env.NODE_ENV !== "production") {
-  const m = tPlanets.find(p => p.name === "Mercury");
-  if (m) console.log("[sanity] Mercury sidereal lon:", m.lon);
-}
+// if (process.env.NODE_ENV !== "production") {
+//   const m = tPlanets.find(p => p.name === "Mercury");
+//   if (m) console.log("[sanity] Mercury sidereal lon:", m.lon);
+// }
 
  return {
   name: p.name,

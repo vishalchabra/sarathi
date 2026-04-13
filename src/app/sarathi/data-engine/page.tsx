@@ -29,6 +29,7 @@ import PrastharaCard from "@/components/data-engine/PrastharaCard";
 import BhavMadhyaCard from "@/components/data-engine/BhavMadhyaCard";
 import FiveFoldFriendshipCard from "@/components/data-engine/FiveFoldFriendshipCard";
 import AvakhadaCard from "@/components/data-engine/AvakhadaCard";
+import tzLookup from "tz-lookup";
 
 type TabKey =
   | "foundations"
@@ -481,7 +482,16 @@ export default function DataEnginePage() {
     new Date().toISOString().slice(0, 10)
   );
   const [compareDateISO, setCompareDateISO] = useState("");
+useEffect(() => {
+  if (!selectedPlace) return;
 
+  try {
+    const tz = tzLookup(selectedPlace.lat, selectedPlace.lon);
+    setTimezone(tz);
+  } catch {
+    // fallback: keep existing timezone
+  }
+}, [selectedPlace]);
   async function handleGenerate() {
     if (!name.trim()) {
       setError("Please enter a name.");
@@ -1002,10 +1012,14 @@ export default function DataEnginePage() {
                   Timezone
                 </label>
                 <input
-                  value={timezone}
-                  onChange={(e) => setTimezone(e.target.value)}
+  value={timezone}
+  readOnly
+  
                   className="mt-1 w-full rounded-xl border border-white/15 bg-white/5/5 px-3 py-2 text-sm text-white outline-none placeholder:text-white/35 focus:border-indigo-400"
                 />
+                <p className="text-xs text-white/40 mt-1">
+  Auto-detected from selected city
+</p>
               </div>
 
     

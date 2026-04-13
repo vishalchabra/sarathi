@@ -30,6 +30,7 @@ import { buildPrasthara } from "./buildPrasthara";
 import { buildBhavMadhya } from "./buildBhavMadhya";
 import { buildFiveFoldFriendship } from "./buildFiveFoldFriendship";
 import { buildAvakhada } from "./buildAvakhada";
+import tzLookup from "tz-lookup";
 
 export type DataEnginePlan = "light" | "pro";
 
@@ -396,7 +397,18 @@ function getAccurateHoraLord(params: {
     endsAt: endsAt.toFormat("HH:mm"),
   };
 }
+function normalizeBirthTimezone(birth: BirthInput): BirthInput {
+  try {
+    const derivedTimezone = tzLookup(birth.lat, birth.lon);
 
+    return {
+      ...birth,
+      timezone: derivedTimezone,
+    };
+  } catch {
+    return birth;
+  }
+}
 async function getTrueNodeSiderealLongitudes(birth: BirthInput) {
   const d = DateTime.fromISO(`${birth.dateISO}T${birth.time}`, {
     zone: birth.timezone,
@@ -436,14 +448,59 @@ async function getTrueNodeSiderealLongitudes(birth: BirthInput) {
     ketuLonSid,
   };
 }
+const NAKSHATRA_NAMES = [
+  "Ashwini",
+  "Bharani",
+  "Krittika",
+  "Rohini",
+  "Mrigashira",
+  "Ardra",
+  "Punarvasu",
+  "Pushya",
+  "Ashlesha",
+  "Magha",
+  "Purva Phalguni",
+  "Uttara Phalguni",
+  "Hasta",
+  "Chitra",
+  "Swati",
+  "Vishakha",
+  "Anuradha",
+  "Jyeshtha",
+  "Mula",
+  "Purva Ashadha",
+  "Uttara Ashadha",
+  "Shravana",
+  "Dhanishtha",
+  "Shatabhisha",
+  "Purva Bhadrapada",
+  "Uttara Bhadrapada",
+  "Revati",
+] as const;
 
+function getNakshatraAndPadaFromLon(lon: number | null | undefined) {
+  if (typeof lon !== "number" || Number.isNaN(lon)) {
+    return { nakshatra: null, pada: null };
+  }
+
+  const x = ((lon % 360) + 360) % 360;
+  const nakSpan = 360 / 27; // 13°20'
+  const idx = Math.floor(x / nakSpan);
+  const withinNak = x % nakSpan;
+  const pada = Math.floor(withinNak / (nakSpan / 4)) + 1;
+
+  return {
+    nakshatra: NAKSHATRA_NAMES[idx] ?? null,
+    pada,
+  };
+}
 export async function buildDataEngine(
   params: BuildDataEngineParams
 ): Promise<DataEngineOutput> {
   const plan = normalizePlan(params.plan);
   const selectedDateISO = resolveSelectedDateISO(params.selectedDateISO);
   const compareDateISO = String(params.compareDateISO || "").trim() || null;
-  const birth = params.birth;
+  const birth = normalizeBirthTimezone(params.birth);
 
   const asc = await getAscendant({
     dateISO: birth.dateISO,
@@ -469,61 +526,71 @@ export async function buildDataEngine(
       .map((p: any) => [p.planet, p.lon])
   );
 
-  const reportPlanets = (Array.isArray(rawPlacements) ? rawPlacements : []).map((p: any) => {
-    if (p.planet === "Rahu") {
-      return {
-        ...p,
-        lon:
-          typeof rawNodeLonMap.get("Rahu") === "number"
-            ? rawNodeLonMap.get("Rahu")
-            : trueNodeLons.rahuLonSid,
-        degree:
-          typeof rawNodeLonMap.get("Rahu") === "number"
-            ? Number((rawNodeLonMap.get("Rahu") % 30).toFixed(2))
-            : Number((trueNodeLons.rahuLonSid % 30).toFixed(2)),
-        signNum: SIGN_TO_NUM[p.sign] ?? 0,
-        nakshatra: null,
-        pada: null,
-        retrograde: true,
-        combust: false,
-        lordships: [],
-      };
-    }
+ const reportPlanets = (Array.isArray(rawPlacements) ? rawPlacements : []).map((p: any) => {
+  if (p.planet === "Rahu") {
+    const lon =
+      typeof rawNodeLonMap.get("Rahu") === "number"
+        ? rawNodeLonMap.get("Rahu")
+        : trueNodeLons.rahuLonSid;
 
-    if (p.planet === "Ketu") {
-      return {
-        ...p,
-        lon:
-          typeof rawNodeLonMap.get("Ketu") === "number"
-            ? rawNodeLonMap.get("Ketu")
-            : trueNodeLons.ketuLonSid,
-        degree:
-          typeof rawNodeLonMap.get("Ketu") === "number"
-            ? Number((rawNodeLonMap.get("Ketu") % 30).toFixed(2))
-            : Number((trueNodeLons.ketuLonSid % 30).toFixed(2)),
-        signNum: SIGN_TO_NUM[p.sign] ?? 0,
-        nakshatra: null,
-        pada: null,
-        retrograde: true,
-        combust: false,
-        lordships: [],
-      };
-    }
+    const nakInfo = getNakshatraAndPadaFromLon(lon);
 
     return {
       ...p,
+      lon,
+      degree: Number((lon % 30).toFixed(2)),
       signNum: SIGN_TO_NUM[p.sign] ?? 0,
-      nakshatra: null,
-      pada: null,
-      retrograde: false,
+      nakshatra: p.nakshatra ?? nakInfo.nakshatra,
+      pada: p.pada ?? nakInfo.pada,
+      retrograde: true,
       combust: false,
       lordships: [],
     };
-  });
+  }
 
-  const ascSign = String(asc?.sign ?? "—");
-  const ascLon =
-    typeof asc?.lon === "number" && !Number.isNaN(asc.lon) ? asc.lon : null;
+  if (p.planet === "Ketu") {
+    const lon =
+      typeof rawNodeLonMap.get("Ketu") === "number"
+        ? rawNodeLonMap.get("Ketu")
+        : trueNodeLons.ketuLonSid;
+
+    const nakInfo = getNakshatraAndPadaFromLon(lon);
+
+    return {
+      ...p,
+      lon,
+      degree: Number((lon % 30).toFixed(2)),
+      signNum: SIGN_TO_NUM[p.sign] ?? 0,
+      nakshatra: p.nakshatra ?? nakInfo.nakshatra,
+      pada: p.pada ?? nakInfo.pada,
+      retrograde: true,
+      combust: false,
+      lordships: [],
+    };
+  }
+
+  const nakInfo = getNakshatraAndPadaFromLon(p.lon);
+
+  return {
+    ...p,
+    signNum: SIGN_TO_NUM[p.sign] ?? 0,
+    nakshatra: p.nakshatra ?? nakInfo.nakshatra,
+    pada: p.pada ?? nakInfo.pada,
+    retrograde: false,
+    combust: false,
+    lordships: [],
+  };
+});
+
+  if (!asc || typeof asc.lon !== "number") {
+  throw new Error("Ascendant calculation failed — invalid result");
+}
+
+const ascSign = asc.sign;
+const ascLon = asc.lon;
+  if (asc.lon < 0 || asc.lon > 360) {
+  throw new Error("Ascendant longitude out of bounds");
+}
   const ascSignNum = SIGN_TO_NUM[ascSign] ?? 0;
 
   const natalAspects = buildNatalAspects({

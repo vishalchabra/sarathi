@@ -1,4 +1,5 @@
 // FILE: src/server/astro/ascendant.ts (or wherever this lives)
+console.log("ASC TS FILE LOADED")
 import "server-only";
 import { DateTime } from "luxon";
 import {
@@ -46,8 +47,44 @@ function signFromDeg(longitude: number) {
 
 /** Returns sidereal Ascendant (Lahiri) { lon, sign } */
 export async function getAscendant(birth: BirthInput) {
-  const constants = await getSweConstants();
+  console.error("GET ASCENDANT CALLED", birth);
+
   const d = toUTC(birth);
+
+  const Astronomy = await import("astronomy-engine");
+
+  const time = (Astronomy as any).MakeTime
+    ? (Astronomy as any).MakeTime(d)
+    : new (Astronomy as any).AstroTime(d);
+
+  // Astronomy Engine sidereal time is used as the base.
+  // Convert it to LOCAL sidereal time by adding longitude (east positive).
+  const gstDeg = (Astronomy as any).SiderealTime(time) * 15;
+  const lstDeg = norm360(gstDeg + birth.lon);
+
+  const theta = (lstDeg * Math.PI) / 180;
+  const eps = (23.4393 * Math.PI) / 180; // mean obliquity
+  const phi = (birth.lat * Math.PI) / 180;
+
+  // Standard ascendant formula:
+  // y = -cos(theta)
+  // x = sin(theta) * cos(eps) + tan(phi) * sin(eps)
+  let ascTrop =
+    (Math.atan2(
+      -Math.cos(theta),
+      Math.sin(theta) * Math.cos(eps) + Math.tan(phi) * Math.sin(eps)
+    ) *
+      180) /
+    Math.PI;
+
+  ascTrop = norm360(ascTrop);
+
+  // Final "easterly/rising point" correction
+  if (ascTrop < 180) {
+    ascTrop += 180;
+  } else {
+    ascTrop -= 180;
+  }
 
   const ut =
     d.getUTCHours() +
@@ -59,33 +96,18 @@ export async function getAscendant(birth: BirthInput) {
     d.getUTCMonth() + 1,
     d.getUTCDate(),
     ut,
-    constants.SE_GREG_CAL
+    1
   );
 
-  // Houses/Asc LONGITUDES from Swiss are **tropical** by default.
-  // Convert to sidereal by subtracting ayanāṁśa.
-  const hs = await sweCall<any>(
-    "swe_houses",
-    jd,
-    birth.lat,
-    birth.lon,
-    "P"
-  );
+  const ayan = await sweCall<number>("swe_get_ayanamsa_ut", jd);
+  const ascSid = norm360(ascTrop - ayan);
 
-  const ascTrop =
-    hs?.ascmc?.[0] ??
-    hs?.asc ??
-    hs?.ascendant ??
-    hs?.Asc ??
-    NaN;
 
-  if (typeof ascTrop === "number" && !Number.isNaN(ascTrop)) {
-    const ayan =
-      (await sweCall<number>("swe_get_ayanamsa_ut", jd)) ?? 0; // degrees
-    const ascSid = norm360(ascTrop - ayan); // apply Lahiri (set in engine)
-    return { lon: ascSid, sign: signFromDeg(ascSid) };
-  }
-  return { lon: NaN, sign: "—" };
+
+  return {
+    lon: ascSid,
+    sign: signFromDeg(ascSid),
+  };
 }
 
 export async function getAscendantSign(birth: BirthInput) {

@@ -220,16 +220,16 @@ async function getAstronomy(): Promise<any | null> {
     // Some bundlers put it under default; be defensive:
     _astronomyMod = (mod as any)?.default ?? mod;
 
-    if (process.env.NODE_ENV !== "production") {
-      const keys = _astronomyMod && typeof _astronomyMod === "object" ? Object.keys(_astronomyMod) : [];
-      console.log("[swe-remote] astronomy-engine loaded; keys sample:", keys.slice(0, 12));
-    }
+  // if (process.env.NODE_ENV !== "production") {
+//   const keys = _astronomyMod && typeof _astronomyMod === "object" ? Object.keys(_astronomyMod) : [];
+//   console.log("[swe-remote] astronomy-engine loaded; keys sample:", keys.slice(0, 12));
+// }
 
     return _astronomyMod;
   } catch (e) {
-    if (process.env.NODE_ENV !== "production") {
-      console.warn("[swe-remote] astronomy-engine import failed; falling back to stub", e);
-    }
+  // if (process.env.NODE_ENV !== "production") {
+//   console.warn("[swe-remote] astronomy-engine import failed; falling back to stub", e);
+// }
     return null;
   }
 }
@@ -346,9 +346,9 @@ if (ipl === 10 || ipl === 11) {
 
     if (!bodyName) {
       const lon = computePlanetLongitudeTropicalFallback(jdUt, ipl);
-      if (process.env.NODE_ENV !== "production") {
-        console.warn("[swe-remote] Unknown ipl; fallback used", { ipl, jdUt, lon });
-      }
+    // if (process.env.NODE_ENV !== "production") {
+//   console.warn("[swe-remote] Unknown ipl; fallback used", { ipl, jdUt, lon });
+// }
       return { longitude: lon } as T;
     }
 
@@ -371,12 +371,12 @@ if (bodyName === "Moon") {
     const lon = Number(ecl?.elon ?? ecl?.lon);
     if (!Number.isFinite(lon)) throw new Error(`GeoMoon->Ecliptic non-finite: ${String(lon)}`);
 
-    if (process.env.NODE_ENV !== "production") {
-      console.log("[swe-remote] Moon via GeoMoon->Ecliptic", {
-        date: date.toISOString(),
-        lonTrop: lon,
-      });
-    }
+ // if (process.env.NODE_ENV !== "production") {
+//   console.log("[swe-remote] Moon via GeoMoon->Ecliptic", {
+//     date: date.toISOString(),
+//     lonTrop: lon,
+//   });
+// }
 
     return { longitude: wrap360(lon) } as T;
   }
@@ -387,12 +387,12 @@ if (bodyName === "Moon") {
     const lon = Number(m?.elon ?? m?.lon);
     if (!Number.isFinite(lon)) throw new Error(`EclipticGeoMoon non-finite: ${String(lon)}`);
 
-    if (process.env.NODE_ENV !== "production") {
-      console.log("[swe-remote] Moon via EclipticGeoMoon", {
-        date: date.toISOString(),
-        lonTrop: lon,
-      });
-    }
+ // if (process.env.NODE_ENV !== "production") {
+//   console.log("[swe-remote] Moon via EclipticGeoMoon", {
+//     date: date.toISOString(),
+//     lonTrop: lon,
+//   });
+// }
 
     return { longitude: wrap360(lon) } as T;
   }
@@ -408,14 +408,14 @@ if (!Number.isFinite(lon)) throw new Error(`Ecliptic lon non-finite: ${String(lo
 return { longitude: wrap360(lon) } as T;
 
       } catch (e) {
-        if (process.env.NODE_ENV !== "production") {
-          console.warn("[swe-remote] astronomy-engine failed; fallback used", {
-            ipl,
-            bodyName,
-            date: date.toISOString(),
-            err: String(e),
-          });
-        }
+    // if (process.env.NODE_ENV !== "production") {
+//   console.warn("[swe-remote] astronomy-engine failed; fallback used", {
+//     ipl,
+//     bodyName,
+//     date: date.toISOString(),
+//     err: String(e),
+//   });
+// }
         const lon = computePlanetLongitudeTropicalFallback(jdUt, ipl);
         return { longitude: lon } as T;
       }
