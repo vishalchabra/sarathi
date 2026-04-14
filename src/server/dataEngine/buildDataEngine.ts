@@ -531,8 +531,19 @@ export async function buildDataEngine(
       .filter((p: any) => p?.planet === "Rahu" || p?.planet === "Ketu")
       .map((p: any) => [p.planet, p.lon])
   );
+if (!asc || typeof asc.lon !== "number") {
+  throw new Error("Ascendant calculation failed — invalid result");
+}
 
- const reportPlanets = (Array.isArray(rawPlacements) ? rawPlacements : []).map((p: any) => {
+const ascSign = asc.sign;
+const ascLon = asc.lon;
+
+if (asc.lon < 0 || asc.lon > 360) {
+  throw new Error("Ascendant longitude out of bounds");
+}
+
+const ascSignNum = SIGN_TO_NUM[ascSign] ?? 0;
+const reportPlanets = (Array.isArray(rawPlacements) ? rawPlacements : []).map((p: any) => {
   if (p.planet === "Rahu") {
     const lon =
       typeof rawNodeLonMap.get("Rahu") === "number"
@@ -540,12 +551,18 @@ export async function buildDataEngine(
         : trueNodeLons.rahuLonSid;
 
     const nakInfo = getNakshatraAndPadaFromLon(lon);
+    const signNum = SIGN_TO_NUM[p.sign] ?? 0;
+    const house =
+      signNum && ascSignNum
+        ? ((signNum - ascSignNum + 12) % 12) + 1
+        : null;
 
     return {
       ...p,
       lon,
       degree: Number((lon % 30).toFixed(2)),
-      signNum: SIGN_TO_NUM[p.sign] ?? 0,
+      signNum,
+      house,
       nakshatra: p.nakshatra ?? nakInfo.nakshatra,
       pada: p.pada ?? nakInfo.pada,
       retrograde: true,
@@ -561,12 +578,18 @@ export async function buildDataEngine(
         : trueNodeLons.ketuLonSid;
 
     const nakInfo = getNakshatraAndPadaFromLon(lon);
+    const signNum = SIGN_TO_NUM[p.sign] ?? 0;
+    const house =
+      signNum && ascSignNum
+        ? ((signNum - ascSignNum + 12) % 12) + 1
+        : null;
 
     return {
       ...p,
       lon,
       degree: Number((lon % 30).toFixed(2)),
-      signNum: SIGN_TO_NUM[p.sign] ?? 0,
+      signNum,
+      house,
       nakshatra: p.nakshatra ?? nakInfo.nakshatra,
       pada: p.pada ?? nakInfo.pada,
       retrograde: true,
@@ -576,10 +599,16 @@ export async function buildDataEngine(
   }
 
   const nakInfo = getNakshatraAndPadaFromLon(p.lon);
+  const signNum = SIGN_TO_NUM[p.sign] ?? 0;
+  const house =
+    signNum && ascSignNum
+      ? ((signNum - ascSignNum + 12) % 12) + 1
+      : null;
 
   return {
     ...p,
-    signNum: SIGN_TO_NUM[p.sign] ?? 0,
+    signNum,
+    house,
     nakshatra: p.nakshatra ?? nakInfo.nakshatra,
     pada: p.pada ?? nakInfo.pada,
     retrograde: false,
@@ -588,17 +617,7 @@ export async function buildDataEngine(
   };
 });
 
-  if (!asc || typeof asc.lon !== "number") {
-  throw new Error("Ascendant calculation failed — invalid result");
-}
-
-const ascSign = asc.sign;
-const ascLon = asc.lon;
-  if (asc.lon < 0 || asc.lon > 360) {
-  throw new Error("Ascendant longitude out of bounds");
-}
-  const ascSignNum = SIGN_TO_NUM[ascSign] ?? 0;
-
+ 
   const natalAspects = buildNatalAspects({
     natalPlanets: reportPlanets,
   });

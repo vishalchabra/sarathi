@@ -1832,7 +1832,7 @@ if (!transitNowFacts.length && Array.isArray(topTransits) && topTransits.length 
     console.log("=== LIFE_REPORT_ROUTE_HIT ===");
     try {
       const body = await req.json();
-
+     const isPaid = body?.isPaid === true;
       // ----------------------------
       // 1) Parse location (support old + new schema)
       // ----------------------------
@@ -1849,131 +1849,158 @@ if (!transitNowFacts.length && Array.isArray(topTransits) && topTransits.length 
       // ----------------------------
       // 2) Cache keys
       // ----------------------------
-      const cacheBuster = 2;
+    const cacheBuster = 9;
 
-      const baseKey = makeCacheKey({
-        name: body.name ?? body.placeName ?? "User",
-        birthDateISO: body.birthDateISO,
-        birthTime: body.birthTime,
-        birthTz: body.birthTz,
-        lat,
-        lon,
-        version: "engine-v2b-asc-sidereal-3",
-        cacheBuster,
-      });
+const baseKey = makeCacheKey({
+  name: body.name ?? body.placeName ?? "User",
+  birthDateISO: body.birthDateISO,
+  birthTime: body.birthTime,
+  birthTz: body.birthTz,
+  lat,
+  lon,
+  version: "engine-v2b-asc-sidereal-3",
+  cacheBuster,
+});
 
-      const cacheKey = `v3:${baseKey}`;
-      
-      // ----------------------------
-      // 3) Build or load life report
-      // ----------------------------
-      let report: any;
-      let cacheFlag: "hit" | "miss" | "miss-dev" = "miss";
+const rawReportCacheKey = `life-base:${baseKey}`;
+const overviewCacheKey = `life-overview:${baseKey}`;
+const paidNowCacheKey = `life-paid-now:${baseKey}`;
+const paidFullCacheKey = `life-paid-full:${baseKey}`;
 
-      if (process.env.NODE_ENV !== "production") {
- 
-        report = await buildLifeReport({
-          name: body.name ?? body.placeName,
-          birthDateISO: body.birthDateISO,
-          birthTime: body.birthTime,
-          birthTz: body.birthTz,
-          lat,
-          lon,
-        });
-        console.log("[life-report] after buildLifeReport", {
-  reportKeys: Object.keys(report ?? {}),
-  dashaTimelineCount: Array.isArray(report?.dashaTimeline) ? report.dashaTimeline.length : 0,
-  firstDashaRow: Array.isArray(report?.dashaTimeline) ? report.dashaTimeline[0] : null,
-});
-         console.log("[life-report] source report keys", {
-  topLevelKeys: Object.keys(report ?? {}),
-  natalKeys: Object.keys(report?.natal ?? {}),
-  houseLordKeys: Object.keys(report?.houseLords ?? report?.natal?.houseLords ?? {}),
-  divisionalKeys: Object.keys(report?.divisionalCharts ?? report?.vargas ?? {}),
-  hasD10: !!(
-    report?.divisionalCharts?.D10 ??
-    report?.divisionalCharts?.d10 ??
-    report?.vargas?.D10 ??
-    report?.vargas?.d10
-  ),
-});
-console.log("[life-report] buildLifeReport output keys", Object.keys(report ?? {}));
-console.log("[life-report] possible dasha sources", {
-  hasDashaTimeline: !!report?.dashaTimeline,
-  hasTimeline: !!report?.timeline,
-  hasTimelineWindows: !!report?.timelineWindows,
-  hasDasha: !!report?.dasha,
-  hasVimshottari: !!report?.vimshottari,
-  hasPeriods: !!report?.periods,
-  hasActivePeriods: !!report?.activePeriods,
-});
-console.log("[life-report] dasha source preview", {
-  dashaTimeline: report?.dashaTimeline?.[0] ?? null,
-  timeline: report?.timeline?.[0] ?? null,
-  timelineWindows: report?.timelineWindows?.[0] ?? null,
-  dasha: report?.dasha ?? null,
-  vimshottari: report?.vimshottari ?? null,
-  periods: report?.periods ?? null,
-});
-        cacheFlag = "miss-dev";
-      } else {
-        const cached = await cacheGet<any>(cacheKey);
-        if (cached) {
-          report = cached;
-          cacheFlag = "hit";
-        } else {
-          report = await buildLifeReport({
-            name: body.name ?? body.placeName,
-            birthDateISO: body.birthDateISO,
-            birthTime: body.birthTime,
-            birthTz: body.birthTz,
-            lat,
-            lon,
-          });
-          
-          console.log("[life-report] dasha raw", report?.dasha);
-          console.log("[life-report] full report keys", Object.keys(report || {})); 
-          await cacheSet(cacheKey, report, 60 * 5);
-          cacheFlag = "miss";
-        }
-      }
-    
-      // ----------------------------
-      // 4) Enrich report with active periods
-      // ----------------------------
-     
+// ----------------------------
+// 3) Load/generate base life report
+// ----------------------------
+let report: any;
+let cacheFlag: "hit" | "miss" | "miss-dev" = "miss";
 
-console.log("[life-report] dasha timeline check", {
-  count: Array.isArray(report?.dashaTimeline) ? report.dashaTimeline.length : 0,
-  first: Array.isArray(report?.dashaTimeline) ? report.dashaTimeline[0] : null,
-  topLevelKeys: Object.keys(report ?? {}),
-});
+const disableCacheInDev = false;
+
+if (process.env.NODE_ENV !== "production" && disableCacheInDev) {
+  report = await buildLifeReport({
+    name: body.name ?? body.placeName,
+    birthDateISO: body.birthDateISO,
+    birthTime: body.birthTime,
+    birthTz: body.birthTz,
+    lat,
+    lon,
+  });
+  cacheFlag = "miss-dev";
+} else {
+  const cachedRawReport = await cacheGet<any>(rawReportCacheKey);
+
+  if (cachedRawReport) {
+    report = cachedRawReport;
+    cacheFlag = "hit";
+  } else {
+    report = await buildLifeReport({
+      name: body.name ?? body.placeName,
+      birthDateISO: body.birthDateISO,
+      birthTime: body.birthTime,
+      birthTz: body.birthTz,
+      lat,
+      lon,
+    });
+
+    await cacheSet(rawReportCacheKey, report, 60 * 60 * 24 * 30); // 30 days
+    cacheFlag = process.env.NODE_ENV !== "production" ? "miss-dev" : "miss";
+  }
+}
+
+// ----------------------------
+// 4) Enrich report with active periods
+// ----------------------------
 report.timeline =
   Array.isArray(report?.dashaTimeline) && report.dashaTimeline.length > 0
     ? report.dashaTimeline
     : Array.isArray(report?.timeline)
     ? report.timeline
     : [];
+
 const enriched = enrichWithActivePeriods(report);
-console.log("[life-report] after enrichWithActivePeriods", {
-  enrichedKeys: Object.keys(enriched ?? {}),
-  dashaTimelineCount: Array.isArray(enriched?.dashaTimeline) ? enriched.dashaTimeline.length : 0,
-  firstDashaRow: Array.isArray(enriched?.dashaTimeline) ? enriched.dashaTimeline[0] : null,
-});
-      const lagnaSign =
-        (enriched as any)?.core?.ascSign ?? (enriched as any)?.ascSign ?? undefined;
 
-      // ----------------------------
-      // 5) Shared birth payload for transit engines
-      // ----------------------------
-      const birthForTransits = {
-        dateISO: body.birthDateISO,
-        time: body.birthTime,
-        tz: body.birthTz,
-        lat,
-        lon,
-      };
+const lagnaSign =
+  (enriched as any)?.core?.ascSign ?? (enriched as any)?.ascSign ?? undefined;
 
+// ----------------------------
+// 5) Build/load OVERVIEW cache
+// ----------------------------
+let overviewSection = await cacheGet<any>(overviewCacheKey);
+
+if (!overviewSection) {
+  const overviewSummary = buildOverviewSummary(enriched);
+  const coreLifePattern = buildCoreLifePattern(enriched);
+  const lifePressureZone = buildLifePressureZone(enriched);
+  const naturalStrength = buildNaturalStrength(enriched);
+  const hiddenPattern = buildHiddenPattern(enriched);
+  const lifePatternMap = buildLifePatternMap(enriched);
+
+  overviewSection = {
+    overviewSummary,
+    coreLifePattern,
+    lifePressureZone,
+    naturalStrength,
+    hiddenPattern,
+    lifePatternMap,
+  };
+
+  await cacheSet(overviewCacheKey, overviewSection, 60 * 60 * 24 * 365); // 30 days
+}
+
+// ----------------------------
+// 6) FREE USER: return only overview
+// ----------------------------
+if (!isPaid) {
+  return NextResponse.json(
+    deepCleanStrings({
+      ok: true,
+      cache: {
+        baseReport: cacheFlag,
+        overview: "served",
+        paidNow: "locked",
+        paidFull: "locked",
+      },
+      access: {
+        isPaid: false,
+        locked: true,
+      },
+      report: {
+  name: body.name ?? body.placeName ?? "User",
+  birthDateISO: body.birthDateISO,
+  birthTime: body.birthTime,
+  birthTz: body.birthTz,
+  birthLat: lat,
+  birthLon: lon,
+
+  ascSign: enriched?.ascSign ?? enriched?.core?.ascSign ?? null,
+  moonSign: enriched?.moonSign ?? enriched?.core?.moonSign ?? null,
+  sunSign: enriched?.sunSign ?? enriched?.core?.sunSign ?? null,
+  panchang: enriched?.panchang ?? null,
+
+  planets: Array.isArray(enriched?.planets) ? enriched.planets : [],
+  placements: Array.isArray(enriched?.placements) ? enriched.placements : [],
+  aspects: Array.isArray(enriched?.aspects) ? enriched.aspects : [],
+
+  overviewSummary: overviewSection?.overviewSummary ?? null,
+  coreLifePattern: overviewSection?.coreLifePattern ?? null,
+  lifePressureZone: overviewSection?.lifePressureZone ?? null,
+  naturalStrength: overviewSection?.naturalStrength ?? null,
+  hiddenPattern: overviewSection?.hiddenPattern ?? null,
+  lifePatternMap: overviewSection?.lifePatternMap ?? null,
+},
+    })
+  );
+}
+
+// ----------------------------
+// 7) Shared birth payload for transit engines
+// ----------------------------
+const birthForTransits = {
+  dateISO: body.birthDateISO,
+  time: body.birthTime,
+  tz: body.birthTz,
+  lat,
+  lon,
+};
       // ----------------------------
       // 6) Helper: call /api/transits (SOURCE OF TRUTH)
       // ----------------------------
@@ -2169,32 +2196,25 @@ console.log("[life-report] after enrichWithActivePeriods", {
       // FIX:
       // - bump cache version so old messy prod plan is not reused
       // ----------------------------
-      const decision90Key = `decision90:v4:${baseKey}`;
+      
 // cache key for Now & Near Future plan
 const nowPlanKey = `nowplan:v4:${baseKey}:${todayISO}`;
-const DECISION_TTL_SEC = 60 * 60 * 24 * 30;
+let nowPlan = await cacheGet<any>(paidNowCacheKey);
 
-let nowPlan: any = null;
-
-if (process.env.NODE_ENV === "production") {
-  const cachedPlan = await cacheGet<any>(nowPlanKey);
-
-  if (cachedPlan) {
-    nowPlan = cachedPlan;
-  } else {
-    nowPlan = await buildNowNearFuturePlan(enrichedWithDaily);
-
-    if (nowPlan) {
-      // temporary shorter cache while testing
-      await cacheSet(nowPlanKey, nowPlan, 60 * 10);
-    }
-  }
+if (nowPlan) {
+  console.log("✅ NOW PLAN CACHE HIT");
 } else {
-  // dev mode: always regenerate
+  console.log("❌ NOW PLAN CACHE MISS → generating");
+
   nowPlan = await buildNowNearFuturePlan(enrichedWithDaily);
+
+  if (nowPlan) {
+    await cacheSet(paidNowCacheKey, nowPlan, 60 * 60 * 24 * 7);
+  }
 }
 
 console.log("[life-report] nowPlan generated?", !!nowPlan, "headline:", nowPlan?.headline);
+
 
       const transitNowFacts = Array.isArray(transitNow)
         ? transitNow
@@ -2290,20 +2310,44 @@ console.log("[life-report] nowPlan generated?", !!nowPlan, "headline:", nowPlan?
   payload.lifePressureZone = buildLifePressureZone(payload);
   payload.naturalStrength = buildNaturalStrength(payload);
       // Build paid output (source for FG_V2)
-      const paidOut = buildPaidOutput(payload);
+      let fullGuidanceV2 = await cacheGet<any>(paidFullCacheKey);
 
-      const activePeriods = (enriched as any)?.activePeriods ?? payload?.activePeriods ?? null;
-      const paid = paidOut;
+if (fullGuidanceV2) {
+  console.log("✅ FULL GUIDANCE CACHE HIT");
+} else {
+  console.log("❌ FULL GUIDANCE CACHE MISS → generating");
 
-      const fullGuidanceV2 = buildFullGuidanceV2({
-        todayISO: String(todayISO ?? payload?.todayISO ?? new Date().toISOString().slice(0, 10)),
-        activePeriods,
-        paid,
-        topTransits: Array.isArray(topTransits) ? topTransits : [],
-        transitNowFacts: Array.isArray(transitNowFacts) ? transitNowFacts : [],
-      });
+  const paidOut = buildPaidOutput(payload);
 
-      payload.fullGuidanceV2 = fullGuidanceV2;
+  const activePeriods =
+    (enriched as any)?.activePeriods ?? payload?.activePeriods ?? null;
+
+  const paid = paidOut;
+
+  fullGuidanceV2 = buildFullGuidanceV2({
+    todayISO: String(
+      todayISO ??
+        payload?.todayISO ??
+        new Date().toISOString().slice(0, 10)
+    ),
+    activePeriods,
+    paid,
+    topTransits: Array.isArray(topTransits) ? topTransits : [],
+    transitNowFacts: Array.isArray(transitNowFacts)
+      ? transitNowFacts
+      : [],
+  });
+
+  if (fullGuidanceV2) {
+    await cacheSet(
+      paidFullCacheKey,
+      fullGuidanceV2,
+      60 * 60 * 24 * 90 // 90 days
+    );
+  }
+}
+
+payload.fullGuidanceV2 = fullGuidanceV2;
      console.log("[life-report] career payload check", {
   hasHouseLords: !!payload?.houseLords,
   houseLordKeys: Object.keys(payload?.houseLords ?? {}),

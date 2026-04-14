@@ -52,6 +52,10 @@ function wrapSignNum(n: number): number {
   return x + 1;
 }
 
+function getRelativeHouse(signNum: number, ascSignNum: number): number {
+  return ((signNum - ascSignNum + 12) % 12) + 1;
+}
+
 export async function buildHouseData(params: BuildHouseDataParams) {
   const { ascendant, natalPlanets } = params;
 
@@ -69,15 +73,17 @@ export async function buildHouseData(params: BuildHouseDataParams) {
     const sign = SIGN_NAMES[signNum];
     const lord = SIGN_LORDS[signNum];
 
-    const lordPlanet =
-      natalPlanets.find((p) => p.planet === lord) || null;
+    const lordPlanet = natalPlanets.find((p) => p.planet === lord) || null;
 
     out.push({
       house,
       sign,
       signNum,
       lord,
-      lordPlacedHouse: lordPlanet?.house ?? null,
+      lordPlacedHouse:
+        lordPlanet && typeof lordPlanet.signNum === "number"
+          ? getRelativeHouse(lordPlanet.signNum, ascendant.signNum)
+          : null,
       lordPlacedSign: lordPlanet?.sign ?? null,
     });
   }

@@ -9601,8 +9601,8 @@ const selectedCountryLabel =
       return null;
     });
 
-  type LifeTab = "overview" | "phases" | "now" | "advanced";
-  const [activeTab, setActiveTab] = useState<"overview" | "phases" | "now" | "advanced">("overview");
+  type LifeTab = "overview" | "phases" | "now" | "full";
+const [activeTab, setActiveTab] = useState<LifeTab>("overview");
 
     
     const [mounted, setMounted] = useState(false);
@@ -9638,14 +9638,15 @@ const selectedCountryLabel =
       : false;
 
   const canSeeFull = isFull || devUnlockFull;
-
+  const canSeeOverview = true;
+const canSeePhases = false;
+const canSeeNow = false;
   const unlockFullDev = useCallback(() => {
     if (typeof window === "undefined") return;
 
     console.log("[unlockFullDev] clicked");
     localStorage.setItem("sarathi_plan", "full");
     setPlanTier("full");
-    setActiveTab("advanced");
   }, [setPlanTier, setActiveTab]);
 
   // ---------------- Deep-link ?tab=... ----------------
@@ -9657,13 +9658,16 @@ const selectedCountryLabel =
       const t = (sp.get("tab") || "").toLowerCase();
 
       if (t === "overview" || t === "phases" || t === "now" || t === "full") {
-        // Only allow "full" if paid (or dev override)
-        if (t === "full" && !canSeeFull) {
-          setTabFromUrl("overview");
-        } else {
-          setTabFromUrl(t as any);
-        }
-      }
+  if (t === "phases" && !canSeePhases) {
+    setTabFromUrl("overview");
+  } else if (t === "now" && !canSeeNow) {
+    setTabFromUrl("overview");
+  } else if (t === "full" && !canSeeFull) {
+    setTabFromUrl("overview");
+  } else {
+    setTabFromUrl(t as LifeTab);
+  }
+}
     } catch {
       // ignore
     }
@@ -10153,7 +10157,9 @@ if (!isValidMobile(mobile)) {
   lon: place.lon,
   placeName: place.name,
   notificationTz,
+  isPaid: true,
 };
+const canRunPaidFlows = payload.isPaid === true;
 const normalizedProfile = {
   name: (name || "User").trim(),
   dobISO: dISO,
@@ -10292,7 +10298,22 @@ saveBirthProfile(normalizedProfile);
     console.error("ai-personality crashed", e?.message ?? e);
     setAiSummary(`(DEBUG) ai-personality crashed: ${e?.message ?? String(e)}`);
   }
-
+if (!canRunPaidFlows) {
+  setAiSummary("");
+  setTimelineSummary("");
+  setTransits([]);
+  setTransitNow([]);
+  setTransitSummary("");
+  setDashaTransitSummary("");
+  setMonthlyInsights([]);
+  setWeeklyInsights([]);
+  setDailyHighlights([]);
+  setTransitsLoading(false);
+  setMonthlyLoading(false);
+  setWeeklyLoading(false);
+  setDailyLoading(false);
+  return;
+}
       // ?? Notifications from API - state (all 3 buckets)
       const anyData = data as any;
       const preview = anyData.previewNotifications ?? null;
@@ -11801,7 +11822,7 @@ try {
     }
 
     const plsAll = (report.planets ?? []) as any[];
-
+    
     const findP = (name: string) =>
       plsAll.find((p) => String(p?.name ?? "").trim().toLowerCase() === name);
 
@@ -12045,10 +12066,10 @@ try {
               {(() => {
                 const moon = findP("moon");
                 const sun = findP("sun");
-                const sat = findP("saturn");
+                const sat = findP("saturn") ?? null;
 
-                const moonSign = moon.sign ?? report.moonSign ?? "-";
-                const sunSign = sun.sign ?? report.sunSign ?? "-";
+                const moonSign = moon?.sign ?? report.moonSign ?? "-";
+const sunSign = sun?.sign ?? report.sunSign ?? "-";
 
                 const focusLines: string[] = [];
                 focusLines.push(
@@ -13553,11 +13574,20 @@ const text = uniqueTextParts
             className="flex-1"
           >
     <TabsList className="flex flex-wrap gap-2">
-    <TabsTrigger value="overview">Overview</TabsTrigger>
-    <TabsTrigger value="phases">Life Phases</TabsTrigger>
-    <TabsTrigger value="now">Now & Near Future</TabsTrigger>
-    <TabsTrigger value="full">Full Guidance</TabsTrigger>
-  </TabsList>
+  <TabsTrigger value="overview">Overview</TabsTrigger>
+
+  <TabsTrigger value="phases" disabled={!canSeePhases}>
+    Life Phases
+  </TabsTrigger>
+
+  <TabsTrigger value="now" disabled={!canSeeNow}>
+    Now & Near Future
+  </TabsTrigger>
+
+  <TabsTrigger value="full" disabled={!canSeeFull}>
+    Full Guidance
+  </TabsTrigger>
+</TabsList>
   {/* Tab panels */}
   <TabsContent value="overview" className="mt-4">
   <div className="space-y-6">
@@ -13566,52 +13596,62 @@ const text = uniqueTextParts
   </div>
 </TabsContent>
   <TabsContent value="phases" className="mt-4">
+  {!canSeePhases ? (
+    <div className="mt-4 rounded-2xl border border-white/15 bg-white/5 p-4 text-sm text-white/80">
+      Life Phases is available after signup.
+    </div>
+  ) : (
     <TabTimeline
       report={report}
       mounted={mounted}
       timelineSummary={timelineSummary}
       dashaTransitSummary={dashaTransitSummary}
     />
-  </TabsContent>
+  )}
+</TabsContent>
   <TabsContent value="now" className="mt-4">
+  {!canSeeNow ? (
+    <div className="mt-4 rounded-2xl border border-white/15 bg-white/5 p-4 text-sm text-white/80">
+      Now & Near Future is available after signup.
+    </div>
+  ) : (
     <TabTransits
-  report={report}
-  mounted={mounted}
-  transits={
-    (Array.isArray((report as any)?.topTransits)
-      ? (report as any).topTransits
-      : transits) ?? []
-  }
-  loading={!!transitsLoading}
-  error={transitsError ?? null}
-  transitSummary={transitSummary ?? ""}
-  dailyHighlights={
-    Array.isArray(nowHighlightsFromPlan) && nowHighlightsFromPlan.length > 0
-      ? nowHighlightsFromPlan
-      : Array.isArray(dailyHighlights) && dailyHighlights.length > 0
-      ? dailyHighlights
-      : fallbackNowHighlights
-  }
-  dailyLoading={!!dailyLoading && !(fallbackNowHighlights?.length > 0)}
-  dailyError={dailyError ?? null}
-/>
-  </TabsContent>
+      report={report}
+      mounted={mounted}
+      transits={
+        (Array.isArray((report as any)?.topTransits)
+          ? (report as any).topTransits
+          : transits) ?? []
+      }
+      loading={!!transitsLoading}
+      error={transitsError ?? null}
+      transitSummary={transitSummary ?? ""}
+      dailyHighlights={
+        Array.isArray(nowHighlightsFromPlan) && nowHighlightsFromPlan.length > 0
+          ? nowHighlightsFromPlan
+          : Array.isArray(dailyHighlights) && dailyHighlights.length > 0
+          ? dailyHighlights
+          : fallbackNowHighlights
+      }
+      dailyLoading={!!dailyLoading && !(fallbackNowHighlights?.length > 0)}
+      dailyError={dailyError ?? null}
+    />
+  )}
+</TabsContent>
 
 
 
   <TabsContent value="full" className="mt-4">
    
     {/* Always show *something* below */}
-    {!(report as any)?.fullGuidanceV2 ? (
-  !report ? (
-    <div className="mt-4 rounded-2xl border border-black-500/30 bg-black-950/30 p-4 text-sm text-red-100">
-      Full Guidance will populate after generation.
-    </div>
-  ) : (
-    <div className="mt-4 rounded-2xl border border-white/15 bg-white/5/5 p-4 text-sm text-white/80">
-      Full Guidance is not available yet.
-    </div>
-  )
+    {!canSeeFull ? (
+  <div className="mt-4 rounded-2xl border border-white/15 bg-white/5 p-4 text-sm text-white/80">
+    Full Guidance is available after signup.
+  </div>
+) : !(report as any)?.fullGuidanceV2 ? (
+  <div className="mt-4 rounded-2xl border border-white/15 bg-white/5 p-4 text-sm text-white/80">
+    Full Guidance will populate after generation.
+  </div>
 ) : (
   <div className="mt-4 rounded-2xl border border-white/15 bg-white/5/5 p-4">
     {(() => {
