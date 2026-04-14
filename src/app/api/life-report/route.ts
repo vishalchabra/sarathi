@@ -2368,7 +2368,16 @@ console.log("[life-report] final payload check", {
   firstDashaRow: Array.isArray(payload?.dashaTimeline) ? payload.dashaTimeline[0] : null,
   firstTimelineRow: Array.isArray(payload?.timeline) ? payload.timeline[0] : null,
 });
-      return NextResponse.json(deepCleanStrings(payload));
+      return NextResponse.json(
+  deepCleanStrings({
+    ok: true,
+    access: {
+      isPaid: true,
+      locked: false,
+    },
+    report: payload,
+  })
+);
     } catch (e: any) {
       console.error("life-report API error:", e);
       const msg = String(e?.message ?? e);

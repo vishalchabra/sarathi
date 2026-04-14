@@ -221,7 +221,53 @@ function buildReferenceChartFromPlanet(planets: any[], referencePlanetName: stri
 function buildChandraChartPlanets(planets: any[]) {
   return buildReferenceChartFromPlanet(planets, "Moon");
 }
+function buildReferenceChartFromHouse(
+  natalAscSign: string | null,
+  planets: any[],
+  referenceHouse: number
+) {
+  const normalized = normalizeChartPlanets(planets);
 
+  const ascIndex = getSignIndex(natalAscSign);
+
+  if (ascIndex < 0 || !referenceHouse || referenceHouse < 1 || referenceHouse > 12) {
+    return {
+      ascSign: null,
+      planets: [],
+      referenceSign: null,
+    };
+  }
+
+  const referenceSignIndex = (ascIndex + (referenceHouse - 1)) % 12;
+  const referenceSign = SIGN_ORDER[referenceSignIndex];
+
+  const remappedPlanets = normalized.map((p) => {
+    const natalHouse =
+      typeof p?.house === "number" && p.house >= 1 && p.house <= 12
+        ? p.house
+        : null;
+
+    if (!natalHouse) {
+      return {
+        ...p,
+        house: null,
+      };
+    }
+
+    const houseFromReference = ((natalHouse - referenceHouse + 12) % 12) + 1;
+
+    return {
+      ...p,
+      house: houseFromReference,
+    };
+  });
+
+  return {
+    ascSign: referenceSign,
+    planets: remappedPlanets,
+    referenceSign,
+  };
+}
 function getPlanetShifts(planets: any[]) {
   return (Array.isArray(planets) ? planets : []).map((p) => ({
     planet: p?.planet ?? p?.name ?? "Unknown",
@@ -232,14 +278,32 @@ function getPlanetShifts(planets: any[]) {
 }
 
 type ReferenceMode = "lagna" | "moon" | "md" | "ad";
-
+type HouseReferenceOption = {
+  house: number;
+  key: string;
+  label: string;
+  shortLabel: string;
+};
 type ExpandedChartState = {
   key: string;
   title: string;
   ascSign: string | null;
   planets: any[];
 } | null;
-
+const HOUSE_REFERENCE_OPTIONS: HouseReferenceOption[] = [
+  { house: 1, key: "self", label: "1st House — Self", shortLabel: "Self" },
+  { house: 2, key: "money", label: "2nd House — Wealth & Family", shortLabel: "Wealth & Family" },
+  { house: 3, key: "effort", label: "3rd House — Effort & Siblings", shortLabel: "Effort & Siblings" },
+  { house: 4, key: "home", label: "4th House — Home & Mother", shortLabel: "Home & Mother" },
+  { house: 5, key: "children", label: "5th House — Children & Creativity", shortLabel: "Children & Creativity" },
+  { house: 6, key: "health", label: "6th House — Health, Debt & Conflict", shortLabel: "Health / Debt / Conflict" },
+  { house: 7, key: "marriage", label: "7th House — Marriage & Partnership", shortLabel: "Marriage & Partnership" },
+  { house: 8, key: "longevity", label: "8th House — Longevity & Change", shortLabel: "Longevity & Change" },
+  { house: 9, key: "fortune", label: "9th House — Fortune, Father & Dharma", shortLabel: "Fortune / Father / Dharma" },
+  { house: 10, key: "career", label: "10th House — Career & Karma", shortLabel: "Career & Karma" },
+  { house: 11, key: "gains", label: "11th House — Gains & Network", shortLabel: "Gains & Network" },
+  { house: 12, key: "loss", label: "12th House — Loss, Foreign & Moksha", shortLabel: "Loss / Foreign / Moksha" },
+];
 export default function ChartsTabView({
   selectedDateISO,
   setSelectedDateISO,
@@ -282,6 +346,8 @@ export default function ChartsTabView({
   const [showTransitOverlay, setShowTransitOverlay] = useState(false);
   const [expandedChart, setExpandedChart] = useState<ExpandedChartState>(null);
   const [referenceMenuOpen, setReferenceMenuOpen] = useState(false);
+  const [selectedHouseReference, setSelectedHouseReference] = useState<number>(1);
+  const [houseReferenceMenuOpen, setHouseReferenceMenuOpen] = useState(false);
   const chandraChart = buildChandraChartPlanets(natalPlanets);
 
   const mdReferenceChart = buildReferenceChartFromPlanet(
@@ -327,7 +393,7 @@ export default function ChartsTabView({
         planets: adReferenceChart.planets,
       };
     }
-
+  
     return {
       title: "Mahadasha Reference Chart",
       subtitle:
@@ -347,7 +413,35 @@ export default function ChartsTabView({
     mdReferenceChart,
     adReferenceChart,
   ]);
+const selectedHouseReferenceOption = useMemo(
+    () =>
+      HOUSE_REFERENCE_OPTIONS.find(
+        (option) => option.house === selectedHouseReference
+      ) ?? HOUSE_REFERENCE_OPTIONS[0],
+    [selectedHouseReference]
+  );
 
+  const selectedHouseReferenceChart = useMemo(() => {
+    const chart = buildReferenceChartFromHouse(
+      natalAscSign,
+      natalPlanets,
+      selectedHouseReference
+    );
+
+    return {
+      title: "House-Centered Natal View",
+      subtitle: chart?.referenceSign
+        ? `${selectedHouseReferenceOption.label} • ${chart.referenceSign} treated as temporary ascendant.`
+        : "Selected house treated as temporary ascendant.",
+      ascSign: chart.ascSign,
+      planets: chart.planets,
+    };
+  }, [
+    natalAscSign,
+    natalPlanets,
+    selectedHouseReference,
+    selectedHouseReferenceOption,
+  ]);
   const selectedDateTimeLabel = useMemo(
     () => `Showing chart date: ${selectedDateISO} ${transitTime}`,
     [selectedDateISO, transitTime]
@@ -486,7 +580,75 @@ export default function ChartsTabView({
       arudhas={arudhas}
     />
   </ChartCard>
+ <ChartCard
+    title={selectedHouseReferenceChart.title}
+    subtitle={selectedHouseReferenceChart.subtitle}
+  >
+    <div className="mb-4">
+      <label className="text-xs font-medium uppercase tracking-wide text-white/50">
+        View from house
+      </label>
 
+      <div className="relative mt-1">
+        <button
+          type="button"
+          onClick={() => {
+  setReferenceMenuOpen(false);
+  setHouseReferenceMenuOpen((v) => !v);
+}}
+          className="flex w-full items-center justify-between rounded-xl border border-white/15 bg-[#0C1222] px-3 py-2 text-sm text-white outline-none transition hover:bg-white/5"
+        >
+          <span>{selectedHouseReferenceOption.label}</span>
+          <span className="text-white/50">▾</span>
+        </button>
+
+        {houseReferenceMenuOpen ? (
+          <div className="absolute z-20 mt-2 max-h-72 w-full overflow-y-auto rounded-xl border border-white/10 bg-[#0C1222] p-1 shadow-xl">
+            {HOUSE_REFERENCE_OPTIONS.map((option) => {
+              const isActive = selectedHouseReference === option.house;
+
+              return (
+                <button
+                  key={option.house}
+                  type="button"
+                  onClick={() => {
+                    setSelectedHouseReference(option.house);
+                    setHouseReferenceMenuOpen(false);
+                  }}
+                  className={`flex w-full items-center rounded-lg px-3 py-2 text-left text-sm transition ${
+                    isActive
+                      ? "bg-indigo-400/15 text-indigo-100"
+                      : "text-white/85 hover:bg-white/5"
+                  }`}
+                >
+                  {option.label}
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
+      </div>
+    </div>
+
+    {selectedHouseReferenceChart.ascSign &&
+    selectedHouseReferenceChart.planets?.length ? (
+      <MediumNorthIndianChart
+        title=""
+        ascSign={selectedHouseReferenceChart.ascSign}
+        planets={selectedHouseReferenceChart.planets}
+      />
+    ) : (
+      <PlaceholderChart
+        label="House-centered chart unavailable"
+        height="h-40"
+      />
+    )}
+
+    <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.05] p-3 text-xs text-white/60">
+      Natal chart rotated so the selected house becomes the temporary ascendant.
+      This is a reference view of the natal chart, not a separate divisional chart.
+    </div>
+  </ChartCard>
   <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
     <MediumChartCard
       title="Chandra Chart"
@@ -543,57 +705,7 @@ export default function ChartsTabView({
   </div>
 </div>
 
-      <ChartCard
-        title="Divisional Chart Gallery"
-        subtitle="Click any chart to open a larger view."
-      >
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {chartGalleryKeys.length ? (
-            chartGalleryKeys.map((key) => {
-              const chart = getVargaChart(key);
-
-              return (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() =>
-                    setExpandedChart({
-                      key,
-                      title: `${key.toUpperCase()} Chart`,
-                      ascSign: chart.ascSign,
-                      planets: chart.planets,
-                    })
-                  }
-                  className="rounded-2xl border border-white/10 bg-white/5 p-3 text-left transition-transform duration-200 hover:scale-105 hover:border-white/15"
-                >
-                  <div className="mb-2 flex items-center justify-between">
-                    <div className="text-xs font-semibold uppercase tracking-wide text-white/50">
-                      {key.toUpperCase()}
-                    </div>
-                    <div className="text-[10px] text-white/40">Click to expand</div>
-                  </div>
-
-                  {chart.ascSign && chart.planets?.length ? (
-                    <MiniNorthIndianChart
-                      ascSign={chart.ascSign}
-                      planets={chart.planets}
-                    />
-                  ) : (
-                    <PlaceholderChart
-                      label={`${key.toUpperCase()} Chart unavailable`}
-                      height="h-32"
-                    />
-                  )}
-                </button>
-              );
-            })
-          ) : (
-            <div className="rounded-2xl border border-dashed border-white/15 bg-white/5 p-6 text-sm text-white/50">
-              No divisional charts available.
-            </div>
-          )}
-        </div>
-      </ChartCard>
+      
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
         <ChartCard
@@ -608,7 +720,10 @@ export default function ChartsTabView({
   <div className="relative mt-1">
     <button
       type="button"
-      onClick={() => setReferenceMenuOpen((v) => !v)}
+      onClick={() => {
+  setHouseReferenceMenuOpen(false);
+  setReferenceMenuOpen((v) => !v);
+}}
       className="flex w-full items-center justify-between rounded-xl border border-white/15 bg-[#0C1222] px-3 py-2 text-sm text-white outline-none transition hover:bg-white/5"
     >
       <span>
@@ -767,7 +882,61 @@ export default function ChartsTabView({
           )}
         </ChartCard>
       </div>
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+ 
 
+</div>
+<ChartCard
+        title="Divisional Chart Gallery"
+        subtitle="Click any chart to open a larger view."
+      >
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {chartGalleryKeys.length ? (
+            chartGalleryKeys.map((key) => {
+              const chart = getVargaChart(key);
+
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() =>
+                    setExpandedChart({
+                      key,
+                      title: `${key.toUpperCase()} Chart`,
+                      ascSign: chart.ascSign,
+                      planets: chart.planets,
+                    })
+                  }
+                  className="rounded-2xl border border-white/10 bg-white/5 p-3 text-left transition-transform duration-200 hover:scale-105 hover:border-white/15"
+                >
+                  <div className="mb-2 flex items-center justify-between">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-white/50">
+                      {key.toUpperCase()}
+                    </div>
+                    <div className="text-[10px] text-white/40">Click to expand</div>
+                  </div>
+
+                  {chart.ascSign && chart.planets?.length ? (
+                    <MiniNorthIndianChart
+                      ascSign={chart.ascSign}
+                      planets={chart.planets}
+                    />
+                  ) : (
+                    <PlaceholderChart
+                      label={`${key.toUpperCase()} Chart unavailable`}
+                      height="h-32"
+                    />
+                  )}
+                </button>
+              );
+            })
+          ) : (
+            <div className="rounded-2xl border border-dashed border-white/15 bg-white/5 p-6 text-sm text-white/50">
+              No divisional charts available.
+            </div>
+          )}
+        </div>
+      </ChartCard>
       {expandedChart ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4">
           <div className="relative w-full max-w-3xl rounded-3xl border border-white/10 bg-[#0C1222]/95 p-6 shadow-2xl backdrop-blur-md">

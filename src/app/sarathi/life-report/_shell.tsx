@@ -41,6 +41,10 @@
   import { saveBirthProfile } from "@/lib/birth-profile";
   import { getMoonNakshatra } from "@/lib/astro"; 
   import { NAKSHATRA_INFO } from "@/lib/astrology/nakshatraMap";
+  import {
+  getCurrentUserChart,
+  upsertCurrentUserChart,
+} from "@/lib/supabase/chart-service";
   const AYANAMSA_LAHIRI_APPROX = 23.85;
 
 
@@ -9534,10 +9538,10 @@ const FullGuidanceV2UI: React.FC<{ fg: any }> = ({ fg }) => {
     initialLat = "",
     initialLon = "",
   }) => {
-    const [name, setName] = useState(initialName);
-    const [dateISO, setDateISO] = useState(initialDateISO);
-    const [time, setTime] = useState(initialTime);
-    const [tz, setTz] = useState(initialTz);
+    const [name, setName] = useState<string>(initialName ?? "");
+const [dateISO, setDateISO] = useState<string>(initialDateISO ?? "");
+const [time, setTime] = useState<string>(initialTime ?? "");
+const [tz, setTz] = useState<string>(initialTz ?? "");
     const [email, setEmail] = useState("");
     const [countryCode, setCountryCode] = useState("");
     const [mobile, setMobile] = useState("");
@@ -9614,33 +9618,71 @@ const [activeTab, setActiveTab] = useState<LifeTab>("overview");
   const setTabFromUrl = useCallback((t: LifeTab) => {
     setActiveTab(t);
   }, []);
+useEffect(() => {
+  let cancelled = false;
 
+  async function loadSavedChart() {
+    try {
+      const saved = await getCurrentUserChart();
+      if (!saved || cancelled) return;
+
+      setName((prev) => prev || saved.chart_name || "");
+      setDateISO((prev) => prev || saved.birth_date_iso || "");
+      setTime((prev) => prev || saved.birth_time || "");
+      setTz((prev) => prev || saved.birth_tz || "");
+
+      if (
+        saved.place_name &&
+        Number.isFinite(saved.lat) &&
+        Number.isFinite(saved.lon)
+      ) {
+        setPlace({
+          name: saved.place_name,
+          lat: saved.lat,
+          lon: saved.lon,
+        });
+      }
+    } catch (err) {
+      console.error("[chart] failed to load saved chart", err);
+    }
+  }
+
+  loadSavedChart();
+
+  return () => {
+    cancelled = true;
+  };
+}, []);
   // ---------------- Plan gating (reactive) ----------------
   type PlanTier = "free" | "advanced" | "full";
 
-  const [planTier, setPlanTier] = useState<PlanTier>("free");
+const [planTier, setPlanTier] = useState<PlanTier>("free");
+const [apiIsPaid, setApiIsPaid] = useState(false);
+useEffect(() => {
+  if (!mounted || typeof window === "undefined") return;
 
-  // read localStorage once mounted (and whenever mounted flips true)
-  useEffect(() => {
-    if (!mounted || typeof window === "undefined") return;
+  const raw = String(localStorage.getItem("sarathi_plan") || "free").toLowerCase();
+  const tier: PlanTier =
+    raw === "full" || raw === "advanced" || raw === "free"
+      ? (raw as PlanTier)
+      : "free";
 
-    const raw = String(localStorage.getItem("sarathi_plan") || "free").toLowerCase();
-    const tier: PlanTier =
-      raw === "full" || raw === "advanced" || raw === "free" ? (raw as PlanTier) : "free";
+  setPlanTier(tier);
+}, [mounted]);
 
-    setPlanTier(tier);
-  }, [mounted]);
-  const isFull = planTier === "full";
+const isFull = planTier === "full";
 
-  const devUnlockFull =
-    mounted && typeof window !== "undefined"
-      ? localStorage.getItem("sarathi_dev_full") === "1"
-      : false;
+const devUnlockFull =
+  mounted && typeof window !== "undefined"
+    ? localStorage.getItem("sarathi_dev_full") === "1"
+    : false;
 
-  const canSeeFull = isFull || devUnlockFull;
+// TEMP testing access
+const canSeePhases = apiIsPaid || isFull || devUnlockFull;
+const canSeeNow = apiIsPaid || isFull || devUnlockFull;
+const canSeeFull = apiIsPaid || isFull || devUnlockFull;
   const canSeeOverview = true;
-const canSeePhases = false;
-const canSeeNow = false;
+
   const unlockFullDev = useCallback(() => {
     if (typeof window === "undefined") return;
 
@@ -9671,7 +9713,7 @@ const canSeeNow = false;
     } catch {
       // ignore
     }
-  }, [mounted, canSeeFull, setTabFromUrl]);
+  }, [mounted, canSeePhases, canSeeNow, canSeeFull, setTabFromUrl]);
 
 
     const [dashaTimeline, setDashaTimeline] = useState<any[] | null>(null);
@@ -10174,7 +10216,21 @@ const normalizedProfile = {
 
 saveBirthProfile(normalizedProfile);
       console.log("[PAYLOAD life-report]", payload);
+try {
+  await upsertCurrentUserChart({
+    chartName: payload.name,
+    birthDateISO: payload.birthDateISO,
+    birthTime: payload.birthTime,
+    birthTz: payload.birthTz,
+    lat: payload.lat,
+    lon: payload.lon,
+    placeName: payload.placeName,
+  });
 
+  console.log("✅ chart saved for current user");
+} catch (err) {
+  console.error("[chart] failed to save chart", err);
+}
       // --- call /api/life-report ---
       const ac = new AbortController();
       const timeout = setTimeout(() => ac.abort(), 180000);
@@ -10226,7 +10282,7 @@ saveBirthProfile(normalizedProfile);
 
 
   const envelope: any = await res.json();
-
+  setApiIsPaid(envelope?.access?.isPaid === true);
   // Unwrap: get the ACTUAL report object that contains nowPlan/nowNearFuture
   const data: any =
     envelope?.report ??
@@ -10252,8 +10308,43 @@ saveBirthProfile(normalizedProfile);
   //  IMPORTANT: from this point forward, use `data` as your life report object
 
 
-  // ?? STEP 2: call /api/ai-personality using the REAL life-report payload
+// ?? STEP 2: ai-personality teaser (cached)
+try {
+  const personalityCacheKey = `sarathi:ai-personality:${payload.birthDateISO}:${payload.birthTime}:${payload.birthTz}:v1`;
+  let servedFromCache = false;
+
+  // 2.1 Try cache first
   try {
+    if (typeof window !== "undefined") {
+      const raw = window.localStorage.getItem(personalityCacheKey);
+      if (raw) {
+        const cached = JSON.parse(raw) as {
+          value?: string;
+          ts?: number;
+        };
+
+        const ageMs =
+          typeof cached?.ts === "number"
+            ? Date.now() - cached.ts
+            : Number.POSITIVE_INFINITY;
+
+        const isFresh = ageMs < 365 * 24 * 60 * 60 * 1000; // 1 year
+
+        if (isFresh && typeof cached?.value === "string") {
+          console.log("✅ PERSONALITY CACHE HIT");
+          setAiSummary(cached.value);
+          servedFromCache = true;
+        }
+      }
+    }
+  } catch (e) {
+    console.warn("[personality] cache read failed", e);
+  }
+
+  // 2.2 If cache miss, call API
+  if (!servedFromCache) {
+    console.log("❌ PERSONALITY CACHE MISS → generating");
+
     const pRes = await fetch("/api/ai-personality", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -10261,10 +10352,8 @@ saveBirthProfile(normalizedProfile);
       body: JSON.stringify({ report: data }),
     });
 
-    // Always read as TEXT first (covers HTML / 502 pages / non-JSON errors)
     const pText = await pRes.text();
 
-    // Try parse JSON (optional)
     let pJson: any = null;
     try {
       pJson = pText ? JSON.parse(pText) : null;
@@ -10279,27 +10368,42 @@ saveBirthProfile(normalizedProfile);
         (pText ? pText.slice(0, 800) : "") ||
         `ai-personality failed (${pRes.status})`;
 
-      console.error("ai-personality failed:", pRes.status, { json: pJson, text: pText });
+      console.error("ai-personality failed:", pRes.status, {
+        json: pJson,
+        text: pText,
+      });
 
-      // TEMP: surface real reason on UI
       setAiSummary(`(DEBUG) ai-personality failed: ${errMsg}`);
     } else {
-      // Your API returns: { ok:true, text:[...], closing:"..." }
       const bullets = Array.isArray(pJson?.text) ? pJson.text : [];
       const closing = typeof pJson?.closing === "string" ? pJson.closing : "";
 
-      // Store as string so renderer can parse consistently
       const asString = JSON.stringify({ text: bullets, closing });
       setAiSummary(asString);
 
-      console.log("[AI SUMMARY RAW]", asString.slice(0, 120));
+      try {
+        if (typeof window !== "undefined") {
+          window.localStorage.setItem(
+            personalityCacheKey,
+            JSON.stringify({
+              value: asString,
+              ts: Date.now(),
+            })
+          );
+        }
+      } catch (e) {
+        console.warn("[personality] cache write failed", e);
+      }
+
+      console.log("✅ PERSONALITY GENERATED");
     }
-  } catch (e: any) {
-    console.error("ai-personality crashed", e?.message ?? e);
-    setAiSummary(`(DEBUG) ai-personality crashed: ${e?.message ?? String(e)}`);
   }
+} catch (e: any) {
+  console.error("ai-personality crashed", e?.message ?? e);
+  setAiSummary(`(DEBUG) ai-personality crashed: ${e?.message ?? String(e)}`);
+}
+
 if (!canRunPaidFlows) {
-  setAiSummary("");
   setTimelineSummary("");
   setTransits([]);
   setTransitNow([]);
@@ -11611,76 +11715,51 @@ const structuredDailyFacts = buildDailyFacts(
         console.error("ai-dasha-transits error", err);
       }
 
-      // 3) Monthly guidance (AI)
-      try {
-        setMonthlyLoading(true);
-        setMonthlyError(null);
-        setMonthlyInsights([]);
+      // 3) Monthly guidance (AI + local cache)
+try {
+  setMonthlyLoading(true);
+  setMonthlyError(null);
+  setMonthlyInsights([]);
 
-        const monthsRes = await fetch("/api/ai-monthly", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            profile: {
-              name: next.name,
-              birthDateISO: next.birthDateISO,
-              birthTime: next.birthTime,
-              birthTz: next.birthTz,
-            },
-            dashaLayers: { md, ad, pd, timeline: next.dashaTimeline ?? null },
-            transits: hitList,
-            startDateISO: todayISO,
-            months: 12,
-          }),
-        });
+  const monthlyCacheKey = `sarathi:ai-monthly:${next.birthDateISO}:${next.birthTime}:${next.birthTz}:${todayISO}:12`;
+  let servedMonthlyFromCache = false;
 
-        const monthsJson = await monthsRes.json().catch(() => ({} as any));
-        if (monthsRes.ok && Array.isArray(monthsJson?.months)) {
-          setMonthlyInsights(monthsJson.months as { label: string; text: string }[]);
-          setMonthlyError(null);
-        } else {
-          console.error("ai-monthly failed", monthsRes.status, monthsJson);
-          setMonthlyError("Could not load monthly guidance.");
-        }
-      } catch (err) {
-        console.error("ai-monthly error", err);
-        setMonthlyError("Could not load monthly guidance.");
-      } finally {
-        setMonthlyLoading(false);
-      }
-
-      // 4) Weekly guidance (AI + fallback + local cache)
+  // 3.1 Try cache first
   try {
-    setWeeklyLoading(true);
-    setWeeklyError(null);
-    setWeeklyInsights([]);
+    if (typeof window !== "undefined") {
+      const raw = window.localStorage.getItem(monthlyCacheKey);
+      if (raw) {
+        const cached = JSON.parse(raw) as {
+          months?: { label: string; text: string }[];
+          ts?: number;
+        };
 
-    const cacheKey = `sarathi:ai-weekly:${next.birthDateISO}:${next.birthTime}:${next.birthTz}:${todayISO}:8`;
-    let servedFromCache = false;
+        const ageMs =
+          typeof cached?.ts === "number"
+            ? Date.now() - cached.ts
+            : Number.POSITIVE_INFINITY;
 
-    // 4.1 Try cache first
-    try {
-      if (typeof window !== "undefined") {
-        const raw = window.localStorage.getItem(cacheKey);
-        if (raw) {
-          const cached = JSON.parse(raw) as {
-            weeks?: { label: string; text: string }[];
-            ts?: number;
-          };
+        const isFresh = ageMs < 30 * 24 * 60 * 60 * 1000; // 30 days
 
-          if (Array.isArray(cached.weeks) && cached.weeks.length > 0) {
-            setWeeklyInsights(cached.weeks);
-            setWeeklyError(null);
-            servedFromCache = true;
-          }
+        if (isFresh && Array.isArray(cached?.months) && cached.months.length > 0) {
+          console.log("✅ MONTHLY CACHE HIT");
+          setMonthlyInsights(cached.months);
+          setMonthlyError(null);
+          servedMonthlyFromCache = true;
         }
       }
-    } catch {
-      // ignore cache read errors
     }
+  } catch (e) {
+    console.warn("[monthly] cache read failed", e);
+  }
 
-    // 4.2 Always hit API for now (keep content fresh)
-    const weeksRes = await fetch("/api/ai-weekly", {
+  // 3.2 If cache hit, stop here
+  if (servedMonthlyFromCache) {
+    setMonthlyLoading(false);
+  } else {
+    console.log("❌ MONTHLY CACHE MISS → generating");
+
+    const monthsRes = await fetch("/api/ai-monthly", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
@@ -11690,53 +11769,143 @@ const structuredDailyFacts = buildDailyFacts(
           birthTime: next.birthTime,
           birthTz: next.birthTz,
         },
-        dashaLayers: {
-          md,
-          ad,
-          pd,
-          timeline: next.dashaTimeline ?? null,
-        },
+        dashaLayers: { md, ad, pd, timeline: next.dashaTimeline ?? null },
         transits: hitList,
         startDateISO: todayISO,
-        weeks: 8,
+        months: 12,
       }),
     });
 
-    const weeksJson = await weeksRes.json().catch(() => ({} as any));
+    const monthsJson = await monthsRes.json().catch(() => ({} as any));
 
-    if (weeksRes.ok && Array.isArray(weeksJson?.weeks)) {
-      const weeksArr = weeksJson.weeks as { label: string; text: string }[];
+    if (monthsRes.ok && Array.isArray(monthsJson?.months)) {
+      const monthsArr = monthsJson.months as { label: string; text: string }[];
 
-      setWeeklyInsights(weeksArr);
-      setWeeklyError(null);
+      setMonthlyInsights(monthsArr);
+      setMonthlyError(null);
 
-      // 4.3 Save to cache
       try {
         if (typeof window !== "undefined") {
           window.localStorage.setItem(
-            cacheKey,
-            JSON.stringify({ weeks: weeksArr, ts: Date.now() })
+            monthlyCacheKey,
+            JSON.stringify({
+              months: monthsArr,
+              ts: Date.now(),
+            })
           );
         }
-      } catch {
-        // ignore cache write errors
+      } catch (e) {
+        console.warn("[monthly] cache write failed", e);
       }
-    } else if (weeksRes.ok) {
-      const fallbackWeekly = buildWeeklyFromTransits(hitList, todayISO, 8);
-      setWeeklyInsights(fallbackWeekly);
-      setWeeklyError(null);
-      console.warn("ai-weekly returned no weeks; used client-side fallback instead");
     } else {
-      console.error("ai-weekly failed", weeksRes.status, weeksJson);
-      if (!servedFromCache) setWeeklyError("Could not load weekly guidance.");
+      console.error("ai-monthly failed", monthsRes.status, monthsJson);
+      setMonthlyError("Could not load monthly guidance.");
     }
-  } catch (err) {
-    console.error("ai-weekly error", err);
-    setWeeklyError("Could not load weekly guidance.");
-  } finally {
-    setWeeklyLoading(false);
+  }
+} catch (err) {
+  console.error("ai-monthly error", err);
+  setMonthlyError("Could not load monthly guidance.");
+} finally {
+  setMonthlyLoading(false);
+}
+
+     // 4) Weekly guidance (AI + fallback + local cache)
+try {
+  setWeeklyLoading(true);
+  setWeeklyError(null);
+  setWeeklyInsights([]);
+
+  const cacheKey = `sarathi:ai-weekly:${next.birthDateISO}:${next.birthTime}:${next.birthTz}:${todayISO}:8`;
+  let servedFromCache = false;
+
+  // 4.1 Try cache first
+  try {
+    if (typeof window !== "undefined") {
+      const raw = window.localStorage.getItem(cacheKey);
+      if (raw) {
+        const cached = JSON.parse(raw) as {
+          weeks?: { label: string; text: string }[];
+          ts?: number;
+        };
+
+        const ageMs =
+          typeof cached?.ts === "number" ? Date.now() - cached.ts : Number.POSITIVE_INFINITY;
+
+        const isFresh = ageMs < 7 * 24 * 60 * 60 * 1000; // 7 days
+
+        if (isFresh && Array.isArray(cached?.weeks) && cached.weeks.length > 0) {
+          console.log("✅ WEEKLY CACHE HIT");
+          setWeeklyInsights(cached.weeks);
+          setWeeklyError(null);
+          servedFromCache = true;
+        }
+      }
+    }
+  } catch (e) {
+    console.warn("[weekly] cache read failed", e);
   }
 
+  // 4.2 If cache hit, stop here
+  if (servedFromCache) {
+    setWeeklyLoading(false);
+    return;
+  }
+
+  console.log("❌ WEEKLY CACHE MISS → generating");
+
+  const weeksRes = await fetch("/api/ai-weekly", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      profile: {
+        name: next.name,
+        birthDateISO: next.birthDateISO,
+        birthTime: next.birthTime,
+        birthTz: next.birthTz,
+      },
+      dashaLayers: {
+        md,
+        ad,
+        pd,
+        timeline: next.dashaTimeline ?? null,
+      },
+      transits: hitList,
+      startDateISO: todayISO,
+      weeks: 8,
+    }),
+  });
+
+  const weeksJson = await weeksRes.json().catch(() => ({} as any));
+
+  if (weeksRes.ok && Array.isArray(weeksJson?.weeks)) {
+    const weeksArr = weeksJson.weeks as { label: string; text: string }[];
+
+    setWeeklyInsights(weeksArr);
+    setWeeklyError(null);
+
+    try {
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(
+          cacheKey,
+          JSON.stringify({
+            weeks: weeksArr,
+            ts: Date.now(),
+          })
+        );
+      }
+    } catch (e) {
+      console.warn("[weekly] cache write failed", e);
+    }
+  } else {
+    console.error("ai-weekly failed", weeksRes.status, weeksJson);
+    setWeeklyError("Could not load weekly guidance.");
+  }
+} catch (err) {
+  console.error("ai-weekly error", err);
+  setWeeklyError("Could not load weekly guidance.");
+} finally {
+  setWeeklyLoading(false);
+}
   // CLOSE the OUTER transits try/catch/finally correctly
   } catch (err) {
     console.error("transits API error", err);
@@ -12289,109 +12458,125 @@ const sunSign = sun?.sign ?? report.sunSign ?? "-";
 
   /* ---------------- Tab 2: Personality ---------------- */
 
-  type TabPersonalityProps = {
+type TabPersonalityProps = {
   report: LifeReportView | null;
 };
 
-  const TabPersonality: React.FC<TabPersonalityProps> = memo(
-  ({ report }) => {
-      if (!report) return null;
+const TabPersonality: React.FC<TabPersonalityProps> = memo(({ report }) => {
+  if (!report) return null;
 
-      return (
-        <motion.div
-          className="space-y-4"
-          variants={staggerContainer}
-          initial="hidden"
-          animate="show"
-        >
-          {(report as any)?.coreLifePattern ? (
-  <Card className="rounded-2xl border border-indigo-400/15 bg-indigo-950/40 backdrop-blur-md shadow-xl">
-    <CardHeader>
-      <CardTitle className="text-base font-semibold text-slate-50">
-        Your Core Life Pattern
-      </CardTitle>
-    </CardHeader>
+  const isPreview = !apiIsPaid; // for now, teaser mode
+  const overviewLines = Array.isArray((report as any)?.overviewSummary)
+    ? ((report as any).overviewSummary as string[])
+    : [];
 
-    <CardContent className="space-y-2 text-indigo-50/90">
-      <p className="font-semibold text-indigo-200">
-        {(report as any).coreLifePattern.title}
-      </p>
-      <p>
-        {(report as any).coreLifePattern.text}
-      </p>
-    </CardContent>
-  </Card>
-) : null}
-         {/* Sarathi Overview Summary */}
-{Array.isArray((report as any)?.overviewSummary) &&
-(report as any)?.overviewSummary.length > 0 ? (
-  <motion.div variants={fadeUpSmall} className="space-y-2">
-    <Card className="rounded-2xl border border-indigo-400/15 bg-indigo-950/40 backdrop-blur-md shadow-xl shadow-[0_0_30px_rgba(99,102,241,0.10)]">
-      
-      <CardHeader>
-        <CardTitle className="text-base font-semibold text-slate-50">
-          What your chart reveals about you
-        </CardTitle>
-      </CardHeader>
-      
-      <CardContent className="text-sm leading-relaxed space-y-3 text-slate-100/90">
-        {(report as any).overviewSummary.map((paragraph: string, i: number) => (
-          <p key={i} className="text-indigo-50/90">
-            {paragraph}
-          </p>
-        ))}
-      </CardContent>
-      {(report as any)?.hiddenPattern && (
-  <motion.div variants={fadeUpSmall} className="space-y-2">
-    <Card className="rounded-2xl border border-amber-400/15 bg-amber-950/20 backdrop-blur-md shadow-xl shadow-[0_0_30px_rgba(245,158,11,0.08)]">
-      
-      <CardHeader>
-        <CardTitle className="text-base font-semibold text-slate-50">
-          The hidden pattern in your life
-        </CardTitle>
-      </CardHeader>
+  const visibleLines = isPreview ? overviewLines.slice(0, 2) : overviewLines;
+  const hiddenLines = isPreview ? overviewLines.slice(2) : [];
 
-      <CardContent className="text-sm leading-relaxed text-slate-100/90">
-        {(report as any).hiddenPattern}
-      </CardContent>
-{(report as any)?.lifePressureZone ? (
-  <Card className="rounded-2xl border border-indigo-400/15 bg-indigo-950/40 backdrop-blur-md shadow-xl">
-    <CardHeader>
-      <CardTitle className="text-base font-semibold text-slate-50">
-        Your Life Pressure Zone
-      </CardTitle>
-    </CardHeader>
+  return (
+    <motion.div
+      className="space-y-4"
+      variants={staggerContainer}
+      initial="hidden"
+      animate="show"
+    >
+      {(report as any)?.coreLifePattern ? (
+        <Card className="rounded-2xl border border-indigo-400/15 bg-indigo-950/40 backdrop-blur-md shadow-xl">
+          <CardHeader>
+            <CardTitle className="text-base font-semibold text-slate-50">
+              Your Core Life Pattern
+            </CardTitle>
+          </CardHeader>
 
-    <CardContent className="text-sm leading-relaxed text-indigo-50/90">
-      {(report as any).lifePressureZone}
-    </CardContent>
-  </Card>
-) : null}
-{(report as any)?.naturalStrength ? (
-  <Card className="rounded-2xl border border-emerald-400/15 bg-emerald-950/20 backdrop-blur-md shadow-xl">
-    <CardHeader>
-      <CardTitle className="text-base font-semibold text-slate-50">
-        Your Natural Strength
-      </CardTitle>
-    </CardHeader>
+          <CardContent className="space-y-2 text-indigo-50/90">
+            <p className="font-semibold text-indigo-200">
+              {(report as any).coreLifePattern.title}
+            </p>
 
-    <CardContent className="text-sm leading-relaxed text-emerald-50/90">
-      {(report as any).naturalStrength}
-    </CardContent>
-  </Card>
-) : null}
-    </Card>
-  </motion.div>
-)}
-    </Card>
-  </motion.div>
-) : null}
+            <p>
+              {isPreview
+                ? String((report as any).coreLifePattern.text ?? "")
+                    .split(". ")
+                    .slice(0, 2)
+                    .join(". ")
+                : (report as any).coreLifePattern.text}
+            </p>
 
-          {/* Removed: the grid of personality cards (Strength/Pressure/Do this) */}
+            {isPreview && (
+              <div className="mt-4 rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-white/80">
+                Unlock the full reading to see the deeper pattern behind this.
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {overviewLines.length > 0 ? (
+        <motion.div variants={fadeUpSmall} className="space-y-2">
+          <Card className="rounded-2xl border border-indigo-400/15 bg-indigo-950/40 backdrop-blur-md shadow-xl shadow-[0_0_30px_rgba(99,102,241,0.10)]">
+            <CardHeader>
+              <CardTitle className="text-base font-semibold text-slate-50">
+                What your chart reveals about you
+              </CardTitle>
+            </CardHeader>
+
+            <CardContent className="text-sm leading-relaxed space-y-3 text-slate-100/90">
+              {visibleLines.map((paragraph: string, i: number) => (
+                <p key={i} className="text-indigo-50/90">
+                  {paragraph}
+                </p>
+              ))}
+
+              {isPreview && hiddenLines.length > 0 ? (
+                <div className="relative overflow-hidden rounded-xl border border-white/10 bg-white/5 p-4">
+                  <div className="space-y-3 blur-[4px] select-none pointer-events-none opacity-80">
+                    {hiddenLines.map((paragraph: string, i: number) => (
+                      <p key={`blur-${i}`} className="text-indigo-50/90">
+                        {paragraph}
+                      </p>
+                    ))}
+
+                    {(report as any)?.hiddenPattern ? (
+                      <p className="text-slate-100/90">
+                        {(report as any).hiddenPattern}
+                      </p>
+                    ) : null}
+
+                    {(report as any)?.lifePressureZone ? (
+                      <p className="text-indigo-50/90">
+                        {(report as any).lifePressureZone}
+                      </p>
+                    ) : null}
+
+                    {(report as any)?.naturalStrength ? (
+                      <p className="text-emerald-50/90">
+                        {(report as any).naturalStrength}
+                      </p>
+                    ) : null}
+                  </div>
+
+                  <div className="absolute inset-x-0 bottom-0 top-1/3 flex items-end justify-center bg-gradient-to-b from-transparent via-indigo-950/50 to-indigo-950/95 p-4">
+                    <div className="w-full max-w-md rounded-2xl border border-white/15 bg-white/10 px-4 py-4 text-center shadow-xl backdrop-blur-md">
+                      <div className="text-sm font-semibold text-white">
+                        Unlock your full reading
+                      </div>
+                      <div className="mt-1 text-xs text-white/75">
+                        See your hidden pattern, pressure zones, strengths, timing, and full guidance.
+                      </div>
+                      <Button className="mt-3 rounded-xl">
+                        Unlock after signup
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+            </CardContent>
+          </Card>
         </motion.div>
-      );
-    }
+      ) : null}
+    </motion.div>
   );
+});
   function stripMdLite(s: any) {
     return String(s ?? "")
       .replace(/^#{1,6}\s+/gm, "")        // remove markdown headings like ### Title
@@ -13573,20 +13758,11 @@ const text = uniqueTextParts
 
             className="flex-1"
           >
-    <TabsList className="flex flex-wrap gap-2">
+   <TabsList className="flex flex-wrap gap-2">
   <TabsTrigger value="overview">Overview</TabsTrigger>
-
-  <TabsTrigger value="phases" disabled={!canSeePhases}>
-    Life Phases
-  </TabsTrigger>
-
-  <TabsTrigger value="now" disabled={!canSeeNow}>
-    Now & Near Future
-  </TabsTrigger>
-
-  <TabsTrigger value="full" disabled={!canSeeFull}>
-    Full Guidance
-  </TabsTrigger>
+  <TabsTrigger value="phases" disabled={!canSeePhases}>Life Phases</TabsTrigger>
+  <TabsTrigger value="now" disabled={!canSeeNow}>Now & Near Future</TabsTrigger>
+  <TabsTrigger value="full" disabled={!canSeeFull}>Full Guidance</TabsTrigger>
 </TabsList>
   {/* Tab panels */}
   <TabsContent value="overview" className="mt-4">
