@@ -1,5 +1,3 @@
-// FILE: src/app/sarathi/life-report/page.tsx
-
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
@@ -13,7 +11,6 @@ export default async function LifeReportPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // 🔒 If not logged in → send to login
   if (!user) {
     redirect("/login");
   }

@@ -55,15 +55,17 @@
 
   type PlaceLite = { name: string; lat: number; lon: number; tz?: string };
 
-  function LockingCityAutocomplete({
-    value,
-    onSelect,
-    placeholder = "Start typing a city",
-  }: {
-    value: { name: string; lat: number; lon: number } | null;
-    onSelect: (p: { name: string; lat: number; lon: number } | null) => void;
-    placeholder?: string;
-  }) {
+function LockingCityAutocomplete({
+  value,
+  onSelect,
+  placeholder = "Start typing a city",
+  disabled = false,
+}: {
+  value: { name: string; lat: number; lon: number } | null;
+  onSelect: (p: { name: string; lat: number; lon: number } | null) => void;
+  placeholder?: string;
+  disabled?: boolean;
+}) {
     
     const [q, setQ] = React.useState(value?.name ?? "");
     const [open, setOpen] = React.useState(false);
@@ -195,30 +197,30 @@
     return (
       <div className="relative">
         <Input
-          ref={inputRef}
-          placeholder={placeholder}
-          autoComplete="off"
-          value={q}
+  ref={inputRef}
+  placeholder={placeholder}
+  autoComplete="off"
+  value={q}
+  disabled={disabled}
   onFocus={() => {
-  if (items.length) setOpen(true);
-}}
-          onBlur={(e) => {
-            const next = e.relatedTarget as HTMLElement | null;
-            if (next && next.closest("[data-citymenu]")) return;
-            setOpen(false);
-          }}
-          onChange={(e) => {
-            const el = e.target as HTMLInputElement;
-            const caret = el.selectionStart ?? e.target.value.length;
-            setQ(e.target.value);
-            requestAnimationFrame(() => {
-              try {
-                el.setSelectionRange(caret, caret);
-              } catch {}
-            });
-          }}
-        />
-
+    if (items.length) setOpen(true);
+  }}
+  onBlur={(e) => {
+    const next = e.relatedTarget as HTMLElement | null;
+    if (next && next.closest("[data-citymenu]")) return;
+    setOpen(false);
+  }}
+  onChange={(e) => {
+    const el = e.target as HTMLInputElement;
+    const caret = el.selectionStart ?? e.target.value.length;
+    setQ(e.target.value);
+    requestAnimationFrame(() => {
+      try {
+        el.setSelectionRange(caret, caret);
+      } catch {}
+    });
+  }}
+/>
         {q && (
           <button
             type="button"
@@ -9607,7 +9609,7 @@ const selectedCountryLabel =
 
   type LifeTab = "overview" | "phases" | "now" | "full";
 const [activeTab, setActiveTab] = useState<LifeTab>("overview");
-
+const [canEditChart, setCanEditChart] = useState(true);
     
     const [mounted, setMounted] = useState(false);
     useEffect(() => {
@@ -9625,6 +9627,15 @@ useEffect(() => {
     try {
       const saved = await getCurrentUserChart();
       if (!saved || cancelled) return;
+
+      setSavedChartId(saved.id);
+
+      const createdAtMs = new Date(saved.created_at).getTime();
+      const nowMs = Date.now();
+      const within24Hours = nowMs - createdAtMs < 24 * 60 * 60 * 1000;
+
+      setCanEditChart(within24Hours);
+      setIsChartLocked(!within24Hours);
 
       setName((prev) => prev || saved.chart_name || "");
       setDateISO((prev) => prev || saved.birth_date_iso || "");
@@ -9746,7 +9757,8 @@ const canSeeFull = apiIsPaid || isFull || devUnlockFull;
     const [dailyHighlights, setDailyHighlights] = useState<DailyHighlight[]>([]);
     const [dailyLoading, setDailyLoading] = useState<boolean>(false);
     const [dailyError, setDailyError] = useState<string | null>(null);
-
+    const [savedChartId, setSavedChartId] = useState<string | null>(null);
+    const [isChartLocked, setIsChartLocked] = useState(false);
         type MythCardLocal = {
       myth: string;
       reality: string;
@@ -13566,13 +13578,20 @@ const text = uniqueTextParts
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2">
+              {savedChartId ? (
+  <div className="rounded-2xl border border-amber-400/20 bg-amber-500/10 p-3 text-sm text-amber-100">
+    {canEditChart
+      ? "You can still update your chart details within 24 hours of signup."
+      : "Your 24-hour chart edit window has expired. This chart is now locked to your account."}
+  </div>
+) : null}
   <div className="space-y-2">
     <Label>Name</Label>
-    <Input
-      value={name}
-      onChange={(e) => setName(e.target.value)}
-      placeholder="Your full name"
-    />
+<Input
+  value={name}
+  onChange={(e) => setName(e.target.value)}
+  disabled={!canEditChart}
+/>
   </div>
 
   <div className="space-y-2">
@@ -13646,14 +13665,10 @@ const text = uniqueTextParts
   <div className="space-y-2">
     <Label>Date of Birth</Label>
     <Input
-      type="date"
-      value={dateISO}
-      onChange={(e) => {
-        const raw = e.target.value;
-        const norm = normalizeDateForBackend(raw);
-        setDateISO(norm ?? raw);
-      }}
-    />
+  value={time}
+  onChange={(e) => setTime(e.target.value)}
+  disabled={!canEditChart}
+/>
   </div>
 
   <div className="space-y-2">
@@ -13667,26 +13682,20 @@ const text = uniqueTextParts
 
   <div className="space-y-2">
     <Label>Time Zone (auto from city)</Label>
-    <Input value={tz} readOnly aria-readonly title="Picked from city" />
+    <Input
+  value={tz}
+  onChange={(e) => setTz(e.target.value)}
+  disabled={!canEditChart}
+/>
   </div>
 </div>
             <div className="space-y-2">
               <Label>Place of Birth</Label>
               <LockingCityAutocomplete
-                value={
-                  place
-                    ? { name: place.name, lat: place.lat, lon: place.lon }
-                    : null
-                }
-                onSelect={(p) => {
-                  if (!p) {
-                    setPlace(null);
-                    return;
-                  }
-                  setPlace({ name: p.name, lat: p.lat, lon: p.lon, tz });
-                }}
-                placeholder="City, Country (e.g., New Delhi)"
-              />
+  value={place}
+  onSelect={setPlace}
+  disabled={!canEditChart}
+/>
               {place && (
                 <p className="text-xs text-white/70">
                   lat {place.lat?.toFixed(3)}, lon {place.lon?.toFixed(3)} ({tz})

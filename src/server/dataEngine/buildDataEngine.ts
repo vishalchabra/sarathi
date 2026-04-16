@@ -49,6 +49,15 @@ export type BuildDataEngineParams = {
   plan?: DataEnginePlan;
   selectedDateISO?: string;
   compareDateISO?: string;
+  utilityDateISO?: string;
+  utilityHoraDateISO?: string;
+  utilityTime?: string;
+  utilityPlace?: {
+    name?: string;
+    lat: number;
+    lon: number;
+    timezone?: string;
+  };
 };
 
 type BirthMeta = {
@@ -91,13 +100,33 @@ export type DataEngineOutput = {
   };
 
   timing: {
-    dasha: any;
-    selectedDate: any;
+  dasha: any;
+  selectedDate: any;
+  panchang: any;
+  moonContext: any;
+  dashaContext: any;
+  nakshatraContext: any;
+  utilities: {
+    dateISO: string;
+    horaDateISO: string;
+    time: string;
+    place: {
+      name?: string;
+      lat: number;
+      lon: number;
+      timezone?: string;
+    };
+    timezone: string;
     panchang: any;
-    moonContext: any;
-    dashaContext: any;
-    nakshatraContext: any;
+    hora: {
+      horaLord: string | null;
+      horaNumber: number | null;
+      phase: string | null;
+      startsAt: string | null;
+      endsAt: string | null;
+    };
   };
+};
 
   transits: {
     transitNow: any;
@@ -507,7 +536,56 @@ export async function buildDataEngine(
   const selectedDateISO = resolveSelectedDateISO(params.selectedDateISO);
   const compareDateISO = String(params.compareDateISO || "").trim() || null;
   const birth = normalizeBirthTimezone(params.birth);
+  const utilityDateISO =
+  String(params.utilityDateISO || selectedDateISO).trim() || selectedDateISO;
 
+const utilityHoraDateISO =
+  String(params.utilityHoraDateISO || utilityDateISO).trim() || utilityDateISO;
+
+const utilityTime =
+  String(params.utilityTime || "12:00").trim() || "12:00";
+const utilityPlace = params.utilityPlace ?? {
+  name: birth.name,
+  lat: birth.lat,
+  lon: birth.lon,
+  timezone: birth.timezone,
+};
+const utilityTimezone = utilityPlace.timezone || birth.timezone;
+console.log("BUILD DATA ENGINE UTILITIES DEBUG", {
+  utilityDateISO,
+  utilityHoraDateISO,
+  utilityTime,
+  utilityPlace,
+  utilityTimezone,
+});
+console.log("CALLING UTILITY PANCHANG", {
+  dateISO: utilityDateISO,
+  timezone: utilityTimezone,
+  lat: utilityPlace.lat,
+  lon: utilityPlace.lon,
+});
+const utilityPanchang = await buildPanchangData({
+  dateISO: utilityDateISO,
+  timezone: utilityTimezone,
+  lat: utilityPlace.lat,
+  lon: utilityPlace.lon,
+  transitNow: null,
+});
+const utilityHoraPanchang = await buildPanchangData({
+  dateISO: utilityHoraDateISO,
+  timezone: utilityTimezone,
+  lat: utilityPlace.lat,
+  lon: utilityPlace.lon,
+  transitNow: null,
+});
+
+const utilityHoraInfo = getAccurateHoraLord({
+  birthDateISO: utilityHoraDateISO,
+  birthTime: utilityTime,
+  timezone: utilityTimezone,
+  sunrise: utilityHoraPanchang?._sunriseDT ?? null,
+  sunset: utilityHoraPanchang?._sunsetDT ?? null,
+});
   const asc = await getAscendant({
     dateISO: birth.dateISO,
     time: birth.time,
@@ -795,7 +873,12 @@ const roles = await buildFunctionalRoles({
     lon: birth.lon,
     transitNow,
   });
-
+console.log("CALLING BIRTH PANCHANG", {
+  dateISO: birth.dateISO,
+  timezone: birth.timezone,
+  lat: birth.lat,
+  lon: birth.lon,
+});
   const birthPanchang = await buildPanchangData({
     dateISO: birth.dateISO,
     timezone: birth.timezone,
@@ -922,6 +1005,15 @@ const roles = await buildFunctionalRoles({
       moonContext,
       dashaContext,
       nakshatraContext,
+        utilities: {
+  dateISO: utilityDateISO,
+  horaDateISO: utilityHoraDateISO,
+  time: utilityTime,
+    place: utilityPlace,
+    timezone: utilityTimezone,
+    panchang: utilityPanchang,
+    hora: utilityHoraInfo,
+  },
     },
 
     transits: {

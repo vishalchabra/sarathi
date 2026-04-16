@@ -37,7 +37,8 @@ type TabKey =
   | "transits"
   | "vargas"
   | "charts"
-  | "strength";
+  | "strength"
+  | "utilities";
 
 type UpcomingTransitBuckets = {
   moonTransits?: any[];
@@ -106,21 +107,41 @@ type DataEngineResponse = {
   };
 
   timing?: {
-    dasha?: {
-      current?: Record<string, any>;
-      timelines?: {
-        md?: any[];
-        adInCurrentMd?: any[];
-        pdInCurrentAd?: any[];
-      };
-      tree?: any[];
+  dasha?: {
+    current?: Record<string, any>;
+    timelines?: {
+      md?: any[];
+      adInCurrentMd?: any[];
+      pdInCurrentAd?: any[];
     };
-    panchang?: any;
-    moonContext?: any;
-    selectedDate?: any;
-    dashaContext?: any;
-    nakshatraContext?: any;
+    tree?: any[];
   };
+  panchang?: any;
+  moonContext?: any;
+  selectedDate?: any;
+  dashaContext?: any;
+  nakshatraContext?: any;
+  utilities?: {
+    dateISO?: string;
+    horaDateISO?: string;
+    time?: string;
+    place?: {
+      name?: string;
+      lat?: number;
+      lon?: number;
+      timezone?: string;
+    };
+    timezone?: string;
+    panchang?: any;
+    hora?: {
+      horaLord?: string | null;
+      horaNumber?: number | null;
+      phase?: string | null;
+      startsAt?: string | null;
+      endsAt?: string | null;
+    } | null;
+  };
+};
 
   transits?: {
     transitNow?: any;
@@ -472,7 +493,7 @@ export default function DataEnginePage() {
   const [error, setError] = useState("");
   const [data, setData] = useState<DataEngineResponse | null>(null);
   const [selectedVarga, setSelectedVarga] = useState("d9");
-
+  
   const [name, setName] = useState("");
   const [selectedPlace, setSelectedPlace] = useState<PlaceLite | null>(null);
   const [dateISO, setDateISO] = useState("");
@@ -483,6 +504,30 @@ export default function DataEnginePage() {
     new Date().toISOString().slice(0, 10)
   );
   const [compareDateISO, setCompareDateISO] = useState("");
+ const [utilityPanchangData, setUtilityPanchangData] = useState<any | null>(null);
+const [utilityHoraData, setUtilityHoraData] = useState<any | null>(null);
+
+const [utilityPanchangLoading, setUtilityPanchangLoading] = useState(false);
+const [utilityHoraLoading, setUtilityHoraLoading] = useState(false);
+
+const [utilityPanchangError, setUtilityPanchangError] = useState("");
+const [utilityHoraError, setUtilityHoraError] = useState("");
+
+const [utilityPanchangPlace, setUtilityPanchangPlace] = useState<PlaceLite | null>(null);
+const [utilityHoraPlace, setUtilityHoraPlace] = useState<PlaceLite | null>(null);
+
+const [utilityPanchangTimezone, setUtilityPanchangTimezone] = useState("Asia/Kolkata");
+const [utilityHoraTimezone, setUtilityHoraTimezone] = useState("Asia/Kolkata");
+
+const [utilityPanchangDateISO, setUtilityPanchangDateISO] = useState(
+  new Date().toISOString().slice(0, 10)
+);
+
+const [utilityHoraDateISO, setUtilityHoraDateISO] = useState(
+  new Date().toISOString().slice(0, 10)
+);
+
+const [utilityHoraTime, setUtilityHoraTime] = useState("12:00");
 useEffect(() => {
   if (!selectedPlace) return;
 
@@ -493,71 +538,204 @@ useEffect(() => {
     // fallback: keep existing timezone
   }
 }, [selectedPlace]);
-  async function handleGenerate() {
-    if (!name.trim()) {
-      setError("Please enter a name.");
-      setData(null);
-      return;
-    }
+useEffect(() => {
+  if (!utilityPanchangPlace) return;
 
-    if (!dateISO.trim()) {
-      setError("Please select a birth date.");
-      setData(null);
-      return;
-    }
+  try {
+    const tz = tzLookup(utilityPanchangPlace.lat, utilityPanchangPlace.lon);
+    setUtilityPanchangTimezone(tz);
+  } catch {}
+}, [utilityPanchangPlace]);
 
-    if (!time.trim()) {
-      setError("Please select a birth time.");
-      setData(null);
-      return;
-    }
+useEffect(() => {
+  if (!utilityHoraPlace) return;
 
-    if (!selectedPlace) {
-      setError("Please select a city from the dropdown.");
-      setData(null);
-      return;
-    }
+  try {
+    const tz = tzLookup(utilityHoraPlace.lat, utilityHoraPlace.lon);
+    setUtilityHoraTimezone(tz);
+  } catch {}
+}, [utilityHoraPlace]);
 
-    try {
-      setLoading(true);
-      setError("");
-
-      const res = await fetch("/api/data-engine", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          birth: {
-            name: name.trim(),
-            city: selectedPlace.name,
-            dateISO: dateISO.trim(),
-            time: time.trim(),
-            timezone: timezone.trim(),
-            lat: selectedPlace.lat,
-            lon: selectedPlace.lon,
-          },
-          plan,
-          selectedDateISO: selectedDateISO.trim(),
-          compareDateISO: compareDateISO.trim() || null,
-        }),
-      });
-
-      const json = await res.json();
-
-      if (!res.ok || json?.ok === false) {
-        throw new Error(json?.error || "Failed to generate Data Engine.");
-      }
-
-      setData(json);
-    } catch (e: any) {
-      setError(e?.message || "Something went wrong.");
-      setData(null);
-    } finally {
-      setLoading(false);
-    }
+async function handleGeneratePanchang() {
+  if (!data?.birthMeta && !birthMeta) {
+    setUtilityPanchangError("Please generate the Data Engine first.");
+    return;
   }
 
+  if (!utilityPanchangPlace) {
+    setUtilityPanchangError("Please select a city for Panchang.");
+    return;
+  }
+
+  if (!utilityPanchangDateISO.trim()) {
+    setUtilityPanchangError("Please select a Panchang date.");
+    return;
+  }
+
+  try {
+    setUtilityPanchangLoading(true);
+    setUtilityPanchangError("");
+
+    const res = await fetch("/api/data-engine", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        birth: {
+          name: birthMeta?.name ?? name.trim(),
+          city: birthMeta?.city ?? selectedPlace?.name ?? "",
+          dateISO: birthMeta?.dateISO ?? dateISO.trim(),
+          time: birthMeta?.time ?? time.trim(),
+          timezone: birthMeta?.timezone ?? timezone.trim(),
+          lat: Number(birthMeta?.lat ?? selectedPlace?.lat ?? 0),
+          lon: Number(birthMeta?.lon ?? selectedPlace?.lon ?? 0),
+        },
+        plan,
+        selectedDateISO: selectedDateISO.trim(),
+        utilityDateISO: utilityPanchangDateISO.trim(),
+        utilityHoraDateISO: utilityPanchangDateISO.trim(),
+        utilityTime: "12:00",
+        utilityPlace: {
+          name: utilityPanchangPlace.name,
+          lat: utilityPanchangPlace.lat,
+          lon: utilityPanchangPlace.lon,
+          timezone: utilityPanchangTimezone,
+        },
+        compareDateISO: compareDateISO.trim() || null,
+      }),
+    });
+
+    const json = await res.json();
+
+    if (!res.ok || json?.ok === false) {
+      throw new Error(json?.error || "Failed to update Panchang.");
+    }
+
+    setUtilityPanchangData(json?.timing?.utilities?.panchang ?? null);
+  } catch (e: any) {
+    setUtilityPanchangError(e?.message || "Something went wrong.");
+  } finally {
+    setUtilityPanchangLoading(false);
+  }
+}
+async function handleGenerate() {
+  if (!selectedPlace) {
+    setError("Please select a place.");
+    return;
+  }
+
+  if (!dateISO.trim() || !time.trim()) {
+    setError("Please enter date and time.");
+    return;
+  }
+
+  try {
+    setLoading(true);
+    setError("");
+
+    const res = await fetch("/api/data-engine", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        birth: {
+          name: name.trim(),
+          city: selectedPlace.name,
+          dateISO: dateISO.trim(),
+          time: time.trim(),
+          timezone,
+          lat: selectedPlace.lat,
+          lon: selectedPlace.lon,
+        },
+        plan,
+        selectedDateISO: selectedDateISO.trim(),
+        compareDateISO: compareDateISO.trim() || null,
+      }),
+    });
+
+    const json = await res.json();
+
+    if (!res.ok || json?.ok === false) {
+      throw new Error(json?.error || "Failed to generate.");
+    }
+
+    setData(json);
+  } catch (e: any) {
+    setError(e?.message || "Something went wrong.");
+  } finally {
+    setLoading(false);
+  }
+}
+async function handleGenerateHora() {
+  if (!data?.birthMeta && !birthMeta) {
+    setUtilityHoraError("Please generate the Data Engine first.");
+    return;
+  }
+
+  if (!utilityHoraPlace) {
+    setUtilityHoraError("Please select a city for Hora.");
+    return;
+  }
+
+  if (!utilityHoraDateISO.trim()) {
+    setUtilityHoraError("Please select a Hora date.");
+    return;
+  }
+
+  if (!utilityHoraTime.trim()) {
+    setUtilityHoraError("Please select a Hora time.");
+    return;
+  }
+
+  try {
+    setUtilityHoraLoading(true);
+    setUtilityHoraError("");
+
+    const res = await fetch("/api/data-engine", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        birth: {
+          name: birthMeta?.name ?? name.trim(),
+          city: birthMeta?.city ?? selectedPlace?.name ?? "",
+          dateISO: birthMeta?.dateISO ?? dateISO.trim(),
+          time: birthMeta?.time ?? time.trim(),
+          timezone: birthMeta?.timezone ?? timezone.trim(),
+          lat: Number(birthMeta?.lat ?? selectedPlace?.lat ?? 0),
+          lon: Number(birthMeta?.lon ?? selectedPlace?.lon ?? 0),
+        },
+        plan,
+        selectedDateISO: selectedDateISO.trim(),
+        utilityDateISO: utilityHoraDateISO.trim(),
+        utilityHoraDateISO: utilityHoraDateISO.trim(),
+        utilityTime: utilityHoraTime.trim(),
+        utilityPlace: {
+          name: utilityHoraPlace.name,
+          lat: utilityHoraPlace.lat,
+          lon: utilityHoraPlace.lon,
+          timezone: utilityHoraTimezone,
+        },
+        compareDateISO: compareDateISO.trim() || null,
+      }),
+    });
+
+    const json = await res.json();
+
+    if (!res.ok || json?.ok === false) {
+      throw new Error(json?.error || "Failed to update Hora.");
+    }
+
+    setUtilityHoraData(json?.timing?.utilities?.hora ?? null);
+  } catch (e: any) {
+    setUtilityHoraError(e?.message || "Something went wrong.");
+  } finally {
+    setUtilityHoraLoading(false);
+  }
+}
   const birthMeta = useMemo(
     () => data?.foundations?.birthMeta ?? data?.birthMeta ?? null,
     [data]
@@ -643,7 +821,15 @@ useEffect(() => {
     () => data?.foundations?.houseJudgement ?? data?.houseJudgement ?? [],
     [data]
   );
+const utilityPanchang = useMemo(
+  () => utilityPanchangData ?? null,
+  [utilityPanchangData]
+);
 
+const utilityHora = useMemo(
+  () => utilityHoraData ?? null,
+  [utilityHoraData]
+);
   useEffect(() => {
     if (data) {
       console.log("==== DEBUG START ====");
@@ -1318,7 +1504,229 @@ useEffect(() => {
                 arudhas={data?.arudhas ?? {}}
               />
             ) : null}
+         {data && activeTab === "utilities" ? (
+  <div className="mt-6 space-y-8">
+    <div className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.04)_inset]">
+      <h2 className="text-xl font-semibold text-white">Hora</h2>
+      <p className="mt-1 text-sm text-white/60">
+        Select date, time, and place to generate Hora.
+      </p>
+
+      <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-3">
+        <div>
+          <label className="text-xs font-medium uppercase tracking-wide text-white/45">
+            Date
+          </label>
+          <input
+            type="date"
+            value={utilityHoraDateISO}
+            onChange={(e) => setUtilityHoraDateISO(e.target.value)}
+            className="mt-1 w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:border-indigo-400"
+          />
+        </div>
+
+        <div>
+          <label className="text-xs font-medium uppercase tracking-wide text-white/45">
+            Time
+          </label>
+          <input
+            type="time"
+            value={utilityHoraTime}
+            onChange={(e) => setUtilityHoraTime(e.target.value)}
+            className="mt-1 w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:border-indigo-400"
+          />
+        </div>
+
+        <div>
+          <label className="text-xs font-medium uppercase tracking-wide text-white/45">
+            City
+          </label>
+          <div className="mt-1">
+            <LockingCityAutocomplete
+              value={utilityHoraPlace}
+              onSelect={setUtilityHoraPlace}
+            />
           </div>
+        </div>
+      </div>
+
+      <div className="mt-4 flex justify-end">
+        <button
+          onClick={handleGenerateHora}
+          disabled={utilityHoraLoading}
+          className="rounded-xl bg-indigo-500 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {utilityHoraLoading ? "Generating Hora..." : "Generate Hora"}
+        </button>
+      </div>
+
+      {utilityHoraError ? (
+        <div className="mt-4 rounded-xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+          {utilityHoraError}
+        </div>
+      ) : null}
+
+      {utilityHora?.horaLord ? (
+        <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-5">
+          <h3 className="text-base font-semibold text-white">Hora Result</h3>
+          <p className="mt-1 text-sm text-white/60">
+            {utilityHoraPlace?.name ?? "Selected city"}, {utilityHoraDateISO} at {utilityHoraTime}
+          </p>
+          <p className="mt-2 text-xs text-white/45 italic">
+      Calculated using variable hora based on local sunrise and sunset.
+    </p>
+          <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+              <div className="text-xs uppercase tracking-wide text-white/45">Planet</div>
+              <div className="mt-1 text-lg font-semibold text-white">{utilityHora.horaLord}</div>
+            </div>
+
+            <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+              <div className="text-xs uppercase tracking-wide text-white/45">Phase</div>
+              <div className="mt-1 text-lg font-semibold text-white">{utilityHora.phase ?? "—"}</div>
+            </div>
+
+            <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+              <div className="text-xs uppercase tracking-wide text-white/45">Hora Number</div>
+              <div className="mt-1 text-lg font-semibold text-white">{utilityHora.horaNumber ?? "—"}</div>
+            </div>
+
+            <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+              <div className="text-xs uppercase tracking-wide text-white/45">Time Slot</div>
+              <div className="mt-1 text-lg font-semibold text-white">
+                {utilityHora.startsAt} → {utilityHora.endsAt}
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </div>
+
+    <div className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.04)_inset]">
+      <h2 className="text-xl font-semibold text-white">Panchang</h2>
+      <p className="mt-1 text-sm text-white/60">
+        Select date and place to generate Panchang.
+      </p>
+
+      <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div>
+          <label className="text-xs font-medium uppercase tracking-wide text-white/45">
+            Date
+          </label>
+          <input
+            type="date"
+            value={utilityPanchangDateISO}
+            onChange={(e) => setUtilityPanchangDateISO(e.target.value)}
+            className="mt-1 w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:border-indigo-400"
+          />
+        </div>
+
+        <div>
+          <label className="text-xs font-medium uppercase tracking-wide text-white/45">
+            City
+          </label>
+          <div className="mt-1">
+            <LockingCityAutocomplete
+              value={utilityPanchangPlace}
+              onSelect={setUtilityPanchangPlace}
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-4 flex justify-end">
+        <button
+          onClick={handleGeneratePanchang}
+          disabled={utilityPanchangLoading}
+          className="rounded-xl bg-indigo-500 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {utilityPanchangLoading ? "Generating Panchang..." : "Generate Panchang"}
+        </button>
+      </div>
+
+      {utilityPanchangError ? (
+        <div className="mt-4 rounded-xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+          {utilityPanchangError}
+        </div>
+      ) : null}
+
+      {utilityPanchang ? (
+        <div className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.04)_inset]">
+          <h3 className="text-2xl font-semibold text-white">Today’s Panchang</h3>
+          <p className="mt-2 text-sm text-white/60">
+            {utilityPanchangPlace?.name ?? "Selected city"}, {utilityPanchangDateISO}
+          </p>
+
+          <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-2">
+            <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/5">
+              <table className="w-full table-fixed border-collapse">
+                <tbody>
+                  {[
+                    ["Date", utilityPanchang?.dateLabel ?? utilityPanchangDateISO],
+                    ["Tithi", utilityPanchang?.tithi ?? "—"],
+                    ["Day", utilityPanchang?.weekday ?? "—"],
+                    ["Paksha", utilityPanchang?.paksha ?? "—"],
+                    ["Sunrise", utilityPanchang?.sunrise ?? "—"],
+                    ["Sunset", utilityPanchang?.sunset ?? "—"],
+                    ...(utilityPanchang?.moonrise ? [["Moonrise", utilityPanchang.moonrise]] : []),
+                    ["Nakshatra (Sunrise)", utilityPanchang?.nakshatraAtSunrise || "—"],
+["Nakshatra (Noon)", utilityPanchang?.nakshatraNow || "—"],
+["Next Nakshatra", utilityPanchang?.nextNakshatra || "—"],
+                  ].map(([label, value], idx) => (
+                    <tr key={`${String(label)}-${idx}`} className="border-b border-white/10 last:border-b-0">
+                      <td className="w-[38%] px-6 py-5 text-lg font-semibold text-white align-middle">
+                        {String(label)}
+                      </td>
+                      <td className="px-6 py-5 text-right text-lg text-white/90 align-middle">
+                        {String(value ?? "—")}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/5">
+              <table className="w-full table-fixed border-collapse">
+                <tbody>
+                  {[
+                    ["Yog", utilityPanchang?.yoga ?? "—"],
+                    ...(utilityPanchang?.yogaTill ? [["Yog Till", utilityPanchang.yogaTill]] : []),
+                    ...(utilityPanchang?.nakshatraTill
+                      ? [["Nakshatra Till", utilityPanchang.nakshatraTill]]
+                      : []),
+                    ["Karan I", utilityPanchang?.karana ?? "—"],
+                    ["Surya Rashi", utilityPanchang?.sunSign ?? "—"],
+                    ["Chandra Rashi", utilityPanchang?.moonSign ?? "—"],
+                    ...(utilityPanchang?.rahuKaal
+                      ? [[
+                          "Rahu Kaal",
+                          `${utilityPanchang.rahuKaal.start} to ${utilityPanchang.rahuKaal.end}`,
+                        ]]
+                      : []),
+                  ].map(([label, value], idx) => (
+                    <tr key={`${String(label)}-${idx}`} className="border-b border-white/10 last:border-b-0">
+                      <td className="w-[42%] px-6 py-5 text-lg font-semibold text-white align-middle">
+                        {String(label)}
+                      </td>
+                      <td className="px-6 py-5 text-right text-lg text-white/90 align-middle">
+                        {String(value ?? "—")}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  </div>
+) : null}
+          </div>
+         
+
+   
         </div>
       </section>
     </main>

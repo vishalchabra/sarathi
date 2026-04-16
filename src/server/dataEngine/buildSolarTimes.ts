@@ -51,7 +51,7 @@ function localHourToDateTime(
 
 function formatHm(dt: any) {
   if (!dt || !dt.isValid) return null;
-  return dt.toFormat("HH:mm");
+  return dt.toFormat("hh:mm:ss a");
 }
 
 function computeSunTime(params: {

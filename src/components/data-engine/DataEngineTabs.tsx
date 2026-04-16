@@ -6,7 +6,8 @@ type TabKey =
   | "transits"
   | "vargas"
   | "charts"
-  | "strength";
+  | "strength"
+  | "utilities";
 
 type Props = {
   activeTab: TabKey;
@@ -19,7 +20,8 @@ const TABS: Array<{ key: TabKey; label: string }> = [
   { key: "transits", label: "Transits" },
   { key: "vargas", label: "Vargas" },
   { key: "charts", label: "Charts" },
-  { key: "strength", label: "Strength & Systems" }
+  { key: "strength", label: "Strength & Systems" },
+  { key: "utilities", label: "Utilities" }
 ];
 
 export default function DataEngineTabs({ activeTab, onChange }: Props) {

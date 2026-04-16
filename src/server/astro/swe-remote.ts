@@ -1,5 +1,6 @@
 // FILE: src/server/astro/swe-remote.ts
 import "server-only";
+import { DateTime } from "luxon";
 
 /**
  * swe-remote.ts (REAL ephemeris via astronomy-engine)
@@ -157,11 +158,18 @@ function computeLunarTrueNodeLongitudeTropical(jdUt: number): number {
 
 // Approx Lahiri ayanamsa from JD (same model you used earlier)
 function approxLahiriAyanamsaDegFromJdUt(jdUt: number): number {
-  // JD 2451545.0 = 2000-01-01 12:00 UT (J2000)
-  const yearsSince2000 = (jdUt - 2451545.0) / 365.2425;
-  const base = 23.856; // approx Lahiri around J2000
-  const rate = 0.013969; // deg/year
-  return base + yearsSince2000 * rate;
+  const T = (jdUt - 2451545.0) / 36525.0;
+
+  // Mean tropical longitude of the vernal equinox precession component
+  const precessionArcsec =
+    5028.796195 * T +
+    1.1054348 * T * T +
+    0.00007964 * T * T * T;
+
+  // Lahiri offset near J2000 in arcseconds
+  const lahiriBaseArcsec = 23.8530556 * 3600;
+
+  return (lahiriBaseArcsec + precessionArcsec) / 3600;
 }
 
 function computeJulday(
@@ -509,20 +517,25 @@ export async function getPlanetPositions(input: {
   lat: number;
   lon: number;
 }) {
-  const { dateISO, lat, lon } = input;
+  const { dateISO, tz, lat, lon } = input;
 
-  const d = new Date(dateISO);
-  if (Number.isNaN(d.getTime())) {
+  const dt = tz
+    ? DateTime.fromISO(dateISO, { zone: tz })
+    : DateTime.fromISO(dateISO);
+
+  if (!dt.isValid) {
     throw new Error(`Invalid dateISO passed to getPlanetPositions: ${dateISO}`);
   }
 
-  const year = d.getUTCFullYear();
-  const month = d.getUTCMonth() + 1;
-  const day = d.getUTCDate();
+  const d = dt.toUTC();
+
+  const year = d.year;
+  const month = d.month;
+  const day = d.day;
   const hour =
-    d.getUTCHours() +
-    d.getUTCMinutes() / 60 +
-    d.getUTCSeconds() / 3600;
+    d.hour +
+    d.minute / 60 +
+    d.second / 3600;
 
   const C = await getSweConstants();
   const jdUt = await sweJulday(year, month, day, hour, C.SE_GREG_CAL);
@@ -555,6 +568,17 @@ export async function getPlanetPositions(input: {
 
     const tropicalLon = Number(calc?.longitude ?? 0);
     const siderealLon = wrap360(tropicalLon - ayanamsa);
+    if (p.name === "Moon") {
+  console.log("MOON SIDEREAL DEBUG", {
+    inputDateISO: dateISO,
+    tz,
+    tropicalLon,
+    ayanamsa,
+    siderealLon,
+    nakshatra: getNakshatraFromLon(siderealLon)?.nakshatra,
+    pada: getNakshatraFromLon(siderealLon)?.pada,
+  });
+}
     const sign = zodiacSignFromLon(siderealLon);
     const house = houseFromLon(siderealLon, cusps);
     const deg = siderealLon % 30;

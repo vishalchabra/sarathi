@@ -15,12 +15,18 @@ export async function POST(req: NextRequest) {
   name: body?.birth?.name ?? null,
   city: body?.birth?.city ?? null,
 });
-    const result = await buildDataEngine({
-      birth: body?.birth,
-      plan: body?.plan ?? "light",
-      selectedDateISO: body?.selectedDateISO,
-      compareDateISO: body?.compareDateISO ?? null,
-    });
+ const result = await buildDataEngine({
+  birth: body?.birth,
+  plan: body?.plan ?? "light",
+  selectedDateISO: body?.selectedDateISO,
+  compareDateISO: body?.compareDateISO ?? null,
+
+  // 🔥 ADD THESE
+  utilityDateISO: body?.utilityDateISO ?? null,
+  utilityHoraDateISO: body?.utilityHoraDateISO ?? null,
+  utilityTime: body?.utilityTime ?? null,
+  utilityPlace: body?.utilityPlace ?? null,
+});
 
     return NextResponse.json(result);
   } catch (err: any) {
