@@ -63,11 +63,13 @@ type DataEngineResponse = {
   roles?: any;
   vedicAspects?: any;
   houseJudgement?: any;
+  upagrahas?: any;
   bhavaChalit?: any;
   classicChalit?: any;
   debugLifeReport?: any;
   vargas?: Record<string, any>;
   arudhas?: Record<string, { sign: string }>;
+
   dasha?: {
     current?: Record<string, any>;
     timelines?: {
@@ -77,6 +79,7 @@ type DataEngineResponse = {
     };
     tree?: any[];
   };
+
   transitNow?: any;
   transitContacts?: any[];
   transitInteractions?: any[];
@@ -86,62 +89,79 @@ type DataEngineResponse = {
   compare?: any | null;
 
   foundations?: {
-    birthMeta?: any;
+  birthMeta?: any;
+  ascendant?: any;
+  natal?: {
+    ayanamsa?: string;
+    birthUTCISO?: string;
+    moonLonSidDeg?: number | null;
     ascendant?: any;
-    natal?: {
-      ayanamsa?: string;
-      birthUTCISO?: string;
-      moonLonSidDeg?: number | null;
-      ascendant?: any;
-      planets?: any[];
-      aspects?: any[];
-      strengths?: any[];
-      sourceNote?: string;
-      [key: string]: any;
-    };
-    houses?: any[];
-    roles?: any;
-    vedicAspects?: any;
-    houseJudgement?: any;
-    bhavaChalit?: any;
+    planets?: any[];
+    aspects?: any[];
+    strengths?: any[];
+    sourceNote?: string;
+    [key: string]: any;
   };
-
-  timing?: {
-  dasha?: {
-    current?: Record<string, any>;
-    timelines?: {
-      md?: any[];
-      adInCurrentMd?: any[];
-      pdInCurrentAd?: any[];
-    };
-    tree?: any[];
-  };
-  panchang?: any;
-  moonContext?: any;
-  selectedDate?: any;
-  dashaContext?: any;
-  nakshatraContext?: any;
-  utilities?: {
-    dateISO?: string;
-    horaDateISO?: string;
-    time?: string;
-    place?: {
-      name?: string;
-      lat?: number;
-      lon?: number;
-      timezone?: string;
-    };
-    timezone?: string;
-    panchang?: any;
-    hora?: {
-      horaLord?: string | null;
-      horaNumber?: number | null;
-      phase?: string | null;
-      startsAt?: string | null;
-      endsAt?: string | null;
-    } | null;
+  houses?: any[];
+  roles?: any;
+  vedicAspects?: any;
+  houseJudgement?: any;
+  bhavaChalit?: any;
+  upagrahas?: any;
+  personalStrength?: {
+    tarabalam?: any;
+    chandrabalam?: any;
+    natalMoonNakshatra?: string | null;
+    natalMoonSign?: string | null;
+    transitMoonNakshatra?: string | null;
+    transitMoonSign?: string | null;
   };
 };
+
+  timing?: {
+    dasha?: {
+      current?: Record<string, any>;
+      timelines?: {
+        md?: any[];
+        adInCurrentMd?: any[];
+        pdInCurrentAd?: any[];
+      };
+      tree?: any[];
+    };
+    panchang?: any;
+    moonContext?: any;
+    selectedDate?: any;
+    dashaContext?: any;
+    nakshatraContext?: any;
+    utilities?: {
+      dateISO?: string;
+      horaDateISO?: string;
+      time?: string;
+      place?: {
+        name?: string;
+        lat?: number;
+        lon?: number;
+        timezone?: string;
+      };
+      timezone?: string;
+      panchang?: any;
+      hora?: {
+        horaLord?: string | null;
+        horaNumber?: number | null;
+        phase?: string | null;
+        startsAt?: string | null;
+        endsAt?: string | null;
+      } | null;
+    };
+    personalStrength?: {
+  tarabalam?: any;
+  chandrabalam?: any;
+  natalMoonNakshatra?: string | null;
+  natalMoonSign?: string | null;
+  transitMoonNakshatra?: string | null;
+  transitMoonSign?: string | null;
+};
+  };
 
   transits?: {
     transitNow?: any;
@@ -242,7 +262,7 @@ function LockingCityAutocomplete({
   const [items, setItems] = React.useState<Array<{ name: string; lat: number; lon: number }>>([]);
   const inputRef = React.useRef<HTMLInputElement>(null);
   const timerRef = React.useRef<number | null>(null);
-
+  const [utilityMetaData, setUtilityMetaData] = useState<any | null>(null);
   React.useEffect(() => {
     setQ(value?.name ?? "");
   }, [value?.name]);
@@ -486,7 +506,20 @@ function PrimarySignalsCard({
     </div>
   );
 }
+function getOrdinalSuffix(n: number) {
+  if (n >= 11 && n <= 13) return "th";
 
+  switch (n % 10) {
+    case 1:
+      return "st";
+    case 2:
+      return "nd";
+    case 3:
+      return "rd";
+    default:
+      return "th";
+  }
+}
 export default function DataEnginePage() {
   const [activeTab, setActiveTab] = useState<TabKey>("foundations");
   const [loading, setLoading] = useState(false);
@@ -506,6 +539,7 @@ export default function DataEnginePage() {
   const [compareDateISO, setCompareDateISO] = useState("");
  const [utilityPanchangData, setUtilityPanchangData] = useState<any | null>(null);
 const [utilityHoraData, setUtilityHoraData] = useState<any | null>(null);
+const [utilityMetaData, setUtilityMetaData] = useState<any | null>(null);
 
 const [utilityPanchangLoading, setUtilityPanchangLoading] = useState(false);
 const [utilityHoraLoading, setUtilityHoraLoading] = useState(false);
@@ -608,17 +642,19 @@ async function handleGeneratePanchang() {
 
     const json = await res.json();
 
-    if (!res.ok || json?.ok === false) {
-      throw new Error(json?.error || "Failed to update Panchang.");
-    }
+if (!res.ok || json?.ok === false) {
+  throw new Error(json?.error || "Failed to update Panchang.");
+}
 
-    setUtilityPanchangData(json?.timing?.utilities?.panchang ?? null);
+setUtilityPanchangData(json?.timing?.utilities?.panchang ?? null);
+setUtilityMetaData(json?.timing?.personalStrength ?? null);
   } catch (e: any) {
     setUtilityPanchangError(e?.message || "Something went wrong.");
   } finally {
     setUtilityPanchangLoading(false);
   }
 }
+
 async function handleGenerate() {
   if (!selectedPlace) {
     setError("Please select a place.");
@@ -825,10 +861,25 @@ const utilityPanchang = useMemo(
   () => utilityPanchangData ?? null,
   [utilityPanchangData]
 );
-
+const utilityPersonalStrength = useMemo(
+  () => utilityMetaData ?? null,
+  [utilityMetaData]
+);
 const utilityHora = useMemo(
   () => utilityHoraData ?? null,
   [utilityHoraData]
+);
+const upagrahas = useMemo(
+  () => data?.foundations?.upagrahas ?? data?.upagrahas ?? null,
+  [data]
+);
+
+const foundationPersonalStrength = useMemo(
+  () =>
+    data?.foundations?.personalStrength ??
+    data?.timing?.personalStrength ??
+    null,
+  [data]
 );
   useEffect(() => {
     if (data) {
@@ -1328,6 +1379,287 @@ const utilityHora = useMemo(
                       watchouts={watchouts}
                     />
                   </div>
+                 <section className="space-y-4">
+  <div>
+    <h2 className="text-lg font-semibold text-white">Upagrahas & Moon Strength</h2>
+    <p className="text-sm text-white/50">
+      Chart-linked Gulika, Mandi, and daily lunar support factors for judgement.
+    </p>
+  </div>
+
+  <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+    <div className="space-y-4">
+      {/* Gulika */}
+      <div className="rounded-2xl border border-white/10 bg-slate-900 p-4 text-sm text-white shadow-sm">
+        <div className="text-xs font-medium uppercase tracking-wide text-white/45">
+          Gulika
+        </div>
+
+        {!upagrahas?.gulika ? (
+          <div className="mt-2 text-white/50">No Gulika data available.</div>
+        ) : (
+          <div className="mt-3 space-y-4">
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="text-lg font-semibold text-white">
+                  {upagrahas?.gulika?.sign ?? "—"}
+                  {upagrahas?.gulika?.houseFromAsc
+                    ? ` • ${upagrahas.gulika.houseFromAsc}${getOrdinalSuffix(
+                        upagrahas.gulika.houseFromAsc
+                      )} House`
+                    : ""}
+                </div>
+
+                {upagrahas?.gulika?.flags?.isDusthana ? (
+                  <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-white/80">
+                    Dusthana
+                  </span>
+                ) : null}
+
+                {upagrahas?.gulika?.flags?.isUpachaya ? (
+                  <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-white/80">
+                    Upachaya
+                  </span>
+                ) : null}
+
+                {upagrahas?.gulika?.flags?.isKendra ? (
+                  <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-white/80">
+                    Kendra
+                  </span>
+                ) : null}
+
+                {upagrahas?.gulika?.flags?.isTrikona ? (
+                  <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-white/80">
+                    Trikona
+                  </span>
+                ) : null}
+
+                {upagrahas?.gulika?.flags?.isMaraka ? (
+                  <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-white/80">
+                    Maraka
+                  </span>
+                ) : null}
+              </div>
+
+              <div className="mt-1 text-sm text-white/65">
+                {upagrahas?.gulika?.nakshatra ?? "—"}
+                {upagrahas?.gulika?.pada ? ` • Pada ${upagrahas.gulika.pada}` : ""}
+                {upagrahas?.gulika?.degree != null ? ` • ${upagrahas.gulika.degree}°` : ""}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <div className="text-white/45">Method</div>
+                <div className="mt-1 text-white/85">
+                  {upagrahas?.traditionLabel ?? upagrahas?.methodId ?? "—"}
+                </div>
+              </div>
+
+              <div>
+                <div className="text-white/45">Birth Basis</div>
+                <div className="mt-1 text-white/85 capitalize">
+                  {upagrahas?.gulika?.phase ?? "—"} • {upagrahas?.gulika?.weekday ?? "—"}
+                </div>
+              </div>
+
+              <div>
+                <div className="text-white/45">Segment</div>
+                <div className="mt-1 text-white/85">
+                  {upagrahas?.gulika?.segmentIndex ?? "—"}
+                </div>
+              </div>
+
+              <div>
+                <div className="text-white/45">Longitude</div>
+                <div className="mt-1 text-white/85">
+                  {upagrahas?.gulika?.lon != null
+                    ? `${upagrahas.gulika.lon.toFixed(2)}°`
+                    : "—"}
+                </div>
+              </div>
+
+              <div>
+                <div className="text-white/45">Point Type</div>
+                <div className="mt-1 text-white/85 capitalize">
+                  {upagrahas?.gulika?.pointMomentType ?? "—"}
+                </div>
+              </div>
+
+              <div>
+                <div className="text-white/45">Point Moment</div>
+                <div className="mt-1 text-white/85">
+                  {upagrahas?.gulika?.pointMomentISO
+                    ? new Date(upagrahas.gulika.pointMomentISO).toLocaleString()
+                    : "—"}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Mandi */}
+      <div className="rounded-2xl border border-white/10 bg-slate-900 p-4 text-sm text-white shadow-sm">
+        <div className="text-xs font-medium uppercase tracking-wide text-white/45">
+          Mandi
+        </div>
+
+        {!upagrahas?.mandi ? (
+          <div className="mt-2 text-white/50">No Mandi data available.</div>
+        ) : (
+          <div className="mt-3 space-y-4">
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="text-lg font-semibold text-white">
+                  {upagrahas?.mandi?.sign ?? "—"}
+                  {upagrahas?.mandi?.houseFromAsc
+                    ? ` • ${upagrahas.mandi.houseFromAsc}${getOrdinalSuffix(
+                        upagrahas.mandi.houseFromAsc
+                      )} House`
+                    : ""}
+                </div>
+
+                {upagrahas?.mandi?.flags?.isDusthana ? (
+                  <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-white/80">
+                    Dusthana
+                  </span>
+                ) : null}
+
+                {upagrahas?.mandi?.flags?.isUpachaya ? (
+                  <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-white/80">
+                    Upachaya
+                  </span>
+                ) : null}
+
+                {upagrahas?.mandi?.flags?.isKendra ? (
+                  <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-white/80">
+                    Kendra
+                  </span>
+                ) : null}
+
+                {upagrahas?.mandi?.flags?.isTrikona ? (
+                  <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-white/80">
+                    Trikona
+                  </span>
+                ) : null}
+
+                {upagrahas?.mandi?.flags?.isMaraka ? (
+                  <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-white/80">
+                    Maraka
+                  </span>
+                ) : null}
+              </div>
+
+              <div className="mt-1 text-sm text-white/65">
+                {upagrahas?.mandi?.nakshatra ?? "—"}
+                {upagrahas?.mandi?.pada ? ` • Pada ${upagrahas.mandi.pada}` : ""}
+                {upagrahas?.mandi?.degree != null ? ` • ${upagrahas.mandi.degree}°` : ""}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <div className="text-white/45">Method</div>
+                <div className="mt-1 text-white/85">
+                  {upagrahas?.traditionLabel ?? upagrahas?.methodId ?? "—"}
+                </div>
+              </div>
+
+              <div>
+                <div className="text-white/45">Birth Basis</div>
+                <div className="mt-1 text-white/85 capitalize">
+                  {upagrahas?.mandi?.phase ?? "—"} • {upagrahas?.mandi?.weekday ?? "—"}
+                </div>
+              </div>
+
+              <div>
+                <div className="text-white/45">Segment</div>
+                <div className="mt-1 text-white/85">
+                  {upagrahas?.mandi?.segmentIndex ?? "—"}
+                </div>
+              </div>
+
+              <div>
+                <div className="text-white/45">Longitude</div>
+                <div className="mt-1 text-white/85">
+                  {upagrahas?.mandi?.lon != null
+                    ? `${upagrahas.mandi.lon.toFixed(2)}°`
+                    : "—"}
+                </div>
+              </div>
+
+              <div>
+                <div className="text-white/45">Point Type</div>
+                <div className="mt-1 text-white/85 capitalize">
+                  {upagrahas?.mandi?.pointMomentType ?? "—"}
+                </div>
+              </div>
+
+              <div>
+                <div className="text-white/45">Point Moment</div>
+                <div className="mt-1 text-white/85">
+                  {upagrahas?.mandi?.pointMomentISO
+                    ? new Date(upagrahas.mandi.pointMomentISO).toLocaleString()
+                    : "—"}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+
+    <div className="rounded-2xl border border-white/10 bg-slate-900 p-4 text-sm text-white shadow-sm">
+      <div className="text-xs font-medium uppercase tracking-wide text-white/45">
+        Tarabala & Chandrabala
+      </div>
+
+      {!foundationPersonalStrength ? (
+        <div className="mt-2 text-white/50">No lunar strength data available.</div>
+      ) : (
+        <div className="mt-3 space-y-2">
+          <div>
+            <span className="text-white/45">Tarabala:</span>{" "}
+            {foundationPersonalStrength?.tarabalam?.tara ?? "—"}
+          </div>
+          <div>
+            <span className="text-white/45">Tarabala Favorable:</span>{" "}
+            {foundationPersonalStrength?.tarabalam?.favorable == null
+              ? "—"
+              : foundationPersonalStrength.tarabalam.favorable
+              ? "Yes"
+              : "No"}
+          </div>
+          <div>
+            <span className="text-white/45">Chandrabala Favorable:</span>{" "}
+            {foundationPersonalStrength?.chandrabalam?.favorable == null
+              ? "—"
+              : foundationPersonalStrength.chandrabalam.favorable
+              ? "Yes"
+              : "No"}
+          </div>
+          <div>
+            <span className="text-white/45">Natal Moon Nakshatra:</span>{" "}
+            {foundationPersonalStrength?.natalMoonNakshatra ?? "—"}
+          </div>
+          <div>
+            <span className="text-white/45">Transit Moon Nakshatra:</span>{" "}
+            {foundationPersonalStrength?.transitMoonNakshatra ?? "—"}
+          </div>
+          <div>
+            <span className="text-white/45">Natal Moon Sign:</span>{" "}
+            {foundationPersonalStrength?.natalMoonSign ?? "—"}
+          </div>
+          <div>
+            <span className="text-white/45">Transit Moon Sign:</span>{" "}
+            {foundationPersonalStrength?.transitMoonSign ?? "—"}
+          </div>
+        </div>
+      )}
+    </div>
+  </div>
+</section>
                 </section>
 
                 <section className="space-y-4">
@@ -1570,29 +1902,45 @@ const utilityHora = useMemo(
         <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-5">
           <h3 className="text-base font-semibold text-white">Hora Result</h3>
           <p className="mt-1 text-sm text-white/60">
-            {utilityHoraPlace?.name ?? "Selected city"}, {utilityHoraDateISO} at {utilityHoraTime}
+            {utilityHoraPlace?.name ?? "Selected city"}, {utilityHoraDateISO} at{" "}
+            {utilityHoraTime}
           </p>
-          <p className="mt-2 text-xs text-white/45 italic">
-      Calculated using variable hora based on local sunrise and sunset.
-    </p>
+          <p className="mt-2 text-xs italic text-white/45">
+            Calculated using variable hora based on local sunrise and sunset.
+          </p>
+
           <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-              <div className="text-xs uppercase tracking-wide text-white/45">Planet</div>
-              <div className="mt-1 text-lg font-semibold text-white">{utilityHora.horaLord}</div>
+              <div className="text-xs uppercase tracking-wide text-white/45">
+                Planet
+              </div>
+              <div className="mt-1 text-lg font-semibold text-white">
+                {utilityHora.horaLord}
+              </div>
             </div>
 
             <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-              <div className="text-xs uppercase tracking-wide text-white/45">Phase</div>
-              <div className="mt-1 text-lg font-semibold text-white">{utilityHora.phase ?? "—"}</div>
+              <div className="text-xs uppercase tracking-wide text-white/45">
+                Phase
+              </div>
+              <div className="mt-1 text-lg font-semibold text-white">
+                {utilityHora.phase ?? "—"}
+              </div>
             </div>
 
             <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-              <div className="text-xs uppercase tracking-wide text-white/45">Hora Number</div>
-              <div className="mt-1 text-lg font-semibold text-white">{utilityHora.horaNumber ?? "—"}</div>
+              <div className="text-xs uppercase tracking-wide text-white/45">
+                Hora Number
+              </div>
+              <div className="mt-1 text-lg font-semibold text-white">
+                {utilityHora.horaNumber ?? "—"}
+              </div>
             </div>
 
             <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-              <div className="text-xs uppercase tracking-wide text-white/45">Time Slot</div>
+              <div className="text-xs uppercase tracking-wide text-white/45">
+                Time Slot
+              </div>
               <div className="mt-1 text-lg font-semibold text-white">
                 {utilityHora.startsAt} → {utilityHora.endsAt}
               </div>
@@ -1651,82 +1999,217 @@ const utilityHora = useMemo(
       ) : null}
 
       {utilityPanchang ? (
-        <div className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.04)_inset]">
-          <h3 className="text-2xl font-semibold text-white">Today’s Panchang</h3>
-          <p className="mt-2 text-sm text-white/60">
-            {utilityPanchangPlace?.name ?? "Selected city"}, {utilityPanchangDateISO}
-          </p>
+        <>
+          <div className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.04)_inset]">
+            <h3 className="text-2xl font-semibold text-white">Today’s Panchang</h3>
+            <p className="mt-2 text-sm text-white/60">
+              {utilityPanchangPlace?.name ?? "Selected city"}, {utilityPanchangDateISO}
+            </p>
 
-          <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-2">
-            <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/5">
-              <table className="w-full table-fixed border-collapse">
-                <tbody>
-                  {[
-                    ["Date", utilityPanchang?.dateLabel ?? utilityPanchangDateISO],
-                    ["Tithi", utilityPanchang?.tithi ?? "—"],
-                    ["Day", utilityPanchang?.weekday ?? "—"],
-                    ["Paksha", utilityPanchang?.paksha ?? "—"],
-                    ["Sunrise", utilityPanchang?.sunrise ?? "—"],
-                    ["Sunset", utilityPanchang?.sunset ?? "—"],
-                    ...(utilityPanchang?.moonrise ? [["Moonrise", utilityPanchang.moonrise]] : []),
-                    ["Nakshatra (Sunrise)", utilityPanchang?.nakshatraAtSunrise || "—"],
-["Nakshatra (Noon)", utilityPanchang?.nakshatraNow || "—"],
-["Next Nakshatra", utilityPanchang?.nextNakshatra || "—"],
-                  ].map(([label, value], idx) => (
-                    <tr key={`${String(label)}-${idx}`} className="border-b border-white/10 last:border-b-0">
-                      <td className="w-[38%] px-6 py-5 text-lg font-semibold text-white align-middle">
-                        {String(label)}
-                      </td>
-                      <td className="px-6 py-5 text-right text-lg text-white/90 align-middle">
-                        {String(value ?? "—")}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-2">
+              <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/5">
+                <table className="w-full table-fixed border-collapse">
+                  <tbody>
+                    {[
+                      ["Date", utilityPanchang?.dateLabel ?? utilityPanchangDateISO],
+                      ["Tithi", utilityPanchang?.tithi ?? "—"],
+                      ["Tithi Till", utilityPanchang?.tithiTill || "—"],
+                      ["Next Tithi", utilityPanchang?.nextTithi || "—"],
+                      ["Day", utilityPanchang?.weekday ?? "—"],
+                      ["Paksha", utilityPanchang?.paksha ?? "—"],
+                      ["Sunrise", utilityPanchang?.sunrise ?? "—"],
+                      ["Sunset", utilityPanchang?.sunset ?? "—"],
+                      ...(utilityPanchang?.moonrise
+                        ? [["Moonrise", utilityPanchang.moonrise]]
+                        : []),
+                      ["Nakshatra", utilityPanchang?.nakshatraAtSunrise || "—"],
+                      ["Nakshatra Till", utilityPanchang?.nakshatraTill || "—"],
+                      ["Next Nakshatra", utilityPanchang?.nextNakshatra || "—"],
+                    ].map(([label, value], idx) => (
+                      <tr
+                        key={`${String(label)}-${idx}`}
+                        className="border-b border-white/10 last:border-b-0"
+                      >
+                        <td className="w-[38%] px-6 py-5 align-middle text-lg font-semibold text-white">
+                          {String(label)}
+                        </td>
+                        <td className="px-6 py-5 text-right align-middle text-lg text-white/90">
+                          {String(value ?? "—")}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
 
-            <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/5">
-              <table className="w-full table-fixed border-collapse">
-                <tbody>
-                  {[
-                    ["Yog", utilityPanchang?.yoga ?? "—"],
-                    ...(utilityPanchang?.yogaTill ? [["Yog Till", utilityPanchang.yogaTill]] : []),
-                    ...(utilityPanchang?.nakshatraTill
-                      ? [["Nakshatra Till", utilityPanchang.nakshatraTill]]
-                      : []),
-                    ["Karan I", utilityPanchang?.karana ?? "—"],
-                    ["Surya Rashi", utilityPanchang?.sunSign ?? "—"],
-                    ["Chandra Rashi", utilityPanchang?.moonSign ?? "—"],
-                    ...(utilityPanchang?.rahuKaal
-                      ? [[
-                          "Rahu Kaal",
-                          `${utilityPanchang.rahuKaal.start} to ${utilityPanchang.rahuKaal.end}`,
-                        ]]
-                      : []),
-                  ].map(([label, value], idx) => (
-                    <tr key={`${String(label)}-${idx}`} className="border-b border-white/10 last:border-b-0">
-                      <td className="w-[42%] px-6 py-5 text-lg font-semibold text-white align-middle">
-                        {String(label)}
-                      </td>
-                      <td className="px-6 py-5 text-right text-lg text-white/90 align-middle">
-                        {String(value ?? "—")}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/5">
+                <table className="w-full table-fixed border-collapse">
+                  <tbody>
+                    {[
+                      ["Yog", utilityPanchang?.yoga || "—"],
+                      ["Yog Till", utilityPanchang?.yogaTill || "—"],
+                      ["Next Yog", utilityPanchang?.nextYoga || "—"],
+                      ["Karana", utilityPanchang?.karana || "—"],
+                      ["Karana Till", utilityPanchang?.karanaTill || "—"],
+                      ["Next Karana", utilityPanchang?.nextKarana || "—"],
+                      ["Sun sign", utilityPanchang?.sunSign ?? "—"],
+                      ["Moon Sign", utilityPanchang?.moonSign ?? "—"],
+                      ["Moon Sign Till", utilityPanchang?.moonSignTill || "—"],
+                      ["Next Moon Sign", utilityPanchang?.nextMoonSign || "—"],
+                      ["Panchak", utilityPanchang?.panchak?.active ? "Yes" : "No"],
+                    ].map(([label, value], idx) => (
+                      <tr
+                        key={`${String(label)}-${idx}`}
+                        className="border-b border-white/10 last:border-b-0"
+                      >
+                        <td className="w-[42%] px-6 py-5 align-middle text-lg font-semibold text-white">
+                          {String(label)}
+                        </td>
+                        <td className="px-6 py-5 text-right align-middle text-lg text-white/90">
+                          {String(value ?? "—")}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
-        </div>
+
+          <div className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.04)_inset]">
+            <h3 className="text-2xl font-semibold text-white">Muhurat Windows</h3>
+            <p className="mt-2 text-sm text-white/60">
+              Daily timing windows for {utilityPanchangPlace?.name ?? "Selected city"},{" "}
+              {utilityPanchangDateISO}
+            </p>
+
+            <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+              <div className="rounded-2xl border border-red-400/20 bg-red-500/10 p-5">
+                <div className="text-xs uppercase tracking-wide text-red-200/70">
+                  Rahu Kaal
+                </div>
+                <div className="mt-2 text-lg font-semibold text-red-100">
+                  {utilityPanchang?.rahuKaal
+                    ? `${utilityPanchang.rahuKaal.start} to ${utilityPanchang.rahuKaal.end}`
+                    : "—"}
+                </div>
+                <p className="mt-2 text-sm text-red-100/70">
+                  Traditionally avoided for major beginnings.
+                </p>
+              </div>
+
+              <div className="rounded-2xl border border-amber-400/20 bg-amber-500/10 p-5">
+                <div className="text-xs uppercase tracking-wide text-amber-200/70">
+                  Yamaganda
+                </div>
+                <div className="mt-2 text-lg font-semibold text-amber-100">
+                  {utilityPanchang?.yamaganda
+                    ? `${utilityPanchang.yamaganda.start} to ${utilityPanchang.yamaganda.end}`
+                    : "—"}
+                </div>
+                <p className="mt-2 text-sm text-amber-100/70">
+                  Usually avoided for travel and new activity.
+                </p>
+              </div>
+
+              <div className="rounded-2xl border border-fuchsia-400/20 bg-fuchsia-500/10 p-5">
+                <div className="text-xs uppercase tracking-wide text-fuchsia-200/70">
+                  Gulika
+                </div>
+                <div className="mt-2 text-lg font-semibold text-fuchsia-100">
+                  {utilityPanchang?.gulika
+                    ? `${utilityPanchang.gulika.start} to ${utilityPanchang.gulika.end}`
+                    : "—"}
+                </div>
+                <p className="mt-2 text-sm text-fuchsia-100/70">
+                  Important for certain electional considerations.
+                </p>
+              </div>
+
+              <div className="rounded-2xl border border-emerald-400/20 bg-emerald-500/10 p-5">
+                <div className="text-xs uppercase tracking-wide text-emerald-200/70">
+                  Abhijit Muhurat
+                </div>
+                <div className="mt-2 text-lg font-semibold text-emerald-100">
+                  {utilityPanchang?.abhijitMuhurat
+                    ? `${utilityPanchang.abhijitMuhurat.start} to ${utilityPanchang.abhijitMuhurat.end}`
+                    : "—"}
+                </div>
+                <p className="mt-2 text-sm text-emerald-100/70">
+                  Generally considered supportive for auspicious action.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {utilityPanchang?.choghadiya ? (
+            <div className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.04)_inset]">
+              <h3 className="text-2xl font-semibold text-white">Choghadiya</h3>
+              <p className="mt-2 text-sm text-white/60">
+                Day and night Choghadiya for{" "}
+                {utilityPanchangPlace?.name ?? "Selected city"}, {utilityPanchangDateISO}
+              </p>
+
+              <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-2">
+                <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/5">
+                  <div className="border-b border-white/10 px-6 py-4 text-lg font-semibold text-white">
+                    Day Choghadiya
+                  </div>
+                  <table className="w-full table-fixed border-collapse">
+                    <tbody>
+                      {(utilityPanchang.choghadiya.day ?? []).map(
+                        (row: any, idx: number) => (
+                          <tr
+                            key={`day-${idx}`}
+                            className="border-b border-white/10 last:border-b-0"
+                          >
+                            <td className="w-[34%] px-6 py-4 text-base font-semibold text-white">
+                              {row.label}
+                            </td>
+                            <td className="px-6 py-4 text-right text-base text-white/90">
+                              {row.start} to {row.end}
+                            </td>
+                          </tr>
+                        )
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/5">
+                  <div className="border-b border-white/10 px-6 py-4 text-lg font-semibold text-white">
+                    Night Choghadiya
+                  </div>
+                  <table className="w-full table-fixed border-collapse">
+                    <tbody>
+                      {(utilityPanchang.choghadiya.night ?? []).map(
+                        (row: any, idx: number) => (
+                          <tr
+                            key={`night-${idx}`}
+                            className="border-b border-white/10 last:border-b-0"
+                          >
+                            <td className="w-[34%] px-6 py-4 text-base font-semibold text-white">
+                              {row.label}
+                            </td>
+                            <td className="px-6 py-4 text-right text-base text-white/90">
+                              {row.start} to {row.end}
+                            </td>
+                          </tr>
+                        )
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          ) : null}
+        </>
       ) : null}
     </div>
   </div>
 ) : null}
-          </div>
-         
 
-   
+          </div>
         </div>
       </section>
     </main>

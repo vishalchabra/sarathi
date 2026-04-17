@@ -2,9 +2,6 @@ import "server-only";
 
 import { DateTime } from "luxon";
 
-// NOAA-style approximation.
-// Good enough for sunrise/sunset display in the data engine.
-
 function degToRad(d: number) {
   return (d * Math.PI) / 180;
 }
@@ -95,6 +92,7 @@ function computeSunTime(params: {
     (Math.cos(degToRad(90.833)) - sinDec * Math.sin(degToRad(lat))) /
     (cosDec * Math.cos(degToRad(lat)));
 
+  // no sunrise / no sunset cases
   if (cosH > 1 || cosH < -1) {
     return null;
   }
@@ -116,12 +114,31 @@ function computeSunTime(params: {
   return localHourToDateTime(dateISO, timezone, localTime);
 }
 
+export type SolarTimesResult = {
+  method: "approx_noaa";
+  sunrise: string | null;
+  sunset: string | null;
+  previousSunset: string | null;
+  nextSunrise: string | null;
+  sunriseDT: any | null;
+  sunsetDT: any | null;
+  previousSunsetDT: any | null;
+  nextSunriseDT: any | null;
+  hasSunrise: boolean;
+  hasSunset: boolean;
+};
+
 export async function buildSolarTimes(params: {
   dateISO: string;
   timezone: string;
   lat: number;
   lon: number;
-}) {
+}): Promise<SolarTimesResult> {
+  const baseDT = DateTime.fromISO(params.dateISO, { zone: params.timezone });
+
+  const prevDateISO = baseDT.minus({ days: 1 }).toFormat("yyyy-MM-dd");
+  const nextDateISO = baseDT.plus({ days: 1 }).toFormat("yyyy-MM-dd");
+
   const sunriseDT = computeSunTime({
     ...params,
     isSunrise: true,
@@ -132,10 +149,33 @@ export async function buildSolarTimes(params: {
     isSunrise: false,
   });
 
+  const previousSunsetDT = computeSunTime({
+    dateISO: prevDateISO,
+    timezone: params.timezone,
+    lat: params.lat,
+    lon: params.lon,
+    isSunrise: false,
+  });
+
+  const nextSunriseDT = computeSunTime({
+    dateISO: nextDateISO,
+    timezone: params.timezone,
+    lat: params.lat,
+    lon: params.lon,
+    isSunrise: true,
+  });
+
   return {
+    method: "approx_noaa",
     sunrise: formatHm(sunriseDT),
     sunset: formatHm(sunsetDT),
+    previousSunset: formatHm(previousSunsetDT),
+    nextSunrise: formatHm(nextSunriseDT),
     sunriseDT,
     sunsetDT,
+    previousSunsetDT,
+    nextSunriseDT,
+    hasSunrise: !!sunriseDT,
+    hasSunset: !!sunsetDT,
   };
 }

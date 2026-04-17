@@ -32,7 +32,7 @@ import { buildFiveFoldFriendship } from "./buildFiveFoldFriendship";
 import { buildAvakhada } from "./buildAvakhada";
 import tzLookup from "tz-lookup";
 import { buildArudhas } from "./buildArudhaLagna";
-
+import { buildUpagrahaData } from "./buildUpagrahaData";
 export type DataEnginePlan = "light" | "pro";
 
 export type BirthInput = {
@@ -97,9 +97,11 @@ export type DataEngineOutput = {
     roles: any;
     vedicAspects: any;
     houseJudgement: any;
+    upagrahas: any;
+    personalStrength: any;
   };
 
-  timing: {
+timing: {
   dasha: any;
   selectedDate: any;
   panchang: any;
@@ -125,6 +127,23 @@ export type DataEngineOutput = {
       startsAt: string | null;
       endsAt: string | null;
     };
+  };
+  personalStrength: {
+    tarabalam: {
+      tara: string;
+      favorable: boolean;
+      challenging: boolean;
+      distance: number;
+    } | null;
+    chandrabalam: {
+      transitMoonSign: string;
+      houseFromNatalMoon: number;
+      favorable: boolean;
+    } | null;
+    natalMoonNakshatra: string | null;
+    natalMoonSign: string | null;
+    transitMoonNakshatra: string | null;
+    transitMoonSign: string | null;
   };
 };
 
@@ -208,6 +227,7 @@ export type DataEngineOutput = {
   roles: any;
   vedicAspects: any;
   houseJudgement: any;
+  upagrahas: any;
   bhavaChalit: any;
   classicChalit: any;
   dasha: any;
@@ -332,8 +352,18 @@ function getAccurateHoraLord(params: {
   timezone: string;
   sunrise: any | null;
   sunset: any | null;
+  previousSunset?: any | null;
+  nextSunrise?: any | null;
 }) {
-  const { birthDateISO, birthTime, timezone, sunrise, sunset } = params;
+  const {
+    birthDateISO,
+    birthTime,
+    timezone,
+    sunrise,
+    sunset,
+    previousSunset,
+    nextSunrise,
+  } = params;
 
   const birthDT = DateTime.fromISO(`${birthDateISO}T${birthTime}`, {
     zone: timezone,
@@ -351,6 +381,20 @@ function getAccurateHoraLord(params: {
 
   const sunriseDT = normalizeSolarDateTime(sunrise, birthDateISO, timezone);
   const sunsetDT = normalizeSolarDateTime(sunset, birthDateISO, timezone);
+  const previousSunsetDT = normalizeSolarDateTime(
+    previousSunset ?? null,
+    DateTime.fromISO(birthDateISO, { zone: timezone })
+      .minus({ days: 1 })
+      .toFormat("yyyy-MM-dd"),
+    timezone
+  );
+  const nextSunriseDT = normalizeSolarDateTime(
+    nextSunrise ?? null,
+    DateTime.fromISO(birthDateISO, { zone: timezone })
+      .plus({ days: 1 })
+      .toFormat("yyyy-MM-dd"),
+    timezone
+  );
 
   if (!sunriseDT || !sunsetDT) {
     return {
@@ -362,10 +406,8 @@ function getAccurateHoraLord(params: {
     };
   }
 
-  // IMPORTANT:
-  // If birth is before sunrise, Hora still belongs to the previous sunrise-based day
+  // Determine which sunrise-based weekday owns the Hora cycle
   const horaDayDT = birthDT < sunriseDT ? birthDT.minus({ days: 1 }) : birthDT;
-
   const weekdayLord = WEEKDAY_LORDS[horaDayDT.weekday % 7];
   const startIndex = getHoraIndexForPlanet(weekdayLord);
 
@@ -379,7 +421,7 @@ function getAccurateHoraLord(params: {
     };
   }
 
-  // Day hora: sunrise -> sunset
+  // Day Hora
   if (birthDT >= sunriseDT && birthDT < sunsetDT) {
     const dayMinutes = sunsetDT.diff(sunriseDT, "minutes").minutes;
     const horaLength = dayMinutes / 12;
@@ -401,35 +443,78 @@ function getAccurateHoraLord(params: {
     };
   }
 
-  // Night hora: sunset -> next day's sunrise
-  const nextSunriseDT = sunriseDT.plus({ days: 1 });
-  const nightStartIndex = (startIndex + 12) % 7;
+  // Night Hora after sunset -> next sunrise
+  if (birthDT >= sunsetDT) {
+    if (!nextSunriseDT) {
+      return {
+        horaLord: null,
+        horaNumber: null,
+        phase: null,
+        startsAt: null,
+        endsAt: null,
+      };
+    }
 
-  const nightMinutes = nextSunriseDT.diff(sunsetDT, "minutes").minutes;
-  const horaLength = nightMinutes / 12;
+    const nightStartIndex = (startIndex + 12) % 7;
+    const nightMinutes = nextSunriseDT.diff(sunsetDT, "minutes").minutes;
+    const horaLength = nightMinutes / 12;
+    const elapsed = birthDT.diff(sunsetDT, "minutes").minutes;
 
-  let effectiveBirthDT = birthDT;
-  if (birthDT < sunriseDT) {
-    effectiveBirthDT = birthDT.plus({ days: 1 });
+    const horaNumber = Math.min(12, Math.max(1, Math.floor(elapsed / horaLength) + 1));
+    const sequenceIndex = (nightStartIndex + (horaNumber - 1)) % 7;
+    const horaLord = HORA_SEQUENCE[sequenceIndex];
+
+    const startsAt = sunsetDT.plus({ minutes: (horaNumber - 1) * horaLength });
+    const endsAt = sunsetDT.plus({ minutes: horaNumber * horaLength });
+
+    return {
+      horaLord,
+      horaNumber,
+      phase: "night",
+      startsAt: startsAt.toFormat("HH:mm"),
+      endsAt: endsAt.toFormat("HH:mm"),
+    };
   }
 
-  const safeElapsed = effectiveBirthDT.diff(sunsetDT, "minutes").minutes;
-  const horaNumber = Math.min(
-    12,
-    Math.max(1, Math.floor(safeElapsed / horaLength) + 1)
-  );
-  const sequenceIndex = (nightStartIndex + (horaNumber - 1)) % 7;
-  const horaLord = HORA_SEQUENCE[sequenceIndex];
+  // Night Hora before sunrise -> previous sunset to current sunrise
+  if (birthDT < sunriseDT) {
+    if (!previousSunsetDT) {
+      return {
+        horaLord: null,
+        horaNumber: null,
+        phase: null,
+        startsAt: null,
+        endsAt: null,
+      };
+    }
 
-  const startsAt = sunsetDT.plus({ minutes: (horaNumber - 1) * horaLength });
-  const endsAt = sunsetDT.plus({ minutes: horaNumber * horaLength });
+    const nightStartIndex = (startIndex + 12) % 7;
+    const nightMinutes = sunriseDT.diff(previousSunsetDT, "minutes").minutes;
+    const horaLength = nightMinutes / 12;
+    const elapsed = birthDT.diff(previousSunsetDT, "minutes").minutes;
+
+    const horaNumber = Math.min(12, Math.max(1, Math.floor(elapsed / horaLength) + 1));
+    const sequenceIndex = (nightStartIndex + (horaNumber - 1)) % 7;
+    const horaLord = HORA_SEQUENCE[sequenceIndex];
+
+    const startsAt = previousSunsetDT.plus({ minutes: (horaNumber - 1) * horaLength });
+    const endsAt = previousSunsetDT.plus({ minutes: horaNumber * horaLength });
+
+    return {
+      horaLord,
+      horaNumber,
+      phase: "night",
+      startsAt: startsAt.toFormat("HH:mm"),
+      endsAt: endsAt.toFormat("HH:mm"),
+    };
+  }
 
   return {
-    horaLord,
-    horaNumber,
-    phase: "night",
-    startsAt: startsAt.toFormat("HH:mm"),
-    endsAt: endsAt.toFormat("HH:mm"),
+    horaLord: null,
+    horaNumber: null,
+    phase: null,
+    startsAt: null,
+    endsAt: null,
   };
 }
 function normalizeBirthTimezone(birth: BirthInput): BirthInput {
@@ -529,6 +614,105 @@ function getNakshatraAndPadaFromLon(lon: number | null | undefined) {
     pada,
   };
 }
+  const TARA_SEQUENCE = [
+  "Janma",
+  "Sampat",
+  "Vipat",
+  "Kshema",
+  "Pratyari",
+  "Sadhaka",
+  "Naidhana",
+  "Mitra",
+  "Parama Mitra",
+] as const;
+
+function getTarabalam(natalNakshatra: string | null, transitNakshatra: string | null) {
+  if (!natalNakshatra || !transitNakshatra) return null;
+
+  const nakshatras = [
+    "Ashwini",
+    "Bharani",
+    "Krittika",
+    "Rohini",
+    "Mrigashira",
+    "Ardra",
+    "Punarvasu",
+    "Pushya",
+    "Ashlesha",
+    "Magha",
+    "Purva Phalguni",
+    "Uttara Phalguni",
+    "Hasta",
+    "Chitra",
+    "Swati",
+    "Vishakha",
+    "Anuradha",
+    "Jyeshtha",
+    "Mula",
+    "Purva Ashadha",
+    "Uttara Ashadha",
+    "Shravana",
+    "Dhanishtha",
+    "Shatabhisha",
+    "Purva Bhadrapada",
+    "Uttara Bhadrapada",
+    "Revati",
+  ];
+
+  const natalIndex = nakshatras.indexOf(natalNakshatra);
+  const transitIndex = nakshatras.indexOf(transitNakshatra);
+
+  if (natalIndex === -1 || transitIndex === -1) return null;
+
+  const distance = (transitIndex - natalIndex + 27) % 27;
+  const taraIndex = distance % 9;
+  const tara = TARA_SEQUENCE[taraIndex];
+
+  const favorable = ["Sampat", "Kshema", "Sadhaka", "Mitra", "Parama Mitra"].includes(tara);
+  const challenging = ["Vipat", "Pratyari", "Naidhana"].includes(tara);
+
+  return {
+    tara,
+    favorable,
+    challenging,
+    distance: distance + 1,
+  };
+}
+
+function getChandrabalam(natalMoonSign: string | null, transitMoonSign: string | null) {
+  const rashis = [
+    "Aries",
+    "Taurus",
+    "Gemini",
+    "Cancer",
+    "Leo",
+    "Virgo",
+    "Libra",
+    "Scorpio",
+    "Sagittarius",
+    "Capricorn",
+    "Aquarius",
+    "Pisces",
+  ];
+
+  if (!natalMoonSign || !transitMoonSign) return null;
+
+  const natalIndex = rashis.indexOf(natalMoonSign);
+  const transitIndex = rashis.indexOf(transitMoonSign);
+
+  if (natalIndex === -1 || transitIndex === -1) return null;
+
+  const houseFromMoon = ((transitIndex - natalIndex + 12) % 12) + 1;
+
+  const favorableHouses = [1, 3, 6, 7, 10, 11];
+  const favorable = favorableHouses.includes(houseFromMoon);
+
+  return {
+    transitMoonSign,
+    houseFromNatalMoon: houseFromMoon,
+    favorable,
+  };
+}
 export async function buildDataEngine(
   params: BuildDataEngineParams
 ): Promise<DataEngineOutput> {
@@ -585,6 +769,8 @@ const utilityHoraInfo = getAccurateHoraLord({
   timezone: utilityTimezone,
   sunrise: utilityHoraPanchang?._sunriseDT ?? null,
   sunset: utilityHoraPanchang?._sunsetDT ?? null,
+  previousSunset: utilityHoraPanchang?._previousSunsetDT ?? null,
+  nextSunrise: utilityHoraPanchang?._nextSunriseDT ?? null,
 });
   const asc = await getAscendant({
     dateISO: birth.dateISO,
@@ -764,7 +950,34 @@ const roles = await buildFunctionalRoles({
       vargaData: vargas,
     }),
   };
+const natalMoonRow =
+  Array.isArray(natalWithStrengths.planets)
+    ? natalWithStrengths.planets.find((p: any) => p?.planet === "Moon") ?? null
+    : null;
 
+const natalMoonNakshatra =
+  natalMoonRow?.nakshatra ?? null;
+
+const natalMoonSign =
+  natalMoonRow?.sign ?? null;
+
+const utilityTransitMoonNakshatra =
+  utilityPanchang?.nakshatraAtSunrise ??
+  utilityPanchang?.nakshatra ??
+  null;
+
+const utilityTransitMoonSign =
+  utilityPanchang?.moonSign ?? null;
+
+const tarabalam = getTarabalam(
+  natalMoonNakshatra,
+  utilityTransitMoonNakshatra
+);
+
+const chandrabalam = getChandrabalam(
+  natalMoonSign,
+  utilityTransitMoonSign
+);
   const shadbala = buildShadbala({
     natalPlanets: natalWithStrengths.planets,
     aspects: (natalWithStrengths.aspects ?? []) as any[],
@@ -832,6 +1045,10 @@ const roles = await buildFunctionalRoles({
     house: natalWithStrengths.ascendant?.house ?? 1,
     lon: natalWithStrengths.ascendant?.lon ?? null,
   };
+    const upagrahas = await buildUpagrahaData({
+    birth,
+    natalAscendant: natalAscendantForEngine,
+  });
   const arudhas = buildArudhas({
   ascSign: natalBase.ascendant.sign,
   planets: reportPlanets,
@@ -949,13 +1166,15 @@ console.log("CALLING BIRTH PANCHANG", {
       })
     : null;
 
-  const horaInfo = getAccurateHoraLord({
-    birthDateISO: birth.dateISO,
-    birthTime: birth.time,
-    timezone: birth.timezone,
-    sunrise: birthPanchang?._sunriseDT ?? null,
-    sunset: birthPanchang?._sunsetDT ?? null,
-  });
+const horaInfo = getAccurateHoraLord({
+  birthDateISO: birth.dateISO,
+  birthTime: birth.time,
+  timezone: birth.timezone,
+  sunrise: birthPanchang?._sunriseDT ?? null,
+  sunset: birthPanchang?._sunsetDT ?? null,
+  previousSunset: birthPanchang?._previousSunsetDT ?? null,
+  nextSunrise: birthPanchang?._nextSunriseDT ?? null,
+});
 
   const birthMeta: BirthMeta = {
     name: birth.name,
@@ -989,14 +1208,23 @@ console.log("CALLING BIRTH PANCHANG", {
     },
 
     foundations: {
-      birthMeta,
-      ascendant: natalWithStrengths.ascendant,
-      natal: natalWithStrengths,
-      houses,
-      roles,
-      vedicAspects,
-      houseJudgement,
-    },
+  birthMeta,
+  ascendant: natalWithStrengths.ascendant,
+  natal: natalWithStrengths,
+  houses,
+  roles,
+  vedicAspects,
+  houseJudgement,
+  upagrahas,
+  personalStrength: {
+    tarabalam,
+    chandrabalam,
+    natalMoonNakshatra,
+    natalMoonSign,
+    transitMoonNakshatra: utilityTransitMoonNakshatra,
+    transitMoonSign: utilityTransitMoonSign,
+  },
+},
 
     timing: {
       dasha,
@@ -1013,6 +1241,14 @@ console.log("CALLING BIRTH PANCHANG", {
     timezone: utilityTimezone,
     panchang: utilityPanchang,
     hora: utilityHoraInfo,
+  },
+   personalStrength: {
+    tarabalam,
+    chandrabalam,
+    natalMoonNakshatra,
+    natalMoonSign,
+    transitMoonNakshatra: utilityTransitMoonNakshatra,
+    transitMoonSign: utilityTransitMoonSign,
   },
     },
 
@@ -1043,6 +1279,7 @@ console.log("CALLING BIRTH PANCHANG", {
     roles,
     vedicAspects,
     houseJudgement,
+    upagrahas,
     dasha,
     transitNow,
     selectedDate,
