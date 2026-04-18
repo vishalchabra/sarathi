@@ -65,6 +65,7 @@ type DataEngineResponse = {
   vedicAspects?: any;
   houseJudgement?: any;
   upagrahas?: any;
+  solarShadowPoints?: any;
   bhavaChalit?: any;
   classicChalit?: any;
   debugLifeReport?: any;
@@ -109,6 +110,7 @@ type DataEngineResponse = {
   houseJudgement?: any;
   bhavaChalit?: any;
   upagrahas?: any;
+  solarShadowPoints?: any;
   personalStrength?: {
     tarabalam?: any;
     chandrabalam?: any;
@@ -874,7 +876,13 @@ const upagrahas = useMemo(
   () => data?.foundations?.upagrahas ?? data?.upagrahas ?? null,
   [data]
 );
-
+const solarShadowPoints = useMemo(
+  () =>
+    data?.foundations?.solarShadowPoints ??
+    data?.solarShadowPoints ??
+    null,
+  [data]
+);
 const foundationPersonalStrength = useMemo(
   () =>
     data?.foundations?.personalStrength ??
@@ -1382,10 +1390,10 @@ const foundationPersonalStrength = useMemo(
                   </div>
                  <section className="space-y-4">
   <div>
-    <h2 className="text-lg font-semibold text-white">Upagrahas & Moon Strength</h2>
-    <p className="text-sm text-white/50">
-      Chart-linked Gulika, Mandi, Yamakantaka, Kala, Mrityu, and daily lunar support factors for judgement.
-    </p>
+    <h2 className="text-lg font-semibold text-white">Upagrahas, Solar Shadow Points & Moon Strength</h2>
+<p className="text-sm text-white/50">
+  Chart-linked segmented upagrahas, classical solar shadow points, and daily lunar support factors for judgement.
+</p>
   </div>
 
   <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -1418,7 +1426,35 @@ const foundationPersonalStrength = useMemo(
       point={upagrahas?.mrityu}
       methodLabel={upagrahas?.traditionLabel ?? upagrahas?.methodId ?? "—"}
     />
+   <UpagrahaCard
+  title="Dhuma"
+  point={solarShadowPoints?.dhuma}
+  methodLabel={solarShadowPoints?.traditionLabel ?? solarShadowPoints?.methodId ?? "—"}
+/>
 
+<UpagrahaCard
+  title="Vyatipata"
+  point={solarShadowPoints?.vyatipata}
+  methodLabel={solarShadowPoints?.traditionLabel ?? solarShadowPoints?.methodId ?? "—"}
+/>
+
+<UpagrahaCard
+  title="Parivesha"
+  point={solarShadowPoints?.parivesha}
+  methodLabel={solarShadowPoints?.traditionLabel ?? solarShadowPoints?.methodId ?? "—"}
+/>
+
+<UpagrahaCard
+  title="Indrachapa"
+  point={solarShadowPoints?.indrachapa}
+  methodLabel={solarShadowPoints?.traditionLabel ?? solarShadowPoints?.methodId ?? "—"}
+/>
+
+<UpagrahaCard
+  title="Upaketu"
+  point={solarShadowPoints?.upaketu}
+  methodLabel={solarShadowPoints?.traditionLabel ?? solarShadowPoints?.methodId ?? "—"}
+/>
     <div className="rounded-2xl border border-white/10 bg-slate-900 p-4 text-sm text-white shadow-sm">
       <div className="text-xs font-medium uppercase tracking-wide text-white/45">
         Tarabala & Chandrabala

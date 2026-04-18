@@ -123,13 +123,15 @@ export default function UpagrahaCard({
             <div>
               <div className="text-white/45">Birth Basis</div>
               <div className="mt-1 text-white/85 capitalize">
-                {point.phase ?? "—"} • {point.weekday ?? "—"}
+                {point.phase || point.weekday
+  ? `${point.phase ?? "—"} • ${point.weekday ?? "—"}`
+  : "Solar Formula"}
               </div>
             </div>
 
             <div>
               <div className="text-white/45">Segment</div>
-              <div className="mt-1 text-white/85">{point.segmentIndex ?? "—"}</div>
+              <div className="mt-1 text-white/85">{point.segmentIndex ?? "N/A"}</div>
             </div>
 
             <div>
@@ -142,7 +144,7 @@ export default function UpagrahaCard({
             <div>
               <div className="text-white/45">Point Type</div>
               <div className="mt-1 text-white/85 capitalize">
-                {point.pointMomentType ?? "—"}
+                {point.pointMomentType ?? "Formula"}
               </div>
             </div>
 
@@ -150,8 +152,8 @@ export default function UpagrahaCard({
               <div className="text-white/45">Point Moment</div>
               <div className="mt-1 text-white/85">
                 {point.pointMomentISO
-                  ? new Date(point.pointMomentISO).toLocaleString()
-                  : "—"}
+  ? new Date(point.pointMomentISO).toLocaleString()
+  : "Derived mathematically"}
               </div>
             </div>
           </div>

@@ -33,6 +33,7 @@ import { buildAvakhada } from "./buildAvakhada";
 import tzLookup from "tz-lookup";
 import { buildArudhas } from "./buildArudhaLagna";
 import { buildUpagrahaData } from "./buildUpagrahaData";
+import { buildSolarShadowPoints } from "./buildSolarShadowPoints";
 export type DataEnginePlan = "light" | "pro";
 
 export type BirthInput = {
@@ -98,6 +99,7 @@ export type DataEngineOutput = {
     vedicAspects: any;
     houseJudgement: any;
     upagrahas: any;
+    solarShadowPoints: any;
     personalStrength: any;
   };
 
@@ -228,6 +230,7 @@ timing: {
   vedicAspects: any;
   houseJudgement: any;
   upagrahas: any;
+  solarShadowPoints: any;
   bhavaChalit: any;
   classicChalit: any;
   dasha: any;
@@ -1049,6 +1052,10 @@ const chandrabalam = getChandrabalam(
     birth,
     natalAscendant: natalAscendantForEngine,
   });
+  const solarShadowPoints = buildSolarShadowPoints({
+  natalPlanets: natalWithStrengths.planets,
+  natalAscendant: natalAscendantForEngine,
+});
   const arudhas = buildArudhas({
   ascSign: natalBase.ascendant.sign,
   planets: reportPlanets,
@@ -1216,6 +1223,7 @@ const horaInfo = getAccurateHoraLord({
   vedicAspects,
   houseJudgement,
   upagrahas,
+  solarShadowPoints,
   personalStrength: {
     tarabalam,
     chandrabalam,
@@ -1280,6 +1288,7 @@ const horaInfo = getAccurateHoraLord({
     vedicAspects,
     houseJudgement,
     upagrahas,
+    solarShadowPoints,
     dasha,
     transitNow,
     selectedDate,
