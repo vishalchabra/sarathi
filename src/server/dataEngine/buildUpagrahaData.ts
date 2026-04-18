@@ -21,6 +21,15 @@ type NatalAscendantInput = {
   lon: number | null;
 };
 
+type UpagrahaKey =
+  | "gulika"
+  | "mandi"
+  | "yamakantaka"
+  | "kala"
+  | "mrityu";
+
+type BirthPhase = "day" | "night";
+
 const SIGN_TO_NUM: Record<string, number> = {
   Aries: 1,
   Taurus: 2,
@@ -66,8 +75,129 @@ const NAKSHATRA_NAMES = [
   "Revati",
 ] as const;
 
+const UPAGRAHA_SLOT_MAP: Record<
+  UpagrahaKey,
+  Record<BirthPhase, Record<string, number>>
+> = {
+  gulika: {
+    day: {
+      Sunday: 7,
+      Monday: 6,
+      Tuesday: 5,
+      Wednesday: 4,
+      Thursday: 3,
+      Friday: 2,
+      Saturday: 1,
+    },
+    night: {
+      Sunday: 6,
+      Monday: 5,
+      Tuesday: 4,
+      Wednesday: 3,
+      Thursday: 2,
+      Friday: 1,
+      Saturday: 7,
+    },
+  },
+
+  mandi: {
+    day: {
+      Sunday: 7,
+      Monday: 6,
+      Tuesday: 5,
+      Wednesday: 4,
+      Thursday: 3,
+      Friday: 2,
+      Saturday: 1,
+    },
+    night: {
+      Sunday: 6,
+      Monday: 5,
+      Tuesday: 4,
+      Wednesday: 3,
+      Thursday: 2,
+      Friday: 1,
+      Saturday: 7,
+    },
+  },
+
+  yamakantaka: {
+    day: {
+      Sunday: 5,
+      Monday: 4,
+      Tuesday: 3,
+      Wednesday: 2,
+      Thursday: 1,
+      Friday: 7,
+      Saturday: 6,
+    },
+    night: {
+      Sunday: 4,
+      Monday: 3,
+      Tuesday: 2,
+      Wednesday: 1,
+      Thursday: 7,
+      Friday: 6,
+      Saturday: 5,
+    },
+  },
+
+  kala: {
+    day: {
+      Sunday: 6,
+      Monday: 5,
+      Tuesday: 4,
+      Wednesday: 3,
+      Thursday: 2,
+      Friday: 1,
+      Saturday: 7,
+    },
+    night: {
+      Sunday: 5,
+      Monday: 4,
+      Tuesday: 3,
+      Wednesday: 2,
+      Thursday: 1,
+      Friday: 7,
+      Saturday: 6,
+    },
+  },
+
+  mrityu: {
+    day: {
+      Sunday: 2,
+      Monday: 1,
+      Tuesday: 7,
+      Wednesday: 6,
+      Thursday: 5,
+      Friday: 4,
+      Saturday: 3,
+    },
+    night: {
+      Sunday: 1,
+      Monday: 7,
+      Tuesday: 6,
+      Wednesday: 5,
+      Thursday: 4,
+      Friday: 3,
+      Saturday: 2,
+    },
+  },
+};
+
+const UPAGRAHA_POINT_MOMENT_TYPE: Record<
+  UpagrahaKey,
+  "start" | "midpoint"
+> = {
+  gulika: "start",
+  mandi: "midpoint",
+  yamakantaka: "start",
+  kala: "start",
+  mrityu: "start",
+};
+
 function normalize360(v: number) {
-  let x = v % 360;
+  const x = v % 360;
   return x < 0 ? x + 360 : x;
 }
 
@@ -256,7 +386,7 @@ function buildGulikaInterpretation(params: {
   sign: string | null;
   houseFromAsc: number | null;
   nakshatra: string | null;
-  phase: "day" | "night" | null;
+  phase: BirthPhase | null;
 }) {
   const { sign, houseFromAsc, nakshatra, phase } = params;
 
@@ -319,63 +449,12 @@ function buildGulikaInterpretation(params: {
   };
 }
 
-function getDayGulikaSlot(weekdayName: string): number | null {
-  const indexMap: Record<string, number> = {
-    Sunday: 7,
-    Monday: 6,
-    Tuesday: 5,
-    Wednesday: 4,
-    Thursday: 3,
-    Friday: 2,
-    Saturday: 1,
-  };
-
-  return indexMap[weekdayName] ?? null;
-}
-
-function getNightGulikaSlot(weekdayName: string): number | null {
-  const indexMap: Record<string, number> = {
-    Sunday: 6,
-    Monday: 5,
-    Tuesday: 4,
-    Wednesday: 3,
-    Thursday: 2,
-    Friday: 1,
-    Saturday: 7,
-  };
-
-  return indexMap[weekdayName] ?? null;
-}
-
-// v1: keep Mandi separate as a distinct field,
-// even though it currently follows the same segment framework.
-// This lets you change the rule later without breaking the API shape.
-function getDayMandiSlot(weekdayName: string): number | null {
-  const indexMap: Record<string, number> = {
-    Sunday: 7,
-    Monday: 6,
-    Tuesday: 5,
-    Wednesday: 4,
-    Thursday: 3,
-    Friday: 2,
-    Saturday: 1,
-  };
-
-  return indexMap[weekdayName] ?? null;
-}
-
-function getNightMandiSlot(weekdayName: string): number | null {
-  const indexMap: Record<string, number> = {
-    Sunday: 6,
-    Monday: 5,
-    Tuesday: 4,
-    Wednesday: 3,
-    Thursday: 2,
-    Friday: 1,
-    Saturday: 7,
-  };
-
-  return indexMap[weekdayName] ?? null;
+function getUpagrahaSlot(
+  key: UpagrahaKey,
+  phase: BirthPhase,
+  weekdayName: string
+): number | null {
+  return UPAGRAHA_SLOT_MAP[key]?.[phase]?.[weekdayName] ?? null;
 }
 
 async function buildPointFromSegment(params: {
@@ -429,6 +508,71 @@ async function buildPointFromSegment(params: {
     },
   };
 }
+
+async function buildSegmentedUpagraha(params: {
+  key: UpagrahaKey;
+  phase: BirthPhase;
+  weekdayName: string;
+  spanStartDT: any;
+  spanEndDT: any;
+  birth: BirthInput;
+  natalAscendant: NatalAscendantInput;
+}) {
+  const {
+    key,
+    phase,
+    weekdayName,
+    spanStartDT,
+    spanEndDT,
+    birth,
+    natalAscendant,
+  } = params;
+
+  const segmentIndex = getUpagrahaSlot(key, phase, weekdayName);
+  if (!segmentIndex) return null;
+
+  const segments = buildEightSegments(spanStartDT, spanEndDT);
+  const chosenSegment =
+    segments.find((s: any) => s.index === segmentIndex) ?? null;
+
+  if (!chosenSegment?.startDT?.isValid) return null;
+
+  const pointMomentType = UPAGRAHA_POINT_MOMENT_TYPE[key];
+
+  const point = await buildPointFromSegment({
+    segment: chosenSegment,
+    birth,
+    natalAscendant,
+    pointMomentType,
+  });
+
+  if (!point) return null;
+
+  return {
+    phase,
+    weekday: weekdayName,
+    segmentIndex,
+    spanStartISO: spanStartDT?.toISO?.() ?? null,
+    spanEndISO: spanEndDT?.toISO?.() ?? null,
+    segmentStartISO: chosenSegment?.startISO ?? null,
+    segmentEndISO: chosenSegment?.endISO ?? null,
+    pointMomentISO: point.pointMomentISO,
+    pointMomentType: point.pointMomentType,
+    lon: point.lon,
+    sign: point.sign,
+    degree: point.degree,
+    nakshatra: point.nakshatra,
+    pada: point.pada,
+    houseFromAsc: point.houseFromAsc,
+    flags: point.flags,
+    calculationBasis: {
+      spanType: phase,
+      slotSystem: "weekday-8-part",
+      pointMomentType,
+    },
+  };
+}
+
 export async function buildUpagrahaData(params: {
   birth: BirthInput;
   natalAscendant: NatalAscendantInput;
@@ -440,10 +584,14 @@ export async function buildUpagrahaData(params: {
   });
 
   const emptyResponse = {
-    methodId: "upagraha_v1_daynight_8part_segment_start",
-    traditionLabel: "Sarathi Classical Upagraha (Day/Night 8-Part Method)",
+    methodId: "upagraha_v3_segmented_multi_point",
+    traditionLabel:
+      "Sarathi Classical Upagraha (Segmented Day/Night Multi-Point)",
     gulika: null,
     mandi: null,
+    yamakantaka: null,
+    kala: null,
+    mrityu: null,
   };
 
   if (!birthDT.isValid) {
@@ -464,116 +612,100 @@ export async function buildUpagrahaData(params: {
 
   const weekdayName = birthDT.toFormat("cccc");
 
-  let phase: "day" | "night" | null = null;
+  let phase: BirthPhase | null = null;
   let spanStartDT: any = null;
   let spanEndDT: any = null;
-  let gulikaSegmentIndex: number | null = null;
-  let mandiSegmentIndex: number | null = null;
 
   if (sunriseDT && sunsetDT && birthDT >= sunriseDT && birthDT < sunsetDT) {
     phase = "day";
     spanStartDT = sunriseDT;
     spanEndDT = sunsetDT;
-    gulikaSegmentIndex = getDayGulikaSlot(weekdayName);
-    mandiSegmentIndex = getDayMandiSlot(weekdayName);
   } else if (sunsetDT && nextSunriseDT && birthDT >= sunsetDT) {
     phase = "night";
     spanStartDT = sunsetDT;
     spanEndDT = nextSunriseDT;
-    gulikaSegmentIndex = getNightGulikaSlot(weekdayName);
-    mandiSegmentIndex = getNightMandiSlot(weekdayName);
   } else if (previousSunsetDT && sunriseDT && birthDT < sunriseDT) {
     phase = "night";
     spanStartDT = previousSunsetDT;
     spanEndDT = sunriseDT;
-    gulikaSegmentIndex = getNightGulikaSlot(weekdayName);
-    mandiSegmentIndex = getNightMandiSlot(weekdayName);
   }
 
-  if (!phase || !spanStartDT || !spanEndDT || !gulikaSegmentIndex || !mandiSegmentIndex) {
+  if (!phase || !spanStartDT || !spanEndDT) {
     return emptyResponse;
   }
 
-  const segments = buildEightSegments(spanStartDT, spanEndDT);
-  const chosenGulikaSegment =
-    segments.find((s: any) => s.index === gulikaSegmentIndex) ?? null;
-  const chosenMandiSegment =
-    segments.find((s: any) => s.index === mandiSegmentIndex) ?? null;
+  const [gulika, mandi, yamakantaka, kala, mrityu] = await Promise.all([
+    buildSegmentedUpagraha({
+      key: "gulika",
+      phase,
+      weekdayName,
+      spanStartDT,
+      spanEndDT,
+      birth,
+      natalAscendant,
+    }),
+    buildSegmentedUpagraha({
+      key: "mandi",
+      phase,
+      weekdayName,
+      spanStartDT,
+      spanEndDT,
+      birth,
+      natalAscendant,
+    }),
+    buildSegmentedUpagraha({
+      key: "yamakantaka",
+      phase,
+      weekdayName,
+      spanStartDT,
+      spanEndDT,
+      birth,
+      natalAscendant,
+    }),
+    buildSegmentedUpagraha({
+      key: "kala",
+      phase,
+      weekdayName,
+      spanStartDT,
+      spanEndDT,
+      birth,
+      natalAscendant,
+    }),
+    buildSegmentedUpagraha({
+      key: "mrityu",
+      phase,
+      weekdayName,
+      spanStartDT,
+      spanEndDT,
+      birth,
+      natalAscendant,
+    }),
+  ]);
 
-  if (!chosenGulikaSegment?.startDT?.isValid && !chosenMandiSegment?.startDT?.isValid) {
-    return emptyResponse;
-  }
-
-   const gulikaPoint = chosenGulikaSegment
-    ? await buildPointFromSegment({
-        segment: chosenGulikaSegment,
-        birth,
-        natalAscendant,
-        pointMomentType: "start",
-      })
-    : null;
-
-   const mandiPoint = chosenMandiSegment
-    ? await buildPointFromSegment({
-        segment: chosenMandiSegment,
-        birth,
-        natalAscendant,
-        pointMomentType: "midpoint",
-      })
-    : null;
-
-  const gulikaInterpretation = gulikaPoint
+  const gulikaInterpretation = gulika
     ? buildGulikaInterpretation({
-        sign: gulikaPoint.sign,
-        houseFromAsc: gulikaPoint.houseFromAsc,
-        nakshatra: gulikaPoint.nakshatra,
+        sign: gulika.sign,
+        houseFromAsc: gulika.houseFromAsc,
+        nakshatra: gulika.nakshatra,
         phase,
       })
     : null;
 
   return {
-    methodId: "upagraha_v2_gulika_start_mandi_midpoint",
-traditionLabel: "Sarathi Classical Upagraha (Gulika start, Mandi midpoint)",
-    gulika: gulikaPoint
+    methodId: "upagraha_v3_segmented_multi_point",
+    traditionLabel:
+      "Sarathi Classical Upagraha (Segmented Day/Night Multi-Point)",
+
+    gulika: gulika
       ? {
-          phase,
-          weekday: weekdayName,
-          segmentIndex: gulikaSegmentIndex,
-          spanStartISO: spanStartDT.toISO(),
-          spanEndISO: spanEndDT.toISO(),
-          segmentStartISO: chosenGulikaSegment?.startISO ?? null,
-          segmentEndISO: chosenGulikaSegment?.endISO ?? null,
-          pointMomentISO: gulikaPoint.pointMomentISO,
-          pointMomentType: gulikaPoint.pointMomentType,
-          lon: gulikaPoint.lon,
-          sign: gulikaPoint.sign,
-          degree: gulikaPoint.degree,
-          nakshatra: gulikaPoint.nakshatra,
-          pada: gulikaPoint.pada,
-          houseFromAsc: gulikaPoint.houseFromAsc,
-          flags: gulikaPoint.flags,
+          ...gulika,
           interpretation: gulikaInterpretation,
         }
       : null,
-    mandi: mandiPoint
-      ? {
-          phase,
-          weekday: weekdayName,
-          segmentIndex: mandiSegmentIndex,
-          spanStartISO: spanStartDT.toISO(),
-          spanEndISO: spanEndDT.toISO(),
-          segmentStartISO: chosenMandiSegment?.startISO ?? null,
-          segmentEndISO: chosenMandiSegment?.endISO ?? null,
-          pointMomentISO: mandiPoint.pointMomentISO,
-          pointMomentType: mandiPoint.pointMomentType,
-          lon: mandiPoint.lon,
-          sign: mandiPoint.sign,
-          degree: mandiPoint.degree,
-          nakshatra: mandiPoint.nakshatra,
-          pada: mandiPoint.pada,
-          houseFromAsc: mandiPoint.houseFromAsc,
-          flags: mandiPoint.flags,
-        }
-      : null,
+
+    mandi,
+    yamakantaka,
+    kala,
+    mrityu,
   };
 }

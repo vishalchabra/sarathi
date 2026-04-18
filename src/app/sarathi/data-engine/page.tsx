@@ -30,6 +30,7 @@ import BhavMadhyaCard from "@/components/data-engine/BhavMadhyaCard";
 import FiveFoldFriendshipCard from "@/components/data-engine/FiveFoldFriendshipCard";
 import AvakhadaCard from "@/components/data-engine/AvakhadaCard";
 import tzLookup from "tz-lookup";
+import UpagrahaCard from "@/components/data-engine/UpagrahaCard";
 
 type TabKey =
   | "foundations"
@@ -1383,232 +1384,40 @@ const foundationPersonalStrength = useMemo(
   <div>
     <h2 className="text-lg font-semibold text-white">Upagrahas & Moon Strength</h2>
     <p className="text-sm text-white/50">
-      Chart-linked Gulika, Mandi, and daily lunar support factors for judgement.
+      Chart-linked Gulika, Mandi, Yamakantaka, Kala, Mrityu, and daily lunar support factors for judgement.
     </p>
   </div>
 
   <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-    <div className="space-y-4">
-      {/* Gulika */}
-      <div className="rounded-2xl border border-white/10 bg-slate-900 p-4 text-sm text-white shadow-sm">
-        <div className="text-xs font-medium uppercase tracking-wide text-white/45">
-          Gulika
-        </div>
+    <UpagrahaCard
+      title="Gulika"
+      point={upagrahas?.gulika}
+      methodLabel={upagrahas?.traditionLabel ?? upagrahas?.methodId ?? "—"}
+    />
 
-        {!upagrahas?.gulika ? (
-          <div className="mt-2 text-white/50">No Gulika data available.</div>
-        ) : (
-          <div className="mt-3 space-y-4">
-            <div>
-              <div className="flex flex-wrap items-center gap-2">
-                <div className="text-lg font-semibold text-white">
-                  {upagrahas?.gulika?.sign ?? "—"}
-                  {upagrahas?.gulika?.houseFromAsc
-                    ? ` • ${upagrahas.gulika.houseFromAsc}${getOrdinalSuffix(
-                        upagrahas.gulika.houseFromAsc
-                      )} House`
-                    : ""}
-                </div>
+    <UpagrahaCard
+      title="Mandi"
+      point={upagrahas?.mandi}
+      methodLabel={upagrahas?.traditionLabel ?? upagrahas?.methodId ?? "—"}
+    />
 
-                {upagrahas?.gulika?.flags?.isDusthana ? (
-                  <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-white/80">
-                    Dusthana
-                  </span>
-                ) : null}
+    <UpagrahaCard
+      title="Yamakantaka"
+      point={upagrahas?.yamakantaka}
+      methodLabel={upagrahas?.traditionLabel ?? upagrahas?.methodId ?? "—"}
+    />
 
-                {upagrahas?.gulika?.flags?.isUpachaya ? (
-                  <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-white/80">
-                    Upachaya
-                  </span>
-                ) : null}
+    <UpagrahaCard
+      title="Kala"
+      point={upagrahas?.kala}
+      methodLabel={upagrahas?.traditionLabel ?? upagrahas?.methodId ?? "—"}
+    />
 
-                {upagrahas?.gulika?.flags?.isKendra ? (
-                  <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-white/80">
-                    Kendra
-                  </span>
-                ) : null}
-
-                {upagrahas?.gulika?.flags?.isTrikona ? (
-                  <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-white/80">
-                    Trikona
-                  </span>
-                ) : null}
-
-                {upagrahas?.gulika?.flags?.isMaraka ? (
-                  <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-white/80">
-                    Maraka
-                  </span>
-                ) : null}
-              </div>
-
-              <div className="mt-1 text-sm text-white/65">
-                {upagrahas?.gulika?.nakshatra ?? "—"}
-                {upagrahas?.gulika?.pada ? ` • Pada ${upagrahas.gulika.pada}` : ""}
-                {upagrahas?.gulika?.degree != null ? ` • ${upagrahas.gulika.degree}°` : ""}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <div className="text-white/45">Method</div>
-                <div className="mt-1 text-white/85">
-                  {upagrahas?.traditionLabel ?? upagrahas?.methodId ?? "—"}
-                </div>
-              </div>
-
-              <div>
-                <div className="text-white/45">Birth Basis</div>
-                <div className="mt-1 text-white/85 capitalize">
-                  {upagrahas?.gulika?.phase ?? "—"} • {upagrahas?.gulika?.weekday ?? "—"}
-                </div>
-              </div>
-
-              <div>
-                <div className="text-white/45">Segment</div>
-                <div className="mt-1 text-white/85">
-                  {upagrahas?.gulika?.segmentIndex ?? "—"}
-                </div>
-              </div>
-
-              <div>
-                <div className="text-white/45">Longitude</div>
-                <div className="mt-1 text-white/85">
-                  {upagrahas?.gulika?.lon != null
-                    ? `${upagrahas.gulika.lon.toFixed(2)}°`
-                    : "—"}
-                </div>
-              </div>
-
-              <div>
-                <div className="text-white/45">Point Type</div>
-                <div className="mt-1 text-white/85 capitalize">
-                  {upagrahas?.gulika?.pointMomentType ?? "—"}
-                </div>
-              </div>
-
-              <div>
-                <div className="text-white/45">Point Moment</div>
-                <div className="mt-1 text-white/85">
-                  {upagrahas?.gulika?.pointMomentISO
-                    ? new Date(upagrahas.gulika.pointMomentISO).toLocaleString()
-                    : "—"}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Mandi */}
-      <div className="rounded-2xl border border-white/10 bg-slate-900 p-4 text-sm text-white shadow-sm">
-        <div className="text-xs font-medium uppercase tracking-wide text-white/45">
-          Mandi
-        </div>
-
-        {!upagrahas?.mandi ? (
-          <div className="mt-2 text-white/50">No Mandi data available.</div>
-        ) : (
-          <div className="mt-3 space-y-4">
-            <div>
-              <div className="flex flex-wrap items-center gap-2">
-                <div className="text-lg font-semibold text-white">
-                  {upagrahas?.mandi?.sign ?? "—"}
-                  {upagrahas?.mandi?.houseFromAsc
-                    ? ` • ${upagrahas.mandi.houseFromAsc}${getOrdinalSuffix(
-                        upagrahas.mandi.houseFromAsc
-                      )} House`
-                    : ""}
-                </div>
-
-                {upagrahas?.mandi?.flags?.isDusthana ? (
-                  <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-white/80">
-                    Dusthana
-                  </span>
-                ) : null}
-
-                {upagrahas?.mandi?.flags?.isUpachaya ? (
-                  <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-white/80">
-                    Upachaya
-                  </span>
-                ) : null}
-
-                {upagrahas?.mandi?.flags?.isKendra ? (
-                  <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-white/80">
-                    Kendra
-                  </span>
-                ) : null}
-
-                {upagrahas?.mandi?.flags?.isTrikona ? (
-                  <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-white/80">
-                    Trikona
-                  </span>
-                ) : null}
-
-                {upagrahas?.mandi?.flags?.isMaraka ? (
-                  <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-white/80">
-                    Maraka
-                  </span>
-                ) : null}
-              </div>
-
-              <div className="mt-1 text-sm text-white/65">
-                {upagrahas?.mandi?.nakshatra ?? "—"}
-                {upagrahas?.mandi?.pada ? ` • Pada ${upagrahas.mandi.pada}` : ""}
-                {upagrahas?.mandi?.degree != null ? ` • ${upagrahas.mandi.degree}°` : ""}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <div className="text-white/45">Method</div>
-                <div className="mt-1 text-white/85">
-                  {upagrahas?.traditionLabel ?? upagrahas?.methodId ?? "—"}
-                </div>
-              </div>
-
-              <div>
-                <div className="text-white/45">Birth Basis</div>
-                <div className="mt-1 text-white/85 capitalize">
-                  {upagrahas?.mandi?.phase ?? "—"} • {upagrahas?.mandi?.weekday ?? "—"}
-                </div>
-              </div>
-
-              <div>
-                <div className="text-white/45">Segment</div>
-                <div className="mt-1 text-white/85">
-                  {upagrahas?.mandi?.segmentIndex ?? "—"}
-                </div>
-              </div>
-
-              <div>
-                <div className="text-white/45">Longitude</div>
-                <div className="mt-1 text-white/85">
-                  {upagrahas?.mandi?.lon != null
-                    ? `${upagrahas.mandi.lon.toFixed(2)}°`
-                    : "—"}
-                </div>
-              </div>
-
-              <div>
-                <div className="text-white/45">Point Type</div>
-                <div className="mt-1 text-white/85 capitalize">
-                  {upagrahas?.mandi?.pointMomentType ?? "—"}
-                </div>
-              </div>
-
-              <div>
-                <div className="text-white/45">Point Moment</div>
-                <div className="mt-1 text-white/85">
-                  {upagrahas?.mandi?.pointMomentISO
-                    ? new Date(upagrahas.mandi.pointMomentISO).toLocaleString()
-                    : "—"}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
+    <UpagrahaCard
+      title="Mrityu"
+      point={upagrahas?.mrityu}
+      methodLabel={upagrahas?.traditionLabel ?? upagrahas?.methodId ?? "—"}
+    />
 
     <div className="rounded-2xl border border-white/10 bg-slate-900 p-4 text-sm text-white shadow-sm">
       <div className="text-xs font-medium uppercase tracking-wide text-white/45">
@@ -1623,6 +1432,7 @@ const foundationPersonalStrength = useMemo(
             <span className="text-white/45">Tarabala:</span>{" "}
             {foundationPersonalStrength?.tarabalam?.tara ?? "—"}
           </div>
+
           <div>
             <span className="text-white/45">Tarabala Favorable:</span>{" "}
             {foundationPersonalStrength?.tarabalam?.favorable == null
@@ -1631,6 +1441,7 @@ const foundationPersonalStrength = useMemo(
               ? "Yes"
               : "No"}
           </div>
+
           <div>
             <span className="text-white/45">Chandrabala Favorable:</span>{" "}
             {foundationPersonalStrength?.chandrabalam?.favorable == null
@@ -1639,18 +1450,22 @@ const foundationPersonalStrength = useMemo(
               ? "Yes"
               : "No"}
           </div>
+
           <div>
             <span className="text-white/45">Natal Moon Nakshatra:</span>{" "}
             {foundationPersonalStrength?.natalMoonNakshatra ?? "—"}
           </div>
+
           <div>
             <span className="text-white/45">Transit Moon Nakshatra:</span>{" "}
             {foundationPersonalStrength?.transitMoonNakshatra ?? "—"}
           </div>
+
           <div>
             <span className="text-white/45">Natal Moon Sign:</span>{" "}
             {foundationPersonalStrength?.natalMoonSign ?? "—"}
           </div>
+
           <div>
             <span className="text-white/45">Transit Moon Sign:</span>{" "}
             {foundationPersonalStrength?.transitMoonSign ?? "—"}
