@@ -555,11 +555,11 @@ const selectedHouseReferenceOption = useMemo(
         Show transits
       </label>
 
-      {showTransitOverlay ? (
-        <div className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-xs text-emerald-200">
-          Transit overlay active
-        </div>
-      ) : null}
+    {showTransitOverlay ? (
+  <div className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-xs text-emerald-200">
+    Transit overlay active across chart views
+  </div>
+) : null}
     </div>
 
     <div className="mb-2 flex items-center gap-2 text-xs text-white/50">
@@ -631,18 +631,26 @@ const selectedHouseReferenceOption = useMemo(
     </div>
 
     {selectedHouseReferenceChart.ascSign &&
-    selectedHouseReferenceChart.planets?.length ? (
-      <MediumNorthIndianChart
-        title=""
-        ascSign={selectedHouseReferenceChart.ascSign}
-        planets={selectedHouseReferenceChart.planets}
-      />
-    ) : (
-      <PlaceholderChart
-        label="House-centered chart unavailable"
-        height="h-40"
-      />
-    )}
+selectedHouseReferenceChart.planets?.length ? (
+  <MediumNorthIndianChart
+    title=""
+    ascSign={selectedHouseReferenceChart.ascSign}
+    planets={selectedHouseReferenceChart.planets}
+    transitPlanets={
+      showTransitOverlay
+        ? normalizeTransitPlanets(
+            transitPlanets,
+            selectedHouseReferenceChart.ascSign
+          )
+        : []
+    }
+  />
+) : (
+  <PlaceholderChart
+    label="House-centered chart unavailable"
+    height="h-40"
+  />
+)}
 
     <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.05] p-3 text-xs text-white/60">
       Natal chart rotated so the selected house becomes the temporary ascendant.

@@ -20,9 +20,50 @@ type Props = {
   title?: string;
 };
 
+const NAKSHATRA_LORD_MAP: Record<string, string> = {
+  Ashwini: "Ketu",
+  Bharani: "Venus",
+  Krittika: "Sun",
+  Rohini: "Moon",
+  Mrigashira: "Mars",
+  Ardra: "Rahu",
+  Punarvasu: "Jupiter",
+  Pushya: "Saturn",
+  Ashlesha: "Mercury",
+  Magha: "Ketu",
+  "Purva Phalguni": "Venus",
+  "Uttara Phalguni": "Sun",
+  Hasta: "Moon",
+  Chitra: "Mars",
+  Swati: "Rahu",
+  Vishakha: "Jupiter",
+  Anuradha: "Saturn",
+  Jyeshtha: "Mercury",
+  Mula: "Ketu",
+  "Purva Ashadha": "Venus",
+  "Uttara Ashadha": "Sun",
+  Shravana: "Moon",
+  Dhanishtha: "Mars",
+  Shatabhisha: "Rahu",
+  "Purva Bhadrapada": "Jupiter",
+  "Uttara Bhadrapada": "Saturn",
+  Revati: "Mercury",
+};
+
 function formatDegree(v?: number | null) {
   if (typeof v !== "number" || Number.isNaN(v)) return "—";
   return `${v.toFixed(2)}°`;
+}
+
+function getNakshatraLord(nakshatra?: string | null) {
+  if (!nakshatra) return null;
+  return NAKSHATRA_LORD_MAP[nakshatra] ?? null;
+}
+
+function formatNakshatraWithLord(nakshatra?: string | null) {
+  if (!nakshatra) return "—";
+  const lord = getNakshatraLord(nakshatra);
+  return lord ? `${nakshatra} (${lord})` : nakshatra;
 }
 
 function badgeClass(planet: string) {
@@ -88,7 +129,7 @@ export default function PlanetTable({
                 </td>
                 <td className="px-3 py-2 text-white/80">{p.house ?? "—"}</td>
                 <td className="px-3 py-2 text-white/80">
-                  {p.nakshatra ?? "—"}
+                  {formatNakshatraWithLord(p.nakshatra)}
                 </td>
                 <td className="px-3 py-2 text-white/80">{p.pada ?? "—"}</td>
                 <td className="px-3 py-2 text-white/80">
