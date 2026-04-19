@@ -569,15 +569,7 @@ export async function getPlanetPositions(input: {
     const tropicalLon = Number(calc?.longitude ?? 0);
     const siderealLon = wrap360(tropicalLon - ayanamsa);
     if (p.name === "Moon") {
-  console.log("MOON SIDEREAL DEBUG", {
-    inputDateISO: dateISO,
-    tz,
-    tropicalLon,
-    ayanamsa,
-    siderealLon,
-    nakshatra: getNakshatraFromLon(siderealLon)?.nakshatra,
-    pada: getNakshatraFromLon(siderealLon)?.pada,
-  });
+  
 }
     const sign = zodiacSignFromLon(siderealLon);
     const house = houseFromLon(siderealLon, cusps);

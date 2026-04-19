@@ -37,6 +37,7 @@ const SIGN_TO_NUM: Record<string, number> = {
   Aquarius: 11,
   Pisces: 12,
 };
+
 const SIGN_LORDS: Record<string, string> = {
   Aries: "Mars",
   Taurus: "Venus",
@@ -99,6 +100,7 @@ const NATURAL_RELATIONSHIPS: Record<string, { friends: string[]; enemies: string
   Rahu: { friends: [], enemies: [] },
   Ketu: { friends: [], enemies: [] },
 };
+
 const NAKSHATRAS_27 = [
   "Ashwini",
   "Bharani",
@@ -128,6 +130,41 @@ const NAKSHATRAS_27 = [
   "Uttara Bhadrapada",
   "Revati",
 ];
+const SIGN_NAMES = [
+  "Aries",
+  "Taurus",
+  "Gemini",
+  "Cancer",
+  "Leo",
+  "Virgo",
+  "Libra",
+  "Scorpio",
+  "Sagittarius",
+  "Capricorn",
+  "Aquarius",
+  "Pisces",
+] as const;
+
+function signFromLongitude(lon: number | null | undefined): {
+  sign: string;
+  signNum: number;
+  degree: number | null;
+} {
+  if (typeof lon !== "number" || !Number.isFinite(lon)) {
+    return { sign: "", signNum: 0, degree: null };
+  }
+
+  const normalized = wrap360(lon);
+  const signIndex = Math.floor(normalized / 30);
+  const sign = SIGN_NAMES[signIndex] ?? "";
+  const signNum = signIndex + 1;
+  const degree = Number((normalized % 30).toFixed(2));
+
+  return { sign, signNum, degree };
+}
+
+
+
 
 function wrap360(x: number) {
   let v = x % 360;
@@ -139,12 +176,15 @@ function getNakshatraFromLon(lon: number | null | undefined): string | null {
   const idx = Math.floor(wrap360(lon) / (360 / 27));
   return NAKSHATRAS_27[idx] ?? null;
 }
+
 function houseFromLagna(lagnaSignNum: number, transitSignNum: number): number {
   return ((transitSignNum - lagnaSignNum + 12) % 12) + 1;
 }
+
 function houseFromMoon(moonSignNum: number, planetSignNum: number): number {
   return ((planetSignNum - moonSignNum + 12) % 12) + 1;
 }
+
 function toEngineBirth(birth: BirthInput) {
   return {
     dateISO: birth.dateISO,
@@ -168,6 +208,47 @@ function hhmmInTzForDate(dateISO: string, tz: string): string {
   const mm = parts.find((p) => p.type === "minute")?.value ?? "00";
   return `${hh}:${mm}`;
 }
+
+function getCurrentHHMMInTimezone(tz: string): string {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: tz,
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(new Date());
+
+  const hh = parts.find((p) => p.type === "hour")?.value ?? "12";
+  const mm = parts.find((p) => p.type === "minute")?.value ?? "00";
+  return `${hh}:${mm}`;
+}
+
+function getCurrentDateISOInTimezone(tz: string): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: tz,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+
+  const year = parts.find((p) => p.type === "year")?.value ?? "1970";
+  const month = parts.find((p) => p.type === "month")?.value ?? "01";
+  const day = parts.find((p) => p.type === "day")?.value ?? "01";
+
+  return `${year}-${month}-${day}`;
+}
+
+function resolveTransitSnapshotTime(dateISO: string, tz: string): string {
+  const todayInTz = getCurrentDateISOInTimezone(tz);
+
+  // Live current time for today's transits
+  if (dateISO === todayInTz) {
+    return getCurrentHHMMInTimezone(tz);
+  }
+
+  // Stable reference time for past/future dates
+  return "12:00";
+}
+
 function getRelationship(planet: string, signLord: string | null) {
   if (!signLord) return "n/a";
   if (planet === signLord) return "self";
@@ -197,104 +278,96 @@ function getStrengthBand(dignity: string) {
   if (dignity === "Debilitated") return "weak";
   return "mixed";
 }
+
 export async function buildTransitSnapshot(
   params: BuildTransitSnapshotParams
 ) {
   const { dateISO, natalAscendant, plan, birth } = params;
 
   const engineBirth = toEngineBirth(birth);
+  const transitTime = resolveTransitSnapshotTime(dateISO, birth.timezone);
 
-  // 1) Transit planets for the selected date
-  const transitNowRaw = await computeTransitPlanetsNow(
-    engineBirth,
-    natalAscendant.sign,
-    {
-      dateISO,
-      time: "12:00",
-      tz: birth.timezone,
-    }
-  );
-const allowedPlanets = new Set([
-  "Sun",
-  "Moon",
-  "Mercury",
-  "Venus",
-  "Mars",
-  "Jupiter",
-  "Saturn",
-  "Rahu",
-  "Ketu",
-]);
+
+
+const transitNowRaw = await computeTransitPlanetsNow(
+  engineBirth,
+  natalAscendant.sign,
+  {
+    dateISO,
+    time: transitTime,
+    tz: birth.timezone,
+  }
+);
+
 const mapped = (Array.isArray(transitNowRaw) ? transitNowRaw : []).map((p: any) => {
   const planetName = String(p?.name ?? p?.planet ?? "").trim();
   const lon = typeof p?.lon === "number" ? p.lon : null;
-  const sign = String(p?.sign ?? "");
-  const signNum = SIGN_TO_NUM[sign] ?? 0;
+
+  const derived = signFromLongitude(lon);
+  const sign = derived.sign;
+  const signNum = derived.signNum;
+  const degree = derived.degree;
 
   const signLord = SIGN_LORDS[sign] ?? null;
-const relationship = getRelationship(planetName, signLord);
-const dignity = getDignity(planetName, sign, relationship);
-const strengthBand = getStrengthBand(dignity);
+  const relationship = getRelationship(planetName, signLord);
+  const dignity = getDignity(planetName, sign, relationship);
+  const strengthBand = getStrengthBand(dignity);
 
-return {
-  planet: planetName,
-  sign,
-  signNum,
-  degree: typeof lon === "number" ? Number((lon % 30).toFixed(2)) : null,
-  houseFromLagna:
-    typeof p?.house === "number"
-      ? p.house
-      : houseFromLagna(natalAscendant.signNum, signNum),
-  retrograde:
-    typeof p?.retrograde === "boolean"
-      ? p.retrograde
-      : planetName === "Rahu" || planetName === "Ketu",
-  nakshatra: getNakshatraFromLon(lon),
-  lon,
-
-  // NEW
-  signLord,
-  relationshipToSignLord: relationship,
-  dignity,
-  strengthBand,
-};
-});
-
-const byPlanet = new Map(
-  mapped.map((p: any) => [p.planet, p])
-);
-
-const planets = [
-  byPlanet.get("Sun"),
-  byPlanet.get("Moon"),
-  byPlanet.get("Mercury"),
-  byPlanet.get("Venus"),
-  byPlanet.get("Mars"),
-  byPlanet.get("Jupiter"),
-  byPlanet.get("Saturn"),
-  byPlanet.get("Rahu"),
-  byPlanet.get("Ketu"),
-].filter(Boolean);
-const moonPlanet = planets.find((p: any) => p.planet === "Moon") ?? null;
-const moonSignNum = moonPlanet?.signNum ?? null;
-
-// enrich planets with houseFromMoon
-const planetsWithMoon = planets.map((p: any) => {
   return {
-    ...p,
-    houseFromMoon:
-      typeof moonSignNum === "number" && typeof p.signNum === "number"
-        ? houseFromMoon(moonSignNum, p.signNum)
-        : null,
+    planet: planetName,
+    sign,
+    signNum,
+    degree,
+    houseFromLagna:
+      typeof p?.house === "number"
+        ? p.house
+        : houseFromLagna(natalAscendant.signNum, signNum),
+    retrograde:
+      typeof p?.retrograde === "boolean"
+        ? p.retrograde
+        : planetName === "Rahu" || planetName === "Ketu",
+    nakshatra: getNakshatraFromLon(lon),
+    lon,
+    signLord,
+    relationshipToSignLord: relationship,
+    dignity,
+    strengthBand,
   };
 });
-  // 2) Daily Moon rows anchored on selected date
+
+  const byPlanet = new Map(mapped.map((p: any) => [p.planet, p]));
+
+  const planets = [
+    byPlanet.get("Sun"),
+    byPlanet.get("Moon"),
+    byPlanet.get("Mercury"),
+    byPlanet.get("Venus"),
+    byPlanet.get("Mars"),
+    byPlanet.get("Jupiter"),
+    byPlanet.get("Saturn"),
+    byPlanet.get("Rahu"),
+    byPlanet.get("Ketu"),
+  ].filter(Boolean);
+
+  const moonPlanet = planets.find((p: any) => p.planet === "Moon") ?? null;
+  const moonSignNum = moonPlanet?.signNum ?? null;
+
+  const planetsWithMoon = planets.map((p: any) => {
+    return {
+      ...p,
+      houseFromMoon:
+        typeof moonSignNum === "number" && typeof p.signNum === "number"
+          ? houseFromMoon(moonSignNum, p.signNum)
+          : null,
+    };
+  });
+
   const dailyMoon = await computeDailyMoonNakshatras(
     {
       dateISO: birth.dateISO,
       time: birth.time,
       baseDateISO: dateISO,
-      baseTime: hhmmInTzForDate(dateISO, birth.timezone),
+      baseTime: transitTime,
       tz: birth.timezone,
       lat: birth.lat,
       lon: birth.lon,
@@ -302,42 +375,41 @@ const planetsWithMoon = planets.map((p: any) => {
     14
   );
 
-  
   const firstMoon =
-  Array.isArray(dailyMoon) && dailyMoon.length > 0
-    ? dailyMoon[0]
-    : null;
-return {
-  dateISO,
-  planets: planetsWithMoon,
-  moonToday: firstMoon
-    ? {
-        sign: moonPlanet?.sign ?? null,
-        signNum: moonPlanet?.signNum ?? null,
-        degree: moonPlanet?.degree ?? null,
-        houseFromLagna: moonPlanet?.houseFromLagna ?? null,
-        nakshatra:
-          firstMoon.moonNakshatra ??
-          moonPlanet?.nakshatra ??
-          null,
-        pada: null,
-        houseFromMoon: firstMoon.houseFromMoon ?? null,
-      }
-    : {
-        sign: moonPlanet?.sign ?? null,
-        signNum: moonPlanet?.signNum ?? null,
-        degree: moonPlanet?.degree ?? null,
-        houseFromLagna: moonPlanet?.houseFromLagna ?? null,
-        nakshatra: moonPlanet?.nakshatra ?? null,
-        pada: null,
-        houseFromMoon: null,
-      },
-  dailyMoon,
-  ...(plan === "pro"
-    ? {
-        contacts: [],
-      }
-    : {}),
-  sourceNote: `Real transit snapshot for ${dateISO}`,
-};
+    Array.isArray(dailyMoon) && dailyMoon.length > 0
+      ? dailyMoon[0]
+      : null;
+
+  return {
+    dateISO,
+    snapshotTime: transitTime,
+    snapshotMode: dateISO === getCurrentDateISOInTimezone(birth.timezone) ? "live_now" : "fixed_noon",
+    planets: planetsWithMoon,
+    moonToday: firstMoon
+      ? {
+          sign: moonPlanet?.sign ?? null,
+          signNum: moonPlanet?.signNum ?? null,
+          degree: moonPlanet?.degree ?? null,
+          houseFromLagna: moonPlanet?.houseFromLagna ?? null,
+          nakshatra: firstMoon.moonNakshatra ?? moonPlanet?.nakshatra ?? null,
+          pada: null,
+          houseFromMoon: firstMoon.houseFromMoon ?? null,
+        }
+      : {
+          sign: moonPlanet?.sign ?? null,
+          signNum: moonPlanet?.signNum ?? null,
+          degree: moonPlanet?.degree ?? null,
+          houseFromLagna: moonPlanet?.houseFromLagna ?? null,
+          nakshatra: moonPlanet?.nakshatra ?? null,
+          pada: null,
+          houseFromMoon: null,
+        },
+    dailyMoon,
+    ...(plan === "pro"
+      ? {
+          contacts: [],
+        }
+      : {}),
+    sourceNote: `Real transit snapshot for ${dateISO} at ${transitTime} (${birth.timezone})`,
+  };
 }

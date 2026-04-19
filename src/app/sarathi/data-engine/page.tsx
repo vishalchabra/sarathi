@@ -523,6 +523,20 @@ function getOrdinalSuffix(n: number) {
       return "th";
   }
 }
+function getTodayISOInTimezone(tz: string) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: tz,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+
+  const year = parts.find((p) => p.type === "year")?.value ?? "1970";
+  const month = parts.find((p) => p.type === "month")?.value ?? "01";
+  const day = parts.find((p) => p.type === "day")?.value ?? "01";
+
+  return `${year}-${month}-${day}`;
+}
 export default function DataEnginePage() {
   const [activeTab, setActiveTab] = useState<TabKey>("foundations");
   const [loading, setLoading] = useState(false);
@@ -537,8 +551,8 @@ export default function DataEnginePage() {
   const [timezone, setTimezone] = useState("Asia/Kolkata");
   const [plan] = useState<"pro">("pro");
   const [selectedDateISO, setSelectedDateISO] = useState(
-    new Date().toISOString().slice(0, 10)
-  );
+  getTodayISOInTimezone("Asia/Kolkata")
+);
   const [compareDateISO, setCompareDateISO] = useState("");
  const [utilityPanchangData, setUtilityPanchangData] = useState<any | null>(null);
 const [utilityHoraData, setUtilityHoraData] = useState<any | null>(null);
@@ -565,6 +579,9 @@ const [utilityHoraDateISO, setUtilityHoraDateISO] = useState(
 );
 
 const [utilityHoraTime, setUtilityHoraTime] = useState("12:00");
+useEffect(() => {
+  setSelectedDateISO(getTodayISOInTimezone(timezone));
+}, [timezone]);
 useEffect(() => {
   if (!selectedPlace) return;
 

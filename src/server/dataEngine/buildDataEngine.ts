@@ -1052,6 +1052,21 @@ const chandrabalam = getChandrabalam(
     birth,
     natalAscendant: natalAscendantForEngine,
   });
+ console.log(
+  "UPAGRAHA DEBUG PREV NIGHT",
+  JSON.stringify(upagrahas?.debugPreviousNightSegments, null, 2)
+);
+
+console.log(
+  "UPAGRAHA DEBUG DAY",
+  JSON.stringify(upagrahas?.debugDaySegments, null, 2)
+);
+
+console.log(
+  "UPAGRAHA DEBUG NEXT NIGHT",
+  JSON.stringify(upagrahas?.debugNextNightSegments, null, 2)
+);
+
   const solarShadowPoints = buildSolarShadowPoints({
   natalPlanets: natalWithStrengths.planets,
   natalAscendant: natalAscendantForEngine,
