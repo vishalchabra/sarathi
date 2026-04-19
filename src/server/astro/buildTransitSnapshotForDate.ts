@@ -1,5 +1,5 @@
 import type { Birth, PlanetId } from "@/server/astro/types";
-import { getPlanetPositions } from "@/server/astro/swe-remote";
+import { computeTransitPlanetsNow } from "@/server/astro/transits";
 
 type TransitPlanet = {
   id: PlanetId;
@@ -12,25 +12,29 @@ type TransitPlanet = {
 type Input = {
   birth: Birth;
   targetDateISO: string;
+  time?: string;
 };
 
 export async function buildTransitSnapshotForDate(
   input: Input
 ): Promise<TransitPlanet[]> {
-  const { birth, targetDateISO } = input;
+  const { birth, targetDateISO, time = "12:00" } = input;
 
-  const dateISO = `${targetDateISO}T12:00:00`;
-
-  const transit = await getPlanetPositions({
-    dateISO,
+ const planets = await computeTransitPlanetsNow(
+  {
+    dateISO: targetDateISO,
+    time,
     tz: birth.tz,
     lat: birth.lat,
     lon: birth.lon,
-  });
-
-  const planets = Array.isArray((transit as any)?.planets)
-    ? (transit as any).planets
-    : [];
+  },
+  undefined,
+  {
+    dateISO: targetDateISO,
+    time,
+    tz: birth.tz,
+  }
+);
 
   return normalizeTransitPlanets(planets);
 }
@@ -39,10 +43,14 @@ function normalizeTransitPlanets(planets: any[]): TransitPlanet[] {
   const out: TransitPlanet[] = [];
 
   for (const p of planets) {
-    const id = asPlanetId(p?.id ?? p?.name);
+    const id = asPlanetId(p?.id ?? p?.name ?? p?.planet);
     const house = Number(p?.house);
-    const siderealLongitude = Number(p?.siderealLongitude ?? 0);
-    const deg = Number(p?.deg ?? (siderealLongitude % 30));
+    const siderealLongitude = Number(p?.siderealLongitude ?? p?.lon ?? 0);
+    const deg = Number(
+      p?.deg ??
+        p?.degree ??
+        (((siderealLongitude % 30) + 30) % 30)
+    );
 
     if (!id) continue;
     if (!Number.isFinite(house)) continue;

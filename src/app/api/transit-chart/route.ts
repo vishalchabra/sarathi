@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { DateTime } from "luxon";
-import { getPlanetPositions } from "@/server/astro/swe-remote";
+import { computeTransitPlanetsNow } from "@/server/astro/transits";
 
 export const runtime = "nodejs";
 
@@ -17,22 +17,32 @@ export async function POST(req: NextRequest) {
         .toUTC()
         .toISO({ suppressMilliseconds: true });
 
-    if (!dt) {
+    if (!dt || !rawDateISO) {
       return NextResponse.json(
         { ok: false, error: "Invalid date/time for transit chart" },
         { status: 400 }
       );
     }
 
-    const result = await getPlanetPositions({
-      dateISO: dt,
-      lat: Number(body?.lat),
-      lon: Number(body?.lon),
-    });
+    const planets = await computeTransitPlanetsNow(
+      {
+        dateISO: rawDateISO,
+        time: rawTime,
+        tz: rawTimezone,
+        lat: Number(body?.lat),
+        lon: Number(body?.lon),
+      },
+      undefined,
+      {
+        dateISO: rawDateISO,
+        time: rawTime,
+        tz: rawTimezone,
+      }
+    );
 
     return NextResponse.json({
       ok: true,
-      planets: result?.planets ?? [],
+      planets,
       resolvedDateTimeUTC: dt,
     });
   } catch (err: any) {

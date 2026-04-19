@@ -1162,6 +1162,8 @@ return tPlanets.map((p) => {
   name: p.name,
   lon: sidLon,
   sign,
+  degree: Number((wrap360(sidLon) % 30).toFixed(2)),
+  deg: Number((wrap360(sidLon) % 30).toFixed(2)),
   house,
   retrograde:
     typeof (p as any).retrograde === "boolean"

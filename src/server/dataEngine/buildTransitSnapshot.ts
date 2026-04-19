@@ -312,7 +312,7 @@ const mapped = (Array.isArray(transitNowRaw) ? transitNowRaw : []).map((p: any) 
   const relationship = getRelationship(planetName, signLord);
   const dignity = getDignity(planetName, sign, relationship);
   const strengthBand = getStrengthBand(dignity);
-
+  
   return {
     planet: planetName,
     sign,
@@ -379,7 +379,20 @@ const mapped = (Array.isArray(transitNowRaw) ? transitNowRaw : []).map((p: any) 
     Array.isArray(dailyMoon) && dailyMoon.length > 0
       ? dailyMoon[0]
       : null;
+const venusDebug = planetsWithMoon.find(
+  (p: any) => p.planet === "Venus"
+);
 
+console.log("TRANSIT SNAPSHOT DEBUG", {
+  dateISO,
+  transitTime,
+  timezone: birth.timezone,
+  snapshotMode:
+    dateISO === getCurrentDateISOInTimezone(birth.timezone)
+      ? "live_now"
+      : "fixed_noon",
+  venus: venusDebug,
+});
   return {
     dateISO,
     snapshotTime: transitTime,

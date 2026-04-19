@@ -134,11 +134,13 @@ function normalizeTransitPlanets(planets: any[], natalAscSign: string | null): a
         sign,
         house: houseFromNatal,
         degree:
-          typeof p?.deg === "number"
-            ? p.deg
-            : typeof p?.degree === "number"
-            ? p.degree
-            : null,
+  typeof p?.deg === "number"
+    ? p.deg
+    : typeof p?.degree === "number"
+    ? p.degree
+    : typeof p?.lon === "number"
+    ? Number((((p.lon % 30) + 30) % 30).toFixed(2))
+    : null,
         retrograde:
           typeof p?.retrograde === "boolean"
             ? p.retrograde
@@ -341,7 +343,14 @@ export default function ChartsTabView({
 }) {
   const [transitPlanets, setTransitPlanets] = useState<any[]>([]);
   const [transitLoading, setTransitLoading] = useState(false);
-  const [transitTime, setTransitTime] = useState("12:00");
+  const [transitTime, setTransitTime] = useState(() =>
+  new Intl.DateTimeFormat("en-GB", {
+    timeZone: birthTimezone || "UTC",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(new Date())
+);
   const [referenceMode, setReferenceMode] = useState<ReferenceMode>("md");
   const [showTransitOverlay, setShowTransitOverlay] = useState(false);
   const [expandedChart, setExpandedChart] = useState<ExpandedChartState>(null);
