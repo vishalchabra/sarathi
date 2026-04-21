@@ -195,7 +195,7 @@ export default function NorthIndianChart({
   return (
     <div className="flex flex-col items-center gap-2">
       <svg id={svgId} viewBox={`0 0 ${w} ${w}`} width={w} height={w}
-           className="rounded-xl border border-white/10 dark:border-slate-700 bg-white/5 dark:bg-slate-800">
+           className="rounded-xl border border-[color:var(--border)] dark:border-slate-700 bg-white/80 dark:bg-slate-800">
         {/* border */}
         <rect x={0.5} y={0.5} width={w-1} height={w-1} fill="none" stroke="#0f172a" strokeWidth={1.2}/>
         {/* diamond */}
@@ -219,7 +219,7 @@ export default function NorthIndianChart({
       </svg>
 
       {showLegend && (
-        <div className="text-xs text-white/50 dark:text-white/40 text-center">
+        <div className="text-xs text-slate-900 dark:text-slate-900 text-center">
           Whole-sign houses • Ascendant at top diamond • Houses proceed anti-clockwise • Nodes shown as “Ra/Ke”
         </div>
       )}

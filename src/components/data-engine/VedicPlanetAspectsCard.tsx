@@ -60,20 +60,20 @@ export default function VedicPlanetAspectsCard({
   const rows = Array.isArray(data?.planets) ? data!.planets! : [];
 
   return (
-    <section className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-sm">
+    <section className="rounded-3xl border border-[color:var(--border)] bg-white/80 p-6 shadow-sm">
       <div>
-        <h3 className="text-lg font-semibold text-white">
+        <h3 className="text-lg font-semibold text-slate-900">
           Vedic Planet Aspects
         </h3>
-        <p className="mt-1 text-sm text-white/70">
+        <p className="mt-1 text-sm text-slate-900">
           Planet-wise drishti given and received.
         </p>
       </div>
 
-      <div className="mt-6 overflow-x-auto rounded-2xl border border-white/10">
+      <div className="mt-6 overflow-x-auto rounded-2xl border border-[color:var(--border)]">
         <table className="min-w-full text-sm">
-          <thead className="bg-white/5">
-            <tr className="border-b border-white/10 text-left text-white/50">
+          <thead className="bg-white/80">
+            <tr className="border-b border-[color:var(--border)] text-left text-slate-900">
               <th className="px-4 py-3 font-medium">Planet</th>
               <th className="px-4 py-3 font-medium">Sign</th>
               <th className="px-4 py-3 font-medium">House</th>
@@ -86,24 +86,24 @@ export default function VedicPlanetAspectsCard({
               rows.map((row, idx) => (
                 <tr
                   key={`${row.planet ?? "planet"}-${idx}`}
-                  className="border-b border-white/10 last:border-b-0"
+                  className="border-b border-[color:var(--border)] last:border-b-0"
                 >
-                  <td className="px-4 py-3 font-medium text-white">
+                  <td className="px-4 py-3 font-medium text-slate-900">
                     {show(row.planet)}
                   </td>
-                  <td className="px-4 py-3 text-white/80">{show(row.sign)}</td>
-                  <td className="px-4 py-3 text-white/80">{show(row.house)}</td>
-                  <td className="px-4 py-3 text-white/80">
+                  <td className="px-4 py-3 text-slate-900/80">{show(row.sign)}</td>
+                  <td className="px-4 py-3 text-slate-900/80">{show(row.house)}</td>
+                  <td className="px-4 py-3 text-slate-900/80">
                     {formatGiven(row.given)}
                   </td>
-                  <td className="px-4 py-3 text-white/80">
+                  <td className="px-4 py-3 text-slate-900/80">
                     {formatReceived(row.received)}
                   </td>
                 </tr>
               ))
             ) : (
               <tr>
-                <td colSpan={5} className="px-4 py-6 text-center text-white/50">
+                <td colSpan={5} className="px-4 py-6 text-center text-slate-900">
                   No Vedic planet aspect data available.
                 </td>
               </tr>

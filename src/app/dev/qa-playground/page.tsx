@@ -29,7 +29,7 @@ export default function QATester() {
     <div className="p-6 space-y-4">
       <h1 className="text-2xl font-semibold">QA Playground</h1>
       <textarea className="w-full border p-2 rounded" rows={3} value={query} onChange={e=>setQuery(e.target.value)} />
-      <button onClick={run} className="px-4 py-2 bg-blue-600 text-white rounded">
+      <button onClick={run} className="px-4 py-2 bg-blue-600 text-slate-900 rounded">
         {loading ? "Running..." : "POST /api/qa"}
       </button>
       {out && (

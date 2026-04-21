@@ -8,12 +8,12 @@ export default function ContactPage() {
       <header className="border-b border-slate-800/60 bg-slate-950/80 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
           <Link href="/" className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-indigo-500/20 border border-indigo-400/40">
-              <Sparkles className="h-4 w-4 text-indigo-300" />
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[color:var(--primary)]/20 border border-indigo-400/40">
+              <Sparkles className="h-4 w-4 text-[color:var(--primary)]" />
             </div>
             <div className="leading-tight">
               <div className="text-sm font-semibold tracking-wide">Sārathi</div>
-              <div className="text-[11px] text-white/40">
+              <div className="text-[11px] text-slate-900">
                 The charioteer of your journey within
               </div>
             </div>
@@ -37,7 +37,7 @@ export default function ContactPage() {
       </header>
 
       <main className="mx-auto max-w-6xl px-4 py-10 md:py-14">
-        <Card className="rounded-3xl border border-white/10 bg-white/5/5 backdrop-blur-sm">
+        <Card className="rounded-3xl astro-card backdrop-blur-sm">
           <CardHeader>
             <CardTitle className="text-2xl md:text-3xl text-slate-50">
               Contact
@@ -48,14 +48,14 @@ export default function ContactPage() {
           </CardHeader>
 
           <CardContent className="space-y-4 text-sm leading-7 text-slate-200/80">
-            <div className="rounded-2xl border border-white/10 bg-slate-950/35 p-5">
+            <div className="rounded-2xl border border-[color:var(--border)] bg-slate-950/35 p-5">
               <div className="flex items-center gap-2 text-slate-100 font-semibold">
-                <Mail className="h-4 w-4 text-indigo-300" />
+                <Mail className="h-4 w-4 text-[color:var(--primary)]" />
                 Email
               </div>
               <p className="mt-2">
                 Replace this with your official support email:
-                <span className="ml-2 rounded-md border border-white/10 bg-white/5/5 px-2 py-0.5 text-xs text-slate-100">
+                <span className="ml-2 rounded-md astro-card px-2 py-0.5 text-xs text-slate-100">
                   support@sarathi.app
                 </span>
               </p>
@@ -64,7 +64,7 @@ export default function ContactPage() {
               </p>
             </div>
 
-            <div className="text-xs text-white/40">
+            <div className="text-xs text-slate-900">
               <Link href="/" className="hover:text-slate-200">
                 ← Back to Home
               </Link>

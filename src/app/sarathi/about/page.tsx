@@ -11,24 +11,24 @@ function PageShell({
   children: React.ReactNode;
 }) {
   return (
-    <main className="min-h-screen bg-[#070A14] text-white">
+    <main className="min-h-screen astro-bg text-slate-900">
       {/* subtle background glow */}
       <div className="pointer-events-none fixed inset-0 -z-10">
-        <div className="absolute left-1/2 top-[-220px] h-[520px] w-[980px] -translate-x-1/2 rounded-full bg-indigo-500/20 blur-[140px]" />
+        <div className="absolute left-1/2 top-[-220px] h-[520px] w-[980px] -translate-x-1/2 rounded-full bg-[color:var(--primary)]/20 blur-[140px]" />
         <div className="absolute left-[12%] top-[30%] h-[380px] w-[520px] rounded-full bg-cyan-400/10 blur-[130px]" />
         <div className="absolute right-[10%] top-[55%] h-[380px] w-[520px] rounded-full bg-violet-500/10 blur-[130px]" />
       </div>
 
       {/* simple top bar */}
-      <header className="sticky top-0 z-40 border-b border-white/10 bg-[#070A14]/70 backdrop-blur">
+      <header className="sticky top-0 z-40 border-b border-[color:var(--border)] astro-bg/70 backdrop-blur">
         <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-4">
           <Link href="/sarathi" className="flex items-center gap-3">
-            <div className="grid h-10 w-10 place-items-center rounded-xl border border-white/10 bg-white/5/5">
+            <div className="grid h-10 w-10 place-items-center rounded-xl astro-card">
               <span className="text-lg">✧</span>
             </div>
             <div className="leading-tight">
               <div className="font-semibold">Sārathi</div>
-              <div className="text-xs text-white/60">
+              <div className="text-xs text-slate-500">
                 The charioteer of your journey within
               </div>
             </div>
@@ -37,19 +37,19 @@ function PageShell({
           <div className="flex items-center gap-3">
             <Link
               href="/sarathi/faqs"
-              className="hidden text-sm text-white/70 hover:text-white md:inline"
+              className="hidden text-sm text-slate-900 hover:text-slate-900 md:inline"
             >
               FAQs
             </Link>
             <Link
               href="/sarathi/chat"
-              className="hidden text-sm text-white/70 hover:text-white md:inline"
+              className="hidden text-sm text-slate-900 hover:text-slate-900 md:inline"
             >
               Ask Sārathi
             </Link>
             <Link
               href="/sarathi/life-report"
-              className="rounded-full bg-indigo-500 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-400"
+              className="rounded-full bg-[color:var(--primary)] px-4 py-2 text-sm font-semibold text-slate-900 hover:opacity-90"
             >
               Get your Life Report
             </Link>
@@ -58,7 +58,7 @@ function PageShell({
       </header>
 
       <section className="mx-auto max-w-4xl px-4 pb-14 pt-10">
-        <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5/5 px-3 py-1 text-xs text-white/70">
+        <div className="inline-flex items-center gap-2 rounded-full astro-card px-3 py-1 text-xs text-slate-900">
           Why astrology · Why Sārathi · The story
         </div>
 
@@ -66,24 +66,24 @@ function PageShell({
           {title}
         </h1>
         {subtitle ? (
-          <p className="mt-3 max-w-2xl text-base leading-relaxed text-white/70">
+          <p className="mt-3 max-w-2xl text-base leading-relaxed text-slate-900">
             {subtitle}
           </p>
         ) : null}
 
         <div className="mt-8 space-y-6">{children}</div>
 
-        <footer className="mt-12 border-t border-white/10 pt-6 text-xs text-white/55">
+        <footer className="mt-12 border-t border-[color:var(--border)] pt-6 text-xs text-slate-900/55">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>© {new Date().getFullYear()} Sārathi</div>
             <div className="flex flex-wrap gap-4">
-              <Link className="hover:text-white" href="/sarathi/privacy">
+              <Link className="hover:text-slate-900" href="/sarathi/privacy">
                 Privacy
               </Link>
-              <Link className="hover:text-white" href="/sarathi/terms">
+              <Link className="hover:text-slate-900" href="/sarathi/terms">
                 Terms
               </Link>
-              <Link className="hover:text-white" href="/sarathi/contact">
+              <Link className="hover:text-slate-900" href="/sarathi/contact">
                 Contact
               </Link>
             </div>
@@ -102,16 +102,16 @@ function Card({
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/5/5 p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.06)_inset]">
-      <div className="text-sm font-semibold text-white/90">{title}</div>
-      <div className="mt-3 text-sm leading-relaxed text-white/70">{children}</div>
+    <div className="rounded-2xl astro-card p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.06)_inset]">
+      <div className="text-sm font-semibold text-slate-900/90">{title}</div>
+      <div className="mt-3 text-sm leading-relaxed text-slate-900">{children}</div>
     </div>
   );
 }
 
 function Bullet({ children }: { children: React.ReactNode }) {
   return (
-    <li className="ml-5 list-disc text-sm leading-relaxed text-white/70">
+    <li className="ml-5 list-disc text-sm leading-relaxed text-slate-900">
       {children}
     </li>
   );
@@ -135,7 +135,7 @@ export default function AboutPage() {
     but as a tool for timing, self-awareness, and steady action. That’s the
     spirit Sārathi is built on.
   </p>
-  <p className="mt-3 text-white/60">
+  <p className="mt-3 text-slate-500">
     Sārathi isn’t here to “predict” your life. It’s here to help you see it more
     clearly — and move with confidence.
   </p>
@@ -151,7 +151,7 @@ export default function AboutPage() {
     reins with steadiness — especially when emotions are high and the road feels
     uncertain.
   </p>
-  <p className="mt-4 text-white/60">
+  <p className="mt-4 text-slate-500">
     That’s the relationship I want Sārathi to have with you: calm presence,
     clear timing, and one practical next step.
   </p>
@@ -208,25 +208,25 @@ export default function AboutPage() {
   <div className="mt-5 flex flex-wrap gap-3">
     <Link
       href="/sarathi/life-report"
-      className="rounded-full bg-indigo-500 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-400"
+      className="rounded-full bg-[color:var(--primary)] px-4 py-2 text-sm font-semibold text-slate-900 hover:opacity-90"
     >
       Start with your Life Report
     </Link>
      <Link
       href="/sarathi/focused-reports"
-       className="rounded-full border border-white/10 bg-white/5/5 px-4 py-2 text-sm font-semibold text-white/90 hover:bg-white/5/10"
+       className="rounded-full astro-card px-4 py-2 text-sm font-semibold text-slate-900/90 hover:bg-white/80 hover:shadow-md"
     >
       Focused reports 
     </Link>
     <Link
       href="/sarathi/chat"
-      className="rounded-full border border-white/10 bg-white/5/5 px-4 py-2 text-sm font-semibold text-white/90 hover:bg-white/5/10"
+      className="rounded-full astro-card px-4 py-2 text-sm font-semibold text-slate-900/90 hover:bg-white/80 hover:shadow-md"
     >
       Ask Sārathi
     </Link>
     <Link
       href="/sarathi/contact"
-      className="rounded-full border border-white/10 bg-white/5/5 px-4 py-2 text-sm font-semibold text-white/90 hover:bg-white/5/10"
+      className="rounded-full astro-card px-4 py-2 text-sm font-semibold text-slate-900/90 hover:bg-white/80 hover:shadow-md"
     >
       Contact
     </Link>

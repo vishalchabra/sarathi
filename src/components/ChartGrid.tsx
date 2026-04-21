@@ -30,7 +30,7 @@ export default function ChartGrid({
           const cell = byHouse[h];
           return (
             <div key={h} className="border rounded-xl p-2 min-h-[72px]">
-              <div className="text-[10px] text-white/50">House {h}{cell.sign ? ` • ${cell.sign}` : ""}</div>
+              <div className="text-[10px] text-slate-900">House {h}{cell.sign ? ` • ${cell.sign}` : ""}</div>
               <div className="text-sm font-medium break-words">
   {cell.planets.length
     ? cell.planets.map((p, i) => (
@@ -51,7 +51,7 @@ export default function ChartGrid({
 function toneFor(label: string) {
   // Su, Mo, Ma, Me, Ju, Ve, Sa, Ra, Ke
   const m: Record<string,string> = {
-    Su: "text-orange-600", Mo: "text-white/80", Ma: "text-red-600",
+    Su: "text-orange-600", Mo: "text-slate-900/80", Ma: "text-red-600",
     Me: "text-emerald-700", Ju: "text-amber-700", Ve: "text-pink-700",
     Sa: "text-blue-700", Ra: "text-purple-700", Ke: "text-purple-700",
   };

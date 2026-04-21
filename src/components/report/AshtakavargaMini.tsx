@@ -66,7 +66,7 @@ export default function AshtakavargaMini({
             </div>
             <div className="h-2 bg-gray-100 rounded overflow-hidden">
               <div
-                className="h-2 bg-indigo-500"
+                className="h-2 bg-[color:var(--primary)]"
                 style={{ width: `${max > 0 ? (100 * v) / max : 0}%` }}
               />
             </div>

@@ -277,7 +277,7 @@ function AssistantProse({ data }: { data: QAResponse }) {
   const [showLong, setShowLong] = useState(false);
 
   return (
-    <div className="rounded-[24px] border border-white/10 bg-slate-950/35 p-5 md:p-6 text-sm leading-6 text-slate-100 shadow-[0_8px_30px_rgba(0,0,0,0.18)]">
+    <div className="rounded-[24px] border border-[color:var(--border)] bg-slate-950/35 p-5 md:p-6 text-sm leading-6 text-slate-100 shadow-[0_8px_30px_rgba(0,0,0,0.18)]">
       {c.answer ? <p className="mb-3 whitespace-pre-wrap">{c.answer}</p> : null}
 
       {c.long ? (
@@ -285,7 +285,7 @@ function AssistantProse({ data }: { data: QAResponse }) {
           <button
             type="button"
             onClick={() => setShowLong((s) => !s)}
-            className="text-xs rounded-lg border border-white/10 bg-white/5/5 px-2.5 py-1 hover:bg-white/5/10"
+            className="text-xs rounded-lg astro-card px-2.5 py-1 hover:bg-white/80 hover:shadow-md"
           >
             {showLong ? "Hide full explanation" : "Show full explanation"}
           </button>
@@ -539,7 +539,7 @@ const [showEvidence, setShowEvidence] = useState(false);
       ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-200"
       : confidenceLevel === "Medium"
       ? "border-amber-400/30 bg-amber-500/10 text-amber-200"
-      : "border-white/10 bg-white/5/5 text-slate-200/90";
+      : "border-[color:var(--border)] bg-white/80 text-slate-200/90";
 
   const timingBadgeClass =
     timingStrength === "Strong"
@@ -550,7 +550,7 @@ const [showEvidence, setShowEvidence] = useState(false);
       ? "border-amber-400/30 bg-amber-500/10 text-amber-200"
       : timingStrength === "Caution"
       ? "border-rose-400/30 bg-rose-500/10 text-rose-200"
-      : "border-white/10 bg-white/5/5 text-slate-200/90";
+      : "border-[color:var(--border)] bg-white/80 text-slate-200/90";
   return (
          <div>
         <div className="text-xs uppercase tracking-[0.18em] text-slate-300/60">
@@ -564,13 +564,13 @@ const [showEvidence, setShowEvidence] = useState(false);
 
         <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
           {confidenceText ? (
-            <div className="rounded-full border border-white/10 bg-white/5/5 px-2.5 py-1 text-[11px] text-slate-200/85">
+            <div className="rounded-full astro-card px-2.5 py-1 text-[11px] text-slate-200/85">
   {confidenceText}
 </div>
           ) : null}
 
           {nowLabel ? (
-            <div className="rounded-full border border-white/10 bg-white/5/5 px-2.5 py-1 text-[11px] text-slate-200/85">
+            <div className="rounded-full astro-card px-2.5 py-1 text-[11px] text-slate-200/85">
               Current timing: {nowLabel}
             </div>
           ) : null}
@@ -589,7 +589,7 @@ const [showEvidence, setShowEvidence] = useState(false);
         </div>
 
                  {answer ? (
-  <div className="mt-4 rounded-[22px] border border-white/10 bg-white/5/[0.05] p-5 md:p-6">
+  <div className="mt-4 rounded-[22px] border border-[color:var(--border)] bg-white/80/[0.05] p-5 md:p-6">
   <div className="whitespace-pre-wrap text-[15px] leading-8 text-slate-100/95">
       {expanded ? answer : answer.slice(0, 520)}
       {answer.length > 520 && !expanded ? "…" : ""}
@@ -599,7 +599,7 @@ const [showEvidence, setShowEvidence] = useState(false);
       <button
         type="button"
         onClick={() => setExpanded((v) => !v)}
-        className="mt-3 text-xs text-indigo-300 hover:underline"
+        className="mt-3 text-xs text-[color:var(--primary)] hover:underline"
       >
         {expanded ? "Show less" : "Show more"}
       </button>
@@ -610,7 +610,7 @@ const [showEvidence, setShowEvidence] = useState(false);
       {timingSummary || confidenceReason ? (
   <div className="mt-4 grid gap-3 md:grid-cols-2">
     {timingSummary ? (
-      <div className="rounded-2xl border border-white/10 bg-white/5/[0.04] p-4">
+      <div className="rounded-2xl border border-[color:var(--border)] bg-white/80/[0.04] p-4">
         <div className="text-[11px] uppercase tracking-[0.14em] text-slate-300/45">
           Current timing
         </div>
@@ -619,7 +619,7 @@ const [showEvidence, setShowEvidence] = useState(false);
     ) : null}
 
     {confidenceReason ? (
-      <div className="rounded-2xl border border-white/10 bg-white/5/[0.04] p-4">
+      <div className="rounded-2xl border border-[color:var(--border)] bg-white/80/[0.04] p-4">
         <div className="text-[11px] uppercase tracking-[0.14em] text-slate-300/45">
           How clear this looks
         </div>
@@ -631,14 +631,14 @@ const [showEvidence, setShowEvidence] = useState(false);
             {(how || (whyBullets && whyBullets.length)) ? (
         <div className="mt-4 grid gap-3 md:grid-cols-2">
           {how ? (
-            <div className="rounded-2xl border border-white/10 bg-white/5/5 p-4">
+            <div className="rounded-2xl astro-card p-4">
               <div className="text-xs uppercase tracking-[0.14em] text-slate-300/60">What to do now</div>
               <div className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-100/90">{how}</div>
             </div>
           ) : null}
 
           {whyBullets && whyBullets.length ? (
-            <div className="rounded-2xl border border-white/10 bg-white/5/5 p-4">
+            <div className="rounded-2xl astro-card p-4">
               <div className="text-xs uppercase tracking-[0.14em] text-slate-300/60">Why this works</div>
               <ul className="mt-2 list-disc pl-5 space-y-1 text-sm leading-6 text-slate-100/90">
                 {whyBullets.slice(0, 3).map((w, i) => (
@@ -651,7 +651,7 @@ const [showEvidence, setShowEvidence] = useState(false);
       ) : null}
 
                 {evidenceBullets && evidenceBullets.length ? (
-        <div className="mt-4 rounded-2xl border border-white/10 bg-white/5/5 p-4">
+        <div className="mt-4 rounded-2xl astro-card p-4">
           <button
             type="button"
             onClick={() => setShowEvidence((s) => !s)}
@@ -665,7 +665,7 @@ const [showEvidence, setShowEvidence] = useState(false);
                 See the astrology signals behind this answer
               </div>
             </div>
-            <div className="text-xs text-indigo-300">
+            <div className="text-xs text-[color:var(--primary)]">
               {showEvidence ? "Hide" : "Show"}
             </div>
           </button>
@@ -681,7 +681,7 @@ const [showEvidence, setShowEvidence] = useState(false);
       ) : null}
 
       {detailNote ? (
-        <div className="mt-4 border-t border-white/10 pt-3 text-xs text-white/40/80">
+        <div className="mt-4 border-t border-[color:var(--border)] pt-3 text-xs text-slate-900/80">
           {detailNote}
         </div>
       ) : null}
@@ -1111,7 +1111,7 @@ const stripEvidenceMarker = (s?: string) => {
   return (
     <main className="mx-auto max-w-5xl p-4 h-[100dvh] flex flex-col gap-3 text-slate-100 bg-gradient-to-b from-slate-950 via-indigo-950/30 to-slate-950">
       {/* Header */}
-      <header className="rounded-2xl border border-white/10 bg-slate-950/30 backdrop-blur-sm p-4">
+      <header className="rounded-2xl border border-[color:var(--border)] bg-slate-950/30 backdrop-blur-sm p-4">
         <div className="flex items-center gap-3 flex-wrap">
           <h1 className="text-lg md:text-xl font-semibold tracking-tight">
             Sārathi · Chat{" "}
@@ -1122,7 +1122,7 @@ const stripEvidenceMarker = (s?: string) => {
 
           <div className="ml-auto flex items-center gap-2 text-xs">
   {safeMode && (
-    <span className="rounded-full border border-white/10 bg-white/5/5 px-2 py-0.5 text-slate-200/80">
+    <span className="rounded-full astro-card px-2 py-0.5 text-slate-200/80">
       Safe
     </span>
   )}
@@ -1147,7 +1147,7 @@ const stripEvidenceMarker = (s?: string) => {
           {!hasProfile && (
             <a
               href="/sarathi/life-report"
-              className="rounded-full border border-white/10 bg-white/5/5 px-3 py-1 hover:bg-white/5/10 text-slate-100"
+              className="rounded-full astro-card px-3 py-1 hover:bg-white/80 hover:shadow-md text-slate-100"
             >
               Open Life Report
             </a>
@@ -1167,7 +1167,7 @@ const stripEvidenceMarker = (s?: string) => {
                 localStorage.removeItem("sarathi-chat");
               } catch {}
             }}
-            className="ml-auto rounded-full border border-white/10 bg-white/5/5 px-3 py-1 hover:bg-white/5/10 text-slate-100"
+            className="ml-auto rounded-full astro-card px-3 py-1 hover:bg-white/80 hover:shadow-md text-slate-100"
             title="Clear chat history"
           >
             Clear
@@ -1176,7 +1176,7 @@ const stripEvidenceMarker = (s?: string) => {
       </header>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto rounded-2xl border border-white/10 bg-indigo-950/35 backdrop-blur-sm p-4 space-y-6">
+      <div className="flex-1 overflow-y-auto rounded-2xl border border-[color:var(--border)] bg-indigo-950/35 backdrop-blur-sm p-4 space-y-6">
         {messages.map((msg, idx) => {
           const hasWindows = !!(msg.data && Array.isArray(msg.data.windows) && msg.data.windows.length);
           const hasNarrative = !!(msg.data && msg.data.copy && msg.data.copy.answer);
@@ -1354,7 +1354,7 @@ console.log("[chat] keys:", {
 } else if (msg.role === "assistant" && msg.content) {
   // keep plain assistant text messages as a simple bubble
   content = (
-    <div className="rounded-2xl border border-white/10 bg-slate-950/35 px-4 py-3 text-sm text-slate-100">
+    <div className="rounded-2xl border border-[color:var(--border)] bg-slate-950/35 px-4 py-3 text-sm text-slate-100">
       {msg.content}
     </div>
   );
@@ -1364,7 +1364,7 @@ console.log("[chat] keys:", {
             <div key={msg.id} className={`flex gap-2 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
               <div className={`max-w-[88%] ${msg.role === "user" ? "text-right" : "text-left"}`}>
                 {safeMode && msg.data ? (
-                  <pre className="max-w-[88%] overflow-auto rounded-2xl bg-slate-950/60 border border-white/10 p-3 text-xs text-slate-100">
+                  <pre className="max-w-[88%] overflow-auto rounded-2xl bg-slate-950/60 border border-[color:var(--border)] p-3 text-xs text-slate-100">
                     {JSON.stringify(msg.data, null, 2)}
                   </pre>
                 ) : msg.role === "assistant" && msg.data ? (
@@ -1374,8 +1374,8 @@ console.log("[chat] keys:", {
                     className={
                       "rounded-2xl px-4 py-2.5 text-sm " +
                       (msg.role === "user"
-                        ? "bg-indigo-500/20 border border-indigo-300/20 text-slate-100"
-                        : "bg-slate-950/35 border border-white/10 text-slate-100")
+                        ? "bg-[color:var(--primary)]/20 border border-indigo-300/20 text-slate-100"
+                        : "bg-slate-950/35 border border-[color:var(--border)] text-slate-100")
                     }
                   >
                     {msg.content}
@@ -1398,7 +1398,7 @@ console.log("[chat] keys:", {
       {/* Input */}
       <div className="flex gap-2">
         <input
-          className="h-11 flex-1 rounded-xl border border-white/10 bg-slate-950/40 px-4 text-sm text-slate-100 placeholder:text-slate-300/60 outline-none focus:border-indigo-300/40"
+          className="h-11 flex-1 rounded-xl border border-[color:var(--border)] bg-slate-950/40 px-4 text-sm text-slate-100 placeholder:text-slate-300/60 outline-none focus:border-indigo-300/40"
           placeholder="Ask about career, money, relationships, health…"
           value={input}
           onChange={(e) => setInput(e.target.value)}
@@ -1409,7 +1409,7 @@ console.log("[chat] keys:", {
         <button
           onClick={() => send()}
           disabled={!canSend}
-          className="inline-flex items-center justify-center h-11 rounded-xl px-4 text-sm font-semibold border border-white/10 bg-white/5/10 hover:bg-white/5/15 disabled:opacity-50 text-slate-100"
+          className="inline-flex items-center justify-center h-11 rounded-xl px-4 text-sm font-semibold border border-[color:var(--border)] bg-white/80/10 hover:bg-white/80/15 disabled:opacity-50 text-slate-100"
         >
           Send
         </button>

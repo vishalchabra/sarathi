@@ -78,7 +78,7 @@ function pick(planets: any, asc0: number, who: keyof typeof ALIASES): Picked {
 
 /* ------------ UI atoms ------------ */
 const DarkCard: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
-  <section className="rounded-2xl bg-slate-900 text-slate-50 p-6 md:p-7 shadow-lg ring-1 ring-slate-800">
+  <section className="rounded-2xl astro-card text-slate-50 p-6 md:p-7 shadow-lg ring-1 ring-slate-800">
     <h3 className="text-2xl md:text-3xl font-bold tracking-tight mb-4">{title}</h3>
     <div className="space-y-4 text-[15px] leading-7">{children}</div>
   </section>

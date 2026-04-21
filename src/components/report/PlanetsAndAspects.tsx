@@ -177,11 +177,11 @@ export default function PlanetsAndAspects({
 
   return (
     <div className="space-y-4">
-      <section className="rounded-xl border bg-white/5 dark:bg-slate-800 border-white/10 dark:border-slate-700 p-4">
+      <section className="rounded-xl border bg-white/80 dark:bg-slate-800 border-[color:var(--border)] dark:border-slate-700 p-4">
         <h3 className="text-lg font-semibold mb-2">{titlePlanets}</h3>
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
-            <thead className="text-left text-white/50 dark:text-white/40">
+            <thead className="text-left text-slate-900 dark:text-slate-900">
               <tr>
                 <th className="py-1 pr-3">Planet</th>
                 <th className="py-1 pr-3">Sign</th>
@@ -193,7 +193,7 @@ export default function PlanetsAndAspects({
               {rows.map(r => (
                 <tr key={r.name}>
                   <td className="py-1 pr-3"><span className="font-medium">{r.name}</span></td>
-                  <td className="py-1 pr-3">{r.sign} <span className="text-white/50">({r.signAbbr})</span></td>
+                  <td className="py-1 pr-3">{r.sign} <span className="text-slate-900">({r.signAbbr})</span></td>
                   <td className="py-1 pr-3">{r.degreeText}</td>
                   <td className="py-1 pr-3">{r.house ? ordinal(r.house) : "—"}</td>
                 </tr>
@@ -203,16 +203,16 @@ export default function PlanetsAndAspects({
         </div>
       </section>
 
-      <section className="rounded-xl border bg-white/5 dark:bg-slate-800 border-white/10 dark:border-slate-700 p-4">
+      <section className="rounded-xl border bg-white/80 dark:bg-slate-800 border-[color:var(--border)] dark:border-slate-700 p-4">
         <h3 className="text-lg font-semibold mb-2">{titleAspects}</h3>
         {aspects.length === 0 ? (
-          <div className="text-sm text-white/50 dark:text-white/40">
+          <div className="text-sm text-slate-900 dark:text-slate-900">
             No major aspects within the default orbs.
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
-              <thead className="text-left text-white/50 dark:text-white/40">
+              <thead className="text-left text-slate-900 dark:text-slate-900">
                 <tr>
                   <th className="py-1 pr-3">Planet A</th>
                   <th className="py-1 pr-3">Aspect</th>

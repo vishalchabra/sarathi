@@ -77,9 +77,9 @@ function InfoRow({
   value: React.ReactNode;
 }) {
   return (
-    <div className="flex items-start justify-between gap-4 border-b border-white/10 py-2 last:border-b-0">
-      <div className="min-w-0 text-sm text-white/50">{label}</div>
-      <div className="text-right text-sm font-medium text-white">
+    <div className="flex items-start justify-between gap-4 border-b border-[color:var(--border)] py-2 last:border-b-0">
+      <div className="min-w-0 text-sm text-slate-900">{label}</div>
+      <div className="text-right text-sm font-medium text-slate-900">
         {value ?? "—"}
       </div>
     </div>
@@ -97,33 +97,33 @@ function SectionCard({
 }) {
   if (!profile) {
     return (
-      <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
-        <div className="text-sm font-semibold text-white">{title}</div>
-        <div className="mt-3 text-sm text-white/50">No data available.</div>
+      <div className="rounded-2xl border border-[color:var(--border)] bg-white/80 p-5">
+        <div className="text-sm font-semibold text-slate-900">{title}</div>
+        <div className="mt-3 text-sm text-slate-900">No data available.</div>
       </div>
     );
   }
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 p-5 shadow-sm">
+    <div className="rounded-2xl border border-[color:var(--border)] bg-white/80 p-5 shadow-sm">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <div className="text-xs font-medium uppercase tracking-wide text-white/50">
+          <div className="text-xs font-medium uppercase tracking-wide text-slate-900">
             {title}
           </div>
-          <div className="mt-1 text-lg font-semibold text-white">
+          <div className="mt-1 text-lg font-semibold text-slate-900">
             {profile.planet ?? "—"}
           </div>
         </div>
 
-        <div className="rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-white/80">
+        <div className="rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-slate-900/80">
           {profile.strengthBand ?? "—"}
         </div>
       </div>
 
       <div className="mt-4 space-y-5">
         <div>
-          <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-white/50">
+          <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-900">
             Lord Placement
           </div>
           <InfoRow label="Sign" value={profile.sign ?? "—"} />
@@ -137,7 +137,7 @@ function SectionCard({
         </div>
 
         <div>
-          <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-white/50">
+          <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-900">
             Dispositor Chain
           </div>
           <InfoRow label="Dispositor" value={profile.dispositor ?? "—"} />
@@ -152,7 +152,7 @@ function SectionCard({
         </div>
 
         <div>
-          <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-white/50">
+          <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-900">
             Nakshatra Chain
           </div>
           <InfoRow label="Nakshatra" value={nakshatraRow?.nakshatra ?? "—"} />
@@ -215,42 +215,42 @@ export default function DashaLordProfileCard({
   ].filter(Boolean);
 
   return (
-    <section className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-sm">
+    <section className="rounded-3xl border border-[color:var(--border)] bg-white/80 p-6 shadow-sm">
       <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
         <div>
-          <h3 className="text-lg font-semibold text-white">
+          <h3 className="text-lg font-semibold text-slate-900">
             Dasha Chain Context
           </h3>
-          <p className="mt-1 text-sm text-white/70">
+          <p className="mt-1 text-sm text-slate-900">
             Placement, dispositor chain, and nakshatra chain for active MD, AD, and PD lords.
           </p>
         </div>
       </div>
-      <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4">
+      <div className="mt-6 rounded-2xl border border-[color:var(--border)] bg-white/80 p-4">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           <div>
-            <div className="text-xs font-medium uppercase tracking-wide text-white/50">
+            <div className="text-xs font-medium uppercase tracking-wide text-slate-900">
               Activated Houses (MD–AD–PD)
             </div>
-            <div className="mt-1 text-sm font-medium text-white">
+            <div className="mt-1 text-sm font-medium text-slate-900">
               {activatedHouses.length ? activatedHouses.join(", ") : "—"}
             </div>
           </div>
 
           <div>
-            <div className="text-xs font-medium uppercase tracking-wide text-white/50">
+            <div className="text-xs font-medium uppercase tracking-wide text-slate-900">
               Repeating Planets
             </div>
-            <div className="mt-1 text-sm font-medium text-white">
+            <div className="mt-1 text-sm font-medium text-slate-900">
               {repeatingPlanets.length ? repeatingPlanets.join(", ") : "None"}
             </div>
           </div>
 
           <div>
-            <div className="text-xs font-medium uppercase tracking-wide text-white/50">
+            <div className="text-xs font-medium uppercase tracking-wide text-slate-900">
               Final Dispositor Focus
             </div>
-            <div className="mt-1 text-sm font-medium text-white">
+            <div className="mt-1 text-sm font-medium text-slate-900">
               {finalDispositors.length
                 ? [...new Set(finalDispositors)].join(", ")
                 : "—"}

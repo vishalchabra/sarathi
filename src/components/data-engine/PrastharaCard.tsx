@@ -12,7 +12,7 @@ export default function PrastharaCard({
 }) {
   if (!data) {
     return (
-      <div className="rounded-2xl border border-white/10 bg-white/5 p-5 text-sm text-white/50">
+      <div className="rounded-2xl border border-[color:var(--border)] bg-white/80 p-5 text-sm text-slate-900">
         Prasthara data not available.
       </div>
     );
@@ -21,11 +21,11 @@ export default function PrastharaCard({
   const planets = Object.keys(data);
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 p-5 shadow-sm">
-      <h3 className="text-base font-semibold text-white">
+    <div className="rounded-2xl border border-[color:var(--border)] bg-white/80 p-5 shadow-sm">
+      <h3 className="text-base font-semibold text-slate-900">
         Prasthara Ashtakvarga
       </h3>
-      <p className="mt-1 text-sm text-white/50">
+      <p className="mt-1 text-sm text-slate-900">
         Detailed bindu contributions by each planet.
       </p>
 
@@ -35,14 +35,14 @@ export default function PrastharaCard({
 
           return (
             <div key={planet}>
-              <h4 className="mb-2 text-sm font-semibold text-white/90">
+              <h4 className="mb-2 text-sm font-semibold text-slate-900/90">
                 {planet}
               </h4>
 
               <div className="overflow-x-auto">
                 <table className="min-w-[900px] text-xs">
                   <thead>
-                    <tr className="text-white/50">
+                    <tr className="text-slate-900">
                       <th className="text-left pr-2">From</th>
                       {Array.from({ length: 12 }, (_, i) => (
                         <th key={i} className="px-1 text-center">
@@ -56,7 +56,7 @@ export default function PrastharaCard({
                     {Object.entries(contributors).map(
                       ([fromPlanet, values]) => (
                         <tr key={fromPlanet}>
-                          <td className="pr-2 font-medium text-white/80">
+                          <td className="pr-2 font-medium text-slate-900/80">
                             {fromPlanet}
                           </td>
 
@@ -66,7 +66,7 @@ export default function PrastharaCard({
                                 className={`inline-flex w-5 h-5 items-center justify-center rounded text-[10px] ${
                                   v === 1
                                     ? "bg-emerald-100 text-emerald-700"
-                                    : "bg-white/10 text-white/40"
+                                    : "bg-white/10 text-slate-900"
                                 }`}
                               >
                                 {v}

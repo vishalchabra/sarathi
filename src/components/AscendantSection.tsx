@@ -46,17 +46,17 @@ export function AscendantSection({ data }: { data: AscendantData }) {
 
   return (
     <section className="space-y-3">
-      <h2 className="text-base font-semibold text-white">Ascendant</h2>
+      <h2 className="text-base font-semibold text-slate-900">Ascendant</h2>
 
-      <div className="rounded border border-white/10 bg-white/5 shadow-sm p-4 text-sm leading-relaxed text-slate-700">
+      <div className="rounded border border-[color:var(--border)] bg-white/80 shadow-sm p-4 text-sm leading-relaxed text-slate-700">
         {/* Asc / Lagna block */}
         <div className="mb-4">
-          <div className="text-white font-medium text-sm">
+          <div className="text-slate-900 font-medium text-sm">
             {ascSign} Ascendant (Sidereal/Lahiri)
           </div>
 
           <div className="mt-2">
-            <span className="font-semibold text-white/90">
+            <span className="font-semibold text-slate-900/90">
               Ascendant Nakshatra (Lagna star):
             </span>{" "}
             {ascNakshatraName}
@@ -65,7 +65,7 @@ export function AscendantSection({ data }: { data: AscendantData }) {
               : ""}
           </div>
 
-          <div className="text-xs text-white/50 mt-1">
+          <div className="text-xs text-slate-900 mt-1">
             Your Lagna star describes how you move in the world — how you act,
             present yourself, manage situations, and try to stay in control.
             It’s the “outer strategy” people see.
@@ -76,13 +76,13 @@ export function AscendantSection({ data }: { data: AscendantData }) {
         {(moonSign || moonNakshatraName) && (
           <div className="mb-4">
             {moonSign && (
-              <div className="text-white font-medium text-sm">
+              <div className="text-slate-900 font-medium text-sm">
                 Moon in {moonSign}
               </div>
             )}
 
             <div className="mt-2">
-              <span className="font-semibold text-white/90">
+              <span className="font-semibold text-slate-900/90">
                 Birth Nakshatra (Moon’s star / Janma Nakshatra):
               </span>{" "}
               {moonNakshatraName}
@@ -91,7 +91,7 @@ export function AscendantSection({ data }: { data: AscendantData }) {
                 : ""}
             </div>
 
-            <div className="text-xs text-white/50 mt-1">
+            <div className="text-xs text-slate-900 mt-1">
               This is your emotional wiring, instinctive comfort zone, and the
               anchor for your Dasha timing. Most astrologers mean this when they
               say “your birth nakshatra.”
@@ -101,29 +101,29 @@ export function AscendantSection({ data }: { data: AscendantData }) {
 
         {/* Panchang snapshot */}
         {panchang && (
-          <div className="border-t border-white/10 pt-4">
-            <div className="text-white font-medium text-sm mb-2">
+          <div className="border-t border-[color:var(--border)] pt-4">
+            <div className="text-slate-900 font-medium text-sm mb-2">
               Birth Panchang Snapshot
             </div>
 
             <dl className="grid grid-cols-1 md:grid-cols-2 gap-y-2 text-xs text-slate-700">
               <div>
-                <dt className="font-semibold text-white/90">Weekday</dt>
+                <dt className="font-semibold text-slate-900/90">Weekday</dt>
                 <dd>{panchang.weekday}</dd>
               </div>
 
               <div>
-                <dt className="font-semibold text-white/90">Tithi</dt>
+                <dt className="font-semibold text-slate-900/90">Tithi</dt>
                 <dd>{panchang.tithiName}</dd>
               </div>
 
               <div>
-                <dt className="font-semibold text-white/90">Yoga</dt>
+                <dt className="font-semibold text-slate-900/90">Yoga</dt>
                 <dd>{panchang.yogaName}</dd>
               </div>
 
               <div>
-                <dt className="font-semibold text-white/90">
+                <dt className="font-semibold text-slate-900/90">
                   Moon’s Nakshatra
                 </dt>
                 <dd>
@@ -136,7 +136,7 @@ export function AscendantSection({ data }: { data: AscendantData }) {
 
               {panchang.sunrise && panchang.sunset && (
                 <div>
-                  <dt className="font-semibold text-white/90">
+                  <dt className="font-semibold text-slate-900/90">
                     Sunrise / Sunset
                   </dt>
                   <dd>
@@ -147,7 +147,7 @@ export function AscendantSection({ data }: { data: AscendantData }) {
 
               {panchang.moonrise && panchang.moonset && (
                 <div>
-                  <dt className="font-semibold text-white/90">
+                  <dt className="font-semibold text-slate-900/90">
                     Moonrise / Moonset
                   </dt>
                   <dd>
@@ -158,14 +158,14 @@ export function AscendantSection({ data }: { data: AscendantData }) {
 
               {panchang.rahuKaal && (
                 <div>
-                  <dt className="font-semibold text-white/90">Rahu Kaal</dt>
+                  <dt className="font-semibold text-slate-900/90">Rahu Kaal</dt>
                   <dd>{panchang.rahuKaal}</dd>
                 </div>
               )}
 
               {panchang.gulikaKaal && (
                 <div>
-                  <dt className="font-semibold text-white/90">
+                  <dt className="font-semibold text-slate-900/90">
                     Gulika Kaal
                   </dt>
                   <dd>{panchang.gulikaKaal}</dd>
@@ -174,7 +174,7 @@ export function AscendantSection({ data }: { data: AscendantData }) {
 
               {panchang.abhijitMuhurat && (
                 <div>
-                  <dt className="font-semibold text-white/90">
+                  <dt className="font-semibold text-slate-900/90">
                     Abhijit Muhurta
                   </dt>
                   <dd>{panchang.abhijitMuhurat}</dd>
@@ -183,10 +183,10 @@ export function AscendantSection({ data }: { data: AscendantData }) {
             </dl>
 
             {(panchang.festivalNote || panchang.guidanceLine) && (
-              <div className="mt-3 text-xs text-white/70 leading-relaxed">
+              <div className="mt-3 text-xs text-slate-900 leading-relaxed">
                 {panchang.festivalNote && (
                   <div className="mb-1">
-                    <span className="font-semibold text-white/90">
+                    <span className="font-semibold text-slate-900/90">
                       Festival / Vrat:
                     </span>{" "}
                     {panchang.festivalNote}
@@ -195,7 +195,7 @@ export function AscendantSection({ data }: { data: AscendantData }) {
 
                 {panchang.guidanceLine && (
                   <div>
-                    <span className="font-semibold text-white/90">
+                    <span className="font-semibold text-slate-900/90">
                       Birth-day guidance:
                     </span>{" "}
                     {panchang.guidanceLine}

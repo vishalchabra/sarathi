@@ -265,7 +265,7 @@ function LockingCityAutocomplete({
   const [items, setItems] = React.useState<Array<{ name: string; lat: number; lon: number }>>([]);
   const inputRef = React.useRef<HTMLInputElement>(null);
   const timerRef = React.useRef<number | null>(null);
-  const [utilityMetaData, setUtilityMetaData] = useState<any | null>(null);
+  
   React.useEffect(() => {
     setQ(value?.name ?? "");
   }, [value?.name]);
@@ -371,7 +371,7 @@ timerRef.current = window.setTimeout(async () => {
         placeholder={placeholder}
         autoComplete="off"
         value={q}
-        className="w-full rounded-xl border border-white/15 bg-white/5/5 px-3 py-2 text-sm text-white outline-none placeholder:text-white/35 focus:border-indigo-400"
+        className="w-full rounded-xl border border-[color:var(--border)] bg-white/80 px-3 py-2 text-sm text-slate-800 outline-none placeholder:text-slate-400 focus:border-[color:var(--primary)]"
         onFocus={() => {
           if (items.length) setOpen(true);
         }}
@@ -402,7 +402,7 @@ timerRef.current = window.setTimeout(async () => {
       {q && (
         <button
           type="button"
-          className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-white/50"
+          className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-slate-400"
           onMouseDown={(e) => e.preventDefault()}
           onClick={clearAll}
           aria-label="Clear"
@@ -415,11 +415,11 @@ timerRef.current = window.setTimeout(async () => {
       {open && (
         <div
           data-citymenu
-          className="absolute z-20 mt-1 w-full rounded-md border border-white/10 bg-[#0C1222] text-white shadow-xl"
+          className="absolute z-20 mt-1 w-full rounded-md border border-[color:var(--border)] bg-white text-slate-800 shadow-xl"
         >
-          {loading && <div className="px-3 py-2 text-sm text-white/60">Searching</div>}
+          {loading && <div className="px-3 py-2 text-sm text-slate-500">Searching</div>}
           {!loading && !items.length && (
-            <div className="px-3 py-2 text-sm text-white/60">No results</div>
+            <div className="px-3 py-2 text-sm text-slate-500">No results</div>
           )}
           {!loading &&
             items.map((it, i) => (
@@ -427,11 +427,11 @@ timerRef.current = window.setTimeout(async () => {
                 key={`${it.name}-${i}`}
                 type="button"
                 onMouseDown={(e) => e.preventDefault()}
-                className="w-full px-3 py-2 text-left text-sm hover:bg-white/5/5"
+                className="w-full px-3 py-2 text-left text-sm hover:bg-slate-100"
                 onClick={() => commit(it)}
               >
                 {it.name}
-                <span className="ml-2 text-xs text-white/45">
+                <span className="ml-2 text-xs text-slate-400">
                   {it.lat.toFixed(2)}, {it.lon.toFixed(2)}
                 </span>
               </button>
@@ -456,52 +456,52 @@ function PrimarySignalsCard({
   watchouts: string[];
 }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/5/5 p-4 shadow-[0_0_0_1px_rgba(255,255,255,0.04)_inset]">
-      <h2 className="text-base font-semibold text-white">Primary Signals</h2>
-      <p className="mt-1 text-sm text-white/65">
+    <div className="rounded-2xl astro-card p-5 shadow-sm ring-1 ring-black/5">
+      <h2 className="text-base font-semibold text-slate-900">Primary Signals</h2>
+      <p className="mt-1 text-sm text-slate-600">
         High-priority chart flags for quick astrologer review.
       </p>
 
       <div className="mt-4 space-y-3">
         <div>
-          <div className="text-xs font-medium uppercase tracking-wide text-white/45">
+          <div className="text-xs font-medium uppercase tracking-wide text-slate-400">
             Current Dasha
           </div>
-          <div className="mt-1 text-sm text-white">{currentDashaLabel || "—"}</div>
+          <div className="mt-1 text-sm text-slate-900">{currentDashaLabel || "—"}</div>
         </div>
 
         <div>
-          <div className="text-xs font-medium uppercase tracking-wide text-white/45">
+          <div className="text-xs font-medium uppercase tracking-wide text-slate-400">
             Strongest Planets
           </div>
-          <div className="mt-1 text-sm text-white">
+          <div className="mt-1 text-sm text-slate-900">
             {strongestPlanets.length ? strongestPlanets.join(", ") : "—"}
           </div>
         </div>
 
         <div>
-          <div className="text-xs font-medium uppercase tracking-wide text-white/45">
+          <div className="text-xs font-medium uppercase tracking-wide text-slate-400">
             Weakest Planets
           </div>
-          <div className="mt-1 text-sm text-white">
+          <div className="mt-1 text-sm text-slate-900">
             {weakestPlanets.length ? weakestPlanets.join(", ") : "—"}
           </div>
         </div>
 
         <div>
-          <div className="text-xs font-medium uppercase tracking-wide text-white/45">
+          <div className="text-xs font-medium uppercase tracking-wide text-slate-400">
             Key Houses
           </div>
-          <div className="mt-1 text-sm text-white">
+          <div className="mt-1 text-sm text-slate-900">
             {keyHouses.length ? keyHouses.join(", ") : "—"}
           </div>
         </div>
 
         <div>
-          <div className="text-xs font-medium uppercase tracking-wide text-white/45">
+          <div className="text-xs font-medium uppercase tracking-wide text-slate-400">
             Watchouts
           </div>
-          <div className="mt-1 text-sm text-white">
+          <div className="mt-1 text-sm text-slate-900">
             {watchouts.length ? watchouts.join(" • ") : "—"}
           </div>
         </div>
@@ -509,20 +509,7 @@ function PrimarySignalsCard({
     </div>
   );
 }
-function getOrdinalSuffix(n: number) {
-  if (n >= 11 && n <= 13) return "th";
 
-  switch (n % 10) {
-    case 1:
-      return "st";
-    case 2:
-      return "nd";
-    case 3:
-      return "rd";
-    default:
-      return "th";
-  }
-}
 function getTodayISOInTimezone(tz: string) {
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: tz,
@@ -556,7 +543,7 @@ export default function DataEnginePage() {
   const [compareDateISO, setCompareDateISO] = useState("");
  const [utilityPanchangData, setUtilityPanchangData] = useState<any | null>(null);
 const [utilityHoraData, setUtilityHoraData] = useState<any | null>(null);
-const [utilityMetaData, setUtilityMetaData] = useState<any | null>(null);
+
 
 const [utilityPanchangLoading, setUtilityPanchangLoading] = useState(false);
 const [utilityHoraLoading, setUtilityHoraLoading] = useState(false);
@@ -667,7 +654,6 @@ if (!res.ok || json?.ok === false) {
 }
 
 setUtilityPanchangData(json?.timing?.utilities?.panchang ?? null);
-setUtilityMetaData(json?.timing?.personalStrength ?? null);
   } catch (e: any) {
     setUtilityPanchangError(e?.message || "Something went wrong.");
   } finally {
@@ -881,10 +867,7 @@ const utilityPanchang = useMemo(
   () => utilityPanchangData ?? null,
   [utilityPanchangData]
 );
-const utilityPersonalStrength = useMemo(
-  () => utilityMetaData ?? null,
-  [utilityMetaData]
-);
+
 const utilityHora = useMemo(
   () => utilityHoraData ?? null,
   [utilityHoraData]
@@ -907,23 +890,7 @@ const foundationPersonalStrength = useMemo(
     null,
   [data]
 );
-  useEffect(() => {
-    if (data) {
-      console.log("==== DEBUG START ====");
-      console.log("natalStrengths sample:", natalStrengths?.[0]);
-      console.log("houseJudgement sample:", houseJudgement?.[0]);
-      console.log("FULL natalStrengths:", natalStrengths);
-      console.log("FULL houseJudgement:", houseJudgement);
-
-      console.log(
-        "MOON DEBUG",
-        planets.find((p: any) => p?.planet === "Moon")
-      );
-
-      console.log("==== DEBUG END ====");
-    }
-  }, [data, natalStrengths, houseJudgement, planets]);
-
+ 
   const bhavaChalit = useMemo(
     () => data?.foundations?.bhavaChalit ?? data?.bhavaChalit ?? null,
     [data]
@@ -1128,47 +1095,52 @@ const foundationPersonalStrength = useMemo(
   }, [vargaEntries, selectedVarga]);
 
   const selectedVargaValue =
-    vargaEntries.find(([key]) => key === selectedVarga)?.[1] ?? null;
+  vargaEntries.find(([key]) => key === selectedVarga)?.[1] ?? null;
 
+const primaryButtonClass =
+  "rounded-xl bg-[color:var(--primary)] px-7 py-3 text-sm font-semibold text-white shadow-sm transition hover:opacity-95 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60";
+
+const errorBoxClass =
+  "mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700 shadow-sm";
   return (
-    <main className="min-h-screen bg-[#070A14] text-white">
+    <main className="min-h-screen astro-bg text-slate-800">
       <div className="pointer-events-none fixed inset-0 -z-10">
-        <div className="absolute left-1/2 top-[-220px] h-[520px] w-[980px] -translate-x-1/2 rounded-full bg-indigo-500/20 blur-[140px]" />
-        <div className="absolute left-[12%] top-[30%] h-[380px] w-[520px] rounded-full bg-cyan-400/10 blur-[130px]" />
-        <div className="absolute right-[10%] top-[55%] h-[380px] w-[520px] rounded-full bg-violet-500/10 blur-[130px]" />
+        <div className="absolute left-1/2 top-[-220px] h-[520px] w-[980px] -translate-x-1/2 rounded-full bg-[color:var(--primary)]/16 blur-[140px]" />
+        <div className="absolute left-[12%] top-[30%] h-[380px] w-[520px] rounded-full bg-amber-200/25 blur-[130px]" />
+        <div className="absolute right-[10%] top-[55%] h-[380px] w-[520px] rounded-full bg-fuchsia-200/20 blur-[130px]" />
       </div>
 
-      <header className="sticky top-0 z-40 border-b border-white/10 bg-[#070A14]/70 backdrop-blur">
+      <header className="sticky top-0 z-40 border-b border-[color:var(--border)] bg-white/80 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
           <Link href="/sarathi" className="flex items-center gap-3">
-            <div className="grid h-10 w-10 place-items-center rounded-xl border border-white/10 bg-white/5/5">
+            <div className="grid h-10 w-10 place-items-center rounded-xl astro-card">
               <span className="text-lg">✧</span>
             </div>
             <div className="leading-tight">
-              <div className="font-semibold">Sārathi</div>
-              <div className="text-xs text-white/60">
+              <div className="font-semibold text-slate-900">Sārathi</div>
+              <div className="text-xs text-slate-500">
                 The charioteer of your journey within
               </div>
             </div>
           </Link>
 
-          <nav className="hidden items-center gap-6 text-sm text-white/70 md:flex">
-            <Link className="hover:text-white" href="/sarathi">
+          <nav className="hidden items-center gap-6 text-sm text-slate-600 md:flex">
+            <Link className="hover:text-slate-900" href="/sarathi">
               Home
             </Link>
-            <Link className="hover:text-white" href="/sarathi/chat">
+            <Link className="hover:text-slate-900" href="/sarathi/chat">
               Ask Sārathi
             </Link>
-            <Link className="hover:text-white" href="/sarathi/life-report">
+            <Link className="hover:text-slate-900" href="/sarathi/life-report">
               Life Report
             </Link>
-            <Link className="hover:text-white" href="/sarathi/data-engine">
+            <Link className="hover:text-slate-900" href="/sarathi/data-engine">
               Data Engine
             </Link>
           </nav>
 
           <div className="flex items-center gap-3">
-            <span className="hidden rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-xs text-emerald-200 md:inline-flex">
+            <span className="hidden rounded-full border border-amber-300/40 bg-amber-100 px-3 py-1 text-xs text-amber-800 md:inline-flex">
               Pro astrologer view
             </span>
           </div>
@@ -1177,22 +1149,22 @@ const foundationPersonalStrength = useMemo(
 
       <section className="mx-auto max-w-7xl px-4 py-8 md:px-8">
         <div className="space-y-6">
-          <div className="rounded-3xl border border-white/10 bg-white/5/5 p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.04)_inset]">
+          <div className="rounded-3xl astro-card p-8 shadow-sm ring-1 ring-black/5">
             <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
   <div>
-    <h1 className="text-2xl font-semibold text-white">Sārathi Astrologer’s Desk</h1>
-    <p className="mt-1 text-sm text-white/65">
+    <h1 className="text-2xl font-semibold text-slate-900">Sārathi Astrologer’s Desk</h1>
+    <p className="mt-1 text-sm text-slate-600">
       Built for astrologers who want technical depth, faster workflow, and cleaner chart judgement.
     </p>
   </div>
 </div>
 
-<div className="mt-6 rounded-2xl border border-white/10 bg-white/5/5 p-5 shadow-[0_0_0_1px_rgba(255,255,255,0.04)_inset]">
-  <h2 className="text-base font-semibold text-white">
+<div className="mt-6 rounded-2xl astro-card p-6 shadow-sm ring-1 ring-black/5">
+  <h2 className="text-base font-semibold text-slate-900">
     Built for astrologers who want all technical chart data in one place
   </h2>
 
-  <p className="mt-3 text-sm leading-relaxed text-white/70">
+  <p className="mt-3 text-sm leading-relaxed text-slate-700">
     Sārathi Astrologer’s Desk was created for practicing astrologers who do not
     want to waste time jumping between multiple tools, calculations, and
     reference points. It brings together the core technical layers needed for
@@ -1200,23 +1172,23 @@ const foundationPersonalStrength = useMemo(
     aspects, and chart views — in one clean workspace.
   </p>
 
-  <p className="mt-3 text-sm leading-relaxed text-white/70">
+  <p className="mt-3 text-sm leading-relaxed text-slate-700">
     The goal is not to replace the astrologer’s wisdom. The goal is to remove
     friction, reduce manual effort, and make serious chart analysis faster,
     clearer, and more complete.
   </p>
 
   <div className="mt-4 flex flex-wrap gap-2">
-    <span className="rounded-full border border-indigo-400/20 bg-indigo-400/10 px-3 py-1 text-xs text-indigo-200">
+    <span className="rounded-full astro-chip px-3 py-1 text-xs">
       Built for manual judgement
     </span>
-    <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-xs text-emerald-200">
+    <span className="rounded-full astro-chip px-3 py-1 text-xs">
       All major technical layers
     </span>
-    <span className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1 text-xs text-cyan-200">
+    <span className="rounded-full astro-chip px-3 py-1 text-xs">
       Faster chart reading
     </span>
-    <span className="rounded-full border border-amber-400/20 bg-amber-400/10 px-3 py-1 text-xs text-amber-200">
+    <span className="rounded-full astro-chip px-3 py-1 text-xs">
       Made for serious astrologers
     </span>
   </div>
@@ -1224,18 +1196,18 @@ const foundationPersonalStrength = useMemo(
 
 <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
               <div>
-                <label className="text-xs font-medium uppercase tracking-wide text-white/45">
+                <label className="text-xs font-medium uppercase tracking-wide text-slate-400">
                   Name
                 </label>
                 <input
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="mt-1 w-full rounded-xl border border-white/15 bg-white/5/5 px-3 py-2 text-sm text-white outline-none placeholder:text-white/35 focus:border-indigo-400"
+                  className="mt-1 w-full rounded-xl border border-[color:var(--border)] bg-white px-3 py-2.5 text-sm text-slate-800 shadow-sm outline-none placeholder:text-slate-400 focus:border-[color:var(--primary)]"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-medium uppercase tracking-wide text-white/45">
+                <label className="text-xs font-medium uppercase tracking-wide text-slate-400">
                   City
                 </label>
                 <div className="mt-1">
@@ -1248,49 +1220,42 @@ const foundationPersonalStrength = useMemo(
               </div>
 
               <div>
-                <label className="text-xs font-medium uppercase tracking-wide text-white/45">
+                <label className="text-xs font-medium uppercase tracking-wide text-slate-400">
                   Birth date
                 </label>
                 <input
                   type="date"
                   value={dateISO}
                   onChange={(e) => setDateISO(e.target.value)}
-                  className="mt-1 w-full rounded-xl border border-white/15 bg-white/5/5 px-3 py-2 text-sm text-white outline-none focus:border-indigo-400"
+                  className="mt-1 w-full rounded-xl border border-[color:var(--border)] bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none focus:border-[color:var(--primary)]"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-medium uppercase tracking-wide text-white/45">
+                <label className="text-xs font-medium uppercase tracking-wide text-slate-400">
                   Birth time
                 </label>
                 <input
                   type="time"
                   value={time}
                   onChange={(e) => setTime(e.target.value)}
-                  className="mt-1 w-full rounded-xl border border-white/15 bg-white/5/5 px-3 py-2 text-sm text-white outline-none focus:border-indigo-400"
+                  className="mt-1 w-full rounded-xl border border-[color:var(--border)] bg-white/80 px-3 py-2 text-sm text-slate-900 outline-none focus:border-[color:var(--primary)]"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-medium uppercase tracking-wide text-white/45">
+                <label className="text-xs font-medium uppercase tracking-wide text-slate-400">
                   Timezone
                 </label>
                 <input
   value={timezone}
   readOnly
   
-                  className="mt-1 w-full rounded-xl border border-white/15 bg-white/5/5 px-3 py-2 text-sm text-white outline-none placeholder:text-white/35 focus:border-indigo-400"
+                  className="mt-1 w-full rounded-xl border border-[color:var(--border)] bg-white/80 px-3 py-2 text-sm text-slate-800 outline-none placeholder:text-slate-400 focus:border-[color:var(--primary)]"
                 />
-                <p className="text-xs text-white/40 mt-1">
+                <p className="mt-1 text-xs text-slate-600">
   Auto-detected from selected city
 </p>
-              </div>
-
-    
-
-              <div>
-                
-               
               </div>
             </div>
 
@@ -1299,24 +1264,24 @@ const foundationPersonalStrength = useMemo(
                 type="button"
                 onClick={handleGenerate}
                 disabled={loading}
-                className="rounded-xl bg-indigo-500 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-60"
+                className={primaryButtonClass}
               >
                 {loading ? "Generating..." : "Generate Data Engine"}
               </button>
             </div>
 
             {error ? (
-              <div className="mt-4 rounded-xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm text-red-200">
-                {error}
-              </div>
+              <div className={errorBoxClass}>
+  {error}
+</div>
             ) : null}
           </div>
 
-          <div className="rounded-3xl border border-white/10 bg-white/5/5 p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.04)_inset]">
+          <div className="rounded-3xl astro-card p-6 shadow-sm ring-1 ring-black/5">
             <DataEngineTabs activeTab={activeTab} onChange={setActiveTab} />
 
             {!data ? (
-              <div className="py-12 text-center text-sm text-white/50">
+              <div className="py-12 text-center text-sm text-slate-900">
                 Generate to see chart data here.
               </div>
             ) : null}
@@ -1325,57 +1290,57 @@ const foundationPersonalStrength = useMemo(
               <div className="mt-6 space-y-8">
                 <section className="space-y-4">
                   <div>
-                    <h2 className="text-lg font-semibold text-white">Chart Identity</h2>
-                    <p className="text-sm text-white/50">
+                    <h2 className="text-lg font-semibold text-slate-900">Chart Identity</h2>
+                    <p className="text-sm text-slate-900">
                       Core birth details, Panchang, and high-signal chart markers.
                     </p>
                   </div>
 
-                  <div className="rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 text-sm text-white shadow-sm">
-                    <div className="flex flex-wrap items-center gap-2">
+                  <div className="rounded-2xl border border-[color:var(--border)] bg-white/70 px-4 py-3 text-sm text-slate-900 shadow-sm backdrop-blur-sm">
+                    <div className="flex flex-wrap items-center gap-2.5">
                       {natal?.ascendant?.sign ? (
-                        <span className="rounded-full bg-white/5/10 px-3 py-1 text-xs font-medium">
+                        <span className="rounded-full border border-[color:var(--border)] bg-white px-3.5 py-1.5 text-xs font-medium text-slate-700 shadow-sm">
                           Asc - {natal.ascendant.sign}
                         </span>
                       ) : null}
 
                       {natal?.moonSign ? (
-                        <span className="rounded-full bg-white/5/10 px-3 py-1 text-xs font-medium">
+                        <span className="rounded-full border border-[color:var(--border)] bg-white px-3.5 py-1.5 text-xs font-medium text-slate-700 shadow-sm">
                           Moon {natal.moonSign}
                         </span>
                       ) : null}
 
                       {natal?.sunSign ? (
-                        <span className="rounded-full bg-white/5/10 px-3 py-1 text-xs font-medium">
+                        <span className="rounded-full border border-[color:var(--border)] bg-white px-3.5 py-1.5 text-xs font-medium text-slate-700 shadow-sm">
                           Sun {natal.sunSign}
                         </span>
                       ) : null}
 
                       {moonRow?.nakshatra ? (
-                        <span className="rounded-full bg-white/5/10 px-3 py-1 text-xs font-medium">
+                        <span className="rounded-full border border-[color:var(--border)] bg-white px-3.5 py-1.5 text-xs font-medium text-slate-700 shadow-sm">
                           {moonRow.nakshatra}
                           {moonRow?.pada ? ` - Pada ${moonRow.pada}` : ""}
                         </span>
                       ) : null}
 
-                      <span className="rounded-full bg-white/5/10 px-3 py-1 text-xs font-medium">
+                      <span className="rounded-full border border-[color:var(--border)] bg-white px-3.5 py-1.5 text-xs font-medium text-slate-700 shadow-sm">
                         Dasha - {currentDashaLabel}
                       </span>
 
                       {strongestPlanets.length ? (
-                        <span className="rounded-full bg-emerald-500/15 px-3 py-1 text-xs font-medium text-emerald-200">
+                        <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3.5 py-1.5 text-xs font-semibold text-emerald-700 shadow-sm">
                           Strong - {strongestPlanets.join(", ")}
                         </span>
                       ) : null}
 
                       {weakestPlanets.length ? (
-                        <span className="rounded-full bg-amber-500/15 px-3 py-1 text-xs font-medium text-amber-200">
+                        <span className="rounded-full border border-amber-200 bg-amber-50 px-3.5 py-1.5 text-xs font-semibold text-amber-700 shadow-sm">
                           Weak - {weakestPlanets.join(", ")}
                         </span>
                       ) : null}
 
                       {keyHouses.length ? (
-                        <span className="rounded-full bg-sky-500/15 px-3 py-1 text-xs font-medium text-sky-200">
+                        <span className="rounded-full border border-sky-200 bg-sky-50 px-3.5 py-1.5 text-xs font-semibold text-sky-700 shadow-sm">
                           Houses - {keyHouses.join(", ")}
                         </span>
                       ) : null}
@@ -1392,7 +1357,7 @@ const foundationPersonalStrength = useMemo(
                         data={birthPanchang}
                       />
                     ) : (
-                      <div className="rounded-2xl border border-white/10 bg-white/5/5 p-5 text-sm text-white/50">
+                      <div className="rounded-2xl astro-card p-5 text-sm text-slate-900">
                         Birth Panchang not available.
                       </div>
                     )}
@@ -1407,8 +1372,8 @@ const foundationPersonalStrength = useMemo(
                   </div>
                  <section className="space-y-4">
   <div>
-    <h2 className="text-lg font-semibold text-white">Upagrahas, Solar Shadow Points & Moon Strength</h2>
-<p className="text-sm text-white/50">
+    <h2 className="text-lg font-semibold text-slate-900">Upagrahas, Solar Shadow Points & Moon Strength</h2>
+<p className="text-sm text-slate-900">
   Chart-linked segmented upagrahas, classical solar shadow points, and daily lunar support factors for judgement.
 </p>
   </div>
@@ -1472,22 +1437,22 @@ const foundationPersonalStrength = useMemo(
   point={solarShadowPoints?.upaketu}
   methodLabel={solarShadowPoints?.traditionLabel ?? solarShadowPoints?.methodId ?? "—"}
 />
-    <div className="rounded-2xl border border-white/10 bg-slate-900 p-4 text-sm text-white shadow-sm">
-      <div className="text-xs font-medium uppercase tracking-wide text-white/45">
+    <div className="rounded-2xl border border-[color:var(--border)] bg-white/70 p-5 text-sm text-slate-900 shadow-sm backdrop-blur-sm">
+      <div className="text-xs font-medium uppercase tracking-wide text-slate-400">
         Tarabala & Chandrabala
       </div>
 
       {!foundationPersonalStrength ? (
-        <div className="mt-2 text-white/50">No lunar strength data available.</div>
+        <div className="mt-2 text-slate-900">No lunar strength data available.</div>
       ) : (
         <div className="mt-3 space-y-2">
           <div>
-            <span className="text-white/45">Tarabala:</span>{" "}
+            <span className="text-slate-400">Tarabala:</span>{" "}
             {foundationPersonalStrength?.tarabalam?.tara ?? "—"}
           </div>
 
           <div>
-            <span className="text-white/45">Tarabala Favorable:</span>{" "}
+            <span className="text-slate-400">Tarabala Favorable:</span>{" "}
             {foundationPersonalStrength?.tarabalam?.favorable == null
               ? "—"
               : foundationPersonalStrength.tarabalam.favorable
@@ -1496,7 +1461,7 @@ const foundationPersonalStrength = useMemo(
           </div>
 
           <div>
-            <span className="text-white/45">Chandrabala Favorable:</span>{" "}
+            <span className="text-slate-400">Chandrabala Favorable:</span>{" "}
             {foundationPersonalStrength?.chandrabalam?.favorable == null
               ? "—"
               : foundationPersonalStrength.chandrabalam.favorable
@@ -1505,22 +1470,22 @@ const foundationPersonalStrength = useMemo(
           </div>
 
           <div>
-            <span className="text-white/45">Natal Moon Nakshatra:</span>{" "}
+            <span className="text-slate-400">Natal Moon Nakshatra:</span>{" "}
             {foundationPersonalStrength?.natalMoonNakshatra ?? "—"}
           </div>
 
           <div>
-            <span className="text-white/45">Transit Moon Nakshatra:</span>{" "}
+            <span className="text-slate-400">Transit Moon Nakshatra:</span>{" "}
             {foundationPersonalStrength?.transitMoonNakshatra ?? "—"}
           </div>
 
           <div>
-            <span className="text-white/45">Natal Moon Sign:</span>{" "}
+            <span className="text-slate-400">Natal Moon Sign:</span>{" "}
             {foundationPersonalStrength?.natalMoonSign ?? "—"}
           </div>
 
           <div>
-            <span className="text-white/45">Transit Moon Sign:</span>{" "}
+            <span className="text-slate-400">Transit Moon Sign:</span>{" "}
             {foundationPersonalStrength?.transitMoonSign ?? "—"}
           </div>
         </div>
@@ -1532,8 +1497,8 @@ const foundationPersonalStrength = useMemo(
 
                 <section className="space-y-4">
                   <div>
-                    <h2 className="text-lg font-semibold text-white">Natal Framework</h2>
-                    <p className="text-sm text-white/50">
+                    <h2 className="text-lg font-semibold text-slate-900">Natal Framework</h2>
+                    <p className="text-sm text-slate-900">
                       Base structure of the natal chart for manual judgement.
                     </p>
                   </div>
@@ -1548,10 +1513,10 @@ const foundationPersonalStrength = useMemo(
 
                 <section className="space-y-4">
                   <div>
-                    <h2 className="text-lg font-semibold text-white">
+                    <h2 className="text-lg font-semibold text-slate-900">
                       Aspect and Strength Layer
                     </h2>
-                    <p className="text-sm text-white/50">
+                    <p className="text-sm text-slate-900">
                       Strengths, aspects, and interaction patterns across the chart.
                     </p>
                   </div>
@@ -1569,8 +1534,8 @@ const foundationPersonalStrength = useMemo(
 
                 <section className="space-y-4">
                   <div>
-                    <h2 className="text-lg font-semibold text-white">House Judgement</h2>
-                    <p className="text-sm text-white/50">
+                    <h2 className="text-lg font-semibold text-slate-900">House Judgement</h2>
+                    <p className="text-sm text-slate-900">
                       Consolidated house-level judgement for quick review.
                     </p>
                   </div>
@@ -1622,16 +1587,16 @@ const foundationPersonalStrength = useMemo(
               <div className="mt-6 space-y-6">
                 {vargaEntries.length ? (
                   <div className="flex items-center gap-3">
-                    <label className="text-xs font-medium uppercase tracking-wide text-white/45">
+                    <label className="text-xs font-medium uppercase tracking-wide text-slate-400">
                       Select varga
                     </label>
                     <select
                       value={selectedVarga}
                       onChange={(e) => setSelectedVarga(e.target.value)}
-                      className="rounded-xl border border-white/15 bg-white/5/5 px-3 py-2 text-sm text-white outline-none focus:border-indigo-400"
+                      className="rounded-xl border border-[color:var(--border)] bg-white px-3 py-2 text-sm font-medium text-slate-800 shadow-sm outline-none focus:border-[color:var(--primary)]"
                     >
                       {vargaEntries.map(([key]) => (
-                        <option key={key} value={key} className="bg-[#0C1222] text-white">
+                        <option key={key} value={key} className="bg-white text-slate-800">
                           {VARGA_LABELS[key] ?? key.toUpperCase()}
                         </option>
                       ))}
@@ -1640,7 +1605,7 @@ const foundationPersonalStrength = useMemo(
                 ) : null}
 
                 {!vargaEntries.length ? (
-                  <div className="rounded-xl border border-white/10 bg-white/5/5 px-4 py-3 text-sm text-white/65">
+                  <div className="rounded-xl astro-card px-4 py-3 text-sm text-slate-800">
                     No varga data available.
                   </div>
                 ) : null}
@@ -1658,8 +1623,8 @@ const foundationPersonalStrength = useMemo(
               <div className="mt-6 space-y-6">
                 <section className="space-y-4">
                   <div>
-                    <h2 className="text-lg font-semibold text-white">Planet Strength</h2>
-                    <p className="text-sm text-white/50">
+                    <h2 className="text-lg font-semibold text-slate-900">Planet Strength</h2>
+                    <p className="text-sm text-slate-900">
                       Core planetary strength metrics used for judgement.
                     </p>
                   </div>
@@ -1706,39 +1671,39 @@ const foundationPersonalStrength = useMemo(
             ) : null}
          {data && activeTab === "utilities" ? (
   <div className="mt-6 space-y-8">
-    <div className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.04)_inset]">
-      <h2 className="text-xl font-semibold text-white">Hora</h2>
-      <p className="mt-1 text-sm text-white/60">
+    <div className="rounded-3xl border border-[color:var(--border)] bg-white/80 p-6 shadow-sm ring-1 ring-black/5">
+      <h2 className="text-xl font-semibold text-slate-900">Hora</h2>
+      <p className="mt-1 text-sm text-slate-500">
         Select date, time, and place to generate Hora.
       </p>
 
       <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-3">
         <div>
-          <label className="text-xs font-medium uppercase tracking-wide text-white/45">
+          <label className="text-xs font-medium uppercase tracking-wide text-slate-400">
             Date
           </label>
           <input
             type="date"
             value={utilityHoraDateISO}
             onChange={(e) => setUtilityHoraDateISO(e.target.value)}
-            className="mt-1 w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:border-indigo-400"
+            className="mt-1 w-full rounded-xl border border-[color:var(--border)] bg-white/80 px-3 py-2 text-sm text-slate-900 outline-none focus:border-[color:var(--primary)]"
           />
         </div>
 
         <div>
-          <label className="text-xs font-medium uppercase tracking-wide text-white/45">
+          <label className="text-xs font-medium uppercase tracking-wide text-slate-400">
             Time
           </label>
           <input
             type="time"
             value={utilityHoraTime}
             onChange={(e) => setUtilityHoraTime(e.target.value)}
-            className="mt-1 w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:border-indigo-400"
+            className="mt-1 w-full rounded-xl border border-[color:var(--border)] bg-white/80 px-3 py-2 text-sm text-slate-900 outline-none focus:border-[color:var(--primary)]"
           />
         </div>
 
         <div>
-          <label className="text-xs font-medium uppercase tracking-wide text-white/45">
+          <label className="text-xs font-medium uppercase tracking-wide text-slate-400">
             City
           </label>
           <div className="mt-1">
@@ -1751,65 +1716,65 @@ const foundationPersonalStrength = useMemo(
       </div>
 
       <div className="mt-4 flex justify-end">
-        <button
-          onClick={handleGenerateHora}
-          disabled={utilityHoraLoading}
-          className="rounded-xl bg-indigo-500 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-60"
-        >
+      <button
+  onClick={handleGenerateHora}
+  disabled={utilityHoraLoading}
+  className={primaryButtonClass}
+>
           {utilityHoraLoading ? "Generating Hora..." : "Generate Hora"}
         </button>
       </div>
 
       {utilityHoraError ? (
-        <div className="mt-4 rounded-xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm text-red-200">
-          {utilityHoraError}
-        </div>
+        <div className={errorBoxClass}>
+  {utilityHoraError}
+</div>
       ) : null}
 
       {utilityHora?.horaLord ? (
-        <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-5">
-          <h3 className="text-base font-semibold text-white">Hora Result</h3>
-          <p className="mt-1 text-sm text-white/60">
+        <div className="mt-6 rounded-2xl border border-[color:var(--border)] bg-white/80 p-5">
+          <h3 className="text-base font-semibold text-slate-700">Hora Result</h3>
+          <p className="mt-1 text-sm text-slate-500">
             {utilityHoraPlace?.name ?? "Selected city"}, {utilityHoraDateISO} at{" "}
             {utilityHoraTime}
           </p>
-          <p className="mt-2 text-xs italic text-white/45">
+          <p className="mt-2 text-xs italic text-slate-400">
             Calculated using variable hora based on local sunrise and sunset.
           </p>
 
           <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-              <div className="text-xs uppercase tracking-wide text-white/45">
+            <div className="rounded-xl border border-[color:var(--border)] bg-white p-4 shadow-sm">
+              <div className="text-xs uppercase tracking-wide text-slate-800">
                 Planet
               </div>
-              <div className="mt-1 text-lg font-semibold text-white">
+              <div className="mt-1 text-lg font-semibold text-slate-900">
                 {utilityHora.horaLord}
               </div>
             </div>
 
-            <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-              <div className="text-xs uppercase tracking-wide text-white/45">
+            <div className="rounded-xl border border-[color:var(--border)] bg-white p-4 shadow-sm">
+              <div className="text-xs uppercase tracking-wide text-slate-800">
                 Phase
               </div>
-              <div className="mt-1 text-lg font-semibold text-white">
+              <div className="mt-1 text-lg font-semibold text-slate-900">
                 {utilityHora.phase ?? "—"}
               </div>
             </div>
 
-            <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-              <div className="text-xs uppercase tracking-wide text-white/45">
+            <div className="rounded-xl border border-[color:var(--border)] bg-white p-4 shadow-sm">
+              <div className="text-xs uppercase tracking-wide text-slate-800">
                 Hora Number
               </div>
-              <div className="mt-1 text-lg font-semibold text-white">
+              <div className="mt-1 text-lg font-semibold text-slate-900">
                 {utilityHora.horaNumber ?? "—"}
               </div>
             </div>
 
-            <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-              <div className="text-xs uppercase tracking-wide text-white/45">
+            <div className="rounded-xl border border-[color:var(--border)] bg-white p-4 shadow-sm">
+              <div className="text-xs uppercase tracking-wide text-slate-800">
                 Time Slot
               </div>
-              <div className="mt-1 text-lg font-semibold text-white">
+              <div className="mt-1 text-lg font-semibold text-slate-900">
                 {utilityHora.startsAt} → {utilityHora.endsAt}
               </div>
             </div>
@@ -1818,27 +1783,27 @@ const foundationPersonalStrength = useMemo(
       ) : null}
     </div>
 
-    <div className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.04)_inset]">
-      <h2 className="text-xl font-semibold text-white">Panchang</h2>
-      <p className="mt-1 text-sm text-white/60">
+    <div className="rounded-3xl border border-[color:var(--border)] bg-white/80 p-6 shadow-sm ring-1 ring-black/5">
+      <h2 className="text-xl font-semibold text-slate-900">Panchang</h2>
+      <p className="mt-1 text-sm text-slate-500">
         Select date and place to generate Panchang.
       </p>
 
       <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
         <div>
-          <label className="text-xs font-medium uppercase tracking-wide text-white/45">
+          <label className="text-xs font-medium uppercase tracking-wide text-slate-400">
             Date
           </label>
           <input
             type="date"
             value={utilityPanchangDateISO}
             onChange={(e) => setUtilityPanchangDateISO(e.target.value)}
-            className="mt-1 w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:border-indigo-400"
+            className="mt-1 w-full rounded-xl border border-[color:var(--border)] bg-white/80 px-3 py-2 text-sm text-slate-900 outline-none focus:border-[color:var(--primary)]"
           />
         </div>
 
         <div>
-          <label className="text-xs font-medium uppercase tracking-wide text-white/45">
+          <label className="text-xs font-medium uppercase tracking-wide text-slate-400">
             City
           </label>
           <div className="mt-1">
@@ -1851,31 +1816,31 @@ const foundationPersonalStrength = useMemo(
       </div>
 
       <div className="mt-4 flex justify-end">
-        <button
-          onClick={handleGeneratePanchang}
-          disabled={utilityPanchangLoading}
-          className="rounded-xl bg-indigo-500 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-60"
-        >
+      <button
+  onClick={handleGeneratePanchang}
+  disabled={utilityPanchangLoading}
+  className={primaryButtonClass}
+>
           {utilityPanchangLoading ? "Generating Panchang..." : "Generate Panchang"}
         </button>
       </div>
 
       {utilityPanchangError ? (
-        <div className="mt-4 rounded-xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm text-red-200">
-          {utilityPanchangError}
-        </div>
+       <div className={errorBoxClass}>
+  {utilityPanchangError}
+</div>
       ) : null}
 
       {utilityPanchang ? (
         <>
-          <div className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.04)_inset]">
-            <h3 className="text-2xl font-semibold text-white">Today’s Panchang</h3>
-            <p className="mt-2 text-sm text-white/60">
+          <div className="mt-6 rounded-3xl border border-[color:var(--border)] bg-white/80 p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.04)_inset]">
+            <h3 className="text-2xl font-semibold text-slate-900">Today’s Panchang</h3>
+            <p className="mt-2 text-sm text-slate-500">
               {utilityPanchangPlace?.name ?? "Selected city"}, {utilityPanchangDateISO}
             </p>
 
             <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-2">
-              <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/5">
+              <div className="overflow-hidden rounded-2xl border border-[color:var(--border)] bg-white shadow-sm">
                 <table className="w-full table-fixed border-collapse">
                   <tbody>
                     {[
@@ -1896,12 +1861,12 @@ const foundationPersonalStrength = useMemo(
                     ].map(([label, value], idx) => (
                       <tr
                         key={`${String(label)}-${idx}`}
-                        className="border-b border-white/10 last:border-b-0"
+                        className="border-b border-[color:var(--border)] last:border-b-0"
                       >
-                        <td className="w-[38%] px-6 py-5 align-middle text-lg font-semibold text-white">
+                        <td className="w-[38%] px-6 py-5 align-middle text-lg font-semibold text-slate-900">
                           {String(label)}
                         </td>
-                        <td className="px-6 py-5 text-right align-middle text-lg text-white/90">
+                        <td className="px-6 py-5 text-right align-middle text-lg text-slate-900/90">
                           {String(value ?? "—")}
                         </td>
                       </tr>
@@ -1910,7 +1875,7 @@ const foundationPersonalStrength = useMemo(
                 </table>
               </div>
 
-              <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/5">
+              <div className="overflow-hidden rounded-2xl border border-[color:var(--border)] bg-white shadow-sm">
                 <table className="w-full table-fixed border-collapse">
                   <tbody>
                     {[
@@ -1928,12 +1893,12 @@ const foundationPersonalStrength = useMemo(
                     ].map(([label, value], idx) => (
                       <tr
                         key={`${String(label)}-${idx}`}
-                        className="border-b border-white/10 last:border-b-0"
+                        className="border-b border-[color:var(--border)] last:border-b-0"
                       >
-                        <td className="w-[42%] px-6 py-5 align-middle text-lg font-semibold text-white">
+                        <td className="w-[42%] px-6 py-5 align-middle text-lg font-semibold text-slate-900">
                           {String(label)}
                         </td>
-                        <td className="px-6 py-5 text-right align-middle text-lg text-white/90">
+                        <td className="px-6 py-5 text-right align-middle text-lg text-slate-900/90">
                           {String(value ?? "—")}
                         </td>
                       </tr>
@@ -1944,9 +1909,9 @@ const foundationPersonalStrength = useMemo(
             </div>
           </div>
 
-          <div className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.04)_inset]">
-            <h3 className="text-2xl font-semibold text-white">Muhurat Windows</h3>
-            <p className="mt-2 text-sm text-white/60">
+          <div className="mt-6 rounded-3xl border border-[color:var(--border)] bg-white/80 p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.04)_inset]">
+            <h3 className="text-2xl font-semibold text-slate-900">Muhurat Windows</h3>
+            <p className="mt-2 text-sm text-slate-500">
               Daily timing windows for {utilityPanchangPlace?.name ?? "Selected city"},{" "}
               {utilityPanchangDateISO}
             </p>
@@ -2011,16 +1976,16 @@ const foundationPersonalStrength = useMemo(
           </div>
 
           {utilityPanchang?.choghadiya ? (
-            <div className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.04)_inset]">
-              <h3 className="text-2xl font-semibold text-white">Choghadiya</h3>
-              <p className="mt-2 text-sm text-white/60">
+            <div className="mt-6 rounded-3xl border border-[color:var(--border)] bg-white/80 p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.04)_inset]">
+              <h3 className="text-2xl font-semibold text-slate-900">Choghadiya</h3>
+              <p className="mt-2 text-sm text-slate-500">
                 Day and night Choghadiya for{" "}
                 {utilityPanchangPlace?.name ?? "Selected city"}, {utilityPanchangDateISO}
               </p>
 
               <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-2">
-                <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/5">
-                  <div className="border-b border-white/10 px-6 py-4 text-lg font-semibold text-white">
+                <div className="overflow-hidden rounded-2xl border border-[color:var(--border)] bg-white shadow-sm">
+                  <div className="border-b border-[color:var(--border)] px-6 py-4 text-lg font-semibold text-slate-900">
                     Day Choghadiya
                   </div>
                   <table className="w-full table-fixed border-collapse">
@@ -2029,12 +1994,12 @@ const foundationPersonalStrength = useMemo(
                         (row: any, idx: number) => (
                           <tr
                             key={`day-${idx}`}
-                            className="border-b border-white/10 last:border-b-0"
+                            className="border-b border-[color:var(--border)] last:border-b-0"
                           >
-                            <td className="w-[34%] px-6 py-4 text-base font-semibold text-white">
+                            <td className="w-[34%] px-6 py-4 text-base font-semibold text-slate-900">
                               {row.label}
                             </td>
-                            <td className="px-6 py-4 text-right text-base text-white/90">
+                            <td className="px-6 py-4 text-right text-base text-slate-900/90">
                               {row.start} to {row.end}
                             </td>
                           </tr>
@@ -2044,8 +2009,8 @@ const foundationPersonalStrength = useMemo(
                   </table>
                 </div>
 
-                <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/5">
-                  <div className="border-b border-white/10 px-6 py-4 text-lg font-semibold text-white">
+                <div className="overflow-hidden rounded-2xl border border-[color:var(--border)] bg-white shadow-sm">
+                  <div className="border-b border-[color:var(--border)] px-6 py-4 text-lg font-semibold text-slate-900">
                     Night Choghadiya
                   </div>
                   <table className="w-full table-fixed border-collapse">
@@ -2054,12 +2019,12 @@ const foundationPersonalStrength = useMemo(
                         (row: any, idx: number) => (
                           <tr
                             key={`night-${idx}`}
-                            className="border-b border-white/10 last:border-b-0"
+                            className="border-b border-[color:var(--border)] last:border-b-0"
                           >
-                            <td className="w-[34%] px-6 py-4 text-base font-semibold text-white">
+                            <td className="w-[34%] px-6 py-4 text-base font-semibold text-slate-900">
                               {row.label}
                             </td>
-                            <td className="px-6 py-4 text-right text-base text-white/90">
+                            <td className="px-6 py-4 text-right text-base text-slate-900/90">
                               {row.start} to {row.end}
                             </td>
                           </tr>

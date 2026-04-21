@@ -100,7 +100,7 @@ export default function Page() {
             value={q}
             onChange={(e) => setQ(e.target.value)}
           />
-          <button className="rounded px-4 py-2 bg-black text-white" onClick={ask} disabled={loading}>
+          <button className="rounded px-4 py-2 bg-black text-slate-900" onClick={ask} disabled={loading}>
             {loading ? "Thinking…" : "Ask"}
           </button>
         </div>

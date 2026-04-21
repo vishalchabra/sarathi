@@ -9,19 +9,19 @@ function Shell({
   children: React.ReactNode;
 }) {
   return (
-    <main className="min-h-screen bg-[#070A14] text-white">
+    <main className="min-h-screen astro-bg text-slate-900">
       <div className="pointer-events-none fixed inset-0 -z-10">
-        <div className="absolute left-1/2 top-[-220px] h-[520px] w-[980px] -translate-x-1/2 rounded-full bg-indigo-500/20 blur-[140px]" />
+        <div className="absolute left-1/2 top-[-220px] h-[520px] w-[980px] -translate-x-1/2 rounded-full bg-[color:var(--primary)]/20 blur-[140px]" />
       </div>
 
-      <header className="sticky top-0 z-40 border-b border-white/10 bg-[#070A14]/70 backdrop-blur">
+      <header className="sticky top-0 z-40 border-b border-[color:var(--border)] astro-bg/70 backdrop-blur">
         <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-4">
-          <Link href="/sarathi" className="text-sm text-white/80 hover:text-white">
+          <Link href="/sarathi" className="text-sm text-slate-900/80 hover:text-slate-900">
             ← Back to Sārathi
           </Link>
           <Link
             href="/sarathi/life-report"
-            className="rounded-full bg-indigo-500 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-400"
+            className="rounded-full bg-[color:var(--primary)] px-4 py-2 text-sm font-semibold text-slate-900 hover:opacity-90"
           >
             Get your Life Report
           </Link>
@@ -30,23 +30,23 @@ function Shell({
 
       <section className="mx-auto max-w-4xl px-4 pb-14 pt-10">
         <h1 className="text-3xl font-semibold">{title}</h1>
-        <p className="mt-2 text-sm text-white/60">
+        <p className="mt-2 text-sm text-slate-500">
           Last updated: {new Date().toISOString().slice(0, 10)}
         </p>
 
-        <div className="mt-8 space-y-5 rounded-2xl border border-white/10 bg-white/5/5 p-6 text-sm leading-relaxed text-white/75 shadow-[0_0_0_1px_rgba(255,255,255,0.06)_inset]">
+        <div className="mt-8 space-y-5 rounded-2xl astro-card p-6 text-sm leading-relaxed text-slate-900/75 shadow-[0_0_0_1px_rgba(255,255,255,0.06)_inset]">
           {children}
         </div>
 
-        <footer className="mt-10 border-t border-white/10 pt-6 text-xs text-white/55">
+        <footer className="mt-10 border-t border-[color:var(--border)] pt-6 text-xs text-slate-900/55">
           <div className="flex flex-wrap gap-4">
-            <Link className="hover:text-white" href="/sarathi/about">
+            <Link className="hover:text-slate-900" href="/sarathi/about">
               About
             </Link>
-            <Link className="hover:text-white" href="/sarathi/terms">
+            <Link className="hover:text-slate-900" href="/sarathi/terms">
               Terms
             </Link>
-            <Link className="hover:text-white" href="/sarathi/contact">
+            <Link className="hover:text-slate-900" href="/sarathi/contact">
               Contact
             </Link>
           </div>
@@ -57,7 +57,7 @@ function Shell({
 }
 
 function H({ children }: { children: React.ReactNode }) {
-  return <div className="mt-4 text-sm font-semibold text-white/90">{children}</div>;
+  return <div className="mt-4 text-sm font-semibold text-slate-900/90">{children}</div>;
 }
 function P({ children }: { children: React.ReactNode }) {
   return <p className="mt-2">{children}</p>;
@@ -106,7 +106,7 @@ export default function PrivacyPage() {
       <H>Your control</H>
       <P>
         You can request deletion of stored data by contacting{" "}
-        <span className="text-white/90">{supportEmail}</span>.
+        <span className="text-slate-900/90">{supportEmail}</span>.
       </P>
 
       <H>Security</H>

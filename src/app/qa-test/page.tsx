@@ -34,7 +34,7 @@ export default function QATest() {
     <div className="p-6 space-y-6">
       <button
         onClick={run}
-        className="px-3 py-2 rounded bg-black text-white hover:opacity-90"
+        className="px-3 py-2 rounded bg-black text-slate-900 hover:opacity-90"
       >
         Run QA
       </button>

@@ -55,9 +55,9 @@ function InfoRow({
   value: React.ReactNode;
 }) {
   return (
-    <div className="flex items-start justify-between gap-4 border-b border-white/10 py-2 last:border-b-0">
-      <div className="text-sm text-white/50">{label}</div>
-      <div className="text-right text-sm font-medium text-white">
+    <div className="flex items-start justify-between gap-4 border-b border-[color:var(--border)] py-2 last:border-b-0">
+      <div className="text-sm text-slate-900">{label}</div>
+      <div className="text-right text-sm font-medium text-slate-900">
         {value ?? "—"}
       </div>
     </div>
@@ -73,25 +73,25 @@ function DashaNakshatraCard({
 }) {
   if (!row) {
     return (
-      <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
-        <div className="text-sm font-semibold text-white">{title}</div>
-        <div className="mt-3 text-sm text-white/50">No data available.</div>
+      <div className="rounded-2xl border border-[color:var(--border)] bg-white/80 p-5">
+        <div className="text-sm font-semibold text-slate-900">{title}</div>
+        <div className="mt-3 text-sm text-slate-900">No data available.</div>
       </div>
     );
   }
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 p-5 shadow-sm">
-      <div className="text-xs font-medium uppercase tracking-wide text-white/50">
+    <div className="rounded-2xl border border-[color:var(--border)] bg-white/80 p-5 shadow-sm">
+      <div className="text-xs font-medium uppercase tracking-wide text-slate-900">
         {title}
       </div>
-      <div className="mt-1 text-lg font-semibold text-white">
+      <div className="mt-1 text-lg font-semibold text-slate-900">
         {show(row.planet)}
       </div>
 
       <div className="mt-4 space-y-5">
   <div>
-    <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-white/50">
+    <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-900">
       Nakshatra Layer
     </div>
     <div>
@@ -122,7 +122,7 @@ function DashaNakshatraCard({
   </div>
 
   <div>
-    <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-white/50">
+    <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-900">
       Dasha Lord Placement
     </div>
     <div>
@@ -156,18 +156,18 @@ export default function NakshatraContextCard({
   const natalRows = Array.isArray(data.natal) ? data.natal : [];
 
   return (
-    <section className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-sm">
+    <section className="rounded-3xl border border-[color:var(--border)] bg-white/80 p-6 shadow-sm">
       
-      <div className="mt-6 overflow-x-auto rounded-2xl border border-white/10">
-        <div className="border-b border-white/10 bg-white/5 px-4 py-3">
-          <div className="text-sm font-semibold text-white">
+      <div className="mt-6 overflow-x-auto rounded-2xl border border-[color:var(--border)]">
+        <div className="border-b border-[color:var(--border)] bg-white/80 px-4 py-3">
+          <div className="text-sm font-semibold text-slate-900">
             Natal Nakshatra Table
           </div>
         </div>
 
         <table className="min-w-full text-sm">
-          <thead className="bg-white/5">
-            <tr className="border-b border-white/10 text-left text-white/50">
+          <thead className="bg-white/80">
+            <tr className="border-b border-[color:var(--border)] text-left text-slate-900">
               <th className="px-4 py-3 font-medium">Planet</th>
               <th className="px-4 py-3 font-medium">Nakshatra</th>
               <th className="px-4 py-3 font-medium">Pada</th>
@@ -186,38 +186,38 @@ export default function NakshatraContextCard({
               natalRows.map((row, idx) => (
                 <tr
                   key={`${row.planet ?? "planet"}-${idx}`}
-                  className="border-b border-white/10 last:border-b-0"
+                  className="border-b border-[color:var(--border)] last:border-b-0"
                 >
-                  <td className="px-4 py-3 font-medium text-white">
+                  <td className="px-4 py-3 font-medium text-slate-900">
                     {show(row.planet)}
                   </td>
-                  <td className="px-4 py-3 text-white/80">
+                  <td className="px-4 py-3 text-slate-900/80">
                     {show(row.nakshatra)}
                   </td>
-                  <td className="px-4 py-3 text-white/80">{show(row.pada)}</td>
-                  <td className="px-4 py-3 text-white/80">
+                  <td className="px-4 py-3 text-slate-900/80">{show(row.pada)}</td>
+                  <td className="px-4 py-3 text-slate-900/80">
                     {show(row.nakshatraLord)}
                   </td>
-                  <td className="px-4 py-3 text-white/80">{show(row.sign)}</td>
-                  <td className="px-4 py-3 text-white/80">{show(row.house)}</td>
-                  <td className="px-4 py-3 text-white/80">
+                  <td className="px-4 py-3 text-slate-900/80">{show(row.sign)}</td>
+                  <td className="px-4 py-3 text-slate-900/80">{show(row.house)}</td>
+                  <td className="px-4 py-3 text-slate-900/80">
                     {show(row.dispositor)}
                   </td>
-                  <td className="px-4 py-3 text-white/80">
+                  <td className="px-4 py-3 text-slate-900/80">
                     {show(row.finalDispositor)}
                   </td>
-                  <td className="px-4 py-3 text-white/80">
+                  <td className="px-4 py-3 text-slate-900/80">
                     {showList(row.dispositorChain)}
                   </td>
-                  <td className="px-4 py-3 text-white/80">{show(row.d9Sign)}</td>
-                  <td className="px-4 py-3 text-white/80">
+                  <td className="px-4 py-3 text-slate-900/80">{show(row.d9Sign)}</td>
+                  <td className="px-4 py-3 text-slate-900/80">
                     {show(row.d10Sign)}
                   </td>
                 </tr>
               ))
             ) : (
               <tr>
-                <td colSpan={11} className="px-4 py-6 text-center text-white/50">
+                <td colSpan={11} className="px-4 py-6 text-center text-slate-900">
                   No natal nakshatra data available.
                 </td>
               </tr>

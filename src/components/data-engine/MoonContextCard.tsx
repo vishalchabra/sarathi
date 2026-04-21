@@ -10,20 +10,20 @@ type Props = {
 };
 
 function labelClass() {
-  return "text-xs font-medium uppercase tracking-wide text-white/50";
+  return "text-xs font-medium uppercase tracking-wide text-slate-900";
 }
 
 function valueClass() {
-  return "mt-1 text-sm text-white";
+  return "mt-1 text-sm text-slate-900";
 }
 
 export default function MoonContextCard({ data }: Props) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 p-5 shadow-sm">
-      <h2 className="text-base font-semibold text-white">
+    <div className="rounded-2xl border border-[color:var(--border)] bg-white/80 p-5 shadow-sm">
+      <h2 className="text-base font-semibold text-slate-900">
         Moon Context
       </h2>
-      <p className="mt-1 text-sm text-white/70">
+      <p className="mt-1 text-sm text-slate-900">
         Moon reference for selected-date timing analysis.
       </p>
 

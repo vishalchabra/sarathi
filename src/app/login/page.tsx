@@ -53,12 +53,12 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center px-4">
-      <div className="w-full max-w-md rounded-2xl border border-white/10 bg-white/5 p-6 shadow-xl">
+    <div className="min-h-screen bg-slate-950 text-slate-900 flex items-center justify-center px-4">
+      <div className="w-full max-w-md rounded-2xl border border-[color:var(--border)] bg-white/80 p-6 shadow-xl">
         <h1 className="text-2xl font-semibold mb-2">
           {mode === "login" ? "Login" : "Create account"}
         </h1>
-        <p className="text-sm text-white/70 mb-6">
+        <p className="text-sm text-slate-900 mb-6">
           Access your Sārathi reading securely.
         </p>
 
@@ -67,7 +67,7 @@ export default function LoginPage() {
             <label className="mb-1 block text-sm">Email</label>
             <input
               type="email"
-              className="w-full rounded-xl bg-white/10 border border-white/10 px-3 py-2 outline-none"
+              className="w-full rounded-xl bg-white/10 border border-[color:var(--border)] px-3 py-2 outline-none"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -78,7 +78,7 @@ export default function LoginPage() {
             <label className="mb-1 block text-sm">Password</label>
             <input
               type="password"
-              className="w-full rounded-xl bg-white/10 border border-white/10 px-3 py-2 outline-none"
+              className="w-full rounded-xl bg-white/10 border border-[color:var(--border)] px-3 py-2 outline-none"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -99,7 +99,7 @@ export default function LoginPage() {
         </form>
 
         {message ? (
-          <p className="mt-4 text-sm text-white/80">{message}</p>
+          <p className="mt-4 text-sm text-slate-900/80">{message}</p>
         ) : null}
 
         <button
@@ -108,7 +108,7 @@ export default function LoginPage() {
             setMode(mode === "login" ? "signup" : "login");
             setMessage("");
           }}
-          className="mt-4 text-sm text-white/70 underline"
+          className="mt-4 text-sm text-slate-900 underline"
         >
           {mode === "login"
             ? "Need an account? Sign up"

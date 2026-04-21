@@ -35,11 +35,11 @@ function formatDegree(v?: number | null) {
 }
 
 function labelClass() {
-  return "text-xs font-medium uppercase tracking-wide text-white/50";
+  return "text-xs font-medium uppercase tracking-wide text-slate-900";
 }
 
 function valueClass() {
-  return "mt-1 text-sm text-white";
+  return "mt-1 text-sm text-slate-900";
 }
 
 export default function BirthSummaryCard({ birthMeta, natal }: Props) {
@@ -48,8 +48,8 @@ export default function BirthSummaryCard({ birthMeta, natal }: Props) {
   const sunSign = planets.find((p) => p.planet === "Sun")?.sign ?? "—";
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 p-5 shadow-sm">
-      <h2 className="text-base font-semibold text-white">Birth Summary</h2>
+    <div className="rounded-2xl border border-[color:var(--border)] bg-white/80 p-5 shadow-sm">
+      <h2 className="text-base font-semibold text-slate-900">Birth Summary</h2>
 
       <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
         <div>

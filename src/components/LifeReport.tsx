@@ -75,9 +75,9 @@ export default function LifeReport({ data: dataProp, profile: profileProp }: Pro
   return (
     <section className="space-y-6">
       {/* ====== HERO / MINI HEADER ====== */}
-      <div className="p-4 rounded bg-black text-white/90 space-y-3">
+      <div className="p-4 rounded bg-black text-slate-900/90 space-y-3">
         <h2 className="text-lg font-semibold">Your Life Report</h2>
-        <p className="text-sm text-white/70">
+        <p className="text-sm text-slate-900">
           Guided read on where you are energetically right now.
         </p>
 
@@ -95,27 +95,27 @@ export default function LifeReport({ data: dataProp, profile: profileProp }: Pro
           <div>place: {profile?.place?.name || profile?.placeLabel || "—"}</div>
         </div>
 
-        <div className="p-3 rounded bg-white/5/10 text-sm">
+        <div className="p-3 rounded bg-white/80/10 text-sm">
           This is your anchor space. The goal is not “you’re doomed / you’re blessed,” the
           goal is “here’s what your chart is asking from you right now so you don’t burn
           out or panic jump.”
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <div className="p-3 rounded bg-white/5/5">
-            <div className="text-xs uppercase text-white/60">Sun</div>
+          <div className="p-3 rounded bg-white/80">
+            <div className="text-xs uppercase text-slate-500">Sun</div>
             <div className="font-medium">{sun || "—"}</div>
           </div>
-          <div className="p-3 rounded bg-white/5/5">
-            <div className="text-xs uppercase text-white/60">Moon</div>
+          <div className="p-3 rounded bg-white/80">
+            <div className="text-xs uppercase text-slate-500">Moon</div>
             <div className="font-medium">{moon || "—"}</div>
           </div>
-          <div className="p-3 rounded bg-white/5/5">
-            <div className="text-xs uppercase text-white/60">Asc</div>
+          <div className="p-3 rounded bg-white/80">
+            <div className="text-xs uppercase text-slate-500">Asc</div>
             <div className="font-medium">{asc || "—"}</div>
           </div>
-          <div className="p-3 rounded bg-white/5/5">
-            <div className="text-xs uppercase text-white/60">House Sys</div>
+          <div className="p-3 rounded bg-white/80">
+            <div className="text-xs uppercase text-slate-500">House Sys</div>
             <div className="font-medium">{data?.houses?.system || data?.hsys || "—"}</div>
           </div>
         </div>
@@ -140,7 +140,7 @@ export default function LifeReport({ data: dataProp, profile: profileProp }: Pro
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm border rounded">
               <thead>
-                <tr className="bg-white/5">
+                <tr className="bg-white/80">
                   <th className="px-2 py-1 border">Planet</th>
                   <th className="px-2 py-1 border">Sign</th>
                   <th className="px-2 py-1 border">Deg°</th>
@@ -150,7 +150,7 @@ export default function LifeReport({ data: dataProp, profile: profileProp }: Pro
               </thead>
               <tbody>
                 {data.placements.map((p: any, i: number) => (
-                  <tr key={i} className={i % 2 ? "bg-white/5/60" : undefined}>
+                  <tr key={i} className={i % 2 ? "bg-white/80/60" : undefined}>
                     <td className="px-2 py-1 border">{p.planet}</td>
                     <td className="px-2 py-1 border">{p.sign}</td>
                     <td className="px-2 py-1 border">
@@ -197,7 +197,7 @@ export default function LifeReport({ data: dataProp, profile: profileProp }: Pro
               <div className="overflow-x-auto">
                 <table className="min-w-full text-sm border rounded">
                   <thead>
-                    <tr className="bg-white/5">
+                    <tr className="bg-white/80">
                       <th className="px-2 py-1 border">House</th>
                       <th className="px-2 py-1 border">Sign</th>
                       <th className="px-2 py-1 border">Deg°</th>
@@ -224,7 +224,7 @@ export default function LifeReport({ data: dataProp, profile: profileProp }: Pro
                       const sign = signs[signIdx];
                       const degInSign = d % 30;
                       return (
-                        <tr key={i} className={i % 2 ? "bg-white/5/60" : undefined}>
+                        <tr key={i} className={i % 2 ? "bg-white/80/60" : undefined}>
                           <td className="px-2 py-1 border">{i + 1}</td>
                           <td className="px-2 py-1 border">{sign}</td>
                           <td className="px-2 py-1 border">{degInSign.toFixed(2)}°</td>

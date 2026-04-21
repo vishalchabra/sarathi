@@ -92,14 +92,14 @@ rather than direct planetary clashes.",
   src\app\sarathi\life-report\_shell.tsx:2200:  end,
   src\app\sarathi\life-report\_shell.tsx:2201:  subtitle,
   src\app\sarathi\life-report\_shell.tsx:2421:  {loading && (
-> src\app\sarathi\life-report\_shell.tsx:2422:    <p className="text-xs text-white/60">Building your 
+> src\app\sarathi\life-report\_shell.tsx:2422:    <p className="text-xs text-slate-500">Building your 
 12-month overview…</p>
   src\app\sarathi\life-report\_shell.tsx:2423:  )}
   src\app\sarathi\life-report\_shell.tsx:2424:
   src\app\sarathi\life-report\_shell.tsx:2425:  {!loading && !error && (transitSummary || "").trim() ? (
-  src\app\sarathi\life-report\_shell.tsx:2426:    <div className="rounded-2xl border border-white/15 
+  src\app\sarathi\life-report\_shell.tsx:2426:    <div className="rounded-2xl border border-[color:var(--border)] 
 bg-indigo-950/40 backdrop-blur-sm p-4 text-slate-100">
-  src\app\sarathi\life-report\_shell.tsx:2432:    <p className="text-xs text-white/60">
+  src\app\sarathi\life-report\_shell.tsx:2432:    <p className="text-xs text-slate-500">
 > src\app\sarathi\life-report\_shell.tsx:2433:      12-month overview will appear here once transits are 
 available.
   src\app\sarathi\life-report\_shell.tsx:2434:    </p>
@@ -128,13 +128,13 @@ overviewText.split(splitMarker);
   src\app\sarathi\life-report\_shell.tsx:2464:      transitText = after.trim();
   src\app\sarathi\life-report\_shell.tsx:2465:    }
   src\app\sarathi\life-report\_shell.tsx:2466:
-  src\app\sarathi\life-report\_shell.tsx:2480:          <div className="text-white/70">
+  src\app\sarathi\life-report\_shell.tsx:2480:          <div className="text-slate-900">
 > src\app\sarathi\life-report\_shell.tsx:2481:            Building your 12-month overview…
   src\app\sarathi\life-report\_shell.tsx:2482:          </div>
   src\app\sarathi\life-report\_shell.tsx:2483:        )}
   src\app\sarathi\life-report\_shell.tsx:2484:
   src\app\sarathi\life-report\_shell.tsx:2485:        {!loading && error && (
-  src\app\sarathi\life-report\_shell.tsx:2490:          <div className="text-white/70">
+  src\app\sarathi\life-report\_shell.tsx:2490:          <div className="text-slate-900">
 > src\app\sarathi\life-report\_shell.tsx:2491:            12-month overview will appear here once 
 transits are available.
   src\app\sarathi\life-report\_shell.tsx:2492:          </div>
@@ -183,9 +183,9 @@ tracking-wide text-indigo-600">
   src\app\sarathi\life-report\_shell.tsx:2942:          <div className="mt-1 text-sm 
 font-semibold">{focusArea}</div>
   src\app\sarathi\life-report\_shell.tsx:2943:          <p className="mt-1 text-xs 
-text-white/70">{focusHeadline}</p>
+text-slate-900">{focusHeadline}</p>
   src\app\sarathi\life-report\_shell.tsx:2944:          <p className="mt-2 text-xs 
-text-white/70">{focusSummary}</p>
+text-slate-900">{focusSummary}</p>
   src\app\sarathi\life-report\_shell.tsx:3108:  const aiCtrlRef = useRef<AbortController | null>(null);
 > src\app\sarathi\life-report\_shell.tsx:3109:  const [dashaTransitSummary, setDashaTransitSummary] = 
 useState<string>("");
@@ -414,7 +414,7 @@ className="rounded-lg text-xs">
   src\app\sarathi\life-report\_shell.tsx:4726:    <CardHeader className="pb-3">
 > src\app\sarathi\life-report\_shell.tsx:4727:      <CardTitle className="text-lg font-semibold 
 text-slate-50">Your life themes</CardTitle>
-  src\app\sarathi\life-report\_shell.tsx:4728:      <div className="text-sm text-white/70">
+  src\app\sarathi\life-report\_shell.tsx:4728:      <div className="text-sm text-slate-900">
   src\app\sarathi\life-report\_shell.tsx:4729:        A simple, practical view of what your chart 
 emphasizes — no astrology knowledge needed.
   src\app\sarathi\life-report\_shell.tsx:4730:      </div>
@@ -427,12 +427,12 @@ bg-indigo-950/40 backdrop-blur-md shadow-xl shadow-[0_0_30px_rgba(99,102,241,0.1
   src\app\sarathi\life-report\_shell.tsx:4818:    <CardHeader className="pb-3">
 > src\app\sarathi\life-report\_shell.tsx:4819:      <CardTitle className="text-base font-semibold 
 text-slate-50">What to focus on now</CardTitle>
-  src\app\sarathi\life-report\_shell.tsx:4820:      <div className="text-sm text-white/70">
+  src\app\sarathi\life-report\_shell.tsx:4820:      <div className="text-sm text-slate-900">
   src\app\sarathi\life-report\_shell.tsx:4821:        A simple direction for the next few weeks — 
 practical, not predictive.
   src\app\sarathi\life-report\_shell.tsx:4822:      </div>
   src\app\sarathi\life-report\_shell.tsx:4823:    </CardHeader>
-  src\app\sarathi\life-report\_shell.tsx:4854:      <div className="pt-2 text-xs text-white/70">
+  src\app\sarathi\life-report\_shell.tsx:4854:      <div className="pt-2 text-xs text-slate-900">
 > src\app\sarathi\life-report\_shell.tsx:4855:        Want this customized to your current dasha + 
 transits? Use{" "}
   src\app\sarathi\life-report\_shell.tsx:4856:<span className="font-medium">{"Ask Sārathi"}</span>.
@@ -441,20 +441,20 @@ transits? Use{" "}
   src\app\sarathi\life-report\_shell.tsx:4859:  </Card>
   src\app\sarathi\life-report\_shell.tsx:4861:
 > src\app\sarathi\life-report\_shell.tsx:4862:{/* Wheel + placements (collapsed by default) */}
-  src\app\sarathi\life-report\_shell.tsx:4863:<div className="mt-10 border-t border-white/15 pt-6 
+  src\app\sarathi\life-report\_shell.tsx:4863:<div className="mt-10 border-t border-[color:var(--border)] pt-6 
 bg-[linear-gradient(to_bottom,rgba(255,255,255,0.02),transparent_35%)]">
   src\app\sarathi\life-report\_shell.tsx:4864:  <motion.div variants={fadeUpSmall} className="space-y-4">
   src\app\sarathi\life-report\_shell.tsx:4865:    <Accordion type="single" collapsible 
 className="w-full">
 > src\app\sarathi\life-report\_shell.tsx:4866:      <AccordionItem value="placements-details">
   src\app\sarathi\life-report\_shell.tsx:4867:        <AccordionTrigger className="text-sm font-semibold 
-text-slate-100 hover:text-white [&_svg]:text-slate-200 [&_svg]:opacity-80">
+text-slate-100 hover:text-slate-900 [&_svg]:text-slate-200 [&_svg]:opacity-80">
 > src\app\sarathi\life-report\_shell.tsx:4868:          Advanced astrology (planets, houses & 
 interpretations)
   src\app\sarathi\life-report\_shell.tsx:4869:        </AccordionTrigger>
   src\app\sarathi\life-report\_shell.tsx:4870:
   src\app\sarathi\life-report\_shell.tsx:4871:        <AccordionContent>
-  src\app\sarathi\life-report\_shell.tsx:4872:          <div className="mb-3 text-xs text-white/70">
+  src\app\sarathi\life-report\_shell.tsx:4872:          <div className="mb-3 text-xs text-slate-900">
 > src\app\sarathi\life-report\_shell.tsx:4873:            For advanced users: technical chart details 
 like planet positions, houses, and deeper interpretations.
   src\app\sarathi\life-report\_shell.tsx:4874:          </div>
@@ -471,7 +471,7 @@ font-semibold flex items-center justify-between">
   src\app\sarathi\life-report\_shell.tsx:4883:
   src\app\sarathi\life-report\_shell.tsx:4884:              <CardContent className="space-y-5 text-sm">
   src\app\sarathi\life-report\_shell.tsx:4904:              <CardContent className="text-sm 
-text-white/70">
+text-slate-900">
 > src\app\sarathi\life-report\_shell.tsx:4905:                Generate again to see planet placements.
   src\app\sarathi\life-report\_shell.tsx:4906:              </CardContent>
   src\app\sarathi\life-report\_shell.tsx:4907:            </Card>
@@ -484,12 +484,12 @@ text-white/70">
   src\app\sarathi\life-report\_shell.tsx:4933:      );
   src\app\sarathi\life-report\_shell.tsx:4934:
   src\app\sarathi\life-report\_shell.tsx:4946:        <AccordionTrigger className="text-sm font-semibold 
-text-slate-100 hover:text-white [&_svg]:text-slate-200 [&_svg]:opacity-80">
+text-slate-100 hover:text-slate-900 [&_svg]:text-slate-200 [&_svg]:opacity-80">
 > src\app\sarathi\life-report\_shell.tsx:4947:          Sārathi's Perspective (advanced)
   src\app\sarathi\life-report\_shell.tsx:4948:        </AccordionTrigger>
   src\app\sarathi\life-report\_shell.tsx:4949:
   src\app\sarathi\life-report\_shell.tsx:4950:        <AccordionContent>
-  src\app\sarathi\life-report\_shell.tsx:4951:          <div className="mb-3 text-xs text-white/70">
+  src\app\sarathi\life-report\_shell.tsx:4951:          <div className="mb-3 text-xs text-slate-900">
   src\app\sarathi\life-report\_shell.tsx:5072:  timelineSummary: string;
 > src\app\sarathi\life-report\_shell.tsx:5073:  dashaTransitSummary: string;
   src\app\sarathi\life-report\_shell.tsx:5074:};
@@ -586,7 +586,7 @@ as year-ahead) */}
   src\app\sarathi\life-report\_shell.tsx:5179:  return (
 > src\app\sarathi\life-report\_shell.tsx:5180:    <AccordionItem value="life-overview">
   src\app\sarathi\life-report\_shell.tsx:5181:      <AccordionTrigger className="text-xs font-medium 
-text-white/70">
+text-slate-900">
 > src\app\sarathi\life-report\_shell.tsx:5182:        Life Story Overview
   src\app\sarathi\life-report\_shell.tsx:5183:      </AccordionTrigger>
   src\app\sarathi\life-report\_shell.tsx:5184:
@@ -631,11 +631,11 @@ Date(row.endISO).getTime();
   src\app\sarathi\life-report\_shell.tsx:5224:                        const isActive = now >= s && now 
 <= e;
   src\app\sarathi\life-report\_shell.tsx:5237:                              <div className="text-[11px] 
-font-semibold uppercase tracking-wide text-white/60">
+font-semibold uppercase tracking-wide text-slate-500">
 > src\app\sarathi\life-report\_shell.tsx:5238:                                {row.planet} Mahadasha
   src\app\sarathi\life-report\_shell.tsx:5239:                              </div>
   src\app\sarathi\life-report\_shell.tsx:5240:                              <div className="text-[13px] 
-text-white/70">
+text-slate-900">
   src\app\sarathi\life-report\_shell.tsx:5241:                                {row.startISO} → 
 {row.endISO}
   src\app\sarathi\life-report\_shell.tsx:5242:                              </div>

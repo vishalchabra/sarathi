@@ -43,7 +43,7 @@ type Props = {
 };
 
 function cardClass() {
-  return "rounded-2xl border border-white/10 bg-white/5 p-5 shadow-sm";
+  return "rounded-2xl border border-[color:var(--border)] bg-white/80 p-5 shadow-sm";
 }
 
 function formatRange(startISO?: string | null, endISO?: string | null) {
@@ -111,32 +111,32 @@ function DashaTreeItem({
         onClick={() => hasChildren && setOpen((v) => !v)}
         className={`w-full rounded-xl border px-4 py-3 text-left transition ${
           node.isActive
-            ? "border-slate-900 bg-white/5"
-            : "border-white/10 bg-white/5 hover:bg-white/5"
+            ? "border-slate-900 bg-white/80"
+            : "border-[color:var(--border)] bg-white/80 hover:bg-white/80"
         }`}
       >
         <div className="flex items-start justify-between gap-4">
           <div>
-            <div className="text-xs font-medium uppercase tracking-wide text-white/50">
+            <div className="text-xs font-medium uppercase tracking-wide text-slate-900">
               {levelLabel(node.level)}
             </div>
-            <div className="mt-1 text-sm font-medium text-white">
+            <div className="mt-1 text-sm font-medium text-slate-900">
               {node.label ?? node.lord ?? "—"}
             </div>
-            <div className="mt-1 text-xs text-white/70">
+            <div className="mt-1 text-xs text-slate-900">
               {formatRange(node.startISO, node.endISO)}
             </div>
           </div>
 
           <div className="flex items-center gap-2">
             {node.isActive ? (
-              <span className="rounded-full bg-slate-900 px-2.5 py-1 text-xs font-medium text-white">
+              <span className="rounded-full astro-card px-2.5 py-1 text-xs font-medium text-slate-900">
                 Active
               </span>
             ) : null}
 
             {hasChildren ? (
-              <span className="text-xs text-white/50">
+              <span className="text-xs text-slate-900">
                 {open ? "Hide" : "Show"}
               </span>
             ) : null}
@@ -145,7 +145,7 @@ function DashaTreeItem({
       </button>
 
       {hasChildren && open ? (
-        <div className="ml-4 space-y-2 border-l border-white/10 pl-4">
+        <div className="ml-4 space-y-2 border-l border-[color:var(--border)] pl-4">
           {node.children!.map((child, idx) => (
             <DashaTreeItem key={`${child.label ?? child.lord ?? "node"}-${idx}`} node={child} depth={depth + 1} />
           ))}
@@ -164,10 +164,10 @@ export default function DashaBlock({
   return (
     <div className="space-y-6">
       <div className={cardClass()}>
-        <h2 className="text-base font-semibold text-white">
+        <h2 className="text-base font-semibold text-slate-900">
           Current Dasha Stack
         </h2>
-        <p className="mt-1 text-sm text-white/70">
+        <p className="mt-1 text-sm text-slate-900">
           Active timing layers for manual analysis.
         </p>
 
@@ -176,32 +176,32 @@ export default function DashaBlock({
             {currentStack.map((item) => (
               <div
                 key={item.key}
-                className="rounded-xl border border-white/10 bg-white/5 p-4"
+                className="rounded-xl border border-[color:var(--border)] bg-white/80 p-4"
               >
-                <div className="text-xs font-medium uppercase tracking-wide text-white/50">
+                <div className="text-xs font-medium uppercase tracking-wide text-slate-900">
                   {item.label}
                 </div>
-                <div className="mt-1 text-sm font-medium text-white">
+                <div className="mt-1 text-sm font-medium text-slate-900">
                   {String(item.value ?? "—")}
                 </div>
-                <div className="mt-2 text-xs text-white/70">
+                <div className="mt-2 text-xs text-slate-900">
                   {formatRange(item.startISO, item.endISO)}
                 </div>
               </div>
             ))}
           </div>
         ) : (
-          <div className="mt-4 text-sm text-white/50">
+          <div className="mt-4 text-sm text-slate-900">
             No active dasha data available.
           </div>
         )}
       </div>
 
       <div className={cardClass()}>
-        <h2 className="text-base font-semibold text-white">
+        <h2 className="text-base font-semibold text-slate-900">
           Full Dasha Timeline
         </h2>
-        <p className="mt-1 text-sm text-white/70">
+        <p className="mt-1 text-sm text-slate-900">
           Click any dasha to expand and view deeper levels (MD → AD → PD → SD → PR → DE).
         </p>
 
@@ -214,7 +214,7 @@ export default function DashaBlock({
               />
             ))
           ) : (
-            <div className="text-sm text-white/50">
+            <div className="text-sm text-slate-900">
               No dasha timeline available.
             </div>
           )}

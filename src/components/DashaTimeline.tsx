@@ -160,7 +160,7 @@ export default function DashaTimeline({ dasha }: { dasha: any }) {
   }, [rows, now]);
 
   return (
-    <section className="rounded-xl border bg-white/5 p-4" style={{ breakInside: "avoid" }}>
+    <section className="rounded-xl border bg-white/80 p-4" style={{ breakInside: "avoid" }}>
       <div className="flex items-start justify-between">
         <h3 className="text-lg font-semibold">Vimshottari Timeline</h3>
         {current ? (
@@ -193,7 +193,7 @@ export default function DashaTimeline({ dasha }: { dasha: any }) {
                 </div>
                 <div className="relative h-3 bg-gray-100 rounded overflow-hidden">
                   <div
-                    className={`absolute top-0 h-3 rounded ${active ? "bg-indigo-500" : "bg-gray-300"}`}
+                    className={`absolute top-0 h-3 rounded ${active ? "bg-[color:var(--primary)]" : "bg-gray-300"}`}
                     style={{ left: `${leftPct}%`, width: `${widthPct}%` }}
                   />
                 </div>

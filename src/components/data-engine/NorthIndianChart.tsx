@@ -135,16 +135,16 @@ export default function NorthIndianChart({
   const planetsByHouse = useMemo(() => getPlanetsByHouse(planets), [planets]);
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 p-5 shadow-sm">
+    <div className="rounded-2xl border border-[color:var(--border)] bg-white/80 p-5 shadow-sm">
       <div className="flex flex-col gap-1 md:flex-row md:items-end md:justify-between">
         <div>
-          <h2 className="text-base font-semibold text-white">{title}</h2>
-          <p className="mt-1 text-sm text-white/70">
+          <h2 className="text-base font-semibold text-slate-900">{title}</h2>
+          <p className="mt-1 text-sm text-slate-900">
             Traditional North Indian chart layout.
           </p>
         </div>
 
-        <div className="text-sm text-white/70">
+        <div className="text-sm text-slate-900">
           Ascendant:{" "}
           <span className="font-semibold text-indigo-700">
             {ascSign ? SIGN_SHORT[ascSign] ?? ascSign : "—"}
@@ -153,7 +153,7 @@ export default function NorthIndianChart({
       </div>
 
       <div className="mt-5 overflow-x-auto">
-        <div className="relative mx-auto h-[760px] w-[760px] rounded-xl bg-white/5">
+        <div className="relative mx-auto h-[760px] w-[760px] rounded-xl bg-white/80">
           <svg
             viewBox="0 0 760 760"
             className="absolute inset-0 h-full w-full"
@@ -195,7 +195,7 @@ export default function NorthIndianChart({
               >
                 <div
                   className={`text-base font-semibold ${
-                    isAscHouse ? "text-indigo-700" : "text-white/80"
+                    isAscHouse ? "text-indigo-700" : "text-slate-900/80"
                   }`}
                 >
                   <div className="text-base font-semibold text-indigo-700">
@@ -213,7 +213,7 @@ export default function NorthIndianChart({
                         setSelected(p);
                         onPlanetClick?.(p);
                       }}
-                      className="rounded-md bg-white/10 px-2 py-1 text-[11px] text-white/90 transition hover:bg-slate-200"
+                      className="rounded-md bg-white/10 px-2 py-1 text-[11px] text-slate-900/90 transition hover:bg-slate-200"
                       title={`${p.planet}${p.sign ? ` in ${p.sign}` : ""}${
                         typeof p.degree === "number" ? ` • ${p.degree.toFixed(2)}°` : ""
                       }`}
@@ -229,28 +229,28 @@ export default function NorthIndianChart({
       </div>
 
       {selected ? (
-        <div className="mt-4 rounded-xl border border-white/10 bg-white/5 p-4">
-          <div className="text-sm font-semibold text-white">
+        <div className="mt-4 rounded-xl border border-[color:var(--border)] bg-white/80 p-4">
+          <div className="text-sm font-semibold text-slate-900">
             {selected.planet}
           </div>
 
-          <div className="mt-2 grid grid-cols-2 gap-3 text-sm text-white/80 md:grid-cols-4">
+          <div className="mt-2 grid grid-cols-2 gap-3 text-sm text-slate-900/80 md:grid-cols-4">
             <div>
-              <div className="text-xs uppercase tracking-wide text-white/50">
+              <div className="text-xs uppercase tracking-wide text-slate-900">
                 Sign
               </div>
               <div className="mt-1">{selected.sign ?? "—"}</div>
             </div>
 
             <div>
-              <div className="text-xs uppercase tracking-wide text-white/50">
+              <div className="text-xs uppercase tracking-wide text-slate-900">
                 House
               </div>
               <div className="mt-1">{selected.house ?? "—"}</div>
             </div>
 
             <div>
-              <div className="text-xs uppercase tracking-wide text-white/50">
+              <div className="text-xs uppercase tracking-wide text-slate-900">
                 Degree
               </div>
               <div className="mt-1">
@@ -261,7 +261,7 @@ export default function NorthIndianChart({
             </div>
 
             <div>
-              <div className="text-xs uppercase tracking-wide text-white/50">
+              <div className="text-xs uppercase tracking-wide text-slate-900">
                 Retrograde
               </div>
               <div className="mt-1">{selected.retrograde ? "Yes" : "No"}</div>

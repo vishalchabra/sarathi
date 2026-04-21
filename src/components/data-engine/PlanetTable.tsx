@@ -79,7 +79,7 @@ function badgeClass(planet: string) {
   if (p === "rahu") return "bg-violet-100 text-violet-800";
   if (p === "ketu") return "bg-cyan-100 text-cyan-800";
 
-  return "bg-white/10 text-white/90";
+  return "bg-white/10 text-slate-900/90";
 }
 
 export default function PlanetTable({
@@ -88,12 +88,12 @@ export default function PlanetTable({
   title = "Planet Table",
 }: Props) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 p-5 shadow-sm">
-      <h2 className="text-base font-semibold text-white">{title}</h2>
+    <div className="rounded-2xl border border-[color:var(--border)] bg-white/80 p-5 shadow-sm">
+      <h2 className="text-base font-semibold text-slate-900">{title}</h2>
 
       <div className="mt-4 overflow-x-auto">
         <table className="min-w-full text-left text-sm">
-          <thead className="border-b border-white/10 text-white/50">
+          <thead className="border-b border-[color:var(--border)] text-slate-900">
             <tr>
               <th className="px-3 py-2 font-medium">Planet</th>
               <th className="px-3 py-2 font-medium">Sign</th>
@@ -113,8 +113,8 @@ export default function PlanetTable({
           </thead>
           <tbody>
             {planets.map((p) => (
-              <tr key={p.planet} className="border-b border-white/10">
-                <td className="px-3 py-2 font-medium text-white">
+              <tr key={p.planet} className="border-b border-[color:var(--border)]">
+                <td className="px-3 py-2 font-medium text-slate-900">
                   <span
                     className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${badgeClass(
                       p.planet
@@ -123,27 +123,27 @@ export default function PlanetTable({
                     {p.planet}
                   </span>
                 </td>
-                <td className="px-3 py-2 text-white/80">{p.sign ?? "—"}</td>
-                <td className="px-3 py-2 text-white/80">
+                <td className="px-3 py-2 text-slate-900/80">{p.sign ?? "—"}</td>
+                <td className="px-3 py-2 text-slate-900/80">
                   {formatDegree(p.degree)}
                 </td>
-                <td className="px-3 py-2 text-white/80">{p.house ?? "—"}</td>
-                <td className="px-3 py-2 text-white/80">
+                <td className="px-3 py-2 text-slate-900/80">{p.house ?? "—"}</td>
+                <td className="px-3 py-2 text-slate-900/80">
                   {formatNakshatraWithLord(p.nakshatra)}
                 </td>
-                <td className="px-3 py-2 text-white/80">{p.pada ?? "—"}</td>
-                <td className="px-3 py-2 text-white/80">
+                <td className="px-3 py-2 text-slate-900/80">{p.pada ?? "—"}</td>
+                <td className="px-3 py-2 text-slate-900/80">
                   {p.retrograde ? "Yes" : "No"}
                 </td>
-                <td className="px-3 py-2 text-white/80">
+                <td className="px-3 py-2 text-slate-900/80">
                   {p.combust ? "Yes" : "No"}
                 </td>
                 {rawMode ? (
                   <>
-                    <td className="px-3 py-2 text-white/80">
+                    <td className="px-3 py-2 text-slate-900/80">
                       {formatDegree(p.lon)}
                     </td>
-                    <td className="px-3 py-2 text-white/80">
+                    <td className="px-3 py-2 text-slate-900/80">
                       {p.signNum ?? "—"}
                     </td>
                   </>

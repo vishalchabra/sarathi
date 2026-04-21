@@ -58,18 +58,18 @@ export default function UpagrahaCard({
   methodLabel?: string | null;
 }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-slate-900 p-4 text-sm text-white shadow-sm">
-      <div className="text-xs font-medium uppercase tracking-wide text-white/45">
+    <div className="rounded-2xl border border-[color:var(--border)] astro-card p-4 text-sm text-slate-900 shadow-sm">
+      <div className="text-xs font-medium uppercase tracking-wide text-slate-400">
         {title}
       </div>
 
       {!point ? (
-        <div className="mt-2 text-white/50">No {title} data available.</div>
+        <div className="mt-2 text-slate-900">No {title} data available.</div>
       ) : (
         <div className="mt-3 space-y-4">
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <div className="text-lg font-semibold text-white">
+              <div className="text-lg font-semibold text-slate-900">
                 {point.sign ?? "—"}
                 {point.houseFromAsc
                   ? ` • ${point.houseFromAsc}${getOrdinalSuffix(point.houseFromAsc)} House`
@@ -77,37 +77,37 @@ export default function UpagrahaCard({
               </div>
 
               {point.flags?.isDusthana ? (
-                <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-white/80">
+                <span className="rounded-full border border-[color:var(--border)] bg-white/80 px-2.5 py-1 text-[11px] text-slate-900/80">
                   Dusthana
                 </span>
               ) : null}
 
               {point.flags?.isUpachaya ? (
-                <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-white/80">
+                <span className="rounded-full border border-[color:var(--border)] bg-white/80 px-2.5 py-1 text-[11px] text-slate-900/80">
                   Upachaya
                 </span>
               ) : null}
 
               {point.flags?.isKendra ? (
-                <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-white/80">
+                <span className="rounded-full border border-[color:var(--border)] bg-white/80 px-2.5 py-1 text-[11px] text-slate-900/80">
                   Kendra
                 </span>
               ) : null}
 
               {point.flags?.isTrikona ? (
-                <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-white/80">
+                <span className="rounded-full border border-[color:var(--border)] bg-white/80 px-2.5 py-1 text-[11px] text-slate-900/80">
                   Trikona
                 </span>
               ) : null}
 
               {point.flags?.isMaraka ? (
-                <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-white/80">
+                <span className="rounded-full border border-[color:var(--border)] bg-white/80 px-2.5 py-1 text-[11px] text-slate-900/80">
                   Maraka
                 </span>
               ) : null}
             </div>
 
-            <div className="mt-1 text-sm text-white/65">
+            <div className="mt-1 text-sm text-slate-900">
               {point.nakshatra ?? "—"}
               {point.pada ? ` • Pada ${point.pada}` : ""}
               {point.degree != null ? ` • ${point.degree}°` : ""}
@@ -116,13 +116,13 @@ export default function UpagrahaCard({
 
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
-              <div className="text-white/45">Method</div>
-              <div className="mt-1 text-white/85">{methodLabel ?? "—"}</div>
+              <div className="text-slate-400">Method</div>
+              <div className="mt-1 text-slate-900/85">{methodLabel ?? "—"}</div>
             </div>
 
             <div>
-              <div className="text-white/45">Birth Basis</div>
-              <div className="mt-1 text-white/85 capitalize">
+              <div className="text-slate-400">Birth Basis</div>
+              <div className="mt-1 text-slate-900/85 capitalize">
                 {point.phase || point.weekday
   ? `${point.phase ?? "—"} • ${point.weekday ?? "—"}`
   : "Solar Formula"}
@@ -130,27 +130,27 @@ export default function UpagrahaCard({
             </div>
 
             <div>
-              <div className="text-white/45">Segment</div>
-              <div className="mt-1 text-white/85">{point.segmentIndex ?? "N/A"}</div>
+              <div className="text-slate-400">Segment</div>
+              <div className="mt-1 text-slate-900/85">{point.segmentIndex ?? "N/A"}</div>
             </div>
 
             <div>
-              <div className="text-white/45">Longitude</div>
-              <div className="mt-1 text-white/85">
+              <div className="text-slate-400">Longitude</div>
+              <div className="mt-1 text-slate-900/85">
                 {point.lon != null ? `${point.lon.toFixed(2)}°` : "—"}
               </div>
             </div>
 
             <div>
-              <div className="text-white/45">Point Type</div>
-              <div className="mt-1 text-white/85 capitalize">
+              <div className="text-slate-400">Point Type</div>
+              <div className="mt-1 text-slate-900/85 capitalize">
                 {point.pointMomentType ?? "Formula"}
               </div>
             </div>
 
             <div>
-              <div className="text-white/45">Point Moment</div>
-              <div className="mt-1 text-white/85">
+              <div className="text-slate-400">Point Moment</div>
+              <div className="mt-1 text-slate-900/85">
                 {point.pointMomentISO
   ? new Date(point.pointMomentISO).toLocaleString()
   : "Derived mathematically"}
@@ -159,11 +159,11 @@ export default function UpagrahaCard({
           </div>
 
           {point.interpretation?.summary ? (
-            <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-              <div className="text-xs font-medium uppercase tracking-wide text-white/45">
+            <div className="rounded-xl border border-[color:var(--border)] bg-white/80 p-3">
+              <div className="text-xs font-medium uppercase tracking-wide text-slate-400">
                 Interpretation
               </div>
-              <div className="mt-2 space-y-2 text-sm text-white/80">
+              <div className="mt-2 space-y-2 text-sm text-slate-900/80">
                 <p>{point.interpretation.summary}</p>
                 {point.interpretation.practicalReading ? (
                   <p>{point.interpretation.practicalReading}</p>

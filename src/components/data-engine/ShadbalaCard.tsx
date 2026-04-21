@@ -39,25 +39,25 @@ export default function ShadbalaCard({
 }) {
   if (!data || !data.length) {
     return (
-      <div className="rounded-2xl border border-white/10 bg-white/5 p-5 text-sm text-white/50">
+      <div className="rounded-2xl border border-[color:var(--border)] bg-white/80 p-5 text-sm text-slate-900">
         Shadbala data not available.
       </div>
     );
   }
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 p-5 shadow-sm">
-      <h3 className="text-base font-semibold text-white">
+    <div className="rounded-2xl border border-[color:var(--border)] bg-white/80 p-5 shadow-sm">
+      <h3 className="text-base font-semibold text-slate-900">
         Shadbala Strength
       </h3>
-      <p className="mt-1 text-sm text-white/50">
+      <p className="mt-1 text-sm text-slate-900">
         Total and component-wise planetary strength in rupa.
       </p>
 
       <div className="mt-4 overflow-x-auto">
         <table className="w-full min-w-[900px] text-sm">
           <thead>
-            <tr className="border-b border-white/10 text-left text-[11px] uppercase tracking-wide text-white/50">
+            <tr className="border-b border-[color:var(--border)] text-left text-[11px] uppercase tracking-wide text-slate-900">
               <th className="pb-2 pr-4">Planet</th>
               <th className="pb-2 pr-4">Total</th>
               <th className="pb-2 pr-4">Status</th>
@@ -77,13 +77,13 @@ export default function ShadbalaCard({
               return (
                 <tr
                   key={row.planet}
-                  className="border-b border-white/10 last:border-none"
+                  className="border-b border-[color:var(--border)] last:border-none"
                 >
-                  <td className="py-3 pr-4 font-medium text-white">
+                  <td className="py-3 pr-4 font-medium text-slate-900">
                     {row.planet}
                   </td>
 
-                  <td className="py-3 pr-4 font-semibold text-white">
+                  <td className="py-3 pr-4 font-semibold text-slate-900">
                     {row.total.toFixed(2)}
                   </td>
 
@@ -95,12 +95,12 @@ export default function ShadbalaCard({
                     </span>
                   </td>
 
-                  <td className="py-3 pr-4 text-white/80">{row.sthana.toFixed(2)}</td>
-                  <td className="py-3 pr-4 text-white/80">{row.dig.toFixed(2)}</td>
-                  <td className="py-3 pr-4 text-white/80">{row.kala.toFixed(2)}</td>
-                  <td className="py-3 pr-4 text-white/80">{row.chestha.toFixed(2)}</td>
-                  <td className="py-3 pr-4 text-white/80">{row.naisargika.toFixed(2)}</td>
-                  <td className="py-3 text-white/80">{row.drik.toFixed(2)}</td>
+                  <td className="py-3 pr-4 text-slate-900/80">{row.sthana.toFixed(2)}</td>
+                  <td className="py-3 pr-4 text-slate-900/80">{row.dig.toFixed(2)}</td>
+                  <td className="py-3 pr-4 text-slate-900/80">{row.kala.toFixed(2)}</td>
+                  <td className="py-3 pr-4 text-slate-900/80">{row.chestha.toFixed(2)}</td>
+                  <td className="py-3 pr-4 text-slate-900/80">{row.naisargika.toFixed(2)}</td>
+                  <td className="py-3 text-slate-900/80">{row.drik.toFixed(2)}</td>
                 </tr>
               );
             })}

@@ -20,7 +20,7 @@ export default function ChatSuggestions({
           key={q}
           type="button"
           onClick={() => onSelect(q)}
-          className="rounded-full border px-3 py-1 text-xs hover:bg-white/5"
+          className="rounded-full border px-3 py-1 text-xs hover:bg-white/80"
         >
           {q}
         </button>

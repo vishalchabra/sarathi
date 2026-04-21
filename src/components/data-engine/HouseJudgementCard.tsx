@@ -76,17 +76,17 @@ export default function HouseJudgementCard({
   const data = Array.isArray(rows) ? rows : [];
 
   return (
-    <section className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-sm">
+    <section className="rounded-3xl border border-[color:var(--border)] bg-white/80 p-6 shadow-sm">
       <div>
-        <h3 className="text-lg font-semibold text-white">
+        <h3 className="text-lg font-semibold text-slate-900">
           House Judgement Layer
         </h3>
-        <p className="mt-1 text-sm text-white/70">
+        <p className="mt-1 text-sm text-slate-900">
           House-wise occupants, aspects, lord placement, and strength summary.
         </p>
       </div>
 
-      <div className="mt-6 overflow-x-auto rounded-2xl border border-white/10">
+      <div className="mt-6 overflow-x-auto rounded-2xl border border-[color:var(--border)]">
         <div className="mt-6 grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
   {data.map((row, idx) => (
     <div
@@ -96,31 +96,31 @@ export default function HouseJudgementCard({
     ? "border-green-300"
     : row.houseStrengthLabel === "challenged"
     ? "border-red-300"
-    : "border-white/10"
-} bg-white/5 p-4 shadow-sm`}
+    : "border-[color:var(--border)]"
+} bg-white/80 p-4 shadow-sm`}
     >
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <div className="text-xs text-white/50">House</div>
-          <div className="text-lg font-semibold text-white">
+          <div className="text-xs text-slate-900">House</div>
+          <div className="text-lg font-semibold text-slate-900">
             {show(row.house)} — {show(row.sign)}
           </div>
         </div>
 
-        <div className="text-xs text-white/50">
-          Lord: <span className="font-medium text-white">{show(row.lord)}</span>
+        <div className="text-xs text-slate-900">
+          Lord: <span className="font-medium text-slate-900">{show(row.lord)}</span>
         </div>
       </div>
 
         {/* Body */}
         <div className="mt-4 space-y-2 text-sm">
-            <div className="text-sm text-white/80">
+            <div className="text-sm text-slate-900/80">
   {row.summaryLine ?? "—"}
 </div>
             <div>
-            <span className="text-white/50">Lord placement: </span>
-            <span className="text-white font-medium">
+            <span className="text-slate-900">Lord placement: </span>
+            <span className="text-slate-900 font-medium">
   {row.lord
     ? `${show(row.lordSign)} (H${show(row.lordHouse)})`
     : "—"}
@@ -129,32 +129,32 @@ export default function HouseJudgementCard({
 
           <div className="space-y-1.5">
   <div>
-    <span className="text-white/50">Occupants: </span>
-    <span className="text-white font-medium">
+    <span className="text-slate-900">Occupants: </span>
+    <span className="text-slate-900 font-medium">
       {showList(row.occupants)}
     </span>
   </div>
 
-  <div className="text-xs text-white/50">
+  <div className="text-xs text-slate-900">
     Count: {show(row.occupantCount)}
   </div>
 </div>
 
             <div className="space-y-1.5">
   <div>
-    <span className="text-white/50">Influences: </span>
-    <span className="text-white font-medium">
+    <span className="text-slate-900">Influences: </span>
+    <span className="text-slate-900 font-medium">
       {showList(row.aspectedBy)}
     </span>
   </div>
 
-  <div className="text-xs leading-5 text-white/50">
+  <div className="text-xs leading-5 text-slate-900">
     {showAspectDetails(row.aspectingPlanetsDetailed)}
   </div>
 </div>
             <div>
-  <span className="text-white/50">Net signal: </span>
-  <span className="font-medium text-white">
+  <span className="text-slate-900">Net signal: </span>
+  <span className="font-medium text-slate-900">
     {getNetSignal(row)}
   </span>
 </div>

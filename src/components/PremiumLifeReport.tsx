@@ -25,7 +25,7 @@ function Card({
 }) {
   return (
     <section
-      className="rounded-xl border bg-white/5 dark:bg-slate-800 border-white/10 dark:border-slate-700 p-4"
+      className="rounded-xl border bg-white/80 dark:bg-slate-800 border-[color:var(--border)] dark:border-slate-700 p-4"
       style={{ breakInside: "avoid" }}
     >
       {title && <h3 className="text-lg font-semibold mb-2">{title}</h3>}
@@ -37,8 +37,8 @@ function Card({
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-lg border border-white/10 dark:border-slate-700 p-3">
-      <div className="text-[11px] uppercase text-gray-500 dark:text-white/40 tracking-wide">
+    <div className="rounded-lg border border-[color:var(--border)] dark:border-slate-700 p-3">
+      <div className="text-[11px] uppercase text-gray-500 dark:text-slate-900 tracking-wide">
         {label}
       </div>
       <div className="mt-1 text-base">{children ?? "—"}</div>
@@ -101,7 +101,7 @@ export default function PremiumLifeReport({
             <h2 className="text-xl font-semibold">{person.name || "Life Report"}</h2>
             <div className="text-sm text-gray-600 dark:text-slate-300">{person.place}</div>
           </div>
-          <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-white/40">
+          <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-slate-900">
             <ThemeToggle />
             <span>Valid for Life</span>
           </div>
@@ -117,7 +117,7 @@ export default function PremiumLifeReport({
           <Field label="Nakshatra">
             <div>{nak}</div>
             {nakLord && (
-              <div className="text-xs text-gray-500 dark:text-white/40 mt-0.5">
+              <div className="text-xs text-gray-500 dark:text-slate-900 mt-0.5">
                 ruled by {nakLord}
               </div>
             )}
@@ -130,7 +130,7 @@ export default function PremiumLifeReport({
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 text-sm text-gray-800 dark:text-slate-200">
           <div>Weekday: <b>{weekday}</b></div>
           <div>Tithi: <b>{tithi}</b>{paksha}</div>
-          <div> Nakshatra: <b>{nak}</b>{nakLord ? <span className="text-gray-500 dark:text-white/40"> (ruled by {nakLord})</span> : null}</div>
+          <div> Nakshatra: <b>{nak}</b>{nakLord ? <span className="text-gray-500 dark:text-slate-900"> (ruled by {nakLord})</span> : null}</div>
           <div>Yoga: <b>{yoga}</b></div>
         </div>
       </Card>
@@ -192,7 +192,7 @@ export default function PremiumLifeReport({
         </Card>
       )}
 
-      <footer className="text-xs text-gray-500 dark:text-white/40">
+      <footer className="text-xs text-gray-500 dark:text-slate-900">
         Insights illuminate choices; they do not replace professional advice.
       </footer>
     </div>

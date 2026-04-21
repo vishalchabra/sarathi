@@ -66,12 +66,12 @@ export default function SarathiPredictDebugPage() {
   }
 
   return (
-    <div className="min-h-screen p-4 md:p-8 bg-white/5">
+    <div className="min-h-screen p-4 md:p-8 bg-white/80">
       <div className="max-w-3xl mx-auto space-y-4">
         <h1 className="text-2xl font-semibold">
           Sārathi Prediction Debug
         </h1>
-        <p className="text-sm text-white/80">
+        <p className="text-sm text-slate-900/80">
           This page calls <code>/api/sarathi/predict</code> directly so
           you can inspect the raw JSON (windows, score, cache, etc.)
           without touching the main Life Report UI.
@@ -79,7 +79,7 @@ export default function SarathiPredictDebugPage() {
 
         <form
           onSubmit={handleSubmit}
-          className="space-y-4 rounded-lg border bg-white/5 p-4 shadow-sm"
+          className="space-y-4 rounded-lg border bg-white/80 p-4 shadow-sm"
         >
           <div className="grid gap-3 md:grid-cols-2">
             <div>
@@ -188,7 +188,7 @@ export default function SarathiPredictDebugPage() {
           <button
             type="submit"
             disabled={loading}
-            className="inline-flex items-center rounded bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60"
+            className="inline-flex items-center rounded astro-card px-3 py-1.5 text-sm font-medium text-slate-900 hover:bg-slate-800 disabled:opacity-60"
           >
             {loading ? "Predicting..." : "Run prediction"}
           </button>
@@ -200,24 +200,24 @@ export default function SarathiPredictDebugPage() {
           )}
         </form>
 
-        <div className="rounded-lg border bg-white/5 p-4 shadow-sm">
+        <div className="rounded-lg border bg-white/80 p-4 shadow-sm">
           <div className="mb-2 flex items-center justify-between">
             <h2 className="text-sm font-semibold">Raw response</h2>
             {result && (
-              <span className="text-xs text-white/50">
+              <span className="text-xs text-slate-900">
                 cache: {result._cache ?? "n/a"}
               </span>
             )}
           </div>
 
           {!result && !error && (
-            <p className="text-xs text-white/50">
+            <p className="text-xs text-slate-900">
               Run a prediction to see JSON here.
             </p>
           )}
 
           {result && (
-            <pre className="mt-2 max-h-[400px] overflow-auto rounded bg-slate-900 p-3 text-xs text-slate-50">
+            <pre className="mt-2 max-h-[400px] overflow-auto rounded astro-card p-3 text-xs text-slate-50">
               {JSON.stringify(result, null, 2)}
             </pre>
           )}

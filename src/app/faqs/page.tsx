@@ -44,12 +44,12 @@ export default function Page() {
       <header className="border-b border-slate-800/60 bg-slate-950/80 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
           <Link href="/" className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-indigo-500/20 border border-indigo-400/40">
-              <Sparkles className="h-4 w-4 text-indigo-300" />
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[color:var(--primary)]/20 border border-indigo-400/40">
+              <Sparkles className="h-4 w-4 text-[color:var(--primary)]" />
             </div>
             <div className="leading-tight">
               <div className="text-sm font-semibold tracking-wide">Sārathi</div>
-              <div className="text-[11px] text-white/40">
+              <div className="text-[11px] text-slate-900">
                 The charioteer of your journey within
               </div>
             </div>
@@ -74,7 +74,7 @@ export default function Page() {
           <Link href="/sarathi/life-report">
             <Button
               size="sm"
-              className="rounded-xl bg-indigo-500 px-4 text-xs font-medium shadow-sm hover:bg-indigo-400"
+              className="rounded-xl bg-[color:var(--primary)] px-4 text-xs font-medium shadow-sm hover:opacity-90"
             >
               Get your Life Report
             </Button>
@@ -83,7 +83,7 @@ export default function Page() {
       </header>
 
       <main className="mx-auto max-w-6xl px-4 py-10 md:py-14">
-        <Card className="rounded-3xl border border-white/10 bg-white/5/5 backdrop-blur-sm">
+        <Card className="rounded-3xl astro-card backdrop-blur-sm">
           <CardHeader className="pb-2">
             <CardTitle className="text-2xl md:text-3xl text-slate-50">
               FAQs
@@ -98,7 +98,7 @@ export default function Page() {
               {FAQS.map((item, idx) => (
                 <details
                   key={idx}
-                  className="group rounded-2xl border border-white/10 bg-slate-950/35 p-5"
+                  className="group rounded-2xl border border-[color:var(--border)] bg-slate-950/35 p-5"
                 >
                   <summary className="cursor-pointer list-none text-sm font-semibold text-slate-100 flex items-center justify-between">
                     <span>{item.q}</span>
@@ -113,7 +113,7 @@ export default function Page() {
               ))}
             </div>
 
-            <div className="mt-8 rounded-2xl border border-white/10 bg-slate-950/35 p-6">
+            <div className="mt-8 rounded-2xl border border-[color:var(--border)] bg-slate-950/35 p-6">
               <h3 className="text-lg font-semibold text-slate-50">Our promise</h3>
               <p className="mt-2 text-sm leading-6 text-slate-200/80">
                 Sārathi is here to help you move through life with steadiness. Not by predicting your life for you,
@@ -122,14 +122,14 @@ export default function Page() {
 
               <div className="mt-5 flex flex-wrap items-center gap-3">
                 <Link href="/sarathi/life-report">
-                  <Button className="rounded-xl bg-indigo-500 px-5 text-sm font-medium shadow-sm hover:bg-indigo-400">
+                  <Button className="rounded-xl bg-[color:var(--primary)] px-5 text-sm font-medium shadow-sm hover:opacity-90">
                     Start with my Life Report
                   </Button>
                 </Link>
                 <Link href="/sarathi/chat">
                   <Button
                     variant="outline"
-                    className="rounded-xl border-slate-700 bg-slate-900/60 text-xs text-slate-100 hover:bg-slate-800"
+                    className="rounded-xl border-slate-700 astro-card/60 text-xs text-slate-100 hover:bg-slate-800"
                   >
                     Ask Sārathi in chat
                   </Button>
@@ -137,7 +137,7 @@ export default function Page() {
               </div>
             </div>
 
-            <div className="mt-8 text-xs text-white/40">
+            <div className="mt-8 text-xs text-slate-900">
               <Link href="/" className="hover:text-slate-200">
                 ← Back to Home
               </Link>

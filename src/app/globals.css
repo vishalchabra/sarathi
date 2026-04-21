@@ -1,37 +1,254 @@
 /* FILE: /src/app/globals.css */
+
 @import "tailwindcss";
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
 
-/* Optional: your print helpers */
-@media print {
-  .print\:page-break-inside-avoid { page-break-inside: avoid; }
-  .print\:shadow-none { box-shadow: none !important; }
-  .print\:border-gray-300 { border-color: #D1D5DB !important; }
+/* ======================================================
+   PRINT HELPERS
+====================================================== */
+@media print {P
+  .print\:page-break-inside-avoid {
+    page-break-inside: avoid;
+  }
+
+  .print\:shadow-none {
+    box-shadow: none !important;
+  }
+
+  .print\:border-gray-300 {
+    border-color: #d1d5db !important;
+  }
 }
 
-/* Baseline: follow theme tokens (light/dark) */
-html, body {
+/* ======================================================
+   BASE RESET
+====================================================== */
+html,
+body {
   background: transparent;
   color: inherit;
+  min-height: 100%;
 }
 
+/* ======================================================
+   TOKEN MAPPING FOR TAILWIND V4
+====================================================== */
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
 
-@theme inline { --radius-sm: calc(var(--radius) - 4px); --radius-md: calc(var(--radius) - 2px); --radius-lg: var(--radius); --radius-xl: calc(var(--radius) + 4px); --color-background: var(--background); --color-foreground: var(--foreground); --color-card: var(--card); --color-card-foreground: var(--card-foreground); --color-popover: var(--popover); --color-popover-foreground: var(--popover-foreground); --color-primary: var(--primary); --color-primary-foreground: var(--primary-foreground); --color-secondary: var(--secondary); --color-secondary-foreground: var(--secondary-foreground); --color-muted: var(--muted); --color-muted-foreground: var(--muted-foreground); --color-accent: var(--accent); --color-accent-foreground: var(--accent-foreground); --color-destructive: var(--destructive); --color-border: var(--border); --color-input: var(--input); --color-ring: var(--ring); --color-chart-1: var(--chart-1); --color-chart-2: var(--chart-2); --color-chart-3: var(--chart-3); --color-chart-4: var(--chart-4); --color-chart-5: var(--chart-5); --color-sidebar: var(--sidebar); --color-sidebar-foreground: var(--sidebar-foreground); --color-sidebar-primary: var(--sidebar-primary); --color-sidebar-primary-foreground: var(--sidebar-primary-foreground); --color-sidebar-accent: var(--sidebar-accent); --color-sidebar-accent-foreground: var(--sidebar-accent-foreground); --color-sidebar-border: var(--sidebar-border); --color-sidebar-ring: var(--sidebar-ring);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+
+  --color-destructive: var(--destructive);
+
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
 }
 
-:root { --radius: 0.625rem; --background: oklch(1 0 0); --foreground: oklch(0.145 0 0); --card: oklch(1 0 0); --card-foreground: oklch(0.145 0 0); --popover: oklch(1 0 0); --popover-foreground: oklch(0.145 0 0); --primary: oklch(0.205 0 0); --primary-foreground: oklch(0.985 0 0); --secondary: oklch(0.97 0 0); --secondary-foreground: oklch(0.205 0 0); --muted: oklch(0.97 0 0); --muted-foreground: oklch(0.556 0 0); --accent: oklch(0.97 0 0); --accent-foreground: oklch(0.205 0 0); --destructive: oklch(0.577 0.245 27.325); --border: oklch(0.922 0 0); --input: oklch(0.922 0 0); --ring: oklch(0.708 0 0); --chart-1: oklch(0.646 0.222 41.116); --chart-2: oklch(0.6 0.118 184.704); --chart-3: oklch(0.398 0.07 227.392); --chart-4: oklch(0.828 0.189 84.429); --chart-5: oklch(0.769 0.188 70.08); --sidebar: oklch(0.985 0 0); --sidebar-foreground: oklch(0.145 0 0); --sidebar-primary: oklch(0.205 0 0); --sidebar-primary-foreground: oklch(0.985 0 0); --sidebar-accent: oklch(0.97 0 0); --sidebar-accent-foreground: oklch(0.205 0 0); --sidebar-border: oklch(0.922 0 0); --sidebar-ring: oklch(0.708 0 0);
+/* ======================================================
+   LIGHT THEME (DEFAULT)
+   Astrology / Premium / Warm / Elegant
+====================================================== */
+:root {
+  --radius: 0.75rem;
+
+  /* page */
+  --background: oklch(0.975 0.015 92); /* warm ivory */
+  --foreground: oklch(0.26 0.03 300); /* plum charcoal */
+
+  /* surfaces */
+  --card: oklch(0.995 0.01 95);
+  --card-foreground: oklch(0.26 0.03 300);
+
+  --popover: oklch(1 0.01 95);
+  --popover-foreground: oklch(0.26 0.03 300);
+
+  /* brand */
+  --primary: oklch(0.46 0.16 292); /* royal indigo */
+  --primary-foreground: oklch(0.99 0.01 95);
+
+  --secondary: oklch(0.94 0.025 310); /* pale lavender */
+  --secondary-foreground: oklch(0.28 0.03 300);
+
+  --accent: oklch(0.92 0.06 92); /* muted gold */
+  --accent-foreground: oklch(0.28 0.03 300);
+
+  --muted: oklch(0.955 0.012 92);
+  --muted-foreground: oklch(0.52 0.02 300);
+
+  --destructive: oklch(0.58 0.2 28);
+
+  --border: oklch(0.89 0.015 90);
+  --input: oklch(0.91 0.015 90);
+  --ring: oklch(0.58 0.12 292);
+
+  /* charts */
+  --chart-1: oklch(0.56 0.16 292);
+  --chart-2: oklch(0.72 0.11 88);
+  --chart-3: oklch(0.64 0.09 250);
+  --chart-4: oklch(0.77 0.08 20);
+  --chart-5: oklch(0.68 0.10 140);
+
+  /* sidebar */
+  --sidebar: oklch(0.99 0.01 95);
+  --sidebar-foreground: oklch(0.26 0.03 300);
+
+  --sidebar-primary: oklch(0.46 0.16 292);
+  --sidebar-primary-foreground: oklch(0.99 0.01 95);
+
+  --sidebar-accent: oklch(0.94 0.025 310);
+  --sidebar-accent-foreground: oklch(0.28 0.03 300);
+
+  --sidebar-border: oklch(0.89 0.015 90);
+  --sidebar-ring: oklch(0.58 0.12 292);
 }
 
-.dark { --background: oklch(0.145 0 0); --foreground: oklch(0.985 0 0); --card: oklch(0.205 0 0); --card-foreground: oklch(0.985 0 0); --popover: oklch(0.205 0 0); --popover-foreground: oklch(0.985 0 0); --primary: oklch(0.922 0 0); --primary-foreground: oklch(0.205 0 0); --secondary: oklch(0.269 0 0); --secondary-foreground: oklch(0.985 0 0); --muted: oklch(0.269 0 0); --muted-foreground: oklch(0.708 0 0); --accent: oklch(0.269 0 0); --accent-foreground: oklch(0.985 0 0); --destructive: oklch(0.704 0.191 22.216); --border: oklch(1 0 0 / 10%); --input: oklch(1 0 0 / 15%); --ring: oklch(0.556 0 0); --chart-1: oklch(0.488 0.243 264.376); --chart-2: oklch(0.696 0.17 162.48); --chart-3: oklch(0.769 0.188 70.08); --chart-4: oklch(0.627 0.265 303.9); --chart-5: oklch(0.645 0.246 16.439); --sidebar: oklch(0.205 0 0); --sidebar-foreground: oklch(0.985 0 0); --sidebar-primary: oklch(0.488 0.243 264.376); --sidebar-primary-foreground: oklch(0.985 0 0); --sidebar-accent: oklch(0.269 0 0); --sidebar-accent-foreground: oklch(0.985 0 0); --sidebar-border: oklch(1 0 0 / 10%); --sidebar-ring: oklch(0.556 0 0);
+/* ======================================================
+   OPTIONAL DARK THEME
+====================================================== */
+.dark {
+  --background: oklch(0.18 0.02 285);
+  --foreground: oklch(0.97 0.01 95);
+
+  --card: oklch(0.22 0.02 285);
+  --card-foreground: oklch(0.97 0.01 95);
+
+  --popover: oklch(0.22 0.02 285);
+  --popover-foreground: oklch(0.97 0.01 95);
+
+  --primary: oklch(0.72 0.16 292);
+  --primary-foreground: oklch(0.18 0.02 285);
+
+  --secondary: oklch(0.28 0.02 285);
+  --secondary-foreground: oklch(0.97 0.01 95);
+
+  --accent: oklch(0.36 0.06 92);
+  --accent-foreground: oklch(0.97 0.01 95);
+
+  --muted: oklch(0.28 0.02 285);
+  --muted-foreground: oklch(0.74 0.01 95);
+
+  --border: oklch(1 0 0 / 12%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.72 0.16 292);
 }
 
+/* ======================================================
+   BASE LAYER
+====================================================== */
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+/* ======================================================
+   CUSTOM UTILITIES
+====================================================== */
+@layer utilities {
+  /* page background */
+  .astro-bg {
+    background:
+      radial-gradient(circle at top, rgba(103, 58, 183, 0.12), transparent 30%),
+      radial-gradient(circle at 18% 28%, rgba(212, 175, 55, 0.10), transparent 24%),
+      radial-gradient(circle at 82% 65%, rgba(156, 39, 176, 0.08), transparent 22%),
+      linear-gradient(180deg, #fcf8f1 0%, #f7efe4 100%);
+  }
+
+  /* glass cards */
+  .astro-card {
+    background: rgba(255,248,240,0.88);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(88, 63, 122, 0.10);
+    box-shadow:
+      0 10px 30px rgba(88, 63, 122, 0.06),
+      inset 0 1px 0 rgba(255,255,255,0.65);
+  }
+
+  /* chip */
+  .astro-chip {
+    background: rgba(107, 76, 154, 0.08);
+    color: #5f418f;
+    border: 1px solid rgba(107, 76, 154, 0.14);
+  }
+
+  /* buttons */
+  .astro-button {
+    background: #6b4c9a;
+    color: white;
+    transition: all 0.2s ease;
+  }
+
+  .astro-button:hover {
+    background: #5d4188;
+    transform: translateY(-1px);
+  }
+
+  .astro-button-gold {
+    background: #d8b45a;
+    color: #34260a;
+    transition: all 0.2s ease;
+  }
+
+  .astro-button-gold:hover {
+    background: #caa449;
+  }
+
+  /* text helpers */
+  .astro-text-soft {
+    color: rgba(61, 42, 86, 0.72);
+  }
+
+  .astro-text-muted {
+    color: rgba(61, 42, 86, 0.52);
+  }
+
+  /* borders */
+  .astro-border {
+    border-color: rgba(88, 63, 122, 0.10);
   }
 }

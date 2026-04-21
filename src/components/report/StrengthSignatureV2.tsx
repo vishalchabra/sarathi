@@ -49,14 +49,14 @@ export default function StrengthSignatureV2({
   const rows = Object.entries(totals).map(([k, v]) => ({ k, pct: toPct(v) }));
 
   return (
-    <section className="rounded-xl border bg-white/5 p-4" style={{ breakInside: "avoid" }}>
+    <section className="rounded-xl border bg-white/80 p-4" style={{ breakInside: "avoid" }}>
       <h3 className="text-lg font-semibold mb-2">Strength Signature</h3>
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
         {rows.map(r => (
           <div key={r.k}>
             <div className="text-sm mb-1 capitalize">{r.k}</div>
             <div className="h-2 rounded bg-gray-100 overflow-hidden">
-              <div className="h-2 bg-indigo-500" style={{ width: `${r.pct}%` }} />
+              <div className="h-2 bg-[color:var(--primary)]" style={{ width: `${r.pct}%` }} />
             </div>
           </div>
         ))}

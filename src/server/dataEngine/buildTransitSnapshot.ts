@@ -177,6 +177,13 @@ function getNakshatraFromLon(lon: number | null | undefined): string | null {
   return NAKSHATRAS_27[idx] ?? null;
 }
 
+function getPadaFromLon(lon: number | null | undefined): number | null {
+  if (typeof lon !== "number" || !Number.isFinite(lon)) return null;
+  const nakSegment = 360 / 27;
+  const withinNak = wrap360(lon) % nakSegment;
+  return Math.floor(withinNak / (nakSegment / 4)) + 1;
+}
+
 function houseFromLagna(lagnaSignNum: number, transitSignNum: number): number {
   return ((transitSignNum - lagnaSignNum + 12) % 12) + 1;
 }
@@ -327,6 +334,7 @@ const mapped = (Array.isArray(transitNowRaw) ? transitNowRaw : []).map((p: any) 
         ? p.retrograde
         : planetName === "Rahu" || planetName === "Ketu",
     nakshatra: getNakshatraFromLon(lon),
+    pada: getPadaFromLon(lon),
     lon,
     signLord,
     relationshipToSignLord: relationship,
@@ -405,7 +413,7 @@ console.log("TRANSIT SNAPSHOT DEBUG", {
           degree: moonPlanet?.degree ?? null,
           houseFromLagna: moonPlanet?.houseFromLagna ?? null,
           nakshatra: firstMoon.moonNakshatra ?? moonPlanet?.nakshatra ?? null,
-          pada: null,
+          pada: moonPlanet?.pada ?? null,
           houseFromMoon: firstMoon.houseFromMoon ?? null,
         }
       : {
@@ -414,7 +422,7 @@ console.log("TRANSIT SNAPSHOT DEBUG", {
           degree: moonPlanet?.degree ?? null,
           houseFromLagna: moonPlanet?.houseFromLagna ?? null,
           nakshatra: moonPlanet?.nakshatra ?? null,
-          pada: null,
+          pada: moonPlanet?.pada ?? null,
           houseFromMoon: null,
         },
     dailyMoon,

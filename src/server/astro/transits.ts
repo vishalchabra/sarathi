@@ -280,7 +280,11 @@ const NAKS_27 = [
   "Uttara Bhadrapada",
   "Revati",
 ];
-
+function padaFromDegSidereal(deg: number): number {
+  const span = 360 / 27; // 13°20'
+  const withinNak = wrap360(deg) % span;
+  return Math.floor(withinNak / (span / 4)) + 1; // 1..4
+}
 function nakIndexFromDeg(deg: number): number {
   const span = 360 / 27;
   return Math.floor(wrap360(deg) / span);
@@ -1106,9 +1110,15 @@ function buildWindowDescription(
 
 export type TransitNowPlanet = {
   name: string;
-  lon: number;         // sidereal longitude 0..360
-  sign: string;        // sidereal sign
-  house?: number;      // whole sign house from Asc
+  lon: number;
+  sign: string;
+  house?: number;
+  degree?: number;
+  deg?: number;
+  retrograde?: boolean;
+  speedLon?: number;
+  nakshatra?: string | null;
+  pada?: number | null;
 };
 
 export async function computeTransitPlanetsNow(
@@ -1165,6 +1175,8 @@ return tPlanets.map((p) => {
   degree: Number((wrap360(sidLon) % 30).toFixed(2)),
   deg: Number((wrap360(sidLon) % 30).toFixed(2)),
   house,
+  nakshatra: nakFromDegSidereal(sidLon),
+  pada: padaFromDegSidereal(sidLon),
   retrograde:
     typeof (p as any).retrograde === "boolean"
       ? (p as any).retrograde

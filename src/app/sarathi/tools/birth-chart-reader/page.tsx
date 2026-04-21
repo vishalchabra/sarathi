@@ -229,10 +229,10 @@ export default function BirthChartReaderPage() {
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <h1 className="text-xl font-semibold">Birth Chart Reader</h1>
         <div className="flex items-center gap-2">
-          <Link href="/sarathi/life-report" className="px-3 py-2 rounded border bg-white/5 hover:bg-white/5">
+          <Link href="/sarathi/life-report" className="px-3 py-2 rounded border bg-white/80 hover:bg-white/80">
             Go to Life Report →
           </Link>
-          <Link href="/sarathi/tools/charts" className="px-3 py-2 rounded border bg-white/5 hover:bg-white/5">
+          <Link href="/sarathi/tools/charts" className="px-3 py-2 rounded border bg-white/80 hover:bg-white/80">
             Open Charts (D1/D9) →
           </Link>
         </div>
@@ -299,13 +299,13 @@ export default function BirthChartReaderPage() {
 
       {/* Actions */}
       <div className="flex flex-wrap items-center gap-3">
-        <button onClick={compute} disabled={loading} className="px-4 py-2 rounded bg-black text-white disabled:opacity-50">
+        <button onClick={compute} disabled={loading} className="px-4 py-2 rounded bg-black text-slate-900 disabled:opacity-50">
           {loading ? "Computing…" : "Compute placements"}
         </button>
 
         <button
           onClick={saveForChat}
-          className="px-4 py-2 rounded border bg-white/5 hover:bg-white/5"
+          className="px-4 py-2 rounded border bg-white/80 hover:bg-white/80"
           disabled={!dobTouched || !tobTouched || !placeTouched}
           title="Save this birth profile for Chat"
         >
@@ -315,21 +315,21 @@ export default function BirthChartReaderPage() {
 
       {/* City preview */}
       {placeTouched && place ? (
-        <div className="text-sm text-white/70">
+        <div className="text-sm text-slate-900">
           <span className="font-medium">Selected:</span> {place.name} — tz: {tz}, lat {place.lat.toFixed(3)}, lon{" "}
           {place.lon.toFixed(3)}
         </div>
       ) : (
-        <div className="text-sm text-white/50">Tip: choose a city to auto-fill time-zone.</div>
+        <div className="text-sm text-slate-900">Tip: choose a city to auto-fill time-zone.</div>
       )}
 
       {/* Quick facts */}
       {data && !data.error && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <div className="border rounded p-3"><div className="text-xs uppercase text-white/50">Sun (sidereal)</div><div className="font-medium">{sunSign || "—"}</div></div>
-          <div className="border rounded p-3"><div className="text-xs uppercase text-white/50">Moon (sidereal)</div><div className="font-medium">{moonSign || "—"}</div></div>
-          <div className="border rounded p-3"><div className="text-xs uppercase text-white/50">Ascendant</div><div className="font-medium">{asc || "—"}</div></div>
-          <div className="border rounded p-3"><div className="text-xs uppercase text-white/50">Pañchāṅga (weekday)</div><div className="font-medium">{weekdayLabel || "—"}</div></div>
+          <div className="border rounded p-3"><div className="text-xs uppercase text-slate-900">Sun (sidereal)</div><div className="font-medium">{sunSign || "—"}</div></div>
+          <div className="border rounded p-3"><div className="text-xs uppercase text-slate-900">Moon (sidereal)</div><div className="font-medium">{moonSign || "—"}</div></div>
+          <div className="border rounded p-3"><div className="text-xs uppercase text-slate-900">Ascendant</div><div className="font-medium">{asc || "—"}</div></div>
+          <div className="border rounded p-3"><div className="text-xs uppercase text-slate-900">Pañchāṅga (weekday)</div><div className="font-medium">{weekdayLabel || "—"}</div></div>
         </div>
       )}
 
@@ -345,7 +345,7 @@ export default function BirthChartReaderPage() {
             autoComplete="off"
             name="qa-no-autofill"
           />
-          <button type="button" onClick={askQA} disabled={qaLoading} className="px-4 py-2 rounded bg-indigo-600 text-white disabled:opacity-50">
+          <button type="button" onClick={askQA} disabled={qaLoading} className="px-4 py-2 rounded bg-indigo-600 text-slate-900 disabled:opacity-50">
             {qaLoading ? "Thinking…" : "Ask"}
           </button>
         </div>
@@ -377,7 +377,7 @@ export default function BirthChartReaderPage() {
               <div className="overflow-x-auto">
                 <table className="min-w-full text-sm border rounded">
                   <thead>
-                    <tr className="bg-white/5">
+                    <tr className="bg-white/80">
                       <th className="px-2 py-1 border">Planet</th>
                       <th className="px-2 py-1 border">Sign</th>
                       <th className="px-2 py-1 border">Deg°</th>
@@ -387,7 +387,7 @@ export default function BirthChartReaderPage() {
                   </thead>
                   <tbody>
                     {normalizePlacements(data).map((p: Placement, i: number) => (
-                      <tr key={i} className={i % 2 ? "bg-white/5/60" : undefined}>
+                      <tr key={i} className={i % 2 ? "bg-white/80/60" : undefined}>
                         <td className="px-2 py-1 border">{p.planet}</td>
                         <td className="px-2 py-1 border">{p.sign || ""}</td>
                         <td className="px-2 py-1 border">{typeof p.degInSign === "number" ? `${p.degInSign.toFixed(2)}°` : ""}</td>

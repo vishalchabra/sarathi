@@ -14,7 +14,10 @@ type ChartPlanet = {
   combust?: boolean;
   isTransit?: boolean;
 };
+
 type ArudhaMap = Record<string, { sign: string }>;
+type LayoutVariant = "auto" | "primary" | "secondary";
+
 type MediumNorthIndianChartProps = {
   title?: string;
   ascSign?: string | null;
@@ -25,6 +28,7 @@ type MediumNorthIndianChartProps = {
   sarvaAshtakvarga?: number[];
   showPlanetDetails?: boolean;
   arudhas?: ArudhaMap;
+  layoutVariant?: LayoutVariant;
 };
 
 const PLANET_SHORT: Record<string, string> = {
@@ -57,20 +61,6 @@ const SIGNS = [
   "Pisces",
 ] as const;
 
-const SIGN_SHORT: Record<string, string> = {
-  Aries: "Ar",
-  Taurus: "Ta",
-  Gemini: "Ge",
-  Cancer: "Cn",
-  Leo: "Le",
-  Virgo: "Vi",
-  Libra: "Li",
-  Scorpio: "Sc",
-  Sagittarius: "Sg",
-  Capricorn: "Cp",
-  Aquarius: "Aq",
-  Pisces: "Pi",
-};
 const SIGN_TO_NUMBER: Record<string, number> = {
   Aries: 1,
   Taurus: 2,
@@ -86,42 +76,138 @@ const SIGN_TO_NUMBER: Record<string, number> = {
   Pisces: 12,
 };
 
-function getSignNumber(sign?: string | null) {
-  if (!sign) return "—";
-  return String(SIGN_TO_NUMBER[sign] ?? "—");
-}
-const HOUSE_PLANET_SHIFTS: Record<number, string> = {
-  11: "translate(3px, -42px)",
-  9: "translate(-12px, -12px)",
-  10: "translate(-10px, -8px)",
-  7: "translate(-6px, -6px)",
-  8: "translate(-4px, -6px)",
-};
 type HouseAnchor = {
   house: number;
   x: number;
   y: number;
   width: number;
+  minHeight?: number;
 };
 
-const HOUSE_ANCHORS: HouseAnchor[] = [
-  { house: 2, x: 160, y: 40, width: 84 },
-  { house: 12, x: 390, y: 40, width: 84 },
+type LayoutConfig = {
+  frameWidth: number;
+  frameHeight: number;
+  outerRect: { x: number; y: number; width: number; height: number };
+  anchors: HouseAnchor[];
+  housePlanetShifts: Record<number, string>;
+  houseLabelShifts?: Partial<Record<number, string>>;
+  houseMaxHeights?: Partial<Record<number, number>>;
+  houseArudhaShifts?: Partial<Record<number, string>>;
+};
 
-  { house: 3, x: 85, y: 120, width: 84 },
-  { house: 1, x: 260, y: 90, width: 104 },
-  { house: 11, x: 450, y: 120, width: 84 },
+const PRIMARY_LAYOUT: LayoutConfig = {
+  frameWidth: 560,
+  frameHeight: 540,
+  outerRect: { x: 32, y: 32, width: 496, height: 476 },
+  anchors: [
+    { house: 2, x: 170, y: 60, width: 88, minHeight: 104 },
+    { house: 12, x: 390, y: 60, width: 88, minHeight: 104 },
 
-  { house: 4, x: 150, y: 236, width: 84 },
-  { house: 10, x: 370, y: 236, width: 84 },
+    { house: 3, x: 98, y: 136, width: 86, minHeight: 104 },
+    { house: 1, x: 280, y: 110, width: 110, minHeight: 104 },
+    { house: 11, x: 462, y: 136, width: 86, minHeight: 104 },
 
-  { house: 5, x: 85, y: 332, width: 80 },
-  { house: 7, x: 260, y: 342, width: 104 },
-  { house: 9, x: 460, y: 312, width: 84 },
+    { house: 4, x: 170, y: 248, width: 86, minHeight: 104 },
+    { house: 10, x: 390, y: 248, width: 86, minHeight: 104 },
 
-  { house: 6, x: 150, y: 380, width: 84 },
-  { house: 8, x: 370, y: 398, width: 84 },
-];
+    { house: 5, x: 92, y: 338, width: 96, minHeight: 112 },
+    { house: 7, x: 280, y: 356, width: 110, minHeight: 104 },
+    { house: 9, x: 480, y: 350, width: 80, minHeight: 104 },
+
+    { house: 6, x: 162, y: 416, width: 94, minHeight: 112 },
+    { house: 8, x: 390, y: 424, width: 86, minHeight: 104 },
+  ],
+  housePlanetShifts: {
+    1: "translate(0,-2px)",
+    5: "translate(-4px,-2px)",
+    6: "translate(-6px,2px)",
+    7: "translate(-2px,-2px)",
+    8: "translate(-2px,-2px)",
+    9: "translate(-2px,2px)",
+    10: "translate(-4px,-2px)",
+    11: "translate(0,-2px)",
+    12: "translate(0,-2px)",
+  },
+  houseLabelShifts: {
+    2: "translateY(6px)",
+    12: "translateY(6px)",
+  },
+  houseMaxHeights: {
+    5: 56,
+    6: 54,
+    9: 44,
+  },
+  houseArudhaShifts: {
+    5: "translateY(6px)",
+    6: "translateY(8px)",
+  },
+};
+
+const SECONDARY_LAYOUT: LayoutConfig = {
+  frameWidth: 520,
+  frameHeight: 500,
+  outerRect: { x: 34, y: 34, width: 452, height: 432 },
+  anchors: [
+    { house: 2, x: 158, y: 62, width: 82, minHeight: 96 },
+    { house: 12, x: 362, y: 62, width: 82, minHeight: 96 },
+
+    { house: 3, x: 94, y: 132, width: 80, minHeight: 96 },
+    { house: 1, x: 260, y: 106, width: 98, minHeight: 96 },
+    { house: 11, x: 426, y: 132, width: 80, minHeight: 96 },
+
+    { house: 4, x: 158, y: 234, width: 80, minHeight: 96 },
+    { house: 10, x: 362, y: 234, width: 80, minHeight: 96 },
+
+    { house: 5, x: 94, y: 324, width: 80, minHeight: 96 },
+    { house: 7, x: 260, y: 334, width: 98, minHeight: 96 },
+    { house: 9, x: 446, y: 350, width: 76, minHeight: 96 },
+
+    { house: 6, x: 158, y: 396, width: 80, minHeight: 96 },
+    { house: 8, x: 362, y: 396, width: 80, minHeight: 96 },
+  ],
+  housePlanetShifts: {
+    1: "translate(0,-1px)",
+    7: "translate(-1px,-1px)",
+    8: "translate(-1px,-1px)",
+    9: "translate(-1px,-7px)",
+    10: "translate(-2px,-1px)",
+    11: "translate(0,-1px)",
+    12: "translate(0,-1px)",
+  },
+  houseLabelShifts: {
+    2: "translateY(4px)",
+    12: "translateY(4px)",
+  },
+  houseMaxHeights: {
+    9: 30,
+  },
+  houseArudhaShifts: {},
+};
+
+function getSignNumber(sign?: string | null) {
+  if (!sign) return "—";
+  return String(SIGN_TO_NUMBER[sign] ?? "—");
+}
+
+function resolveLayoutVariant(title: string, layoutVariant: LayoutVariant): Exclude<LayoutVariant, "auto"> {
+  if (layoutVariant !== "auto") return layoutVariant;
+  const normalized = title.toLowerCase();
+  if (
+    normalized.includes("d1") ||
+    normalized.includes("lagna") ||
+    normalized.includes("house centered") ||
+    normalized.includes("house-centred") ||
+    normalized.includes("house centered chart")
+  ) {
+    return "primary";
+  }
+  return "secondary";
+}
+
+function getLayoutConfig(title: string, layoutVariant: LayoutVariant): LayoutConfig {
+  const resolved = resolveLayoutVariant(title, layoutVariant);
+  return resolved === "primary" ? PRIMARY_LAYOUT : SECONDARY_LAYOUT;
+}
 
 function formatPlanetLabel(p: ChartPlanet) {
   const planetName = p?.planet ?? "??";
@@ -136,10 +222,10 @@ function getPlanetsByHouse(planets: ChartPlanet[]) {
   for (const p of planets) {
     const house =
       typeof p.rashiHouse === "number"
-        ? p.rashiHouse   // ✅ priority
+        ? p.rashiHouse
         : typeof p.house === "number"
-        ? p.house
-        : null;
+          ? p.house
+          : null;
 
     if (typeof house !== "number") continue;
 
@@ -168,23 +254,12 @@ function getPlanetTitle(p: ChartPlanet) {
   return parts.join(" • ");
 }
 
-function getFullPlanetListTitle(planets: ChartPlanet[]) {
-  return planets
-    .map((p) => {
-      const name = p?.planet ?? "??";
-      const deg =
-        typeof p.degree === "number" && !Number.isNaN(p.degree)
-          ? ` ${p.degree.toFixed(2)}°`
-          : "";
-      return `${name}${deg}`;
-    })
-    .join(" • ");
-}
 function getHouseSignNumber(house: number, ascSign?: string | null) {
   const ascIndex = getAscSignIndex(ascSign);
   if (ascIndex < 0) return "—";
   return String(((ascIndex + (house - 1)) % 12) + 1);
 }
+
 function getHouseSignName(house: number, ascSign?: string | null) {
   const ascIndex = getAscSignIndex(ascSign);
   if (ascIndex < 0) return null;
@@ -211,6 +286,7 @@ function getArudhasByHouse(arudhas: ArudhaMap | undefined, ascSign?: string | nu
 
   return map;
 }
+
 export default function MediumNorthIndianChart({
   title = "North Indian Chart",
   ascSign,
@@ -221,296 +297,253 @@ export default function MediumNorthIndianChart({
   sarvaAshtakvarga = [],
   showPlanetDetails = true,
   arudhas = {},
+  layoutVariant = "auto",
 }: MediumNorthIndianChartProps) {
   const [selected, setSelected] = useState<ChartPlanet | null>(null);
   const [hovered, setHovered] = useState<ChartPlanet | null>(null);
+
   const planetsByHouse = useMemo(() => getPlanetsByHouse(planets), [planets]);
-const transitPlanetsByHouse = useMemo(
-  () => getPlanetsByHouse(transitPlanets),
-  [transitPlanets]
-);
-  const arudhasByHouse = useMemo(
-    () => getArudhasByHouse(arudhas, ascSign),
-    [arudhas, ascSign]
-  );
+  const transitPlanetsByHouse = useMemo(() => getPlanetsByHouse(transitPlanets), [transitPlanets]);
+  const arudhasByHouse = useMemo(() => getArudhasByHouse(arudhas, ascSign), [arudhas, ascSign]);
+  const layout = useMemo(() => getLayoutConfig(title, layoutVariant), [title, layoutVariant]);
+
+  const centerX = layout.frameWidth / 2;
+  const centerY = layout.frameHeight / 2;
+  const rectLeft = layout.outerRect.x;
+  const rectTop = layout.outerRect.y;
+  const rectRight = layout.outerRect.x + layout.outerRect.width;
+  const rectBottom = layout.outerRect.y + layout.outerRect.height;
+
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.06] p-4 shadow-[0_10px_30px_rgba(0,0,0,0.22)] backdrop-blur-sm">
+    <div className="rounded-2xl border border-[color:var(--border)] bg-white p-4 shadow-sm backdrop-blur-sm">
       <div className="flex flex-col gap-1 md:flex-row md:items-end md:justify-between">
         <div>
-          <h2 className="text-sm font-semibold text-white">{title}</h2>
-          <p className="mt-1 text-xs text-white/70">
-            Click any Planet to view detailed information.
-          </p>
+          <h2 className="text-sm font-semibold text-slate-900">{title}</h2>
+          <p className="mt-1 text-xs text-slate-500">Click any planet to view detailed information.</p>
         </div>
-     
-        <div className="text-xs text-white/70">
-          Ascendant:{" "}
-          <span className="font-semibold text-indigo-300">
-  {getSignNumber(ascSign)}
-</span>
+
+        <div className="text-xs text-slate-900">
+          Ascendant: <span className="font-semibold text-[color:var(--primary)]">{getSignNumber(ascSign)}</span>
         </div>
       </div>
 
-      <div className="mt-4 overflow-x-auto">
-        <div className="relative mx-auto h-[560px] w-[600px] rounded-xl bg-white/[0.03] ring-1 ring-white/10">
+      <div className="mt-4 flex justify-center overflow-x-auto">
+        <div
+          className="relative mx-auto rounded-2xl bg-white ring-1 ring-slate-200 shadow-sm"
+          style={{ width: layout.frameWidth, height: layout.frameHeight }}
+        >
           <svg
-            viewBox="0 0 600 560"
+            viewBox={`0 0 ${layout.frameWidth} ${layout.frameHeight}`}
             className="absolute inset-0 h-full w-full"
             aria-label="North Indian astrology chart"
           >
             <rect
-              x="36"
-              y="36"
-              width="448"
-              height="428"
+              x={layout.outerRect.x}
+              y={layout.outerRect.y}
+              width={layout.outerRect.width}
+              height={layout.outerRect.height}
               fill="transparent"
-              stroke="rgba(255,255,255,0.24)"
-              strokeWidth="1.4"
+              stroke="rgba(71,85,105,0.65)"
+              strokeWidth="1.6"
             />
 
-            <line x1="260" y1="36" x2="484" y2="250" stroke="rgba(255,255,255,0.24)" strokeWidth="1.4" />
-            <line x1="484" y1="250" x2="260" y2="464" stroke="rgba(255,255,255,0.24)" strokeWidth="1.4" />
-            <line x1="260" y1="464" x2="36" y2="250" stroke="rgba(255,255,255,0.24)" strokeWidth="1.4" />
-            <line x1="36" y1="250" x2="260" y2="36" stroke="rgba(255,255,255,0.24)" strokeWidth="1.4" />
+            <line x1={centerX} y1={rectTop} x2={rectRight} y2={centerY} stroke="rgba(71,85,105,0.65)" strokeWidth="1.6" />
+            <line x1={rectRight} y1={centerY} x2={centerX} y2={rectBottom} stroke="rgba(71,85,105,0.65)" strokeWidth="1.6" />
+            <line x1={centerX} y1={rectBottom} x2={rectLeft} y2={centerY} stroke="rgba(71,85,105,0.65)" strokeWidth="1.6" />
+            <line x1={rectLeft} y1={centerY} x2={centerX} y2={rectTop} stroke="rgba(71,85,105,0.65)" strokeWidth="1.6" />
 
-            <line x1="36" y1="36" x2="484" y2="464" stroke="rgba(255,255,255,0.24)" strokeWidth="1.4" />
-            <line x1="484" y1="36" x2="36" y2="464" stroke="rgba(255,255,255,0.24)" strokeWidth="1.4" />
+            <line x1={rectLeft} y1={rectTop} x2={rectRight} y2={rectBottom} stroke="rgba(71,85,105,0.65)" strokeWidth="1.6" />
+            <line x1={rectRight} y1={rectTop} x2={rectLeft} y2={rectBottom} stroke="rgba(71,85,105,0.65)" strokeWidth="1.6" />
           </svg>
 
-        {HOUSE_ANCHORS.map((anchor) => {
-  const housePlanets = planetsByHouse.get(anchor.house) ?? [];
-  const houseTransitPlanets = (transitPlanetsByHouse.get(anchor.house) ?? []).map(
-    (p) => ({ ...p, isTransit: true })
-  );
+          {layout.anchors.map((anchor) => {
+            const housePlanets = planetsByHouse.get(anchor.house) ?? [];
+            const houseTransitPlanets = (transitPlanetsByHouse.get(anchor.house) ?? []).map((p) => ({ ...p, isTransit: true }));
+            const shownNatalPlanets = housePlanets;
+            const shownTransitPlanets = houseTransitPlanets;
+            const isAscHouse = anchor.house === 1;
+            const houseLabel = getHouseSignNumber(anchor.house, ascSign);
+            const houseLabelShift = layout.houseLabelShifts?.[anchor.house] ?? "translateY(0px)";
+            const planetShift = layout.housePlanetShifts[anchor.house] ?? "translate(0,0)";
+            const houseMaxHeight = layout.houseMaxHeights?.[anchor.house] ?? 46;
+            const allForTitle = [...housePlanets, ...houseTransitPlanets];
+            const houseArudhas = arudhasByHouse.get(anchor.house) ?? [];
 
-const shownNatalPlanets = housePlanets;
-const shownTransitPlanets = houseTransitPlanets;
+            return (
+              <div
+                key={anchor.house}
+                className="absolute"
+                style={{
+                  left: anchor.x - anchor.width / 2,
+                  top: anchor.y,
+                  width: anchor.width,
+                  minHeight: anchor.minHeight ?? 104,
+                }}
+              >
+                <div className="flex flex-col items-center">
+                  <div
+                    className={`text-[15px] font-semibold leading-none ${isAscHouse ? "text-indigo-700" : "text-slate-700"}`}
+                    style={{ transform: houseLabelShift }}
+                  >
+                    {houseLabel}
+                  </div>
+                </div>
 
-  const isAscHouse = anchor.house === 1;
-  const houseLabel = getHouseSignNumber(anchor.house, ascSign);
-  const sarvaValue = sarvaAshtakvarga?.[anchor.house - 1] ?? null;
-  let planetShift = HOUSE_PLANET_SHIFTS[anchor.house] || "translate(0,0)";
+                <div
+                  className="mt-1 grid grid-cols-2 content-start justify-items-center gap-1 overflow-hidden"
+                  style={{
+                    maxHeight: houseMaxHeight,
+                    transform: planetShift,
+                  }}
+                  title={allForTitle.map(getPlanetTitle).join(" • ")}
+                >
+                  {shownNatalPlanets.map((p, idx) => (
+                    <button
+                      key={`natal-${anchor.house}-${p.planet}-${idx}`}
+                      type="button"
+                      onMouseEnter={() => setHovered(p)}
+                      onMouseLeave={() =>
+                        setHovered((curr) => (curr?.planet === p.planet && !curr?.isTransit ? null : curr))
+                      }
+                      onClick={() => {
+                        setSelected(p);
+                        onPlanetClick?.(p);
+                      }}
+                      className={`rounded-md px-1.5 py-0.5 text-[10px] font-medium leading-none shadow-sm transition ${
+                        p.rashiHouse !== p.house
+                          ? "border border-orange-200 bg-orange-50 text-orange-700"
+                          : p.planet === "Moon"
+                            ? "border border-amber-200 bg-amber-50 text-amber-700"
+                            : selected?.planet === p.planet && !selected?.isTransit
+                              ? "border border-indigo-200 bg-indigo-50 text-indigo-700"
+                              : hovered?.planet === p.planet && !hovered?.isTransit
+                                ? "border border-indigo-100 bg-indigo-50 text-indigo-600"
+                                : idx === 0
+                                  ? "border border-slate-200 bg-slate-100 text-slate-700"
+                                  : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                      }`}
+                      title={getPlanetTitle(p)}
+                    >
+                      {formatPlanetLabel(p)}
+                    </button>
+                  ))}
 
-// reduce bottom crowding
-if (anchor.house === 1 || anchor.house === 11 || anchor.house === 12) {
-  planetShift = "translate(0,-12px)";
-}
-  const allForTitle = [...housePlanets, ...houseTransitPlanets];
-  const houseArudhas = arudhasByHouse.get(anchor.house) ?? [];
-  return (
-    <div
-  key={anchor.house}
-  className="absolute"
-  style={{
-    left: anchor.x - anchor.width / 2,
-    top: anchor.y,
-    width: anchor.width,
-    minHeight: 150,
-  }}
->
-  <div className="flex flex-col items-center h-full">
-  <div
-    className={`text-base font-semibold ${
-      isAscHouse ? "text-indigo-200" : "text-white/75"
-    }`}
-  >
-    {houseLabel}
-  </div>
+                  {shownTransitPlanets.map((p, idx) => (
+                    <button
+                      key={`transit-${anchor.house}-${p.planet}-${idx}`}
+                      type="button"
+                      onMouseEnter={() => setHovered(p)}
+                      onMouseLeave={() =>
+                        setHovered((curr) => (curr?.planet === p.planet && curr?.isTransit ? null : curr))
+                      }
+                      onClick={() => {
+                        setSelected(p);
+                        onPlanetClick?.(p);
+                      }}
+                      className={`rounded-md px-1.5 py-0.5 text-[10px] font-medium leading-none shadow-sm transition ${
+                        selected?.planet === p.planet && selected?.isTransit
+                          ? "border border-emerald-200 bg-emerald-100 text-emerald-700"
+                          : hovered?.planet === p.planet && hovered?.isTransit
+                            ? "border border-emerald-200 bg-emerald-50 text-emerald-700"
+                            : "border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                      }`}
+                      title={getPlanetTitle(p)}
+                    >
+                      {formatPlanetLabel(p)}
+                    </button>
+                  ))}
+                </div>
 
-  {typeof sarvaValue === "number" ? (
-    <div className="mt-[2px] text-[10px] font-medium text-white/40">
-      {sarvaValue}
-    </div>
-  ) : null}
-</div>
+                {houseArudhas.length ? (
+                  <div
+                    className="mt-1 flex flex-wrap justify-center gap-[3px] opacity-80"
+                    style={{ lineHeight: "10px", transform: layout.houseArudhaShifts?.[anchor.house] ?? "translateY(0px)" }}
+                  >
+                    {houseArudhas.map((label) => {
+                      const isAL = label === "AL";
+                      const isUL = label === "UL";
 
-    <div
-  className="mt-1 grid grid-cols-2 content-start justify-items-start gap-[2px] overflow-hidden"
-  style={{
-    maxHeight: 58,
-    transform: planetShift,
-  }}
-  title={allForTitle.map(getPlanetTitle).join(" • ")}
->
-        {shownNatalPlanets.map((p, idx) => (
-          <button
-            key={`natal-${anchor.house}-${p.planet}-${idx}`}
-            type="button"
-            onMouseEnter={() => setHovered(p)}
-            onMouseLeave={() =>
-              setHovered((curr) =>
-                curr?.planet === p.planet && !curr?.isTransit ? null : curr
-              )
-            }
-            onClick={() => {
-              setSelected(p);
-              onPlanetClick?.(p);
-            }}
-           className={`rounded px-[3px] py-[1px] text-[11px] leading-none transition ${
-  p.rashiHouse !== p.house
-    ? "bg-orange-400/15 text-orange-200 ring-1 ring-orange-400/25 font-semibold"
-    : p.planet === "Moon"
-    ? "bg-yellow-400/15 text-yellow-200 ring-1 ring-yellow-400/25 font-semibold"
-    : selected?.planet === p.planet && !selected?.isTransit
-    ? "bg-indigo-400/20 text-indigo-100 ring-1 ring-indigo-300/40"
-    : hovered?.planet === p.planet && !hovered?.isTransit
-    ? "bg-indigo-400/15 text-indigo-100 ring-1 ring-indigo-300/30"
-    : idx === 0
-    ? "bg-indigo-400/12 text-indigo-100 font-medium hover:bg-indigo-400/18"
-    : "bg-white/10 text-white/85 hover:bg-white/15"
-}`}
-            title={getPlanetTitle(p)}
-          >
-            {formatPlanetLabel(p)}
-          </button>
-        ))}
-
-        {shownTransitPlanets.map((p, idx) => (
-          <button
-            key={`transit-${anchor.house}-${p.planet}-${idx}`}
-            type="button"
-            onMouseEnter={() => setHovered(p)}
-            onMouseLeave={() =>
-              setHovered((curr) =>
-                curr?.planet === p.planet && curr?.isTransit ? null : curr
-              )
-            }
-            onClick={() => {
-              setSelected(p);
-              onPlanetClick?.(p);
-            }}
-           className={`rounded px-[3px] py-[1px] text-[11px] leading-none transition ${
-  selected?.planet === p.planet && selected?.isTransit
-    ? "bg-emerald-400/20 text-emerald-100 ring-1 ring-emerald-300/40"
-    : hovered?.planet === p.planet && hovered?.isTransit
-    ? "bg-emerald-400/15 text-emerald-100 ring-1 ring-emerald-300/30"
-    : "bg-emerald-400/12 text-emerald-100 hover:bg-emerald-400/18"
-}`}
-            title={getPlanetTitle(p)}
-          >
-            {formatPlanetLabel(p)}
-          </button>
-        ))}
-      </div>
-        {houseArudhas.length ? (
-  <div
-    className="mt-auto flex flex-wrap justify-center gap-[3px] opacity-70"
-    style={{
-      lineHeight: "10px",
-      transform:
-  anchor.house === 6 ? "translateY(-6px)" :
-  anchor.house === 7 ? "translateY(-4px)" :
-  anchor.house === 8 ? "translateY(-4px)" :
-  "translateY(0px)"
-    }}
-  >
-    {houseArudhas.map((label) => {
-      const isAL = label === "AL";
-      const isUL = label === "UL";
-
-      return (
-        <span
-          key={`${anchor.house}-${label}`}
-          className={
-            isAL
-              ? "rounded bg-fuchsia-400/30 px-[2px] py-0 text-[8px] font-bold text-white"
-              : isUL
-              ? "rounded bg-fuchsia-400/20 px-[2px] py-0 text-[8px] font-semibold text-fuchsia-100"
-              : "rounded bg-fuchsia-400/6 px-[2px] py-0 text-[8px] font-medium text-fuchsia-200/70"
-          }
-          title={`${label} in ${getHouseSignName(anchor.house, ascSign) ?? "—"}`}
-        >
-          {label}
-        </span>
-      );
-    })}
-  </div>
-) : null}
-    </div>
-  );
-})}
+                      return (
+                        <span
+                          key={`${anchor.house}-${label}`}
+                          className={
+                            isAL
+                              ? "rounded bg-fuchsia-100 px-[3px] py-0.5 text-[8px] font-bold text-fuchsia-700"
+                              : isUL
+                                ? "rounded bg-fuchsia-50 px-[3px] py-0.5 text-[8px] font-semibold text-fuchsia-600"
+                                : "rounded bg-fuchsia-50 px-[3px] py-0.5 text-[8px] font-medium text-fuchsia-500"
+                          }
+                          title={`${label} in ${getHouseSignName(anchor.house, ascSign) ?? "—"}`}
+                        >
+                          {label}
+                        </span>
+                      );
+                    })}
+                  </div>
+                ) : null}
+              </div>
+            );
+          })}
         </div>
       </div>
 
       {showPlanetDetails && (hovered || selected) ? (
-  <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.05] p-4 shadow-[0_6px_20px_rgba(0,0,0,0.18)]">
-    {(() => {
-      const activePlanet = hovered || selected;
+        <div className="mt-4 rounded-xl border border-[color:var(--border)] bg-slate-50 p-4 shadow-sm">
+          {(() => {
+            const activePlanet = hovered || selected;
 
-      return (
-        <>
-          <div className="text-sm font-semibold text-white">
-            {activePlanet?.planet ?? "Planet"}
-          </div>
+            return (
+              <>
+                <div className="text-sm font-semibold text-slate-900">{activePlanet?.planet ?? "Planet"}</div>
 
-          <div className="mt-2 grid grid-cols-2 gap-3 text-xs text-white/80 md:grid-cols-4">
-            <div>
-              <div className="text-[10px] uppercase tracking-wide text-white/50">
-                Sign
-              </div>
-              <div className="mt-1">{activePlanet?.sign ?? "—"}</div>
-            </div>
+                <div className="mt-2 grid grid-cols-2 gap-3 text-xs text-slate-900/80 md:grid-cols-4">
+                  <div>
+                    <div className="text-[10px] uppercase tracking-wide text-slate-900">Sign</div>
+                    <div className="mt-1">{activePlanet?.sign ?? "—"}</div>
+                  </div>
 
-            <div>
-              <div className="text-[10px] uppercase tracking-wide text-white/50">
-                House
-              </div>
-              <div className="mt-1">{activePlanet?.house ?? "—"}</div>
-            </div>
+                  <div>
+                    <div className="text-[10px] uppercase tracking-wide text-slate-900">House</div>
+                    <div className="mt-1">{activePlanet?.house ?? "—"}</div>
+                  </div>
 
-            <div>
-              <div className="text-[10px] uppercase tracking-wide text-white/50">
-                Degree
-              </div>
-              <div className="mt-1">
-                {typeof activePlanet?.degree === "number"
-                  ? `${activePlanet.degree.toFixed(2)}°`
-                  : "—"}
-              </div>
-            </div>
+                  <div>
+                    <div className="text-[10px] uppercase tracking-wide text-slate-900">Degree</div>
+                    <div className="mt-1">
+                      {typeof activePlanet?.degree === "number" ? `${activePlanet.degree.toFixed(2)}°` : "—"}
+                    </div>
+                  </div>
 
-            <div>
-              <div className="text-[10px] uppercase tracking-wide text-white/50">
-                Retrograde
-              </div>
-              <div className="mt-1">{activePlanet?.retrograde ? "Yes" : "No"}</div>
-            </div>
+                  <div>
+                    <div className="text-[10px] uppercase tracking-wide text-slate-900">Retrograde</div>
+                    <div className="mt-1">{activePlanet?.retrograde ? "Yes" : "No"}</div>
+                  </div>
 
-            <div>
-              <div className="text-[10px] uppercase tracking-wide text-white/50">
-                Nakshatra
-              </div>
-              <div className="mt-1">{activePlanet?.nakshatra ?? "—"}</div>
-            </div>
+                  <div>
+                    <div className="text-[10px] uppercase tracking-wide text-slate-900">Nakshatra</div>
+                    <div className="mt-1">{activePlanet?.nakshatra ?? "—"}</div>
+                  </div>
 
-            <div>
-              <div className="text-[10px] uppercase tracking-wide text-white/50">
-                Pada
-              </div>
-              <div className="mt-1">{activePlanet?.pada ?? "—"}</div>
-            </div>
+                  <div>
+                    <div className="text-[10px] uppercase tracking-wide text-slate-900">Pada</div>
+                    <div className="mt-1">{activePlanet?.pada ?? "—"}</div>
+                  </div>
 
-            <div>
-              <div className="text-[10px] uppercase tracking-wide text-white/50">
-                Combust
-              </div>
-              <div className="mt-1">{activePlanet?.combust ? "Yes" : "No"}</div>
-            </div>
+                  <div>
+                    <div className="text-[10px] uppercase tracking-wide text-slate-900">Combust</div>
+                    <div className="mt-1">{activePlanet?.combust ? "Yes" : "No"}</div>
+                  </div>
 
-            <div>
-              <div className="text-[10px] uppercase tracking-wide text-white/50">
-                State
-              </div>
-              <div className="mt-1">
-                {hovered?.planet === activePlanet?.planet ? "Hovering" : "Selected"}
-              </div>
-            </div>
-          </div>
-        </>
-      );
-    })()}
-  </div>
-) : null}
+                  <div>
+                    <div className="text-[10px] uppercase tracking-wide text-slate-900">State</div>
+                    <div className="mt-1">{hovered?.planet === activePlanet?.planet ? "Hovering" : "Selected"}</div>
+                  </div>
+                </div>
+              </>
+            );
+          })()}
+        </div>
+      ) : null}
     </div>
   );
 }

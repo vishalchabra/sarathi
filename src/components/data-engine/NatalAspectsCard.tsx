@@ -49,11 +49,11 @@ export default function NatalAspectsCard({ rows }: Props) {
   });
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 p-5 shadow-sm">
-      <h2 className="text-base font-semibold text-white">
+    <div className="rounded-2xl border border-[color:var(--border)] bg-white/80 p-5 shadow-sm">
+      <h2 className="text-base font-semibold text-slate-900">
         Natal Aspects
       </h2>
-      <p className="mt-1 text-sm text-white/70">
+      <p className="mt-1 text-sm text-slate-900">
         Vedic graha influences between key natal planets.
       </p>
 
@@ -62,24 +62,24 @@ export default function NatalAspectsCard({ rows }: Props) {
     data.map((r, i) => (
       <div
         key={`${r.planetA ?? "A"}-${r.planetB ?? "B"}-${i}`}
-        className="flex items-start justify-between gap-4 rounded-xl border border-white/10 px-3 py-2"
+        className="flex items-start justify-between gap-4 rounded-xl border border-[color:var(--border)] px-3 py-2"
       >
-        <div className="text-sm text-white">
+        <div className="text-sm text-slate-900">
           <div className="font-medium">
             {r.label ?? `${r.planetB ?? "—"} influenced by ${r.planetA ?? "—"}`}
           </div>
-          <div className="mt-0.5 text-xs text-white/50">
+          <div className="mt-0.5 text-xs text-slate-900">
             {r.rule ?? "Vedic aspect"}
           </div>
         </div>
 
-        <div className="shrink-0 text-xs text-white/50">
+        <div className="shrink-0 text-xs text-slate-900">
           Orb {formatOrb(r.orb)}
         </div>
       </div>
     ))
   ) : (
-    <div className="rounded-xl border border-white/10 px-3 py-4 text-sm text-white/50">
+    <div className="rounded-xl border border-[color:var(--border)] px-3 py-4 text-sm text-slate-900">
       No major natal aspects found.
     </div>
   )}

@@ -30,17 +30,17 @@ export default function TransitContactsCard({ contacts }: Props) {
   const rows = Array.isArray(contacts) ? contacts : [];
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 p-5 shadow-sm">
-      <h2 className="text-lg font-semibold text-white">
+    <div className="rounded-2xl border border-[color:var(--border)] bg-white/80 p-5 shadow-sm">
+      <h2 className="text-lg font-semibold text-slate-900">
         Transit Contacts (Current)
       </h2>
-      <p className="mt-1 text-sm text-white/70">
+      <p className="mt-1 text-sm text-slate-900">
         Current aspects between transiting planets and natal positions.
       </p>
 
       <div className="mt-4 overflow-x-auto">
         <table className="min-w-full text-sm text-left">
-          <thead className="border-b border-white/10 text-white/50">
+          <thead className="border-b border-[color:var(--border)] text-slate-900">
             <tr>
               <th className="px-3 py-2">Transit</th>
               <th className="px-3 py-2">Natal</th>
@@ -53,31 +53,31 @@ export default function TransitContactsCard({ contacts }: Props) {
           <tbody>
             {rows.length ? (
               rows.map((c, i) => (
-                <tr key={`${c.transitPlanet ?? "t"}-${i}`} className="border-b border-white/10">
-                  <td className="px-3 py-2 text-white">
+                <tr key={`${c.transitPlanet ?? "t"}-${i}`} className="border-b border-[color:var(--border)]">
+                  <td className="px-3 py-2 text-slate-900">
                     {c.transitPlanet ?? "—"}
                   </td>
 
-                  <td className="px-3 py-2 text-white/80">
+                  <td className="px-3 py-2 text-slate-900/80">
                     {c.natalTarget ?? c.natalPlanet ?? "—"}
                   </td>
 
-                  <td className="px-3 py-2 text-white/80 capitalize">
+                  <td className="px-3 py-2 text-slate-900/80 capitalize">
                     {c.type ?? "—"}
                   </td>
 
-                  <td className="px-3 py-2 text-white/80">
+                  <td className="px-3 py-2 text-slate-900/80">
                     {formatOrb(c.orb)}
                   </td>
 
-                  <td className="px-3 py-2 text-white/80">
+                  <td className="px-3 py-2 text-slate-900/80">
                     {formatApplying(c.applying)}
                   </td>
                 </tr>
               ))
             ) : (
               <tr>
-                <td colSpan={5} className="px-3 py-4 text-white/50">
+                <td colSpan={5} className="px-3 py-4 text-slate-900">
                   No active contacts
                 </td>
               </tr>

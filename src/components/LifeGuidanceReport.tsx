@@ -25,13 +25,13 @@ export default function LifeGuidanceReport({ report, person }: Props) {
   return (
     <div className="space-y-6">
       {/* Cover */}
-      <section className="rounded-xl border bg-white/5 shadow-sm p-6">
+      <section className="rounded-xl border bg-white/80 shadow-sm p-6">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-semibold">Life Guidance Report</h2>
             <p className="text-sm text-gray-500">World’s Most Accurate Astrology Engine</p>
           </div>
-          <div className="h-10 w-10 rounded-full bg-indigo-600 text-white grid place-items-center font-semibold">
+          <div className="h-10 w-10 rounded-full bg-indigo-600 text-slate-900 grid place-items-center font-semibold">
             {(p.name || " ").trim().split(/\s+/).slice(0,2).map(s=>s[0]||"").join("").toUpperCase() || "•"}
           </div>
         </div>
@@ -44,7 +44,7 @@ export default function LifeGuidanceReport({ report, person }: Props) {
       </section>
 
       {/* Profile */}
-      <section className="rounded-xl border bg-white/5 shadow-sm p-6">
+      <section className="rounded-xl border bg-white/80 shadow-sm p-6">
         <h3 className="font-semibold mb-3">Profile</h3>
         <div className="grid gap-3 md:grid-cols-3">
           <InfoCard label="Date of Birth" value={p.dob || report?.intro?.match(/Born on (\d{4}-\d{2}-\d{2})/)?.[1] || "—"} />
@@ -58,7 +58,7 @@ export default function LifeGuidanceReport({ report, person }: Props) {
       </section>
 
       {/* Current Dasha */}
-      <section className="rounded-xl border bg-white/5 shadow-sm p-6">
+      <section className="rounded-xl border bg-white/80 shadow-sm p-6">
         <h3 className="font-semibold mb-3">Current Dasha</h3>
         {current ? (
           <div className="text-sm">
@@ -73,7 +73,7 @@ export default function LifeGuidanceReport({ report, person }: Props) {
       </section>
 
       {/* Panchang at Birth */}
-      <section className="rounded-xl border bg-white/5 shadow-sm p-6">
+      <section className="rounded-xl border bg-white/80 shadow-sm p-6">
         <h3 className="font-semibold">Panchang at Birth</h3>
         <p className="text-sm text-gray-500">{report?.panchang?.at}</p>
         <ul className="mt-2 text-sm space-y-1">
@@ -89,7 +89,7 @@ export default function LifeGuidanceReport({ report, person }: Props) {
 
       {/* Planet Nakshatras */}
       {Array.isArray(report?.sections?.planetNakshatras) && (
-        <section className="rounded-xl border bg-white/5 shadow-sm p-6">
+        <section className="rounded-xl border bg-white/80 shadow-sm p-6">
           <h3 className="font-semibold">Planet Nakshatras</h3>
           <ul className="list-disc ml-6 text-sm">
             {report.sections.planetNakshatras.map((line: string, i: number) => (
@@ -100,7 +100,7 @@ export default function LifeGuidanceReport({ report, person }: Props) {
       )}
 
       {/* Current Themes + Dos/Donts + Remedies */}
-      <section className="rounded-xl border bg-white/5 shadow-sm p-6">
+      <section className="rounded-xl border bg-white/80 shadow-sm p-6">
         <div className="grid gap-6 md:grid-cols-3">
           <div className="md:col-span-1">
             <h3 className="font-semibold mb-2">Current Themes</h3>
@@ -136,7 +136,7 @@ export default function LifeGuidanceReport({ report, person }: Props) {
 
       {/* OPTIONAL: House Briefs (HIDDEN by default) */}
       {SHOW_HOUSE_BRIEFS && Array.isArray(report?.sections?.houseBriefs) && report.sections.houseBriefs.length > 0 && (
-        <section className="rounded-xl border bg-white/5 shadow-sm p-6">
+        <section className="rounded-xl border bg-white/80 shadow-sm p-6">
           <h3 className="font-semibold">Bhavat-Bhavam (House-by-House Quick Read)</h3>
           <ul className="list-disc ml-6 text-sm">
             {report.sections.houseBriefs.map((s: string, i: number) => <li key={i}>{s}</li>)}
@@ -145,7 +145,7 @@ export default function LifeGuidanceReport({ report, person }: Props) {
       )}
 
       {/* Footer */}
-      <section className="rounded-xl border bg-white/5 shadow-sm p-4">
+      <section className="rounded-xl border bg-white/80 shadow-sm p-4">
         <p className="text-xs text-gray-500">
           Thank you for reading this report. The insights aim to illuminate choices—not replace professional advice.
           This report is based on your provided birth details and astrological principles; it is not a substitute for professional,
@@ -158,7 +158,7 @@ export default function LifeGuidanceReport({ report, person }: Props) {
 
 function InfoCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border bg-white/5 p-3">
+    <div className="rounded-lg border bg-white/80 p-3">
       <div className="text-[11px] uppercase tracking-wide text-gray-500">{label}</div>
       <div className="mt-0.5 text-sm">{value || "—"}</div>
     </div>

@@ -267,7 +267,7 @@ export type QAResponse = {
 
 /* ------------------------------ tiny UI ------------------------------ */
 function Card({ className, children }: { className?: string; children: ReactNode }) {
-  return <div className={"rounded-2xl border border-black/10 bg-white/5 shadow-sm " + (className ?? "")}>{children}</div>;
+  return <div className={"rounded-2xl border border-black/10 bg-white/80 shadow-sm " + (className ?? "")}>{children}</div>;
 }
 function CardHeader({ className, children }: { className?: string; children: ReactNode }) {
   return <div className={"p-4 " + (className ?? "")}>{children}</div>;
@@ -288,7 +288,7 @@ function Button(
   const base =
     "inline-flex items-center justify-center h-9 rounded-md px-3 text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed";
   const styles =
-    variant === "outline" ? "border border-black/10 bg-white/5 hover:bg-black/5" : "bg-black text-white hover:bg-black/90";
+    variant === "outline" ? "border border-black/10 bg-white/80 hover:bg-black/5" : "bg-black text-slate-900 hover:bg-black/90";
   return <button {...rest} className={`${base} ${styles} ${className ?? ""}`} />;
 }
 function Separator({ className }: { className?: string }) {
@@ -600,7 +600,7 @@ const doc = useMemo<NarrativeDoc>(() => {
               <div className="text-sm font-medium mb-2">Timeline</div>
               <div className="space-y-3">
                 {doc.timeline.map((t, i) => (
-                  <div key={i} className="rounded-lg border border-black/10 p-3 bg-white/5">
+                  <div key={i} className="rounded-lg border border-black/10 p-3 bg-white/80">
                     <div className="text-sm font-medium">{t.period}</div>
                     {t.dasha && <div className="text-xs text-gray-500">Dasha: {t.dasha}</div>}
                     <div className="text-sm mt-1">{t.note}</div>
@@ -722,14 +722,14 @@ export function QARich({
       <div className="text-lg font-semibold">{data?.title || "Job change timing"}</div>
 
       {question && (
-        <div className="rounded-lg border border-black/10 p-3 bg-white/5">
+        <div className="rounded-lg border border-black/10 p-3 bg-white/80">
           <div className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1">Question</div>
           <div className="text-sm">{question}</div>
         </div>
       )}
 
       {/* Answer (humanized when available) */}
-      <div className="rounded-lg border border-black/10 p-3 bg-white/5">
+      <div className="rounded-lg border border-black/10 p-3 bg-white/80">
         <div className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1">Answer</div>
         <div className="text-sm leading-relaxed">
           {humanCopy?.answer ? (
@@ -755,7 +755,7 @@ export function QARich({
 
       {/* Why / How — prefer humanized; fall back to heuristic bullets */}
       <div className="grid md:grid-cols-2 gap-3">
-        <div className="rounded-lg border border-black/10 p-3 bg-white/5">
+        <div className="rounded-lg border border-black/10 p-3 bg-white/80">
           <div className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1">
             Why this window works
           </div>
@@ -768,7 +768,7 @@ export function QARich({
           )}
         </div>
 
-        <div className="rounded-lg border border-black/10 p-3 bg-white/5">
+        <div className="rounded-lg border border-black/10 p-3 bg-white/80">
           <div className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1">
             How to use this period
           </div>
@@ -785,7 +785,7 @@ export function QARich({
       </div>
 
       {/* Opportunity windows (by AD) */}
-      <div className="rounded-lg border border-black/10 p-3 bg-white/5">
+      <div className="rounded-lg border border-black/10 p-3 bg-white/80">
         <div className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">
           Opportunity windows (by AD)
         </div>
@@ -809,7 +809,7 @@ export function QARich({
 
       {/* Quarterly plan — human one-liners preferred; structured fallback */}
       {(humanCopy.quarters?.length || sp?.quarters?.length) ? (
-        <div className="rounded-lg border border-black/10 p-3 bg-white/5">
+        <div className="rounded-lg border border-black/10 p-3 bg-white/80">
           <div className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">
             Quarterly plan (what to do when)
           </div>
@@ -850,7 +850,7 @@ export function QARich({
 
       {/* Micro windows (3–8 weeks) — human one-liners preferred; structured fallback */}
       {(humanCopy.micro?.length || sp?.micro?.length) ? (
-        <div className="rounded-lg border border-black/10 p-3 bg-white/5">
+        <div className="rounded-lg border border-black/10 p-3 bg-white/80">
           <div className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">
             Action windows (3–8 weeks)
           </div>
@@ -890,7 +890,7 @@ export function QARich({
 
       {/* Transit-boosted windows */}
       {visibleTransits.length > 0 && (
-        <div className="rounded-lg border border-black/10 p-3 bg-white/5">
+        <div className="rounded-lg border border-black/10 p-3 bg-white/80">
           <div className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">
             Transit-boosted windows (3–8 weeks)
           </div>
@@ -918,7 +918,7 @@ export function QARich({
 
       {/* Remedies / Tips */}
       {remedies.length > 0 && (
-        <div className="rounded-lg border border-black/10 p-3 bg-white/5">
+        <div className="rounded-lg border border-black/10 p-3 bg-white/80">
           <div className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">Remedies / Tips</div>
           <BulletList items={remedies} />
         </div>
@@ -926,7 +926,7 @@ export function QARich({
 
       {/* Astro refs */}
       {astroRefs.length ? (
-        <div className="rounded-lg border border-black/10 p-3 bg-white/5">
+        <div className="rounded-lg border border-black/10 p-3 bg-white/80">
           <div className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">
             Astro reference (from chart)
           </div>

@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import MiniNorthIndianChart from "@/components/data-engine/MiniNorthIndianChart";
 import MediumNorthIndianChart from "@/components/data-engine/MediumNorthIndianChart";
 
@@ -17,11 +18,11 @@ type ChartCardProps = {
 
 function ChartCard({ title, subtitle, children }: ChartCardProps) {
   return (
-    <section className="rounded-2xl border border-white/10 bg-white/[0.06] p-4 shadow-[0_10px_30px_rgba(0,0,0,0.25)] backdrop-blur-sm transition-transform duration-200 hover:scale-[1.01]">
+    <section className="rounded-2xl border border-[color:var(--border)] bg-white p-4 shadow-sm backdrop-blur-sm transition-transform duration-200 hover:scale-[1.01]">
       <div className="mb-3">
-        <h3 className="text-sm font-semibold text-white">{title}</h3>
+        <h3 className="text-sm font-semibold text-slate-900">{title}</h3>
         {subtitle ? (
-          <p className="mt-1 text-xs text-white/50">{subtitle}</p>
+          <p className="mt-1 text-xs text-slate-900">{subtitle}</p>
         ) : null}
       </div>
       {children}
@@ -38,7 +39,7 @@ function PlaceholderChart({
 }) {
   return (
     <div
-      className={`flex ${height} items-center justify-center rounded-2xl border border-dashed border-white/15 bg-white/5 text-sm text-white/50`}
+      className={`flex ${height} items-center justify-center rounded-2xl border border-dashed border-[color:var(--border)] bg-white/80 text-sm text-slate-900`}
     >
       {label}
     </div>
@@ -61,8 +62,12 @@ function MediumChartCard({
 
   return (
     <ChartCard title={title} subtitle={subtitle}>
-        
-      <MediumNorthIndianChart title="" ascSign={ascSign} planets={planets} />
+      <MediumNorthIndianChart
+        title=""
+        ascSign={ascSign}
+        planets={planets}
+        layoutVariant="secondary"
+      />
     </ChartCard>
   );
 }
@@ -134,13 +139,13 @@ function normalizeTransitPlanets(planets: any[], natalAscSign: string | null): a
         sign,
         house: houseFromNatal,
         degree:
-  typeof p?.deg === "number"
-    ? p.deg
-    : typeof p?.degree === "number"
-    ? p.degree
-    : typeof p?.lon === "number"
-    ? Number((((p.lon % 30) + 30) % 30).toFixed(2))
-    : null,
+          typeof p?.deg === "number"
+            ? p.deg
+            : typeof p?.degree === "number"
+            ? p.degree
+            : typeof p?.lon === "number"
+            ? Number((((p.lon % 30) + 30) % 30).toFixed(2))
+            : null,
         retrograde:
           typeof p?.retrograde === "boolean"
             ? p.retrograde
@@ -223,6 +228,7 @@ function buildReferenceChartFromPlanet(planets: any[], referencePlanetName: stri
 function buildChandraChartPlanets(planets: any[]) {
   return buildReferenceChartFromPlanet(planets, "Moon");
 }
+
 function buildReferenceChartFromHouse(
   natalAscSign: string | null,
   planets: any[],
@@ -270,6 +276,7 @@ function buildReferenceChartFromHouse(
     referenceSign,
   };
 }
+
 function getPlanetShifts(planets: any[]) {
   return (Array.isArray(planets) ? planets : []).map((p) => ({
     planet: p?.planet ?? p?.name ?? "Unknown",
@@ -292,6 +299,7 @@ type ExpandedChartState = {
   ascSign: string | null;
   planets: any[];
 } | null;
+
 const HOUSE_REFERENCE_OPTIONS: HouseReferenceOption[] = [
   { house: 1, key: "self", label: "1st House — Self", shortLabel: "Self" },
   { house: 2, key: "money", label: "2nd House — Wealth & Family", shortLabel: "Wealth & Family" },
@@ -306,6 +314,7 @@ const HOUSE_REFERENCE_OPTIONS: HouseReferenceOption[] = [
   { house: 11, key: "gains", label: "11th House — Gains & Network", shortLabel: "Gains & Network" },
   { house: 12, key: "loss", label: "12th House — Loss, Foreign & Moksha", shortLabel: "Loss / Foreign / Moksha" },
 ];
+
 export default function ChartsTabView({
   selectedDateISO,
   setSelectedDateISO,
@@ -344,19 +353,22 @@ export default function ChartsTabView({
   const [transitPlanets, setTransitPlanets] = useState<any[]>([]);
   const [transitLoading, setTransitLoading] = useState(false);
   const [transitTime, setTransitTime] = useState(() =>
-  new Intl.DateTimeFormat("en-GB", {
-    timeZone: birthTimezone || "UTC",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  }).format(new Date())
-);
+    new Intl.DateTimeFormat("en-GB", {
+      timeZone: birthTimezone || "UTC",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    }).format(new Date())
+  );
   const [referenceMode, setReferenceMode] = useState<ReferenceMode>("md");
   const [showTransitOverlay, setShowTransitOverlay] = useState(false);
   const [expandedChart, setExpandedChart] = useState<ExpandedChartState>(null);
   const [referenceMenuOpen, setReferenceMenuOpen] = useState(false);
   const [selectedHouseReference, setSelectedHouseReference] = useState<number>(1);
   const [houseReferenceMenuOpen, setHouseReferenceMenuOpen] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+  const modalCardRef = useRef<HTMLDivElement | null>(null);
+
   const chandraChart = buildChandraChartPlanets(natalPlanets);
 
   const mdReferenceChart = buildReferenceChartFromPlanet(
@@ -368,6 +380,46 @@ export default function ChartsTabView({
     natalPlanets,
     currentAdPlanet
   );
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!expandedChart) {
+      document.documentElement.style.overflow = "";
+      document.body.style.overflow = "";
+      return;
+    }
+
+    document.documentElement.style.overflow = "hidden";
+    document.body.style.overflow = "hidden";
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setExpandedChart(null);
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+
+    requestAnimationFrame(() => {
+      window.scrollTo(0, 0);
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+      modalCardRef.current?.scrollIntoView({
+        block: "start",
+        inline: "nearest",
+        behavior: "instant" as ScrollBehavior,
+      });
+    });
+
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      document.documentElement.style.overflow = "";
+      document.body.style.overflow = "";
+    };
+  }, [expandedChart]);
 
   const selectedReferenceChart = useMemo(() => {
     if (referenceMode === "lagna") {
@@ -402,7 +454,7 @@ export default function ChartsTabView({
         planets: adReferenceChart.planets,
       };
     }
-  
+
     return {
       title: "Mahadasha Reference Chart",
       subtitle:
@@ -422,7 +474,8 @@ export default function ChartsTabView({
     mdReferenceChart,
     adReferenceChart,
   ]);
-const selectedHouseReferenceOption = useMemo(
+
+  const selectedHouseReferenceOption = useMemo(
     () =>
       HOUSE_REFERENCE_OPTIONS.find(
         (option) => option.house === selectedHouseReference
@@ -451,6 +504,7 @@ const selectedHouseReferenceOption = useMemo(
     selectedHouseReference,
     selectedHouseReferenceOption,
   ]);
+
   const selectedDateTimeLabel = useMemo(
     () => `Showing chart date: ${selectedDateISO} ${transitTime}`,
     [selectedDateISO, transitTime]
@@ -509,10 +563,10 @@ const selectedHouseReferenceOption = useMemo(
       [];
 
     const planets = (Array.isArray(rawPlanets) ? rawPlanets : []).map((p) => ({
-  ...p,
-  planet: p?.planet ?? p?.name ?? p?.id ?? null,
-  house: p?.house ?? null, // 🔑 DO NOT TOUCH
-}));
+      ...p,
+      planet: p?.planet ?? p?.name ?? p?.id ?? null,
+      house: p?.house ?? null,
+    }));
 
     const ascSign =
       value?.ascendant?.sign ??
@@ -546,183 +600,236 @@ const selectedHouseReferenceOption = useMemo(
     };
   }, [transitPlanets]);
 
+  const expandedChartModal =
+    expandedChart && isMounted
+      ? createPortal(
+          <div
+            className="fixed inset-0 z-[100] overflow-y-auto bg-slate-950/70 p-4"
+            onClick={() => setExpandedChart(null)}
+          >
+            <div className="flex min-h-full items-start justify-center py-6">
+              <div
+                ref={modalCardRef}
+                className="relative w-full max-w-3xl rounded-3xl border border-[color:var(--border)] bg-white/95 p-6 shadow-2xl backdrop-blur-md"
+                onClick={(event) => event.stopPropagation()}
+              >
+                <button
+                  type="button"
+                  onClick={() => setExpandedChart(null)}
+                  className="absolute right-4 top-4 rounded-full border border-[color:var(--border)] bg-white px-3 py-1 text-sm text-slate-700 hover:bg-slate-50"
+                >
+                  Close
+                </button>
+
+                <div className="mb-4 pr-20">
+                  <h3 className="text-lg font-semibold text-slate-900">
+                    {expandedChart.title}
+                  </h3>
+                  <p className="mt-1 text-sm text-slate-900">
+                    Expanded divisional chart view.
+                  </p>
+                </div>
+
+                {expandedChart.ascSign && expandedChart.planets?.length ? (
+                  <MediumNorthIndianChart
+                    title=""
+                    ascSign={expandedChart.ascSign}
+                    planets={expandedChart.planets}
+                    showPlanetDetails={false}
+                    layoutVariant="secondary"
+                  />
+                ) : (
+                  <PlaceholderChart
+                    label={`${expandedChart.title} unavailable`}
+                    height="h-64"
+                  />
+                )}
+              </div>
+            </div>
+          </div>,
+          document.body
+        )
+      : null;
+
   return (
     <div className="mt-6 space-y-6">
       <div className="space-y-6">
-  <ChartCard
-    title="Natal Lagna Chart"
-    subtitle="Primary natal D1 chart."
-  >
-    <div className="mb-4 flex items-center justify-between gap-3">
-      <label className="inline-flex items-center gap-3 text-base font-medium text-white/80">
-        <input
-          type="checkbox"
-          checked={showTransitOverlay}
-          onChange={(e) => setShowTransitOverlay(e.target.checked)}
-          className="h-5 w-5 rounded border-white/15"
-        />
-        Show transits
-      </label>
-
-    {showTransitOverlay ? (
-  <div className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-xs text-emerald-200">
-    Transit overlay active across chart views
-  </div>
-) : null}
-    </div>
-
-    <div className="mb-2 flex items-center gap-2 text-xs text-white/50">
-      <span className="font-medium text-white/70">Sarva AV</span>
-      <span>values shown inside each house</span>
-    </div>
-
-    <MediumNorthIndianChart
-      title=""
-      ascSign={natalAscSign}
-      planets={normalizeChartPlanets(natalPlanets)}
-      transitPlanets={
-        showTransitOverlay
-          ? normalizeTransitPlanets(transitPlanets, natalAscSign)
-          : []
-      }
-      sarvaAshtakvarga={sarvaAshtakvarga}
-      arudhas={arudhas}
-    />
-  </ChartCard>
- <ChartCard
-    title={selectedHouseReferenceChart.title}
-    subtitle={selectedHouseReferenceChart.subtitle}
-  >
-    <div className="mb-4">
-      <label className="text-xs font-medium uppercase tracking-wide text-white/50">
-        View from house
-      </label>
-
-      <div className="relative mt-1">
-        <button
-          type="button"
-          onClick={() => {
-  setReferenceMenuOpen(false);
-  setHouseReferenceMenuOpen((v) => !v);
-}}
-          className="flex w-full items-center justify-between rounded-xl border border-white/15 bg-[#0C1222] px-3 py-2 text-sm text-white outline-none transition hover:bg-white/5"
+        <ChartCard
+          title="Natal Lagna Chart"
+          subtitle="Primary natal D1 chart."
         >
-          <span>{selectedHouseReferenceOption.label}</span>
-          <span className="text-white/50">▾</span>
-        </button>
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <label className="inline-flex items-center gap-3 text-base font-medium text-slate-900/80">
+              <input
+                type="checkbox"
+                checked={showTransitOverlay}
+                onChange={(e) => setShowTransitOverlay(e.target.checked)}
+                className="h-5 w-5 rounded border-[color:var(--border)]"
+              />
+              Show transits
+            </label>
 
-        {houseReferenceMenuOpen ? (
-          <div className="absolute z-20 mt-2 max-h-72 w-full overflow-y-auto rounded-xl border border-white/10 bg-[#0C1222] p-1 shadow-xl">
-            {HOUSE_REFERENCE_OPTIONS.map((option) => {
-              const isActive = selectedHouseReference === option.house;
-
-              return (
-                <button
-                  key={option.house}
-                  type="button"
-                  onClick={() => {
-                    setSelectedHouseReference(option.house);
-                    setHouseReferenceMenuOpen(false);
-                  }}
-                  className={`flex w-full items-center rounded-lg px-3 py-2 text-left text-sm transition ${
-                    isActive
-                      ? "bg-indigo-400/15 text-indigo-100"
-                      : "text-white/85 hover:bg-white/5"
-                  }`}
-                >
-                  {option.label}
-                </button>
-              );
-            })}
+            {showTransitOverlay ? (
+              <div className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-xs text-black">
+                Transit overlay active across chart views
+              </div>
+            ) : null}
           </div>
-        ) : null}
-      </div>
-    </div>
 
-    {selectedHouseReferenceChart.ascSign &&
-selectedHouseReferenceChart.planets?.length ? (
-  <MediumNorthIndianChart
-    title=""
-    ascSign={selectedHouseReferenceChart.ascSign}
-    planets={selectedHouseReferenceChart.planets}
-    transitPlanets={
-      showTransitOverlay
-        ? normalizeTransitPlanets(
-            transitPlanets,
-            selectedHouseReferenceChart.ascSign
-          )
-        : []
-    }
-  />
-) : (
-  <PlaceholderChart
-    label="House-centered chart unavailable"
-    height="h-40"
-  />
-)}
+          <div className="mb-2 flex items-center gap-2 text-xs text-slate-900">
+            <span className="font-medium text-slate-900">Sarva AV</span>
+            <span>values shown inside each house</span>
+          </div>
 
-    <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.05] p-3 text-xs text-white/60">
-      Natal chart rotated so the selected house becomes the temporary ascendant.
-      This is a reference view of the natal chart, not a separate divisional chart.
-    </div>
-  </ChartCard>
-  <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-    <MediumChartCard
-      title="Chandra Chart"
-      subtitle="Moon-reference chart."
-      ascSign={chandraChart.ascSign}
-      planets={chandraChart.planets}
-    />
-
-    <ChartCard
-      title="Bhava Chalit Chart"
-      subtitle={`Classic Bhava Chalit${classicChalit?.system ? ` (${classicChalit.system})` : ""}.`}
-    >
-      {classicChalit?.ascendant?.sign &&
-      Array.isArray(classicChalit?.planets) &&
-      classicChalit.planets.length ? (
-        <>
           <MediumNorthIndianChart
             title=""
-            ascSign={classicChalit?.ascendant?.sign ?? null}
-            planets={classicChalit?.planets ?? []}
-            mode="chalit"
+            ascSign={natalAscSign}
+            planets={normalizeChartPlanets(natalPlanets)}
+            transitPlanets={
+              showTransitOverlay
+                ? normalizeTransitPlanets(transitPlanets, natalAscSign)
+                : []
+            }
+            arudhas={arudhas}
+            layoutVariant="primary"
           />
+        </ChartCard>
 
-          <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.05] p-4 shadow-[0_6px_20px_rgba(0,0,0,0.16)]">
-            <div className="mb-2 text-sm font-semibold text-white">
-              Planet Shifts
-            </div>
+        <ChartCard
+          title={selectedHouseReferenceChart.title}
+          subtitle={selectedHouseReferenceChart.subtitle}
+        >
+          <div className="mb-4">
+            <label className="text-xs font-medium uppercase tracking-wide text-slate-900">
+              View from house
+            </label>
 
-            <div className="space-y-1">
-              {getPlanetShifts(classicChalit?.planets ?? []).map((s) => (
-                <div key={s.planet} className="flex justify-between text-sm">
-                  <span>{s.planet}</span>
-                  <span
-                    className={
-                      s.changed
-                        ? "font-semibold text-orange-200"
-                        : "text-white/50"
-                    }
-                  >
-                    {s.from} → {s.to}
-                  </span>
+            <div className="relative mt-1">
+              <button
+                type="button"
+                onClick={() => {
+                  setReferenceMenuOpen(false);
+                  setHouseReferenceMenuOpen((v) => !v);
+                }}
+                className="flex w-full items-center justify-between rounded-xl border border-[color:var(--border)] bg-white px-3 py-2 text-sm text-slate-900 outline-none transition hover:bg-slate-50"
+              >
+                <span>{selectedHouseReferenceOption.label}</span>
+                <span className="text-slate-900">▾</span>
+              </button>
+
+              {houseReferenceMenuOpen ? (
+                <div className="absolute z-20 mt-2 max-h-72 w-full overflow-y-auto rounded-xl border border-[color:var(--border)] bg-white p-1 shadow-xl">
+                  {HOUSE_REFERENCE_OPTIONS.map((option) => {
+                    const isActive = selectedHouseReference === option.house;
+
+                    return (
+                      <button
+                        key={option.house}
+                        type="button"
+                        onClick={() => {
+                          setSelectedHouseReference(option.house);
+                          setHouseReferenceMenuOpen(false);
+                        }}
+                        className={`flex w-full items-center rounded-lg px-3 py-2 text-left text-sm transition ${
+                          isActive
+                            ? "bg-indigo-50 text-indigo-700"
+                            : "text-slate-700 hover:bg-slate-50"
+                        }`}
+                      >
+                        {option.label}
+                      </button>
+                    );
+                  })}
                 </div>
-              ))}
+              ) : null}
             </div>
           </div>
-        </>
-      ) : (
-        <PlaceholderChart
-          label="Bhava Chalit Chart unavailable"
-          height="h-40"
-        />
-      )}
-    </ChartCard>
-  </div>
-</div>
 
-      
+          {selectedHouseReferenceChart.ascSign &&
+          selectedHouseReferenceChart.planets?.length ? (
+            <MediumNorthIndianChart
+              title=""
+              ascSign={selectedHouseReferenceChart.ascSign}
+              planets={selectedHouseReferenceChart.planets}
+              transitPlanets={
+                showTransitOverlay
+                  ? normalizeTransitPlanets(
+                      transitPlanets,
+                      selectedHouseReferenceChart.ascSign
+                    )
+                  : []
+              }
+              layoutVariant="primary"
+            />
+          ) : (
+            <PlaceholderChart
+              label="House-centered chart unavailable"
+              height="h-40"
+            />
+          )}
+
+          <div className="mt-4 rounded-xl border border-[color:var(--border)] bg-slate-50 p-3 text-xs text-slate-600">
+            Natal chart rotated so the selected house becomes the temporary ascendant.
+            This is a reference view of the natal chart, not a separate divisional chart.
+          </div>
+        </ChartCard>
+
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+          <MediumChartCard
+            title="Chandra Chart"
+            subtitle="Moon-reference chart."
+            ascSign={chandraChart.ascSign}
+            planets={chandraChart.planets}
+          />
+
+          <ChartCard
+            title="Bhava Chalit Chart"
+            subtitle={`Classic Bhava Chalit${classicChalit?.system ? ` (${classicChalit.system})` : ""}.`}
+          >
+            {classicChalit?.ascendant?.sign &&
+            Array.isArray(classicChalit?.planets) &&
+            classicChalit.planets.length ? (
+              <>
+                <MediumNorthIndianChart
+                  title=""
+                  ascSign={classicChalit?.ascendant?.sign ?? null}
+                  planets={classicChalit?.planets ?? []}
+                  mode="chalit"
+                  layoutVariant="secondary"
+                />
+
+                <div className="mt-4 rounded-xl border border-[color:var(--border)] bg-slate-50 p-4 shadow-sm">
+                  <div className="mb-2 text-sm font-semibold text-slate-900">
+                    Planet Shifts
+                  </div>
+
+                  <div className="space-y-1">
+                    {getPlanetShifts(classicChalit?.planets ?? []).map((s) => (
+                      <div key={s.planet} className="flex justify-between text-sm">
+                        <span>{s.planet}</span>
+                        <span
+                          className={
+                            s.changed
+                              ? "font-semibold text-orange-600"
+                              : "text-slate-900"
+                          }
+                        >
+                          {s.from} → {s.to}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            ) : (
+              <PlaceholderChart
+                label="Bhava Chalit Chart unavailable"
+                height="h-40"
+              />
+            )}
+          </ChartCard>
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
         <ChartCard
@@ -730,69 +837,70 @@ selectedHouseReferenceChart.planets?.length ? (
           subtitle={selectedReferenceChart.subtitle}
         >
           <div className="mb-4">
-  <label className="text-xs font-medium uppercase tracking-wide text-white/50">
-    Reference mode
-  </label>
+            <label className="text-xs font-medium uppercase tracking-wide text-slate-900">
+              Reference mode
+            </label>
 
-  <div className="relative mt-1">
-    <button
-      type="button"
-      onClick={() => {
-  setHouseReferenceMenuOpen(false);
-  setReferenceMenuOpen((v) => !v);
-}}
-      className="flex w-full items-center justify-between rounded-xl border border-white/15 bg-[#0C1222] px-3 py-2 text-sm text-white outline-none transition hover:bg-white/5"
-    >
-      <span>
-        {referenceMode === "lagna"
-          ? "Lagna"
-          : referenceMode === "moon"
-          ? "Moon"
-          : referenceMode === "md"
-          ? "Mahadasha"
-          : "Antardasha"}
-      </span>
-      <span className="text-white/50">▾</span>
-    </button>
+            <div className="relative mt-1">
+              <button
+                type="button"
+                onClick={() => {
+                  setHouseReferenceMenuOpen(false);
+                  setReferenceMenuOpen((v) => !v);
+                }}
+                className="flex w-full items-center justify-between rounded-xl border border-[color:var(--border)] bg-white px-3 py-2 text-sm text-slate-900 outline-none transition hover:bg-slate-50"
+              >
+                <span>
+                  {referenceMode === "lagna"
+                    ? "Lagna"
+                    : referenceMode === "moon"
+                    ? "Moon"
+                    : referenceMode === "md"
+                    ? "Mahadasha"
+                    : "Antardasha"}
+                </span>
+                <span className="text-slate-900">▾</span>
+              </button>
 
-    {referenceMenuOpen ? (
-      <div className="absolute z-20 mt-2 w-full rounded-xl border border-white/10 bg-[#0C1222] p-1 shadow-xl">
-        {[
-          { key: "lagna", label: "Lagna" },
-          { key: "moon", label: "Moon" },
-          { key: "md", label: "Mahadasha" },
-          { key: "ad", label: "Antardasha" },
-        ].map((option) => {
-          const isActive = referenceMode === option.key;
+              {referenceMenuOpen ? (
+                <div className="absolute z-20 mt-2 w-full rounded-xl border border-[color:var(--border)] bg-white p-1 shadow-xl">
+                  {[
+                    { key: "lagna", label: "Lagna" },
+                    { key: "moon", label: "Moon" },
+                    { key: "md", label: "Mahadasha" },
+                    { key: "ad", label: "Antardasha" },
+                  ].map((option) => {
+                    const isActive = referenceMode === option.key;
 
-          return (
-            <button
-              key={option.key}
-              type="button"
-              onClick={() => {
-                setReferenceMode(option.key as ReferenceMode);
-                setReferenceMenuOpen(false);
-              }}
-              className={`flex w-full items-center rounded-lg px-3 py-2 text-left text-sm transition ${
-                isActive
-                  ? "bg-indigo-400/15 text-indigo-100"
-                  : "text-white/85 hover:bg-white/5"
-              }`}
-            >
-              {option.label}
-            </button>
-          );
-        })}
-      </div>
-    ) : null}
-  </div>
-</div>
+                    return (
+                      <button
+                        key={option.key}
+                        type="button"
+                        onClick={() => {
+                          setReferenceMode(option.key as ReferenceMode);
+                          setReferenceMenuOpen(false);
+                        }}
+                        className={`flex w-full items-center rounded-lg px-3 py-2 text-left text-sm transition ${
+                          isActive
+                            ? "bg-indigo-50 text-indigo-700"
+                            : "text-slate-700 hover:bg-slate-50"
+                        }`}
+                      >
+                        {option.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : null}
+            </div>
+          </div>
+
           {selectedReferenceChart.ascSign && selectedReferenceChart.planets?.length ? (
-            
             <MediumNorthIndianChart
               title=""
               ascSign={selectedReferenceChart.ascSign}
               planets={selectedReferenceChart.planets}
+              layoutVariant="secondary"
             />
           ) : (
             <PlaceholderChart label="Reference chart unavailable" height="h-40" />
@@ -805,31 +913,31 @@ selectedHouseReferenceChart.planets?.length ? (
         >
           <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-2">
             <div>
-              <label className="text-xs font-medium uppercase tracking-wide text-white/50">
+              <label className="text-xs font-medium uppercase tracking-wide text-slate-900">
                 Chart date
               </label>
               <input
                 type="date"
                 value={selectedDateISO}
                 onChange={(e) => setSelectedDateISO(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-white/15 px-3 py-2 text-sm outline-none focus:border-slate-500"
+                className="mt-1 w-full rounded-xl border border-[color:var(--border)] px-3 py-2 text-sm outline-none focus:border-slate-500"
               />
             </div>
 
             <div>
-              <label className="text-xs font-medium uppercase tracking-wide text-white/50">
+              <label className="text-xs font-medium uppercase tracking-wide text-slate-900">
                 Chart time
               </label>
               <input
                 type="time"
                 value={transitTime}
                 onChange={(e) => setTransitTime(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-white/15 px-3 py-2 text-sm outline-none focus:border-slate-500"
+                className="mt-1 w-full rounded-xl border border-[color:var(--border)] px-3 py-2 text-sm outline-none focus:border-slate-500"
               />
             </div>
 
             <div className="md:col-span-2">
-              <div className="text-xs text-white/50">
+              <div className="text-xs text-slate-900">
                 {selectedDateTimeLabel}
                 {birthTimezone ? ` • ${birthTimezone}` : ""}
               </div>
@@ -841,14 +949,14 @@ selectedHouseReferenceChart.planets?.length ? (
           ) : transitPlanets.length ? (
             <div className="space-y-4">
               {transitMoonInfo ? (
-                <div className="rounded-xl border border-indigo-400/20 bg-indigo-400/10 p-3">
-                  <div className="text-xs font-medium uppercase tracking-wide text-indigo-200">
+                <div className="rounded-xl border border-indigo-200 bg-indigo-50 p-3">
+                  <div className="text-xs font-medium uppercase tracking-wide text-indigo-700">
                     Transit Moon
                   </div>
 
-                  <div className="mt-2 grid grid-cols-2 gap-3 text-sm text-white/90 md:grid-cols-4">
+                  <div className="mt-2 grid grid-cols-2 gap-3 text-sm text-slate-900/90 md:grid-cols-4">
                     <div>
-                      <div className="text-[10px] uppercase tracking-wide text-white/50">
+                      <div className="text-[10px] uppercase tracking-wide text-slate-900">
                         Sign
                       </div>
                       <div className="mt-1 font-medium">
@@ -857,7 +965,7 @@ selectedHouseReferenceChart.planets?.length ? (
                     </div>
 
                     <div>
-                      <div className="text-[10px] uppercase tracking-wide text-white/50">
+                      <div className="text-[10px] uppercase tracking-wide text-slate-900">
                         Degree
                       </div>
                       <div className="mt-1 font-medium">
@@ -868,7 +976,7 @@ selectedHouseReferenceChart.planets?.length ? (
                     </div>
 
                     <div>
-                      <div className="text-[10px] uppercase tracking-wide text-white/50">
+                      <div className="text-[10px] uppercase tracking-wide text-slate-900">
                         Nakshatra
                       </div>
                       <div className="mt-1 font-medium">
@@ -877,7 +985,7 @@ selectedHouseReferenceChart.planets?.length ? (
                     </div>
 
                     <div>
-                      <div className="text-[10px] uppercase tracking-wide text-white/50">
+                      <div className="text-[10px] uppercase tracking-wide text-slate-900">
                         Pada
                       </div>
                       <div className="mt-1 font-medium">
@@ -892,6 +1000,7 @@ selectedHouseReferenceChart.planets?.length ? (
                 title=""
                 ascSign={natalAscSign}
                 planets={normalizeTransitPlanets(transitPlanets, natalAscSign)}
+                layoutVariant="secondary"
               />
             </div>
           ) : (
@@ -899,11 +1008,8 @@ selectedHouseReferenceChart.planets?.length ? (
           )}
         </ChartCard>
       </div>
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
- 
 
-</div>
-<ChartCard
+      <ChartCard
         title="Divisional Chart Gallery"
         subtitle="Click any chart to open a larger view."
       >
@@ -924,13 +1030,13 @@ selectedHouseReferenceChart.planets?.length ? (
                       planets: chart.planets,
                     })
                   }
-                  className="rounded-2xl border border-white/10 bg-white/5 p-3 text-left transition-transform duration-200 hover:scale-105 hover:border-white/15"
+                  className="rounded-2xl border border-[color:var(--border)] bg-white/80 p-3 text-left transition-transform duration-200 hover:scale-[1.02] hover:border-[color:var(--border)]"
                 >
                   <div className="mb-2 flex items-center justify-between">
-                    <div className="text-xs font-semibold uppercase tracking-wide text-white/50">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-slate-900">
                       {key.toUpperCase()}
                     </div>
-                    <div className="text-[10px] text-white/40">Click to expand</div>
+                    <div className="text-[10px] text-slate-900">Click to expand</div>
                   </div>
 
                   {chart.ascSign && chart.planets?.length ? (
@@ -948,49 +1054,14 @@ selectedHouseReferenceChart.planets?.length ? (
               );
             })
           ) : (
-            <div className="rounded-2xl border border-dashed border-white/15 bg-white/5 p-6 text-sm text-white/50">
+            <div className="rounded-2xl border border-dashed border-[color:var(--border)] bg-white/80 p-6 text-sm text-slate-900">
               No divisional charts available.
             </div>
           )}
         </div>
       </ChartCard>
-      {expandedChart ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4">
-          <div className="relative w-full max-w-3xl rounded-3xl border border-white/10 bg-[#0C1222]/95 p-6 shadow-2xl backdrop-blur-md">
-            <button
-              type="button"
-              onClick={() => setExpandedChart(null)}
-              className="absolute right-4 top-4 rounded-full border border-white/10 px-3 py-1 text-sm text-white/70 hover:bg-white/5"
-            >
-              Close
-            </button>
 
-            <div className="mb-4 pr-20">
-              <h3 className="text-lg font-semibold text-white">
-                {expandedChart.title}
-              </h3>
-              <p className="mt-1 text-sm text-white/50">
-                Expanded divisional chart view.
-              </p>
-            </div>
-
-            {expandedChart.ascSign && expandedChart.planets?.length ? (
-                
-            <MediumNorthIndianChart
-  title=""
-  ascSign={expandedChart.ascSign}
-  planets={expandedChart.planets}
-  showPlanetDetails={false}
-/>
-            ) : (
-              <PlaceholderChart
-                label={`${expandedChart.title} unavailable`}
-                height="h-64"
-              />
-            )}
-          </div>
-        </div>
-      ) : null}
+      {expandedChartModal}
     </div>
   );
 }

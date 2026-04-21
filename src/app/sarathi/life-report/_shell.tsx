@@ -224,7 +224,7 @@ function LockingCityAutocomplete({
         {q && (
           <button
             type="button"
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-white/70"
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-slate-900"
             onMouseDown={(e) => e.preventDefault()}
             onClick={clearAll}
             aria-label="Clear"
@@ -240,10 +240,10 @@ function LockingCityAutocomplete({
             className="absolute z-20 mt-1 w-full rounded-md border bg-popover text-popover-foreground shadow"
           >
             {loading && (
-              <div className="px-3 py-2 text-sm text-white/70">Searching</div>
+              <div className="px-3 py-2 text-sm text-slate-900">Searching</div>
             )}
             {!loading && !items.length && (
-              <div className="px-3 py-2 text-sm text-white/70">No results</div>
+              <div className="px-3 py-2 text-sm text-slate-900">No results</div>
             )}
             {!loading &&
               items.map((it, i) => (
@@ -255,7 +255,7 @@ function LockingCityAutocomplete({
                   onClick={() => commit(it)}
                 >
                   {it.name}
-                  <span className="ml-2 text-xs text-white/70">
+                  <span className="ml-2 text-xs text-slate-900">
                     {it.lat.toFixed(2)}, {it.lon.toFixed(2)}
                   </span>
                 </button>
@@ -4575,7 +4575,7 @@ function strengthenEventLine(text: string) {
     },
   };
   const ACC_CARD =
-    "rounded-2xl border border-white/15 bg-indigo-950/60 backdrop-blur-sm shadow-lg shadow-[0_0_40px_rgba(99,102,241,0.10)]";
+    "rounded-2xl border border-[color:var(--border)] bg-indigo-950/60 backdrop-blur-sm shadow-lg shadow-[0_0_40px_rgba(99,102,241,0.10)]";
 
   const ACC_TEXT = "text-slate-100";
   const ACC_MUTED = "text-slate-300/80";
@@ -4597,7 +4597,7 @@ function strengthenEventLine(text: string) {
       case "caution":
         return "bg-red-500/10 text-red-100 border border-red-400/25";
       default:
-        return "bg-white/5/5 text-white/70 border border-white/15";
+        return "bg-white/80 text-slate-900 border border-[color:var(--border)]";
     }
   }
 
@@ -4635,11 +4635,11 @@ function strengthenEventLine(text: string) {
       <div className="rounded-xl border border-muted-foreground/20 p-3 bg-muted/40">
         <div className="flex items-center justify-between text-xs mb-1">
           <div className="font-semibold">{label}</div>
-          <div className="text-white/70 tabular-nums">{rangeTxt}</div>
+          <div className="text-slate-900 tabular-nums">{rangeTxt}</div>
         </div>
 
         {subtitle ? (
-          <div className="text-xs text-white/70 mb-2">{subtitle}</div>
+          <div className="text-xs text-slate-900 mb-2">{subtitle}</div>
         ) : null}
 
         <div className="h-2 w-full rounded bg-muted overflow-hidden">
@@ -4649,7 +4649,7 @@ function strengthenEventLine(text: string) {
           />
         </div>
 
-        <div className="text-[11px] text-white/70 mt-1">
+        <div className="text-[11px] text-slate-900 mt-1">
           {pct.toFixed(1)}% complete
         </div>
       </div>
@@ -4726,7 +4726,7 @@ function strengthenEventLine(text: string) {
       if (/^---+$/.test(line.trim())) {
         flushBullets();
         flushPara();
-        out.push(<hr key={`hr${k++}`} className="border-white/15" />);
+        out.push(<hr key={`hr${k++}`} className="border-[color:var(--border)]" />);
         continue;
       }
 
@@ -6025,51 +6025,51 @@ const np: any = (report as any)?.nowPlan ?? (report as any)?.nowNearFuture ?? nu
               <CardTitle className="text-lg font-semibold !text-slate-100">
                 Today & next few days
              </CardTitle>
-<div className="text-xs text-white/50">
+<div className="text-xs text-slate-900">
   Current phase: {mdLord && adLord ? `${mdLord} main phase • ${adLord} sub-phase` : "Current dasha phase active"}
 </div>
 
-<div className="text-xs text-white/70">
+<div className="text-xs text-slate-900">
   Personalized from your natal Moon + current transits.
 </div>
 
-<div className="text-xs text-white/60 mt-1">
+<div className="text-xs text-slate-500 mt-1">
   Next few days view shaped by your dasha, Moon movement, and strongest active transits.
 </div>
 {!dailyLoadingProp && !dailyErrorProp && visible.length > 0 && weeklyPattern && (
   <>
-    <div className="mt-3 rounded-xl border border-indigo-400/20 bg-indigo-500/10 px-3 py-2">
+    <div className="mt-3 rounded-xl border border-indigo-400/20 bg-[color:var(--primary)]/10 px-3 py-2">
       <div className="text-[11px] uppercase tracking-wide text-indigo-200 font-semibold">
         {weeklyPattern.title}
       </div>
-      <div className="mt-1 text-xs text-white/75">
+      <div className="mt-1 text-xs text-slate-900/75">
         {weeklyPattern.text}
       </div>
     </div>
 
     <div className="grid gap-2 md:grid-cols-2">
-      <div className="rounded-xl border border-white/10 bg-white/5/5 px-3 py-2">
-        <div className="text-[11px] uppercase tracking-wide text-white/60 font-semibold">
+      <div className="rounded-xl astro-card px-3 py-2">
+        <div className="text-[11px] uppercase tracking-wide text-slate-500 font-semibold">
           Where momentum is strongest
         </div>
-        <div className="mt-1 text-xs text-white/75">
+        <div className="mt-1 text-xs text-slate-900/75">
           {weeklyAdvantage}
         </div>
       </div>
 
-      <div className="rounded-xl border border-white/10 bg-white/5/5 px-3 py-2">
-        <div className="text-[11px] uppercase tracking-wide text-white/60 font-semibold">
+      <div className="rounded-xl astro-card px-3 py-2">
+        <div className="text-[11px] uppercase tracking-wide text-slate-500 font-semibold">
           Where friction may appear
         </div>
-        <div className="mt-1 text-xs text-white/75">
+        <div className="mt-1 text-xs text-slate-900/75">
           {weeklyFriction}
         </div>
       </div>
     </div>
 
     {decisionWindows.length > 0 && (
-      <div className="mt-3 rounded-xl border border-white/10 bg-white/5/5 px-3 py-3">
-        <div className="text-[11px] uppercase tracking-wide text-white/60 font-semibold">
+      <div className="mt-3 rounded-xl astro-card px-3 py-3">
+        <div className="text-[11px] uppercase tracking-wide text-slate-500 font-semibold">
           Decision windows
         </div>
 
@@ -6079,7 +6079,7 @@ const np: any = (report as any)?.nowPlan ?? (report as any)?.nowNearFuture ?? nu
               w.kind === "push"
                 ? "border-emerald-400/20 bg-emerald-500/10 text-emerald-200"
                 : w.kind === "review"
-                ? "border-indigo-400/20 bg-indigo-500/10 text-indigo-200"
+                ? "border-indigo-400/20 bg-[color:var(--primary)]/10 text-indigo-200"
                 : "border-amber-400/20 bg-amber-500/10 text-amber-200";
 
             const label =
@@ -6099,7 +6099,7 @@ const np: any = (report as any)?.nowPlan ?? (report as any)?.nowNearFuture ?? nu
                   <div className="text-[11px] opacity-80">{w.range}</div>
                 </div>
 
-                <div className="mt-1 text-xs text-white/80">
+                <div className="mt-1 text-xs text-slate-900/80">
                   {w.text}
                 </div>
               </div>
@@ -6116,7 +6116,7 @@ const np: any = (report as any)?.nowPlan ?? (report as any)?.nowNearFuture ?? nu
               {/* Loading */}
               
               {dailyLoadingProp && (
-                <div className="rounded-xl border border-white/10 bg-white/5/5 px-3 py-2 text-xs text-white/70">
+                <div className="rounded-xl astro-card px-3 py-2 text-xs text-slate-900">
                   Loading next few days
                 </div>
               )}
@@ -6133,7 +6133,7 @@ const np: any = (report as any)?.nowPlan ?? (report as any)?.nowNearFuture ?? nu
   <>
     {Array.isArray(np?.now3Days?.likelyScenarios) && np.now3Days.likelyScenarios.length > 0 ? (
       <div className="space-y-3">
-        <div className="text-[11px] uppercase tracking-wide text-white/60 font-semibold">
+        <div className="text-[11px] uppercase tracking-wide text-slate-500 font-semibold">
           Active now
         </div>
 
@@ -6182,34 +6182,34 @@ const np: any = (report as any)?.nowPlan ?? (report as any)?.nowNearFuture ?? nu
   return (
     <div
       key={`now3-${idx}`}
-      className="rounded-2xl border border-white/10 bg-white/5/5 p-4"
+      className="rounded-2xl astro-card p-4"
     >
       <div className="flex items-center justify-between gap-3">
         <div className="text-[11px] uppercase tracking-wide text-indigo-200 font-semibold">
           {triggerLabel}
         </div>
-        <div className="text-[11px] text-white/50">
+        <div className="text-[11px] text-slate-900">
           Day {idx + 1}
         </div>
       </div>
 
-      <div className="mt-2 text-sm font-semibold text-white">
+      <div className="mt-2 text-sm font-semibold text-slate-900">
         {focusArea}
       </div>
 
-      <div className="mt-2 text-xs text-white/80">
+      <div className="mt-2 text-xs text-slate-900/80">
         {scenarioText}
       </div>
 
-      <div className="mt-3 text-xs text-white/65">
-        <span className="text-white/45">How you may feel:</span> {emotionText}
+      <div className="mt-3 text-xs text-slate-900">
+        <span className="text-slate-400">How you may feel:</span> {emotionText}
       </div>
 
       {driverText &&
  !/^you can handle tasks and conversations/i.test(driverText) &&
  !/^emotional climate/i.test(driverText) &&
  !/^caution:/i.test(driverText) && (
-  <div className="mt-2 text-[11px] text-white/40">
+  <div className="mt-2 text-[11px] text-slate-900">
     Driver: {driverText}
   </div>
 )}
@@ -6220,7 +6220,7 @@ const np: any = (report as any)?.nowPlan ?? (report as any)?.nowNearFuture ?? nu
         </div>
       )}
 
-      <div className="mt-2 text-[11px] text-white/45">
+      <div className="mt-2 text-[11px] text-slate-400">
         Confidence: {confidence}
       </div>
     </div>
@@ -6228,14 +6228,14 @@ const np: any = (report as any)?.nowPlan ?? (report as any)?.nowNearFuture ?? nu
 })}
       </div>
     ) : (
-      <div className="rounded-xl border border-white/10 bg-white/5/5 px-3 py-2 text-xs text-white/70">
+      <div className="rounded-xl astro-card px-3 py-2 text-xs text-slate-900">
         No strong highlights for the next few days.
       </div>
     )}
 
     {Array.isArray(np?.next14Days?.timing) && np.next14Days.timing.length > 0 && (
   <div className="space-y-3 pt-2">
-    <div className="text-[11px] uppercase tracking-wide text-white/60 font-semibold">
+    <div className="text-[11px] uppercase tracking-wide text-slate-500 font-semibold">
       Coming up next
     </div>
 
@@ -6289,25 +6289,25 @@ const np: any = (report as any)?.nowPlan ?? (report as any)?.nowNearFuture ?? nu
       return (
         <div
           key={`next14-${idx}`}
-          className="rounded-2xl border border-white/10 bg-white/5/5 p-4"
+          className="rounded-2xl astro-card p-4"
         >
           <div className="flex items-center justify-between gap-3">
             <div className="text-[11px] uppercase tracking-wide text-indigo-200 font-semibold">
               {triggerLabel}
             </div>
-            <div className="text-[11px] text-white/50">{dateLabel}</div>
+            <div className="text-[11px] text-slate-900">{dateLabel}</div>
           </div>
 
-          <div className="mt-2 text-sm font-semibold text-white">
+          <div className="mt-2 text-sm font-semibold text-slate-900">
             {focusLabel}
           </div>
 
-          <div className="mt-2 text-xs text-white/80">
+          <div className="mt-2 text-xs text-slate-900/80">
             {noteText}
           </div>
 
-          <div className="mt-3 text-xs text-white/65">
-            <span className="text-white/45">How you may feel:</span> {emotionText}
+          <div className="mt-3 text-xs text-slate-900">
+            <span className="text-slate-400">How you may feel:</span> {emotionText}
           </div>
 
           <div className="mt-2 text-xs text-indigo-200">
@@ -6321,20 +6321,20 @@ const np: any = (report as any)?.nowPlan ?? (report as any)?.nowNearFuture ?? nu
 
     {Array.isArray(np?.next30Days?.timing) && np.next30Days.timing.length > 0 && (
       <div className="space-y-3 pt-2">
-        <div className="text-[11px] uppercase tracking-wide text-white/60 font-semibold">
+        <div className="text-[11px] uppercase tracking-wide text-slate-500 font-semibold">
           Next 30 days
         </div>
 
         {np.next30Days.timing.map((item: any, idx: number) => (
           <div
             key={`next30-${idx}`}
-            className="rounded-2xl border border-white/10 bg-white/5/5 p-4"
+            className="rounded-2xl astro-card p-4"
           >
-            <div className="text-sm font-semibold text-white">
+            <div className="text-sm font-semibold text-slate-900">
               {String(item?.window ?? "Longer window")}
             </div>
 
-            <div className="mt-2 text-xs text-white/75">
+            <div className="mt-2 text-xs text-slate-900/75">
               {String(item?.note ?? "")}
             </div>
           </div>
@@ -6590,21 +6590,21 @@ const confClass =
     ? "border-emerald-400/25 bg-emerald-500/10 text-emerald-200"
     : conf === "low"
     ? "border-amber-400/25 bg-amber-500/10 text-amber-200"
-    : "border-indigo-400/25 bg-indigo-500/10 text-indigo-200";
+    : "border-indigo-400/25 bg-[color:var(--primary)]/10 text-indigo-200";
                     return (
                      <div
   key={`${dateISO || "day"}-${idx}`}
   className={
-    "rounded-2xl border bg-white/5/5 p-4 " +
+    "rounded-2xl border bg-white/80 p-4 " +
     (conf === "high"
       ? "border-emerald-400/20"
       : conf === "low"
       ? "border-amber-400/20"
-      : "border-white/10")
+      : "border-[color:var(--border)]")
   }
 >
                          {/* Trigger label */}
-    <div className="mb-2 inline-flex rounded-full border border-indigo-400/30 bg-indigo-500/10 px-2 py-1 text-[10px] font-medium uppercase tracking-wide text-indigo-200">
+    <div className="mb-2 inline-flex rounded-full border border-indigo-400/30 bg-[color:var(--primary)]/10 px-2 py-1 text-[10px] font-medium uppercase tracking-wide text-indigo-200">
       {triggerLabel}
     </div>
                         {/* Header */}
@@ -6626,24 +6626,24 @@ const confClass =
                           
                         </div>
 {(safeText((d as any)?.focus ?? "") || houseNum) && (
-  <div className="mt-2 inline-flex rounded-full border border-indigo-300/20 bg-indigo-500/10 px-2 py-1 text-[10px] font-medium uppercase tracking-wide text-indigo-200">
+  <div className="mt-2 inline-flex rounded-full border border-indigo-300/20 bg-[color:var(--primary)]/10 px-2 py-1 text-[10px] font-medium uppercase tracking-wide text-indigo-200">
     {adjustedFocus}
   </div>
 )}
                         {/* Headline */}
                         {headline && (
-                          <div className="mt-2 text-sm font-semibold text-white/90">
+                          <div className="mt-2 text-sm font-semibold text-slate-900/90">
                             {headline}
                           </div>
                         )}
                       
                        {/* Main line */}
-<div className="mt-3 whitespace-pre-line text-sm leading-relaxed text-white/75">
+<div className="mt-3 whitespace-pre-line text-sm leading-relaxed text-slate-900/75">
   {finalLine}
 </div>
 {dailyFeeling && (
-  <div className="mt-2 rounded-xl border border-white/10 bg-white/5/5 px-3 py-2 text-sm text-white/75">
-    <span className="text-white/50 font-medium">How you may feel:</span>{" "}
+  <div className="mt-2 rounded-xl astro-card px-3 py-2 text-sm text-slate-900/75">
+    <span className="text-slate-900 font-medium">How you may feel:</span>{" "}
     {strengthenEventLine(dailyFeeling)}
   </div>
 )}
@@ -6669,7 +6669,7 @@ const confClass =
   );
 })()}
 {evidenceLine && (
-  <div className="mt-2 text-[11px] text-white/50">
+  <div className="mt-2 text-[11px] text-slate-900">
     {evidenceLine}
   </div>
 )}
@@ -6680,14 +6680,14 @@ const confClass =
                         {(doList.length > 0 || avoidList.length > 0) && (
                           <div className="mt-3 grid gap-2 md:grid-cols-2">
                             {doList.length > 0 && (
-                              <div className="rounded-xl border border-white/10 bg-white/5/5 p-3">
-                                <div className="text-[11px] font-semibold text-white/70">
+                              <div className="rounded-xl astro-card p-3">
+                                <div className="text-[11px] font-semibold text-slate-900">
                                   DO
                                 </div>
-                                <ul className="mt-2 space-y-1 text-xs text-white/70">
+                                <ul className="mt-2 space-y-1 text-xs text-slate-900">
                                   {doList.slice(0, 4).map((x: string, i: number) => (
                                     <li key={i} className="flex gap-2">
-                                      <span className="mt-[2px] h-1.5 w-1.5 rounded-full bg-white/5/40" />
+                                      <span className="mt-[2px] h-1.5 w-1.5 rounded-full bg-white/80/40" />
                                       <span>{x}</span>
                                     </li>
                                   ))}
@@ -6696,14 +6696,14 @@ const confClass =
                             )}
 
                             {avoidList.length > 0 && (
-                              <div className="rounded-xl border border-white/10 bg-white/5/5 p-3">
-                                <div className="text-[11px] font-semibold text-white/70">
+                              <div className="rounded-xl astro-card p-3">
+                                <div className="text-[11px] font-semibold text-slate-900">
                                   AVOID
                                 </div>
-                                <ul className="mt-2 space-y-1 text-xs text-white/70">
+                                <ul className="mt-2 space-y-1 text-xs text-slate-900">
                                   {avoidList.slice(0, 4).map((x: string, i: number) => (
                                     <li key={i} className="flex gap-2">
-                                      <span className="mt-[2px] h-1.5 w-1.5 rounded-full bg-white/5/40" />
+                                      <span className="mt-[2px] h-1.5 w-1.5 rounded-full bg-white/80/40" />
                                       <span>{x}</span>
                                     </li>
                                   ))}
@@ -6757,7 +6757,7 @@ const confClass =
         </CardHeader>
         <CardContent className="text-sm space-y-3 text-slate-100">
           {loading && (
-            <div className="text-white/70">
+            <div className="text-slate-900">
               Building your 12-month overview
             </div>
           )}
@@ -6767,7 +6767,7 @@ const confClass =
           )}
 
           {!loading && !error && !hasData && (
-            <div className="text-white/70">
+            <div className="text-slate-900">
               12-month overview will appear here once transits are available.
             </div>
           )}
@@ -6782,7 +6782,7 @@ const confClass =
 
               {transitText && (
                 <details className="mt-3">
-                  <summary className="cursor-pointer text-xs text-white/70">
+                  <summary className="cursor-pointer text-xs text-slate-900">
                     Show technical transit details
                   </summary>
                   <pre className="mt-2 text-[11px] whitespace-pre-wrap leading-relaxed">
@@ -6829,7 +6829,7 @@ const confClass =
             (mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2")
           }
         >
-          <Card className="rounded-2xl border border-white/15 bg-indigo-950/45 p-3">
+          <Card className="rounded-2xl border border-[color:var(--border)] bg-indigo-950/45 p-3">
 
             <CardHeader>
               <CardTitle className="text-xl font-semibold">
@@ -6838,7 +6838,7 @@ const confClass =
             </CardHeader>
             <CardContent className="space-y-3 text-sm">
               {loading && (
-                <div className="text-white/70">
+                <div className="text-slate-900">
                   Building your weekly guidance...
                 </div>
               )}
@@ -6848,7 +6848,7 @@ const confClass =
               )}
 
               {!loading && !error && weeklyInsights.length === 0 && (
-                <div className="text-white/70">
+                <div className="text-slate-900">
                   Weekly guidance will appear here once transits are available.
                 </div>
               )}
@@ -7051,15 +7051,15 @@ const confClass =
         )}
 
         {/* Snapshot */}
-        <div className="rounded-2xl border border-white/15 bg-indigo-950/40 p-4">
-          <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+        <div className="rounded-2xl border border-[color:var(--border)] bg-indigo-950/40 p-4">
+          <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
             Sarathi Snapshot  {todayLabel}
           </div>
           <div className="mt-1 text-lg font-semibold text-slate-100">
             {emotional?.headline ||
               "Today favours calm, conscious choices over impulsive moves."}
           </div>
-          <p className="mt-2 text-sm text-white/70">
+          <p className="mt-2 text-sm text-slate-900">
             {emotional?.summary ||
               "You dont have to solve everything today. Choose one priority and move steadily."}
           </p>
@@ -7122,12 +7122,12 @@ const confClass =
             {foodTitle}
           </div>
 
-          <p className="mt-2 text-xs text-white/70 leading-relaxed">
+          <p className="mt-2 text-xs text-slate-900 leading-relaxed">
             {foodText}
           </p>
 
           {foodSuggestions.length > 0 && (
-            <ul className="mt-3 list-disc pl-4 text-xs text-white/70 space-y-1">
+            <ul className="mt-3 list-disc pl-4 text-xs text-slate-900 space-y-1">
               {foodSuggestions.slice(0, 5).map((s, i) => (
                 <li key={i}>{String(s)}</li>
               ))}
@@ -7145,12 +7145,12 @@ const confClass =
             {fastingTitle}
           </div>
 
-          <p className="mt-2 text-xs text-white/70 leading-relaxed">
+          <p className="mt-2 text-xs text-slate-900 leading-relaxed">
             {fastingText}
           </p>
 
           {fastingIsGoodDay !== null && (
-            <div className="mt-3 inline-flex rounded-full bg-white/5/10 px-2 py-1 text-[11px] font-medium text-amber-200">
+            <div className="mt-3 inline-flex rounded-full bg-white/80/10 px-2 py-1 text-[11px] font-medium text-amber-200">
               {fastingIsGoodDay
                 ? "Supportive day for fasting"
                 : "Not a strong day for full fasting  choose lightness instead."}
@@ -7159,8 +7159,8 @@ const confClass =
         </div>
 
         {/* Money */}
-        <div className="rounded-2xl border border-white/15 bg-white/5/5 p-4">
-          <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+        <div className="rounded-2xl border border-[color:var(--border)] bg-white/80 p-4">
+          <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
             Money
           </div>
 
@@ -7168,12 +7168,12 @@ const confClass =
             {moneyTitle}
           </div>
 
-          <p className="mt-2 text-xs text-white/70 leading-relaxed">
+          <p className="mt-2 text-xs text-slate-900 leading-relaxed">
             {moneyText}
           </p>
 
           {moneyDo.length > 0 && (
-            <div className="mt-3 text-xs text-white/70">
+            <div className="mt-3 text-xs text-slate-900">
               <div className="text-[11px] font-semibold text-slate-100">Do</div>
               <ul className="mt-2 list-disc pl-4 space-y-1">
                 {moneyDo.slice(0, 3).map((s, i) => (
@@ -7189,7 +7189,7 @@ const confClass =
 
         {/* Loading */}
         {dailyLoading && (
-          <div className="text-sm text-white/60">Loading next few days</div>
+          <div className="text-sm text-slate-500">Loading next few days</div>
         )}
       </div>
     );
@@ -8809,7 +8809,7 @@ if (winSunSun) {
 
   if (!mounted) {
     return (
-      <div className="rounded-2xl border border-white/10 bg-white/5/5 p-4 text-sm text-white/70">
+      <div className="rounded-2xl astro-card p-4 text-sm text-slate-900">
         Loading Full Guidance…
       </div>
     );
@@ -8911,47 +8911,47 @@ if (winSunSun) {
     if (!report) {
       return (
         <div className="space-y-6">
-          <div className="rounded-2xl border border-white/15 bg-white/5/5 p-4">
-            <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+          <div className="rounded-2xl border border-[color:var(--border)] bg-white/80 p-4">
+            <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
               Advanced - Your deeper map
             </div>
-            <div className="mt-1 text-sm text-white/70">
+            <div className="mt-1 text-sm text-slate-900">
               Enter your birth details above and click{" "}
-              <span className="text-white/90 font-semibold">
+              <span className="text-slate-900/90 font-semibold">
                 Generate My Report
               </span>{" "}
               to unlock Advanced insights.
             </div>
           </div>
 
-          <div className="rounded-2xl border border-white/15 bg-indigo-950/40 p-5 backdrop-blur-md shadow-xl shadow-[0_0_30px_rgba(99,102,241,0.10)]">
-            <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+          <div className="rounded-2xl border border-[color:var(--border)] bg-indigo-950/40 p-5 backdrop-blur-md shadow-xl shadow-[0_0_30px_rgba(99,102,241,0.10)]">
+            <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
               What youll get here
             </div>
-            <div className="mt-2 text-sm text-white/80 leading-relaxed">
+            <div className="mt-2 text-sm text-slate-900/80 leading-relaxed">
               Once generated, this tab shows your chart-backed decision layer:
             </div>
           {topToday.length > 0 ? (
     <div className="mt-3 flex flex-wrap gap-2">
       {topToday.map((t: any, i: number) => (
-        <span key={(t?.id ?? i) as any} className="rounded-full border border-white/15 bg-white/5/5 px-3 py-1 text-[11px] text-white/80">
+        <span key={(t?.id ?? i) as any} className="rounded-full border border-[color:var(--border)] bg-white/80 px-3 py-1 text-[11px] text-slate-900/80">
           {formatTransitChip(t)}
         </span>
       ))}
     </div>
   ) : nextUpcoming.length > 0 ? (
     <div className="mt-3">
-      <div className="text-xs text-white/60 mb-2">No strong transits active today. Next up:</div>
+      <div className="text-xs text-slate-500 mb-2">No strong transits active today. Next up:</div>
       <div className="flex flex-wrap gap-2">
         {nextUpcoming.map((t: any, i: number) => (
-          <span key={(t?.id ?? i) as any} className="rounded-full border border-white/15 bg-white/5/5 px-3 py-1 text-[11px] text-white/80">
+          <span key={(t?.id ?? i) as any} className="rounded-full border border-[color:var(--border)] bg-white/80 px-3 py-1 text-[11px] text-slate-900/80">
             {formatTransitChip(t)}
           </span>
         ))}
       </div>
     </div>
   ) : (
-    <div className="mt-3 text-xs text-white/60">
+    <div className="mt-3 text-xs text-slate-500">
       No transit windows available (backend returned none).
     </div>
   )}
@@ -8965,14 +8965,14 @@ if (winSunSun) {
               ].map((t) => (
                 <div
                   key={t}
-                  className="rounded-xl border border-white/10 bg-white/5/5 p-3 text-sm text-white/80"
+                  className="rounded-xl astro-card p-3 text-sm text-slate-900/80"
                 >
                   {t}
                 </div>
               ))}
             </div>
 
-            <div className="mt-4 text-xs text-white/60">
+            <div className="mt-4 text-xs text-slate-500">
               Tip: If you see old data, change any input slightly (time/place) and regenerate.
             </div>
           </div>
@@ -9048,8 +9048,8 @@ if (winSunSun) {
     title,
     children,
   }) => (
-    <div className="overflow-hidden rounded-2xl border border-white/15 bg-indigo-950/40 p-4 backdrop-blur-md shadow-xl shadow-[0_0_30px_rgba(99,102,241,0.10)]">
-      <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+    <div className="overflow-hidden rounded-2xl border border-[color:var(--border)] bg-indigo-950/40 p-4 backdrop-blur-md shadow-xl shadow-[0_0_30px_rgba(99,102,241,0.10)]">
+      <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
         {title}
       </div>
       <div className="mt-3">{children}</div>
@@ -9268,35 +9268,35 @@ if (winSunSun) {
     const pctLabel = (n: number) => `${Math.max(0, Math.min(100, Math.round(Number(n) || 0)))}%`;
 
 const ScenarioCard: React.FC<{ s: any }> = ({ s }) => (
-  <div className="rounded-2xl border border-white/15 bg-white/5/5 p-4">
+  <div className="rounded-2xl border border-[color:var(--border)] bg-white/80 p-4">
     <div className="flex items-start justify-between gap-3">
       <div>
-        <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+        <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
           {String(s?.domain ?? "").toUpperCase()} • {s?.fromISO} → {s?.toISO}
         </div>
         <div className="mt-1 text-sm font-semibold text-slate-100">
           {s?.headline ?? "Window"}
         </div>
         {Array.isArray(s?.why) && s.why.length ? (
-          <div className="mt-2 text-xs text-white/60">
+          <div className="mt-2 text-xs text-slate-500">
             {s.why.slice(0, 3).join(" • ")}
           </div>
         ) : null}
       </div>
 
       <div className="text-right">
-        <div className="text-xs text-white/60">Confidence</div>
+        <div className="text-xs text-slate-500">Confidence</div>
         <div className="text-lg font-semibold text-slate-100">{pctLabel(s?.score)}</div>
-        <div className="text-xs text-white/60">{s?.confidence ?? ""}</div>
+        <div className="text-xs text-slate-500">{s?.confidence ?? ""}</div>
       </div>
     </div>
 
     {Array.isArray(s?.mostLikelySign) && s.mostLikelySign.length ? (
-      <div className="mt-3 rounded-xl border border-white/10 bg-white/5/5 p-3">
-        <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+      <div className="mt-3 rounded-xl astro-card p-3">
+        <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
           Most likely sign
         </div>
-        <ul className="mt-2 list-disc pl-5 text-sm text-white/90 space-y-1">
+        <ul className="mt-2 list-disc pl-5 text-sm text-slate-900/90 space-y-1">
           {s.mostLikelySign.slice(0, 3).map((x: string, i: number) => (
             <li key={i}>{x}</li>
           ))}
@@ -9309,7 +9309,7 @@ const ScenarioCard: React.FC<{ s: any }> = ({ s }) => (
         <div className="text-xs font-semibold uppercase tracking-wide text-emerald-100/90">
           Do
         </div>
-        <ul className="mt-2 list-disc pl-5 text-sm text-white/90 space-y-1">
+        <ul className="mt-2 list-disc pl-5 text-sm text-slate-900/90 space-y-1">
           {(Array.isArray(s?.do) ? s.do : []).slice(0, 4).map((x: string, i: number) => (
             <li key={i}>{x}</li>
           ))}
@@ -9320,7 +9320,7 @@ const ScenarioCard: React.FC<{ s: any }> = ({ s }) => (
         <div className="text-xs font-semibold uppercase tracking-wide text-red-100/90">
           Avoid
         </div>
-        <ul className="mt-2 list-disc pl-5 text-sm text-white/90 space-y-1">
+        <ul className="mt-2 list-disc pl-5 text-sm text-slate-900/90 space-y-1">
           {(Array.isArray(s?.avoid) ? s.avoid : []).slice(0, 4).map((x: string, i: number) => (
             <li key={i}>{x}</li>
           ))}
@@ -9329,16 +9329,16 @@ const ScenarioCard: React.FC<{ s: any }> = ({ s }) => (
     </div>
 
     {(s?.outcomeIfDone || s?.outcomeIfIgnored) ? (
-      <div className="mt-3 text-sm text-white/80">
+      <div className="mt-3 text-sm text-slate-900/80">
         {s?.outcomeIfDone ? (
           <div>
-            <span className="text-white/60 font-semibold">Handled well:</span>{" "}
+            <span className="text-slate-500 font-semibold">Handled well:</span>{" "}
             {s.outcomeIfDone}
           </div>
         ) : null}
         {s?.outcomeIfIgnored ? (
           <div className="mt-1">
-            <span className="text-white/60 font-semibold">Ignored:</span>{" "}
+            <span className="text-slate-500 font-semibold">Ignored:</span>{" "}
             {s.outcomeIfIgnored}
           </div>
         ) : null}
@@ -9348,10 +9348,10 @@ const ScenarioCard: React.FC<{ s: any }> = ({ s }) => (
 );
 
 const HorizonBlock: React.FC<{ title: string; items: any[] }> = ({ title, items }) => (
-  <details className="rounded-2xl border border-white/15 bg-white/5/5 p-4" open>
+  <details className="rounded-2xl border border-[color:var(--border)] bg-white/80 p-4" open>
     <summary className="cursor-pointer list-none">
       <div className="text-sm font-semibold text-slate-100">{title}</div>
-      <div className="mt-1 text-xs text-white/60">
+      <div className="mt-1 text-xs text-slate-500">
         Trigger windows — what you’ll notice, what to do, what to avoid.
       </div>
     </summary>
@@ -9371,21 +9371,21 @@ const FullGuidanceV2UI: React.FC<{ fg: any }> = ({ fg }) => {
   return (
     <div className="space-y-6">
       {/* Reality Check */}
-      <div className="rounded-2xl border border-white/15 bg-white/5/5 p-4">
-        <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+      <div className="rounded-2xl border border-[color:var(--border)] bg-white/80 p-4">
+        <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
           Full Guidance — 90 days
         </div>
         <div className="mt-1 text-lg font-semibold text-slate-100">
           Your 90-Day Reality Check
         </div>
 
-        <div className="mt-2 text-sm text-white/80">
-          <span className="text-white/60 font-semibold">Phase:</span>{" "}
+        <div className="mt-2 text-sm text-slate-900/80">
+          <span className="text-slate-500 font-semibold">Phase:</span>{" "}
           {rc?.currentPhase ?? "—"}
         </div>
 
         {rc?.mainTheme ? (
-          <div className="mt-3 text-sm text-white/85 leading-relaxed">{rc.mainTheme}</div>
+          <div className="mt-3 text-sm text-slate-900/85 leading-relaxed">{rc.mainTheme}</div>
         ) : null}
 
         <div className="mt-3 grid gap-3 md:grid-cols-2">
@@ -9393,14 +9393,14 @@ const FullGuidanceV2UI: React.FC<{ fg: any }> = ({ fg }) => {
             <div className="text-xs font-semibold uppercase tracking-wide text-emerald-100/90">
               Your win move
             </div>
-            <div className="mt-2 text-sm text-white/90">{rc?.winMove ?? "—"}</div>
+            <div className="mt-2 text-sm text-slate-900/90">{rc?.winMove ?? "—"}</div>
           </div>
 
           <div className="rounded-xl border border-red-400/20 bg-red-500/10 p-3">
             <div className="text-xs font-semibold uppercase tracking-wide text-red-100/90">
               Your drain to cut
             </div>
-            <div className="mt-2 text-sm text-white/90">{rc?.drainToCut ?? "—"}</div>
+            <div className="mt-2 text-sm text-slate-900/90">{rc?.drainToCut ?? "—"}</div>
           </div>
         </div>
       </div>
@@ -9412,15 +9412,15 @@ const FullGuidanceV2UI: React.FC<{ fg: any }> = ({ fg }) => {
             .filter((d: any) => ["Career", "Relationships", "Health", "Money"].includes(String(d?.domain)))
             .slice(0, 4)
             .map((d: any) => (
-              <div key={d.domain} className="rounded-2xl border border-white/15 bg-white/5/5 p-4">
-                <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+              <div key={d.domain} className="rounded-2xl border border-[color:var(--border)] bg-white/80 p-4">
+                <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                   {d.domain}
                 </div>
                 <div className="mt-2 text-2xl font-semibold text-slate-100">
                   {pctLabel(d.score)}
                 </div>
-                <div className="text-xs text-white/60">{d.confidence}</div>
-                <div className="mt-2 text-sm text-white/85 leading-relaxed">
+                <div className="text-xs text-slate-500">{d.confidence}</div>
+                <div className="mt-2 text-sm text-slate-900/85 leading-relaxed">
                   {d.headline}
                 </div>
               </div>
@@ -9435,51 +9435,51 @@ const FullGuidanceV2UI: React.FC<{ fg: any }> = ({ fg }) => {
       <HorizonBlock title="Next 90 days" items={fg?.next90d ?? []} />
 
       {/* Advisor Memo */}
-      <div className="rounded-2xl border border-white/15 bg-white/5/5 p-4">
+      <div className="rounded-2xl border border-[color:var(--border)] bg-white/80 p-4">
         <div className="text-sm font-semibold text-slate-100">Advisor Memo</div>
-        <div className="mt-1 text-xs text-white/60">
+        <div className="mt-1 text-xs text-slate-500">
           What to push, what to refuse, what to enforce.
         </div>
 
         <div className="mt-4 grid gap-3 md:grid-cols-2">
-          <div className="rounded-xl border border-white/10 bg-white/5/5 p-3">
-            <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+          <div className="rounded-xl astro-card p-3">
+            <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
               Opportunity
             </div>
-            <ul className="mt-2 list-disc pl-5 text-sm text-white/90 space-y-1">
+            <ul className="mt-2 list-disc pl-5 text-sm text-slate-900/90 space-y-1">
               {(fg?.advisorMemo?.opportunity ?? []).map((x: string, i: number) => (
                 <li key={i}>{x}</li>
               ))}
             </ul>
           </div>
 
-          <div className="rounded-xl border border-white/10 bg-white/5/5 p-3">
-            <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+          <div className="rounded-xl astro-card p-3">
+            <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
               Risks
             </div>
-            <ul className="mt-2 list-disc pl-5 text-sm text-white/90 space-y-1">
+            <ul className="mt-2 list-disc pl-5 text-sm text-slate-900/90 space-y-1">
               {(fg?.advisorMemo?.risks ?? []).map((x: string, i: number) => (
                 <li key={i}>{x}</li>
               ))}
             </ul>
           </div>
 
-          <div className="rounded-xl border border-white/10 bg-white/5/5 p-3">
-            <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+          <div className="rounded-xl astro-card p-3">
+            <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
               Control levers
             </div>
-            <ul className="mt-2 list-disc pl-5 text-sm text-white/90 space-y-1">
+            <ul className="mt-2 list-disc pl-5 text-sm text-slate-900/90 space-y-1">
               {(fg?.advisorMemo?.controlLevers ?? []).map((x: string, i: number) => (
                 <li key={i}>{x}</li>
               ))}
             </ul>
           </div>
 
-          <div className="rounded-xl border border-white/10 bg-white/5/5 p-3">
-            <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+          <div className="rounded-xl astro-card p-3">
+            <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
               Non-negotiables
             </div>
-            <ul className="mt-2 list-disc pl-5 text-sm text-white/90 space-y-1">
+            <ul className="mt-2 list-disc pl-5 text-sm text-slate-900/90 space-y-1">
               {(fg?.advisorMemo?.nonNegotiables ?? []).map((x: string, i: number) => (
                 <li key={i}>{x}</li>
               ))}
@@ -10018,7 +10018,7 @@ const canSeeFull = apiIsPaid || isFull || devUnlockFull;
             <div className="font-medium">
               {pl.name}
               {pl.sign ? (
-                <span className="ml-2 text-xs text-white/70">
+                <span className="ml-2 text-xs text-slate-900">
                   in {pl.sign}
                 </span>
               ) : null}
@@ -10037,7 +10037,7 @@ const canSeeFull = apiIsPaid || isFull || devUnlockFull;
                   : d.weight === 1
                   ? "bg-teal-100 text-teal-800"
                   : d.weight === 0
-                  ? "bg-white/10 text-white/70"
+                  ? "bg-white/10 text-slate-900"
                   : "bg-red-100 text-red-800")
               }
             >
@@ -10045,7 +10045,7 @@ const canSeeFull = apiIsPaid || isFull || devUnlockFull;
             </div>
           </div>
 
-          <div className="mt-1 text-[11px] text-white/70">
+          <div className="mt-1 text-[11px] text-slate-900">
             {retro ? "Retrograde ? " : ""}
             {pl.nakshatra ? `Nakshatra: ${pl.nakshatra}` : " "}
           </div>
@@ -11994,7 +11994,7 @@ try {
             <CardHeader>
               <CardTitle className="text-lg font-medium">Fill details and generate.</CardTitle>
             </CardHeader>
-            <CardContent className="text-sm text-white/70">
+            <CardContent className="text-sm text-slate-900">
               Tab will populate after generation.
             </CardContent>
           </Card>
@@ -12021,7 +12021,7 @@ try {
 
     return (
       <motion.div
-        className="space-y-6 text-white"
+        className="space-y-6 text-slate-900"
         variants={staggerContainer}
         initial="hidden"
         animate="show"
@@ -12052,25 +12052,25 @@ try {
               {/* Key signs */}
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
                 <div className="rounded-xl border border-border/60 bg-muted/40 px-3 py-2">
-                  <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/70">
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-900">
                     Moon sign
                   </div>
                   <div className="mt-1 text-sm font-semibold">
                     {report.moonSign ?? (moonRow?.sign ?? "")}
                   </div>
-                  <div className="mt-1 text-xs text-white/70">
+                  <div className="mt-1 text-xs text-slate-900">
                     Your emotional style, what you need to feel steady and safe.
                   </div>
                 </div>
 
                 <div className="rounded-xl border border-border/60 bg-muted/40 px-3 py-2">
-                  <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/70">
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-900">
                     Sun sign
                   </div>
                   <div className="mt-1 text-sm font-semibold">
                     {report.sunSign ?? (sunRow?.sign ?? "")}
                   </div>
-                  <div className="mt-1 text-xs text-white/70">
+                  <div className="mt-1 text-xs text-slate-900">
                     Your life direction, what you're here to build and become.
                   </div>
                 </div>
@@ -12080,7 +12080,7 @@ try {
             <CardContent className="grid md:grid-cols-2 gap-4 text-sm">
               {/* Birth data */}
               <div className="space-y-1">
-  <div className="text-xs font-semibold uppercase text-white/70 tracking-wide">
+  <div className="text-xs font-semibold uppercase text-slate-900 tracking-wide">
     Birth Data
   </div>
 
@@ -12090,18 +12090,18 @@ try {
       {report.birthTz ? ` (${report.birthTz})` : ""}
     </div>
   ) : (
-    <div className="text-white/50">{report.birthDateISO || report.birthTime || report.birthTz ? (
+    <div className="text-slate-900">{report.birthDateISO || report.birthTime || report.birthTz ? (
   <div>
     {[report.birthDateISO, report.birthTime].filter(Boolean).join(" @ ")}
     {report.birthTz ? ` (${report.birthTz})` : ""}
   </div>
 ) : (
-  <div className="text-white/50">Birth details unavailable</div>
+  <div className="text-slate-900">Birth details unavailable</div>
 )}</div>
   )}
 
   {typeof report.birthLat === "number" && typeof report.birthLon === "number" ? (
-    <div className="text-xs text-white/70">
+    <div className="text-xs text-slate-900">
       {report.birthLat.toFixed(3)}, {report.birthLon.toFixed(3)}
     </div>
   ) : null}
@@ -12112,7 +12112,7 @@ try {
 
   return (
     <div className="space-y-1">
-      <div className="text-xs font-semibold uppercase text-white/70 tracking-wide">
+      <div className="text-xs font-semibold uppercase text-slate-900 tracking-wide">
         Birth Panchang
       </div>
 
@@ -12149,7 +12149,7 @@ try {
               <CardTitle className="text-lg font-semibold text-slate-50">
                 Your life themes
               </CardTitle>
-              <div className="text-sm text-white/70">
+              <div className="text-sm text-slate-900">
                 A simple, practical view of what your chart emphasizes, no astrology knowledge
                 needed.
               </div>
@@ -12173,10 +12173,10 @@ try {
                 };
 
                 const themeCard = (title: string, line1: string, line2: string) => (
-                  <div className="rounded-2xl border border-white/15 bg-indigo-950/40 p-4">
+                  <div className="rounded-2xl border border-[color:var(--border)] bg-indigo-950/40 p-4">
                     <div className="text-sm font-semibold">{title}</div>
-                    <div className="mt-2 text-sm text-white/90">{line1}</div>
-                    <div className="mt-1 text-xs text-white/70">{line2}</div>
+                    <div className="mt-2 text-sm text-slate-900/90">{line1}</div>
+                    <div className="mt-1 text-xs text-slate-900">{line2}</div>
                   </div>
                 );
 
@@ -12226,7 +12226,7 @@ try {
             </CardContent>
           </Card>
 
-          <div className="text-xs text-white/70">
+          <div className="text-xs text-slate-900">
             Want the technical chart view. Open the section below.
           </div>
         </motion.div>
@@ -12238,7 +12238,7 @@ try {
               <CardTitle className="text-base font-semibold text-slate-50">
                 What to focus on now
               </CardTitle>
-              <div className="text-sm text-white/70">
+              <div className="text-sm text-slate-900">
                 A simple direction for the next few weeks - practical, not predictive.
               </div>
             </CardHeader>
@@ -12265,7 +12265,7 @@ const sunSign = sun?.sign ?? report.sunSign ?? "-";
                   );
 
                 return (
-                  <ul className="list-disc pl-5 space-y-2 text-white/90">
+                  <ul className="list-disc pl-5 space-y-2 text-slate-900/90">
                     {focusLines.map((t, i) => (
                       <li key={i}>{t}</li>
                     ))}
@@ -12273,7 +12273,7 @@ const sunSign = sun?.sign ?? report.sunSign ?? "-";
                 );
               })()}
 
-              <div className="pt-2 text-xs text-white/70">
+              <div className="pt-2 text-xs text-slate-900">
                 Want this personalized for your situation right now? Use{" "}
                 <span className="font-medium">Ask Sarathi</span>.
               </div>
@@ -12282,16 +12282,16 @@ const sunSign = sun?.sign ?? report.sunSign ?? "-";
         </motion.div>
 
         {/* Advanced placements */}
-        <div className="mt-10 border-t border-white/15 pt-6 bg-[linear-gradient(to_bottom,rgba(255,255,255,0.02),transparent_35%)]">
+        <div className="mt-10 border-t border-[color:var(--border)] pt-6 bg-[linear-gradient(to_bottom,rgba(255,255,255,0.02),transparent_35%)]">
           <motion.div variants={fadeUpSmall} className="space-y-4">
             <Accordion type="single" collapsible className="w-full">
               <AccordionItem value="placements-details">
-                <AccordionTrigger className="text-sm font-semibold text-slate-100 hover:text-white [&_svg]:text-slate-200 [&_svg]:opacity-80">
+                <AccordionTrigger className="text-sm font-semibold text-slate-100 hover:text-slate-900 [&_svg]:text-slate-200 [&_svg]:opacity-80">
                   Advanced astrology (planets, houses & interpretations)
                 </AccordionTrigger>
 
                 <AccordionContent>
-                  <div className="mb-3 text-xs text-white/70">
+                  <div className="mb-3 text-xs text-slate-900">
                     For advanced users: technical chart details like planet positions, houses, and
                     deeper interpretations.
                   </div>
@@ -12312,7 +12312,7 @@ const sunSign = sun?.sign ?? report.sunSign ?? "-";
 
                           if (!pls.length) {
                             return (
-                              <div className="text-white/70 text-sm">
+                              <div className="text-slate-900 text-sm">
                                 No planet placements found. Generate / Refresh to load the chart.
                               </div>
                             );
@@ -12389,7 +12389,7 @@ const sunSign = sun?.sign ?? report.sunSign ?? "-";
                               ? "border-rose-400/30 bg-rose-500/10 text-rose-200"
                               : status === "Own"
                               ? "border-sky-400/30 bg-sky-500/10 text-sky-200"
-                              : "border-white/15 bg-white/5/5 text-white/70";
+                              : "border-[color:var(--border)] bg-white/80 text-slate-900";
 
                           return (
                             <div className="grid gap-3 sm:grid-cols-2">
@@ -12407,7 +12407,7 @@ const sunSign = sun?.sign ?? report.sunSign ?? "-";
                                 return (
                                   <div
                                     key={`${name}-${idx}`}
-                                    className="rounded-xl border border-white/10 bg-white/5/5 px-4 py-3"
+                                    className="rounded-xl astro-card px-4 py-3"
                                   >
                                     <div className="flex items-center justify-between gap-3">
                                       <div className="text-sm font-semibold text-slate-50">
@@ -12424,7 +12424,7 @@ const sunSign = sun?.sign ?? report.sunSign ?? "-";
                                           {status}
                                         </span>
 
-                                        <div className="text-xs text-white/60">
+                                        <div className="text-xs text-slate-500">
                                           House {house}
                                         </div>
                                       </div>
@@ -12433,7 +12433,7 @@ const sunSign = sun?.sign ?? report.sunSign ?? "-";
                                     <div className="mt-1 text-sm text-slate-100">
                                       <span className="font-medium">{sign}</span>
                                       {nak ? (
-                                        <span className="text-white/70">
+                                        <span className="text-slate-900">
                                           {" "}
                                           <span className="font-normal">{nak}</span>
                                         </span>
@@ -12454,7 +12454,7 @@ const sunSign = sun?.sign ?? report.sunSign ?? "-";
                           No planet table available.
                         </CardTitle>
                       </CardHeader>
-                      <CardContent className="text-sm text-white/70">
+                      <CardContent className="text-sm text-slate-900">
                         Generate again to see planet placements.
                       </CardContent>
                     </Card>
@@ -12515,7 +12515,7 @@ const TabPersonality: React.FC<TabPersonalityProps> = memo(({ report }) => {
             </p>
 
             {isPreview && (
-              <div className="mt-4 rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-white/80">
+              <div className="mt-4 rounded-xl border border-[color:var(--border)] bg-white/80 p-3 text-sm text-slate-900/80">
                 Unlock the full reading to see the deeper pattern behind this.
               </div>
             )}
@@ -12540,7 +12540,7 @@ const TabPersonality: React.FC<TabPersonalityProps> = memo(({ report }) => {
               ))}
 
               {isPreview && hiddenLines.length > 0 ? (
-                <div className="relative overflow-hidden rounded-xl border border-white/10 bg-white/5 p-4">
+                <div className="relative overflow-hidden rounded-xl border border-[color:var(--border)] bg-white/80 p-4">
                   <div className="space-y-3 blur-[4px] select-none pointer-events-none opacity-80">
                     {hiddenLines.map((paragraph: string, i: number) => (
                       <p key={`blur-${i}`} className="text-indigo-50/90">
@@ -12568,11 +12568,11 @@ const TabPersonality: React.FC<TabPersonalityProps> = memo(({ report }) => {
                   </div>
 
                   <div className="absolute inset-x-0 bottom-0 top-1/3 flex items-end justify-center bg-gradient-to-b from-transparent via-indigo-950/50 to-indigo-950/95 p-4">
-                    <div className="w-full max-w-md rounded-2xl border border-white/15 bg-white/10 px-4 py-4 text-center shadow-xl backdrop-blur-md">
-                      <div className="text-sm font-semibold text-white">
+                    <div className="w-full max-w-md rounded-2xl border border-[color:var(--border)] bg-white/10 px-4 py-4 text-center shadow-xl backdrop-blur-md">
+                      <div className="text-sm font-semibold text-slate-900">
                         Unlock your full reading
                       </div>
-                      <div className="mt-1 text-xs text-white/75">
+                      <div className="mt-1 text-xs text-slate-900/75">
                         See your hidden pattern, pressure zones, strengths, timing, and full guidance.
                       </div>
                       <Button className="mt-3 rounded-xl">
@@ -12683,7 +12683,7 @@ const nearbyTimeline =
       const sectionTrigger =
         "text-sm font-semibold text-slate-100 hover:text-slate-50";
       const subNote = "text-xs text-slate-200/70";
-      const divider = "border-white/15";
+      const divider = "border-[color:var(--border)]";
 const currentChapterTitle = (() => {
   if (currentMD && currentAD) return `${currentMD} Mahadasha • ${currentAD} Antardasha`;
   if (currentMD) return `${currentMD} Mahadasha`;
@@ -12825,7 +12825,7 @@ const currentChapterBody = (() => {
 
     {Array.isArray(currentChapterBody.brings) && currentChapterBody.brings.length > 0 ? (
       <div>
-        <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+        <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
           What this phase tends to bring
         </div>
         <div className="mt-2 space-y-1.5">
@@ -12840,7 +12840,7 @@ const currentChapterBody = (() => {
 
     {currentChapterBody.lesson ? (
       <div>
-        <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+        <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
           Core lesson
         </div>
         <p className="mt-1 text-sm leading-relaxed text-slate-100/90">
@@ -12933,15 +12933,15 @@ const currentChapterBody = (() => {
                               className={
                                 "flex items-center justify-between rounded-xl border px-3 py-2 " +
                                 (isActive
-                                  ? "border-indigo-400/40 bg-indigo-500/10"
-                                  : "border-white/15 bg-slate-950/40")
+                                  ? "border-indigo-400/40 bg-[color:var(--primary)]/10"
+                                  : "border-[color:var(--border)] bg-slate-950/40")
                               }
                             >
                               <div className="space-y-0.5">
-                                <div className="text-[11px] font-semibold uppercase tracking-wide text-white/60">
+                                <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
                                   {row.planet} Mahadasha
                                 </div>
-                                <div className="text-[13px] text-white/70">
+                                <div className="text-[13px] text-slate-900">
   {new Date(row.startISO).getFullYear()}–{new Date(row.endISO).getFullYear()}
 </div>
                               </div>
@@ -12982,11 +12982,11 @@ const currentChapterBody = (() => {
                           {report.lifeMilestones.slice(0, 6).map((m: any, idx: number) => (
                             <div
                               key={idx}
-                              className="relative pl-4 border-l border-white/15 last:border-l-0"
+                              className="relative pl-4 border-l border-[color:var(--border)] last:border-l-0"
                             >
                               <div className="absolute -left-[5px] top-2 h-2 w-2 rounded-full bg-indigo-400 shadow-sm" />
 
-                              <div className="rounded-xl border border-white/15 bg-slate-950/40 p-3 text-sm leading-relaxed text-slate-100">
+                              <div className="rounded-xl border border-[color:var(--border)] bg-slate-950/40 p-3 text-sm leading-relaxed text-slate-100">
                                 <div className="flex flex-wrap items-start justify-between gap-2">
                                   <div className="space-y-1">
                                     <div className="text-sm font-semibold text-slate-100">
@@ -13104,13 +13104,13 @@ const currentChapterBody = (() => {
             return (
               <div
                 key={idx}
-                className="rounded-xl border border-white/10 bg-white/5/5 p-3"
+                className="rounded-xl astro-card p-3"
               >
                 <div className="text-sm font-semibold text-slate-100">
                   {label}
                 </div>
                 {(when || strength !== null) ? (
-                  <div className="mt-1 text-xs text-white/60">
+                  <div className="mt-1 text-xs text-slate-500">
                     {when ? <span>{when}</span> : null}
                     {when && strength !== null ? <span>{" - "}</span> : null}
                     {strength !== null ? (
@@ -13570,7 +13570,7 @@ const text = uniqueTextParts
 }, [reportNowPlan, todayBaseISO, phaseTag, dailyMoonRows]);
     return (
       <main className="mx-auto max-w-3xl px-4 py-8 md:py-12">
-        <Card className="rounded-2xl border border-white/15 bg-indigo-950/40 backdrop-blur-md shadow-xl shadow-[0_0_30px_rgba(99,102,241,0.10)]">
+        <Card className="rounded-2xl border border-[color:var(--border)] bg-indigo-950/40 backdrop-blur-md shadow-xl shadow-[0_0_30px_rgba(99,102,241,0.10)]">
           <CardHeader>
             <CardTitle className="text-xl font-semibold">
               Your birth details
@@ -13626,7 +13626,7 @@ const text = uniqueTextParts
 />
 
       {showCountryList && (
-        <div className="absolute z-50 mt-1 max-h-56 w-full overflow-auto rounded-xl border border-white/10 bg-slate-900 shadow-lg">
+        <div className="absolute z-50 mt-1 max-h-56 w-full overflow-auto rounded-xl border border-[color:var(--border)] astro-card shadow-lg">
           {filteredCountries.length > 0 ? (
             filteredCountries.map((c) => (
               <button
@@ -13638,13 +13638,13 @@ const text = uniqueTextParts
   setIsEditingCountry(false);
   setShowCountryList(false);
 }}
-                className="w-full px-3 py-2 text-left text-sm hover:bg-white/5/10"
+                className="w-full px-3 py-2 text-left text-sm hover:bg-white/80 hover:shadow-md"
               >
                 {c.label}
               </button>
             ))
           ) : (
-            <div className="px-3 py-2 text-xs text-white/40">
+            <div className="px-3 py-2 text-xs text-slate-900">
               No match found
             </div>
           )}
@@ -13697,7 +13697,7 @@ const text = uniqueTextParts
   disabled={!canEditChart}
 />
               {place && (
-                <p className="text-xs text-white/70">
+                <p className="text-xs text-slate-900">
                   lat {place.lat?.toFixed(3)}, lon {place.lon?.toFixed(3)} ({tz})
                 </p>
               )}
@@ -13709,12 +13709,12 @@ const text = uniqueTextParts
   <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
     {/* Left: profile selector + save */}
     <div className="flex flex-wrap items-center gap-2 text-xs">
-      <span className="font-semibold uppercase tracking-wide text-white/70">
+      <span className="font-semibold uppercase tracking-wide text-slate-900">
         Profiles:
       </span>
 
       <select
-        className="rounded-md border bg-background px-2 py-1 text-xs text-white/70"
+        className="rounded-md border bg-background px-2 py-1 text-xs text-slate-900"
         value={selectedProfileId}
         onChange={(e) => handleSelectProfile(e.target.value)}
       >
@@ -13728,7 +13728,7 @@ const text = uniqueTextParts
 
       <button
         type="button"
-        className="rounded-md border px-2 py-1 text-[11px] text-white/90 border-foreground/30"
+        className="rounded-md border px-2 py-1 text-[11px] text-slate-900/90 border-foreground/30"
         onClick={handleSaveProfile}
       >
         Save current as profile
@@ -13782,7 +13782,7 @@ const text = uniqueTextParts
 </TabsContent>
   <TabsContent value="phases" className="mt-4">
   {!canSeePhases ? (
-    <div className="mt-4 rounded-2xl border border-white/15 bg-white/5 p-4 text-sm text-white/80">
+    <div className="mt-4 rounded-2xl border border-[color:var(--border)] bg-white/80 p-4 text-sm text-slate-900/80">
       Life Phases is available after signup.
     </div>
   ) : (
@@ -13796,7 +13796,7 @@ const text = uniqueTextParts
 </TabsContent>
   <TabsContent value="now" className="mt-4">
   {!canSeeNow ? (
-    <div className="mt-4 rounded-2xl border border-white/15 bg-white/5 p-4 text-sm text-white/80">
+    <div className="mt-4 rounded-2xl border border-[color:var(--border)] bg-white/80 p-4 text-sm text-slate-900/80">
       Now & Near Future is available after signup.
     </div>
   ) : (
@@ -13830,15 +13830,15 @@ const text = uniqueTextParts
    
     {/* Always show *something* below */}
     {!canSeeFull ? (
-  <div className="mt-4 rounded-2xl border border-white/15 bg-white/5 p-4 text-sm text-white/80">
+  <div className="mt-4 rounded-2xl border border-[color:var(--border)] bg-white/80 p-4 text-sm text-slate-900/80">
     Full Guidance is available after signup.
   </div>
 ) : !(report as any)?.fullGuidanceV2 ? (
-  <div className="mt-4 rounded-2xl border border-white/15 bg-white/5 p-4 text-sm text-white/80">
+  <div className="mt-4 rounded-2xl border border-[color:var(--border)] bg-white/80 p-4 text-sm text-slate-900/80">
     Full Guidance will populate after generation.
   </div>
 ) : (
-  <div className="mt-4 rounded-2xl border border-white/15 bg-white/5/5 p-4">
+  <div className="mt-4 rounded-2xl border border-[color:var(--border)] bg-white/80 p-4">
     {(() => {
       try {
         return (
@@ -13870,7 +13870,7 @@ const text = uniqueTextParts
               type="button"
               variant="outline"
               size="sm"
-              className="w-full md:w-auto text-white hover:text-white border-white/20 hover:bg-white/5/10"
+              className="w-full md:w-auto text-slate-900 hover:text-slate-900 border-white/20 hover:bg-white/80 hover:shadow-md"
 
 
             >
@@ -13942,7 +13942,7 @@ function TabFullPlan({
 }: any) {
   if (!mounted) {
     return (
-      <div className="rounded-2xl border border-white/10 bg-white/5/5 p-4 text-sm text-white/70">
+      <div className="rounded-2xl astro-card p-4 text-sm text-slate-900">
         Loading…
       </div>
     );
@@ -13950,7 +13950,7 @@ function TabFullPlan({
 
   if (!isFull) {
     return (
-      <div className="rounded-2xl border border-white/15 bg-white/5/5 p-4 text-sm text-white/70">
+      <div className="rounded-2xl border border-[color:var(--border)] bg-white/80 p-4 text-sm text-slate-900">
         Full Guidance is locked.
       </div>
     );
@@ -13967,14 +13967,14 @@ function TabFullPlan({
 
   if (!hasReport) {
     return (
-      <div className="rounded-2xl border border-white/15 bg-white/5/5 p-5">
-        <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+      <div className="rounded-2xl border border-[color:var(--border)] bg-white/80 p-5">
+        <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
           Full Guidance
         </div>
         <div className="mt-1 text-lg font-semibold text-slate-100">
           Generate your report first
         </div>
-        <div className="mt-2 text-sm text-white/70 leading-relaxed">
+        <div className="mt-2 text-sm text-slate-900 leading-relaxed">
           Enter birth details and click Generate / Refresh Report.
         </div>
       </div>
@@ -13985,7 +13985,7 @@ function TabFullPlan({
 
   if (!fg) {
     return (
-      <div className="rounded-2xl border border-white/15 bg-white/5/5 p-4 text-sm text-white/70">
+      <div className="rounded-2xl border border-[color:var(--border)] bg-white/80 p-4 text-sm text-slate-900">
         Full guidance is loading…
       </div>
     );
@@ -14045,20 +14045,20 @@ const turningPointsTitle =
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="rounded-2xl border border-white/15 bg-white/5/5 p-5">
-        <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+      <div className="rounded-2xl border border-[color:var(--border)] bg-white/80 p-5">
+        <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
           Your Current Phase
         </div>
         <div className="mt-1 text-lg font-semibold text-slate-100">
           {phase || "Current phase"}
         </div>
-       <div className="mt-3 text-sm text-white/80 leading-relaxed">
+       <div className="mt-3 text-sm text-slate-900/80 leading-relaxed">
   You are entering a phase where life becomes more defined. Work begins 
   to demand precision, relationships begin to demand clarity, and the 
   difference between discipline and distraction becomes visible quickly.
 </div>
 
-<div className="mt-2 text-sm text-white/70 leading-relaxed">
+<div className="mt-2 text-sm text-slate-900 leading-relaxed">
   This reading explains what is happening in your life right now, what 
   begins to change next, and how to move through this phase with more 
   clarity and fewer mistakes.
@@ -14067,45 +14067,45 @@ const turningPointsTitle =
       </div>
 
       {/* Current Life Chapter */}
-      <div className="rounded-2xl border border-white/15 bg-white/5/5 p-5">
-        <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+      <div className="rounded-2xl border border-[color:var(--border)] bg-white/80 p-5">
+        <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
           Current Life Chapter
         </div>
        {lifeSummary ? (
-  <div className="mt-2 text-sm text-white/80 leading-relaxed">
-    <span className="text-white/60 font-semibold">Life summary:</span>{" "}
+  <div className="mt-2 text-sm text-slate-900/80 leading-relaxed">
+    <span className="text-slate-500 font-semibold">Life summary:</span>{" "}
     {lifeSummary}
   </div>
 ) : null}
         {mindState ? (
-          <div className="mt-3 text-sm text-white/80 leading-relaxed">
-            <span className="text-white/60 font-semibold">What this feels like inside:</span>{" "}
+          <div className="mt-3 text-sm text-slate-900/80 leading-relaxed">
+            <span className="text-slate-500 font-semibold">What this feels like inside:</span>{" "}
             {mindState}
           </div>
         ) : null}
        {phaseTruth ? (
-  <div className="mt-3 text-sm text-white/80 leading-relaxed">
-    <span className="text-white/60 font-semibold">Truth of this phase:</span>{" "}
+  <div className="mt-3 text-sm text-slate-900/80 leading-relaxed">
+    <span className="text-slate-500 font-semibold">Truth of this phase:</span>{" "}
     {phaseTruth}
   </div>
 ) : null}
 
 {oneDecision ? (
-  <div className="mt-3 rounded-xl border border-white/10 bg-white/5/5 p-3">
-    <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+  <div className="mt-3 rounded-xl astro-card p-3">
+    <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
       The one decision that changes this phase
     </div>
-    <div className="mt-1 text-sm text-white/80 leading-relaxed">
+    <div className="mt-1 text-sm text-slate-900/80 leading-relaxed">
       {oneDecision}
     </div>
   </div>
 ) : null}
 {biggestMistake ? (
-  <div className="mt-3 rounded-xl border border-white/10 bg-white/5/5 p-3">
-    <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+  <div className="mt-3 rounded-xl astro-card p-3">
+    <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
       The mistake that will cost you the most in this phase
     </div>
-    <div className="mt-1 text-sm text-white/80 leading-relaxed">
+    <div className="mt-1 text-sm text-slate-900/80 leading-relaxed">
       {biggestMistake}
     </div>
   </div>
@@ -14121,30 +14121,30 @@ const turningPointsTitle =
                 : [];
 
               return (
-                <div key={i} className="rounded-xl border border-white/10 bg-white/5/5 p-4">
+                <div key={i} className="rounded-xl astro-card p-4">
                   <div className="text-sm font-semibold text-slate-100">
                     {domain}
                   </div>
 
                   {what ? (
-                    <div className="mt-2 text-sm text-white/80 leading-relaxed">
+                    <div className="mt-2 text-sm text-slate-900/80 leading-relaxed">
                       {what}
                     </div>
                   ) : null}
 
                   {feel ? (
-                    <div className="mt-2 text-xs text-white/70">
-                      <span className="text-white/60 font-semibold">How it feels:</span>{" "}
+                    <div className="mt-2 text-xs text-slate-900">
+                      <span className="text-slate-500 font-semibold">How it feels:</span>{" "}
                       {feel}
                     </div>
                   ) : null}
 
                   {events.length ? (
                     <div className="mt-3">
-                      <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+                      <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                         Likely events
                       </div>
-                      <ul className="mt-2 space-y-1 text-xs text-white/70">
+                      <ul className="mt-2 space-y-1 text-xs text-slate-900">
                         {events.slice(0, 3).map((x: string, j: number) => (
                           <li key={j}>• {x}</li>
                         ))}
@@ -14159,10 +14159,10 @@ const turningPointsTitle =
 
         {whyNow.length ? (
           <div className="mt-5">
-            <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+            <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
               Why this phase is active
             </div>
-            <ul className="mt-2 space-y-1 text-sm text-white/80">
+            <ul className="mt-2 space-y-1 text-sm text-slate-900/80">
               {whyNow.slice(0, 5).map((x: string, i: number) => (
                 <li key={i}>• {x}</li>
               ))}
@@ -14172,10 +14172,10 @@ const turningPointsTitle =
 
         {whatToDoNow.length ? (
           <div className="mt-5">
-            <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+            <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
               What this phase is asking from you
             </div>
-            <ul className="mt-2 space-y-1 text-sm text-white/80">
+            <ul className="mt-2 space-y-1 text-sm text-slate-900/80">
               {whatToDoNow.slice(0, 5).map((x: string, i: number) => (
                 <li key={i}>• {x}</li>
               ))}
@@ -14184,15 +14184,15 @@ const turningPointsTitle =
         ) : null}
       </div>
 {probabilities.length ? (
-  <div className="rounded-2xl border border-white/15 bg-white/5/5 p-5">
-    <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+  <div className="rounded-2xl border border-[color:var(--border)] bg-white/80 p-5">
+    <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
       Probability of Major Themes (Next 90 Days)
     </div>
 
     <div className="mt-3 space-y-2">
       {probabilities.slice(0, 5).map((p: any, i: number) => (
         <div key={i} className="flex items-center justify-between text-sm">
-          <span className="text-white/80">{p.label}</span>
+          <span className="text-slate-900/80">{p.label}</span>
           <span className="text-slate-100 font-semibold">
             {p.probability}%
           </span>
@@ -14203,30 +14203,30 @@ const turningPointsTitle =
 ) : null}
       {/* The Next Turn */}
       {nextShift ? (
-        <div className="rounded-2xl border border-white/15 bg-white/5/5 p-5">
+        <div className="rounded-2xl border border-[color:var(--border)] bg-white/80 p-5">
           <div className="flex items-center justify-between gap-3">
-            <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+            <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
               The Next Turn
             </div>
             {nextShift?.whenISO ? (
-              <div className="text-xs text-white/60">
+              <div className="text-xs text-slate-500">
                 {String(nextShift.whenISO).slice(0, 10)}
               </div>
             ) : null}
           </div>
 
           {nextShift?.whatChanges ? (
-            <div className="mt-2 text-sm text-white/80 leading-relaxed">
+            <div className="mt-2 text-sm text-slate-900/80 leading-relaxed">
               {String(nextShift.whatChanges)}
             </div>
           ) : null}
 
           {Array.isArray(nextShift?.watchFor) && nextShift.watchFor.length ? (
             <div className="mt-4">
-              <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+              <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                 What you will notice
               </div>
-              <ul className="mt-2 space-y-1 text-sm text-white/80">
+              <ul className="mt-2 space-y-1 text-sm text-slate-900/80">
                 {nextShift.watchFor.slice(0, 4).map((x: string, i: number) => (
                   <li key={i}>• {x}</li>
                 ))}
@@ -14235,10 +14235,10 @@ const turningPointsTitle =
           ) : null}
           {Array.isArray(nextShift?.realLifeScenarios) && nextShift.realLifeScenarios.length ? (
   <div className="mt-4">
-    <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+    <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
       What this may look like in real life
     </div>
-    <ul className="mt-2 space-y-1 text-sm text-white/80">
+    <ul className="mt-2 space-y-1 text-sm text-slate-900/80">
       {nextShift.realLifeScenarios.slice(0, 3).map((x: string, i: number) => (
         <li key={i}>• {x}</li>
       ))}
@@ -14248,10 +14248,10 @@ const turningPointsTitle =
 
           {Array.isArray(nextShift?.do) && nextShift.do.length ? (
             <div className="mt-4">
-              <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+              <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                 What to do
               </div>
-              <ul className="mt-2 space-y-1 text-sm text-white/80">
+              <ul className="mt-2 space-y-1 text-sm text-slate-900/80">
                 {nextShift.do.slice(0, 3).map((x: string, i: number) => (
                   <li key={i}>• {x}</li>
                 ))}
@@ -14261,37 +14261,37 @@ const turningPointsTitle =
         </div>
       ) : null}
       {mostLikelyNextEvent ? (
-  <div className="rounded-2xl border border-white/15 bg-white/5/5 p-5">
+  <div className="rounded-2xl border border-[color:var(--border)] bg-white/80 p-5">
     <div className="flex items-center justify-between gap-3">
-      <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+      <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
         {String(mostLikelyNextEvent.title ?? "The event most likely to happen next")}
       </div>
       {mostLikelyNextEvent?.whenISO ? (
-        <div className="text-xs text-white/60">
+        <div className="text-xs text-slate-500">
           {String(mostLikelyNextEvent.whenISO).slice(0, 10)}
         </div>
       ) : null}
     </div>
 
     {mostLikelyNextEvent?.event ? (
-      <div className="mt-2 text-sm text-white/80 leading-relaxed">
+      <div className="mt-2 text-sm text-slate-900/80 leading-relaxed">
         {String(mostLikelyNextEvent.event)}
       </div>
     ) : null}
 
     {mostLikelyNextEvent?.whyLikely ? (
-      <div className="mt-3 text-sm text-white/70 leading-relaxed">
-        <span className="text-white/60 font-semibold">Why this is likely:</span>{" "}
+      <div className="mt-3 text-sm text-slate-900 leading-relaxed">
+        <span className="text-slate-500 font-semibold">Why this is likely:</span>{" "}
         {String(mostLikelyNextEvent.whyLikely)}
       </div>
     ) : null}
 
     {Array.isArray(mostLikelyNextEvent?.signs) && mostLikelyNextEvent.signs.length ? (
       <div className="mt-4">
-        <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+        <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
           Signs it has started
         </div>
-        <ul className="mt-2 space-y-1 text-sm text-white/80">
+        <ul className="mt-2 space-y-1 text-sm text-slate-900/80">
           {mostLikelyNextEvent.signs.slice(0, 3).map((x: string, i: number) => (
             <li key={i}>• {x}</li>
           ))}
@@ -14300,27 +14300,27 @@ const turningPointsTitle =
     ) : null}
 
     {mostLikelyNextEvent?.bestResponse ? (
-      <div className="mt-4 text-sm text-white/80 leading-relaxed">
-        <span className="text-white/60 font-semibold">Best response:</span>{" "}
+      <div className="mt-4 text-sm text-slate-900/80 leading-relaxed">
+        <span className="text-slate-500 font-semibold">Best response:</span>{" "}
         {String(mostLikelyNextEvent.bestResponse)}
       </div>
     ) : null}
   </div>
 ) : null}
 {strategicFocus ? (
-  <div className="rounded-2xl border border-white/15 bg-white/5/5 p-5">
-    <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+  <div className="rounded-2xl border border-[color:var(--border)] bg-white/80 p-5">
+    <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
       {String(strategicFocus.title ?? "Your Strategic Focus for the Next 90 Days")}
     </div>
 
     {strategicFocus?.text ? (
-      <div className="mt-2 text-sm text-white/80 leading-relaxed">
+      <div className="mt-2 text-sm text-slate-900/80 leading-relaxed">
         {String(strategicFocus.text)}
       </div>
     ) : null}
 
     {Array.isArray(strategicFocus?.bullets) && strategicFocus.bullets.length ? (
-      <ul className="mt-4 space-y-1 text-sm text-white/80">
+      <ul className="mt-4 space-y-1 text-sm text-slate-900/80">
         {strategicFocus.bullets.slice(0, 3).map((x: string, i: number) => (
           <li key={i}>• {x}</li>
         ))}
@@ -14330,34 +14330,34 @@ const turningPointsTitle =
 ) : null}
       {/* Your Next 4 Weeks */}
       {weekly.length ? (
-        <div className="rounded-2xl border border-white/15 bg-white/5/5 p-5">
-          <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+        <div className="rounded-2xl border border-[color:var(--border)] bg-white/80 p-5">
+          <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
             Your Next 4 Weeks
           </div>
-          <div className="mt-2 text-sm text-white/70">
+          <div className="mt-2 text-sm text-slate-900">
             Read this as the weekly movement of the phase — where the pressure, clarity, and effort are likely to go.
           </div>
 
           <div className="mt-3 space-y-3">
             {weekly.slice(0, 4).map((w: any, i: number) => (
-              <div key={i} className="rounded-xl border border-white/10 bg-white/5/5 p-3">
+              <div key={i} className="rounded-xl astro-card p-3">
                 <div className="flex items-center justify-between gap-3">
                   <div className="text-sm font-semibold text-slate-100">
                     Week {w.week}
                   </div>
-                  <div className="text-xs text-white/60">{w.range}</div>
+                  <div className="text-xs text-slate-500">{w.range}</div>
                 </div>
 
-                <div className="mt-2 text-sm text-white/80 leading-relaxed">
+                <div className="mt-2 text-sm text-slate-900/80 leading-relaxed">
                   {w.focus}
                 </div>
 
-                <div className="mt-2 text-xs text-white/70">
-                  <span className="text-white/60 font-semibold">Do:</span>{" "}
+                <div className="mt-2 text-xs text-slate-900">
+                  <span className="text-slate-500 font-semibold">Do:</span>{" "}
                   {w.action}
                 </div>
-                <div className="mt-1 text-xs text-white/70">
-                  <span className="text-white/60 font-semibold">Avoid:</span>{" "}
+                <div className="mt-1 text-xs text-slate-900">
+                  <span className="text-slate-500 font-semibold">Avoid:</span>{" "}
                   {w.avoid}
                 </div>
               </div>
@@ -14368,18 +14368,18 @@ const turningPointsTitle =
 
       {/* Remedies */}
       {remedies ? (
-        <div className="rounded-2xl border border-white/15 bg-white/5/5 p-5">
-          <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+        <div className="rounded-2xl border border-[color:var(--border)] bg-white/80 p-5">
+          <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
             Remedies for This Phase
           </div>
-          <div className="mt-2 text-sm text-white/70">
+          <div className="mt-2 text-sm text-slate-900">
             These remedies are meant to reduce the pressure of this phase, steady the mind, and help you move through it with less friction.
           </div>
 
           {Array.isArray(remedies.immediate) && remedies.immediate.length ? (
             <div className="mt-4">
               <div className="text-sm font-semibold text-slate-100">Start today</div>
-              <ul className="mt-2 space-y-1 text-sm text-white/80">
+              <ul className="mt-2 space-y-1 text-sm text-slate-900/80">
                 {remedies.immediate.slice(0, 4).map((x: string, i: number) => (
                   <li key={i}>• {x}</li>
                 ))}
@@ -14390,7 +14390,7 @@ const turningPointsTitle =
           {Array.isArray(remedies.stabilizer30d) && remedies.stabilizer30d.length ? (
             <div className="mt-5">
               <div className="text-sm font-semibold text-slate-100">30-day stabilizer</div>
-              <ul className="mt-2 space-y-1 text-sm text-white/80">
+              <ul className="mt-2 space-y-1 text-sm text-slate-900/80">
                 {remedies.stabilizer30d.slice(0, 4).map((x: string, i: number) => (
                   <li key={i}>• {x}</li>
                 ))}
@@ -14401,7 +14401,7 @@ const turningPointsTitle =
           {Array.isArray(remedies.spiritual) && remedies.spiritual.length ? (
             <div className="mt-5">
               <div className="text-sm font-semibold text-slate-100">Spiritual support</div>
-              <ul className="mt-2 space-y-1 text-sm text-white/80">
+              <ul className="mt-2 space-y-1 text-sm text-slate-900/80">
                 {remedies.spiritual.slice(0, 4).map((x: string, i: number) => (
                   <li key={i}>• {x}</li>
                 ))}
@@ -14412,7 +14412,7 @@ const turningPointsTitle =
           {Array.isArray(remedies.avoid) && remedies.avoid.length ? (
             <div className="mt-5">
               <div className="text-sm font-semibold text-slate-100">Avoid for now</div>
-              <ul className="mt-2 space-y-1 text-sm text-white/80">
+              <ul className="mt-2 space-y-1 text-sm text-slate-900/80">
                 {remedies.avoid.slice(0, 3).map((x: string, i: number) => (
                   <li key={i}>• {x}</li>
                 ))}
@@ -14424,19 +14424,19 @@ const turningPointsTitle =
 
       {/* Ask Sarathi */}
       {chatPrompts.length ? (
-        <div className="rounded-2xl border border-white/15 bg-white/5/5 p-5">
-          <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+        <div className="rounded-2xl border border-[color:var(--border)] bg-white/80 p-5">
+          <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
             Ask Sārathi
           </div>
-          <div className="mt-2 text-sm text-white/70">
+          <div className="mt-2 text-sm text-slate-900">
             Use these when you want a direct answer on one area of life.
           </div>
 
           <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
             {chatPrompts.slice(0, 6).map((c: any, i: number) => (
-              <div key={i} className="rounded-xl border border-white/10 bg-white/5/5 p-3">
+              <div key={i} className="rounded-xl astro-card p-3">
                 <div className="text-sm font-semibold text-slate-100">{c.label}</div>
-                <div className="mt-1 text-xs text-white/70">{c.prompt}</div>
+                <div className="mt-1 text-xs text-slate-900">{c.prompt}</div>
               </div>
             ))}
           </div>

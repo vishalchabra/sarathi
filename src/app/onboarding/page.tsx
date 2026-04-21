@@ -237,7 +237,7 @@ export default function OnboardingPage() {
             </div>
 
             {suggestions.length > 0 && (
-              <div className="overflow-hidden rounded-2xl border border-white/10 bg-slate-950/80 backdrop-blur">
+              <div className="overflow-hidden rounded-2xl border border-[color:var(--border)] bg-slate-950/80 backdrop-blur">
                 {suggestions.map((s, idx) => {
                   const label = s?.name ?? "Unknown place";
                   const latN =
@@ -256,7 +256,7 @@ export default function OnboardingPage() {
                         e.preventDefault();
                         pickSuggestion(s);
                       }}
-                      className="w-full px-4 py-3 text-left hover:bg-white/5/5"
+                      className="w-full px-4 py-3 text-left hover:bg-slate-100"
                     >
                       <div className="text-sm text-slate-100">{label}</div>
                       <div className="text-xs text-slate-300/70">{meta}</div>

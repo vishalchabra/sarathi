@@ -3,7 +3,7 @@ import type { SunPack } from "@/server/astro/types";
 
 export function SunCard({ data }: { data: SunPack }) {
   return (
-    <div className="p-4 rounded-xl shadow bg-white/5 space-y-3">
+    <div className="p-4 rounded-xl shadow bg-white/80 space-y-3">
       <h2 className="text-xl font-bold">
         ☀ Sun — {data.natal.sign} • House {data.natal.house}
         {data.natal.nak ? ` • ${data.natal.nak.name} (p${data.natal.nak.pada})` : ""}

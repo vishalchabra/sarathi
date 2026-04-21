@@ -200,7 +200,7 @@ function LockingCityAutocomplete({
       {q && (
         <button
           type="button"
-          className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-white/70"
+          className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-slate-900"
           onMouseDown={(e) => e.preventDefault()}
           onClick={clearAll}
           aria-label="Clear"
@@ -216,10 +216,10 @@ function LockingCityAutocomplete({
           className="absolute z-20 mt-1 w-full rounded-md border bg-popover text-popover-foreground shadow"
         >
           {loading && (
-            <div className="px-3 py-2 text-sm text-white/70">Searching</div>
+            <div className="px-3 py-2 text-sm text-slate-900">Searching</div>
           )}
           {!loading && !items.length && (
-            <div className="px-3 py-2 text-sm text-white/70">No results</div>
+            <div className="px-3 py-2 text-sm text-slate-900">No results</div>
           )}
           {!loading &&
             items.map((it, i) => (
@@ -231,7 +231,7 @@ function LockingCityAutocomplete({
                 onClick={() => commit(it)}
               >
                 {it.name}
-                <span className="ml-2 text-xs text-white/70">
+                <span className="ml-2 text-xs text-slate-900">
                   {it.lat.toFixed(2)}, {it.lon.toFixed(2)}
                 </span>
               </button>
@@ -3586,7 +3586,7 @@ const fadeUpSmall: any = {
   },
 };
 const ACC_CARD =
-  "rounded-2xl border border-white/15 bg-indigo-950/60 backdrop-blur-sm shadow-lg shadow-[0_0_40px_rgba(99,102,241,0.10)]";
+  "rounded-2xl border border-[color:var(--border)] bg-indigo-950/60 backdrop-blur-sm shadow-lg shadow-[0_0_40px_rgba(99,102,241,0.10)]";
 
 const ACC_TEXT = "text-slate-100";
 const ACC_MUTED = "text-slate-300/80";
@@ -3608,7 +3608,7 @@ function toneColor(flag?: "caution" | "opportunity" | "mixed") {
     case "caution":
       return "bg-red-500/10 text-red-100 border border-red-400/25";
     default:
-      return "bg-white/5/5 text-white/70 border border-white/15";
+      return "bg-white/80 text-slate-900 border border-[color:var(--border)]";
   }
 }
 
@@ -3646,11 +3646,11 @@ function DashaBar({
     <div className="rounded-xl border border-muted-foreground/20 p-3 bg-muted/40">
       <div className="flex items-center justify-between text-xs mb-1">
         <div className="font-semibold">{label}</div>
-        <div className="text-white/70 tabular-nums">{rangeTxt}</div>
+        <div className="text-slate-900 tabular-nums">{rangeTxt}</div>
       </div>
 
       {subtitle ? (
-        <div className="text-xs text-white/70 mb-2">{subtitle}</div>
+        <div className="text-xs text-slate-900 mb-2">{subtitle}</div>
       ) : null}
 
       <div className="h-2 w-full rounded bg-muted overflow-hidden">
@@ -3660,7 +3660,7 @@ function DashaBar({
         />
       </div>
 
-      <div className="text-[11px] text-white/70 mt-1">
+      <div className="text-[11px] text-slate-900 mt-1">
         {pct.toFixed(1)}% complete
       </div>
     </div>
@@ -3703,7 +3703,7 @@ function renderAiTextBlocks(raw: string) {
     if (/^---+$/.test(line.trim())) {
       flushBullets();
       flushPara();
-      out.push(<hr key={`hr${k++}`} className="border-white/15" />);
+      out.push(<hr key={`hr${k++}`} className="border-[color:var(--border)]" />);
       continue;
     }
 
@@ -3825,7 +3825,7 @@ const TabTransits: React.FC<TabTransitsProps> = memo(
             <CardTitle className="text-lg font-semibold !text-slate-100">
               Today &amp; next few days
             </CardTitle>
-            <div className="text-xs text-white/70">
+            <div className="text-xs text-slate-900">
   Personalized from your natal Moon + current transits. 
 </div>
 
@@ -3834,7 +3834,7 @@ const TabTransits: React.FC<TabTransitsProps> = memo(
           <CardContent className="space-y-3">
             {/* Loading */}
             {dailyLoadingProp && (
-              <div className="rounded-xl border border-white/10 bg-white/5/5 px-3 py-2 text-xs text-white/70">
+              <div className="rounded-xl astro-card px-3 py-2 text-xs text-slate-900">
                 Loading next few days
               </div>
             )}
@@ -3848,7 +3848,7 @@ const TabTransits: React.FC<TabTransitsProps> = memo(
 
             {/* Empty */}
             {!dailyLoadingProp && !dailyErrorProp && visible.length === 0 && (
-              <div className="rounded-xl border border-white/10 bg-white/5/5 px-3 py-2 text-xs text-white/70">
+              <div className="rounded-xl astro-card px-3 py-2 text-xs text-slate-900">
                 No strong highlights for the next few days.
               </div>
             )}
@@ -3898,12 +3898,12 @@ const confClass =
     ? "border-emerald-400/25 bg-emerald-500/10 text-emerald-200"
     : conf === "low"
     ? "border-amber-400/25 bg-amber-500/10 text-amber-200"
-    : "border-indigo-400/25 bg-indigo-500/10 text-indigo-200";
+    : "border-indigo-400/25 bg-[color:var(--primary)]/10 text-indigo-200";
 
       return (
         <div
           key={dateISO || idx}
-          className="rounded-2xl border border-white/10 bg-white/5/5 p-4"
+          className="rounded-2xl astro-card p-4"
         >
           {/* Header */}
           <div className="flex items-start justify-between gap-3">
@@ -3912,7 +3912,7 @@ const confClass =
                 {cleanText(dateLabel)}
               </div>
               {dateISO && (
-                <div className="text-[11px] text-white/50">{dateISO}</div>
+                <div className="text-[11px] text-slate-900">{dateISO}</div>
               )}
             </div>
 
@@ -3975,7 +3975,7 @@ const confClass =
 
 
       {!redundant && (
-        <div className="mt-1 text-xs text-white/70">
+        <div className="mt-1 text-xs text-slate-900">
           {moodText}
         </div>
       )}
@@ -3991,7 +3991,7 @@ const confClass =
 
 {/* Theme (tiny) */}
 {(d as any)?.theme && (
-  <div className="mt-1 text-[11px] text-white/55">
+  <div className="mt-1 text-[11px] text-slate-900/55">
     Theme: {cleanText(String((d as any).theme))}
   </div>
 )}
@@ -4001,8 +4001,8 @@ const confClass =
           {(doList.length > 0 || avoidList.length > 0) && (
   <div className="mt-3 grid gap-3 md:grid-cols-2">
     {doList.length > 0 && (
-      <div className="rounded-xl border border-white/10 bg-white/5/5 p-3">
-        <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/60">
+      <div className="rounded-xl astro-card p-3">
+        <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
           Do
         </div>
         <ul className="mt-2 space-y-1 text-[12px] text-slate-200">
@@ -4014,8 +4014,8 @@ const confClass =
     )}
 
     {avoidList.length > 0 && (
-      <div className="rounded-xl border border-white/10 bg-white/5/5 p-3">
-        <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/60">
+      <div className="rounded-xl astro-card p-3">
+        <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
           Avoid
         </div>
         <ul className="mt-2 space-y-1 text-[12px] text-slate-200">
@@ -4031,8 +4031,8 @@ const confClass =
 {((d as any)?.color || (d as any)?.luckyNumber || (d as any)?.bestTime) && (
   <div className="mt-4 grid grid-cols-3 gap-3 text-center">
     {(d as any)?.color && (
-      <div className="rounded-lg border border-white/10 bg-white/5/5 p-2">
-        <div className="text-[11px] uppercase tracking-wide text-white/50">
+      <div className="rounded-lg astro-card p-2">
+        <div className="text-[11px] uppercase tracking-wide text-slate-900">
           Color
         </div>
         <div className="mt-1 text-sm font-semibold text-slate-100">
@@ -4042,8 +4042,8 @@ const confClass =
     )}
 
     {(d as any)?.luckyNumber && (
-      <div className="rounded-lg border border-white/10 bg-white/5/5 p-2">
-        <div className="text-[11px] uppercase tracking-wide text-white/50">
+      <div className="rounded-lg astro-card p-2">
+        <div className="text-[11px] uppercase tracking-wide text-slate-900">
           Supportive number
         </div>
         <div className="mt-1 text-sm font-semibold text-slate-100">
@@ -4053,8 +4053,8 @@ const confClass =
     )}
 
     {(d as any)?.bestTime && (
-      <div className="rounded-lg border border-white/10 bg-white/5/5 p-2">
-        <div className="text-[11px] uppercase tracking-wide text-white/50">
+      <div className="rounded-lg astro-card p-2">
+        <div className="text-[11px] uppercase tracking-wide text-slate-900">
           Best flow window
         </div>
         <div className="mt-1 text-sm font-semibold text-slate-100">
@@ -4111,7 +4111,7 @@ const TabMonthly: React.FC<TabMonthlyProps> = memo(
       </CardHeader>
       <CardContent className="text-sm space-y-3 text-slate-100">
         {loading && (
-          <div className="text-white/70">
+          <div className="text-slate-900">
             Building your 12-month overview
           </div>
         )}
@@ -4121,7 +4121,7 @@ const TabMonthly: React.FC<TabMonthlyProps> = memo(
         )}
 
         {!loading && !error && !hasData && (
-          <div className="text-white/70">
+          <div className="text-slate-900">
             12-month overview will appear here once transits are available.
           </div>
         )}
@@ -4136,7 +4136,7 @@ const TabMonthly: React.FC<TabMonthlyProps> = memo(
 
             {transitText && (
               <details className="mt-3">
-                <summary className="cursor-pointer text-xs text-white/70">
+                <summary className="cursor-pointer text-xs text-slate-900">
                   Show technical transit details
                 </summary>
                 <pre className="mt-2 text-[11px] whitespace-pre-wrap leading-relaxed">
@@ -4183,7 +4183,7 @@ const TabWeekly: React.FC<TabWeeklyProps> = memo(
           (mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2")
         }
       >
-        <Card className="rounded-2xl border border-white/15 bg-indigo-950/45 p-3">
+        <Card className="rounded-2xl border border-[color:var(--border)] bg-indigo-950/45 p-3">
 
           <CardHeader>
             <CardTitle className="text-xl font-semibold">
@@ -4192,7 +4192,7 @@ const TabWeekly: React.FC<TabWeeklyProps> = memo(
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
             {loading && (
-              <div className="text-white/70">
+              <div className="text-slate-900">
                 Building your weekly guidance...
               </div>
             )}
@@ -4202,7 +4202,7 @@ const TabWeekly: React.FC<TabWeeklyProps> = memo(
             )}
 
             {!loading && !error && weeklyInsights.length === 0 && (
-              <div className="text-white/70">
+              <div className="text-slate-900">
                 Weekly guidance will appear here once transits are available.
               </div>
             )}
@@ -4405,15 +4405,15 @@ const TabDailyGuide: React.FC<{
       )}
 
       {/* Snapshot */}
-      <div className="rounded-2xl border border-white/15 bg-indigo-950/40 p-4">
-        <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+      <div className="rounded-2xl border border-[color:var(--border)] bg-indigo-950/40 p-4">
+        <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
           Sarathi Snapshot  {todayLabel}
         </div>
         <div className="mt-1 text-lg font-semibold text-slate-100">
           {emotional?.headline ||
             "Today favours calm, conscious choices over impulsive moves."}
         </div>
-        <p className="mt-2 text-sm text-white/70">
+        <p className="mt-2 text-sm text-slate-900">
           {emotional?.summary ||
             "You dont have to solve everything today. Choose one priority and move steadily."}
         </p>
@@ -4476,12 +4476,12 @@ const TabDailyGuide: React.FC<{
           {foodTitle}
         </div>
 
-        <p className="mt-2 text-xs text-white/70 leading-relaxed">
+        <p className="mt-2 text-xs text-slate-900 leading-relaxed">
           {foodText}
         </p>
 
         {foodSuggestions.length > 0 && (
-          <ul className="mt-3 list-disc pl-4 text-xs text-white/70 space-y-1">
+          <ul className="mt-3 list-disc pl-4 text-xs text-slate-900 space-y-1">
             {foodSuggestions.slice(0, 5).map((s, i) => (
               <li key={i}>{String(s)}</li>
             ))}
@@ -4499,12 +4499,12 @@ const TabDailyGuide: React.FC<{
           {fastingTitle}
         </div>
 
-        <p className="mt-2 text-xs text-white/70 leading-relaxed">
+        <p className="mt-2 text-xs text-slate-900 leading-relaxed">
           {fastingText}
         </p>
 
         {fastingIsGoodDay !== null && (
-          <div className="mt-3 inline-flex rounded-full bg-white/5/10 px-2 py-1 text-[11px] font-medium text-amber-200">
+          <div className="mt-3 inline-flex rounded-full bg-white/80/10 px-2 py-1 text-[11px] font-medium text-amber-200">
             {fastingIsGoodDay
               ? "Supportive day for fasting"
               : "Not a strong day for full fasting  choose lightness instead."}
@@ -4513,8 +4513,8 @@ const TabDailyGuide: React.FC<{
       </div>
 
       {/* Money */}
-      <div className="rounded-2xl border border-white/15 bg-white/5/5 p-4">
-        <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+      <div className="rounded-2xl border border-[color:var(--border)] bg-white/80 p-4">
+        <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
           Money
         </div>
 
@@ -4522,12 +4522,12 @@ const TabDailyGuide: React.FC<{
           {moneyTitle}
         </div>
 
-        <p className="mt-2 text-xs text-white/70 leading-relaxed">
+        <p className="mt-2 text-xs text-slate-900 leading-relaxed">
           {moneyText}
         </p>
 
         {moneyDo.length > 0 && (
-          <div className="mt-3 text-xs text-white/70">
+          <div className="mt-3 text-xs text-slate-900">
             <div className="text-[11px] font-semibold text-slate-100">Do</div>
             <ul className="mt-2 list-disc pl-4 space-y-1">
               {moneyDo.slice(0, 3).map((s, i) => (
@@ -4543,7 +4543,7 @@ const TabDailyGuide: React.FC<{
 
       {/* Loading */}
       {dailyLoading && (
-        <div className="text-sm text-white/60">Loading next few days</div>
+        <div className="text-sm text-slate-500">Loading next few days</div>
       )}
     </div>
   );
@@ -5428,47 +5428,47 @@ const parsedFusion: any = (() => {
   if (!report) {
     return (
       <div className="space-y-6">
-        <div className="rounded-2xl border border-white/15 bg-white/5/5 p-4">
-          <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+        <div className="rounded-2xl border border-[color:var(--border)] bg-white/80 p-4">
+          <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
             Advanced - Your deeper map
           </div>
-          <div className="mt-1 text-sm text-white/70">
+          <div className="mt-1 text-sm text-slate-900">
             Enter your birth details above and click{" "}
-            <span className="text-white/90 font-semibold">
+            <span className="text-slate-900/90 font-semibold">
               Generate / Refresh Report
             </span>{" "}
             to unlock Advanced insights.
           </div>
         </div>
 
-        <div className="rounded-2xl border border-white/15 bg-indigo-950/40 p-5 backdrop-blur-md shadow-xl shadow-[0_0_30px_rgba(99,102,241,0.10)]">
-          <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+        <div className="rounded-2xl border border-[color:var(--border)] bg-indigo-950/40 p-5 backdrop-blur-md shadow-xl shadow-[0_0_30px_rgba(99,102,241,0.10)]">
+          <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
             What youll get here
           </div>
-          <div className="mt-2 text-sm text-white/80 leading-relaxed">
+          <div className="mt-2 text-sm text-slate-900/80 leading-relaxed">
             Once generated, this tab shows your chart-backed decision layer:
           </div>
          {topToday.length > 0 ? (
   <div className="mt-3 flex flex-wrap gap-2">
     {topToday.map((t: any, i: number) => (
-      <span key={(t?.id ?? i) as any} className="rounded-full border border-white/15 bg-white/5/5 px-3 py-1 text-[11px] text-white/80">
+      <span key={(t?.id ?? i) as any} className="rounded-full border border-[color:var(--border)] bg-white/80 px-3 py-1 text-[11px] text-slate-900/80">
         {formatTransitChip(t)}
       </span>
     ))}
   </div>
 ) : nextUpcoming.length > 0 ? (
   <div className="mt-3">
-    <div className="text-xs text-white/60 mb-2">No strong transits active today. Next up:</div>
+    <div className="text-xs text-slate-500 mb-2">No strong transits active today. Next up:</div>
     <div className="flex flex-wrap gap-2">
       {nextUpcoming.map((t: any, i: number) => (
-        <span key={(t?.id ?? i) as any} className="rounded-full border border-white/15 bg-white/5/5 px-3 py-1 text-[11px] text-white/80">
+        <span key={(t?.id ?? i) as any} className="rounded-full border border-[color:var(--border)] bg-white/80 px-3 py-1 text-[11px] text-slate-900/80">
           {formatTransitChip(t)}
         </span>
       ))}
     </div>
   </div>
 ) : (
-  <div className="mt-3 text-xs text-white/60">
+  <div className="mt-3 text-xs text-slate-500">
     No transit windows available (backend returned none).
   </div>
 )}
@@ -5482,14 +5482,14 @@ const parsedFusion: any = (() => {
             ].map((t) => (
               <div
                 key={t}
-                className="rounded-xl border border-white/10 bg-white/5/5 p-3 text-sm text-white/80"
+                className="rounded-xl astro-card p-3 text-sm text-slate-900/80"
               >
                 {t}
               </div>
             ))}
           </div>
 
-          <div className="mt-4 text-xs text-white/60">
+          <div className="mt-4 text-xs text-slate-500">
             Tip: If you see old data, change any input slightly (time/place) and regenerate.
           </div>
         </div>
@@ -5504,8 +5504,8 @@ console.log("[TabAdvanced] report.transits len:", Array.isArray((r as any)?.tran
 
 console.log("[TabAdvanced] planets[0]", report?.planets?.[0]);
 {/* � TODAYS STRONG TRANSITS (from /api/transits) */}
-<div className="rounded-2xl border border-white/15 bg-white/5/5 p-5">
-  <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+<div className="rounded-2xl border border-[color:var(--border)] bg-white/80 p-5">
+  <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
     Todays strong transits
   </div>
 
@@ -5514,14 +5514,14 @@ console.log("[TabAdvanced] planets[0]", report?.planets?.[0]);
       {topToday.map((t: any, i: number) => (
         <span
           key={(t?.id ?? i) as any}
-          className="rounded-full border border-white/15 bg-white/5/5 px-3 py-1 text-[11px] text-white/80"
+          className="rounded-full border border-[color:var(--border)] bg-white/80 px-3 py-1 text-[11px] text-slate-900/80"
         >
           {formatTransitChip(t)}
         </span>
       ))}
     </div>
   ) : (
-    <div className="mt-3 text-xs text-white/60">
+    <div className="mt-3 text-xs text-slate-500">
       No strong transits active today.
     </div>
   )}
@@ -5579,8 +5579,8 @@ const moonHouse =
     title,
     children,
   }) => (
-    <div className="overflow-hidden rounded-2xl border border-white/15 bg-indigo-950/40 p-4 backdrop-blur-md shadow-xl shadow-[0_0_30px_rgba(99,102,241,0.10)]">
-      <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+    <div className="overflow-hidden rounded-2xl border border-[color:var(--border)] bg-indigo-950/40 p-4 backdrop-blur-md shadow-xl shadow-[0_0_30px_rgba(99,102,241,0.10)]">
+      <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
         {title}
       </div>
       <div className="mt-3">{children}</div>
@@ -5860,8 +5860,8 @@ if (Number.isFinite(moonHouseN) && moonHouseN >= 1 && moonHouseN <= 12) {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="rounded-2xl border border-white/15 bg-white/5/5 p-4">
-        <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+      <div className="rounded-2xl border border-[color:var(--border)] bg-white/80 p-4">
+        <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
           {isPro ? "Advanced Pro - Decision intelligence" : "Advanced - Preview"}
         </div>
 
@@ -5871,7 +5871,7 @@ if (Number.isFinite(moonHouseN) && moonHouseN >= 1 && moonHouseN <= 12) {
             : "A glimpse of your deeper map  unlock to see the full decision layer."}
         </div>
 
-        <div className="mt-1 text-sm text-white/70">
+        <div className="mt-1 text-sm text-slate-900">
           {isPro
             ? "Everything shown below is anchored in your report data. Full Plan adds exact dated windows + day-by-day guidance."
             : "Upgrade to Advanced Pro to unlock chart-specific activations, dasha - transit clarity, and your operating playbook."}
@@ -5881,7 +5881,7 @@ if (Number.isFinite(moonHouseN) && moonHouseN >= 1 && moonHouseN <= 12) {
       {/* If NOT Pro: show a strong, tempting paywall section (no generic filler) */}
       {!isPro ? (
         <Locked title="What Advanced Pro unlocks">
-          <div className="text-sm text-white/80 leading-relaxed">
+          <div className="text-sm text-slate-900/80 leading-relaxed">
             Youll unlock three things that make Sarathi feel real:
           </div>
 
@@ -5902,12 +5902,12 @@ if (Number.isFinite(moonHouseN) && moonHouseN >= 1 && moonHouseN <= 12) {
             ].map((x) => (
               <div
                 key={x.h}
-                className="rounded-xl border border-white/10 bg-white/5/5 p-3"
+                className="rounded-xl astro-card p-3"
               >
-                <div className="text-xs font-semibold uppercase tracking-wide text-white/70">
+                <div className="text-xs font-semibold uppercase tracking-wide text-slate-900">
                   {x.h}
                 </div>
-                <div className="mt-2 text-sm text-white/80 leading-relaxed">
+                <div className="mt-2 text-sm text-slate-900/80 leading-relaxed">
                   {x.b}
                 </div>
               </div>
@@ -5921,7 +5921,7 @@ if (Number.isFinite(moonHouseN) && moonHouseN >= 1 && moonHouseN <= 12) {
             <Link href="/sarathi/chat" className="w-full sm:w-auto">
               <Button
                 variant="outline"
-                className="w-full sm:w-auto border-white/20 hover:bg-white/5/10 text-white"
+                className="w-full sm:w-auto border-white/20 hover:bg-white/80 hover:shadow-md text-slate-900"
               >
                 Ask Sarathi
               </Button>
@@ -5935,11 +5935,11 @@ if (Number.isFinite(moonHouseN) && moonHouseN >= 1 && moonHouseN <= 12) {
         <>
           {/* Current activations */}
           <Locked title="Current activations (chart-specific)">
-            <div className="text-sm text-white/80 leading-relaxed">
+            <div className="text-sm text-slate-900/80 leading-relaxed">
               This is what your chart is emphasizing right now - kept clean, factual, and usable.
             </div>
 
-            <ul className="mt-3 list-disc pl-5 text-sm text-white/75 space-y-2">
+            <ul className="mt-3 list-disc pl-5 text-sm text-slate-900/75 space-y-2">
               {activationBullets.length ? (
                 activationBullets.map((s, i) => <li key={i}>{s}</li>)
               ) : (
@@ -5949,14 +5949,14 @@ if (Number.isFinite(moonHouseN) && moonHouseN >= 1 && moonHouseN <= 12) {
               )}
             </ul>
 
-            <div className="mt-3 text-xs text-white/60">
+            <div className="mt-3 text-xs text-slate-500">
               Full Plan adds: degree-precise hits + exact date windows for each activation.
             </div>
           </Locked>
 {/* 0) TAKEAWAY (the click moment) */}
 <Locked title="Now and near future (paid guidance)">
   {!plan ? (
-  <div className="text-sm text-white/70">
+  <div className="text-sm text-slate-900">
     Near-future plan is not available yet. Please regenerate.
   </div>
 ) : (
@@ -5966,8 +5966,8 @@ if (Number.isFinite(moonHouseN) && moonHouseN >= 1 && moonHouseN <= 12) {
       </div>
 
       {/* NOW 3 DAYS (Upgraded) */}
-<div className="rounded-2xl border border-white/10 bg-white/5/5 p-4">
-  <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+<div className="rounded-2xl astro-card p-4">
+  <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
     Now and next 3 days
   </div>
 
@@ -5975,9 +5975,9 @@ if (Number.isFinite(moonHouseN) && moonHouseN >= 1 && moonHouseN <= 12) {
   {Array.isArray(plan.now3Days.focusAreas) && plan.now3Days.focusAreas.length > 0 && (
     <div className="mt-3 grid gap-2 md:grid-cols-2">
       {plan.now3Days.focusAreas.slice(0, 6).map((a: any, i: number) => (
-        <div key={i} className="rounded-xl border border-white/10 bg-white/5/5 p-3">
-          <div className="text-sm font-semibold text-white/90">{a?.area}</div>
-          <div className="mt-1 text-xs text-white/70">{a.why}</div>
+        <div key={i} className="rounded-xl astro-card p-3">
+          <div className="text-sm font-semibold text-slate-900/90">{a?.area}</div>
+          <div className="mt-1 text-xs text-slate-900">{a.why}</div>
         </div>
       ))}
     </div>
@@ -5987,10 +5987,10 @@ if (Number.isFinite(moonHouseN) && moonHouseN >= 1 && moonHouseN <= 12) {
   {(!Array.isArray(plan.now3Days.focusAreas) || plan.now3Days.focusAreas.length === 0) &&
     Array.isArray(plan.now3Days.themes) && plan.now3Days.themes.length > 0 && (
       <div className="mt-4">
-        <div className="text-[11px] font-semibold uppercase tracking-wide text-white/60">
+        <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
           Themes (keep simple)
         </div>
-        <ul className="mt-2 list-disc pl-5 text-sm text-white/85">
+        <ul className="mt-2 list-disc pl-5 text-sm text-slate-900/85">
           {plan.now3Days.themes.slice(0, 4).map((x: string, i: number) => (
             <li key={i}>{x}</li>
           ))}
@@ -6001,10 +6001,10 @@ if (Number.isFinite(moonHouseN) && moonHouseN >= 1 && moonHouseN <= 12) {
   {/* Likely scenarios */}
   {Array.isArray(plan.now3Days.likelyScenarios) && plan.now3Days.likelyScenarios.length > 0 && (
     <div className="mt-4">
-      <div className="text-[11px] font-semibold uppercase tracking-wide text-white/60">
+      <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
         Likely scenarios (what may show up)
       </div>
-      <ul className="mt-2 list-disc pl-5 text-sm text-white/85">
+      <ul className="mt-2 list-disc pl-5 text-sm text-slate-900/85">
         {plan.now3Days.likelyScenarios.slice(0, 5).map((x: string, i: number) => (
           <li key={i}>{x}</li>
         ))}
@@ -6018,7 +6018,7 @@ if (Number.isFinite(moonHouseN) && moonHouseN >= 1 && moonHouseN <= 12) {
       <div className="text-[11px] font-semibold uppercase tracking-wide text-emerald-100/90">
         Do now
       </div>
-      <ul className="mt-2 list-disc pl-5 text-sm text-white/85">
+      <ul className="mt-2 list-disc pl-5 text-sm text-slate-900/85">
         {(plan.now3Days.do ?? []).slice(0, 4).map((x: string, i: number) => (
           <li key={i}>{x}</li>
         ))}
@@ -6029,7 +6029,7 @@ if (Number.isFinite(moonHouseN) && moonHouseN >= 1 && moonHouseN <= 12) {
       <div className="text-[11px] font-semibold uppercase tracking-wide text-red-100/90">
         Don't do
       </div>
-      <ul className="mt-2 list-disc pl-5 text-sm text-white/85">
+      <ul className="mt-2 list-disc pl-5 text-sm text-slate-900/85">
         {(plan.now3Days.avoid ?? []).slice(0, 4).map((x: string, i: number) => (
           <li key={i}>{x}</li>
         ))}
@@ -6039,11 +6039,11 @@ if (Number.isFinite(moonHouseN) && moonHouseN >= 1 && moonHouseN <= 12) {
 
   {/* 10-min reset */}
   {Array.isArray(plan.now3Days.remedies) && plan.now3Days.remedies.length > 0 && (
-    <div className="mt-4 rounded-xl border border-white/10 bg-indigo-950/40 p-3">
-      <div className="text-[11px] font-semibold uppercase tracking-wide text-white/60">
+    <div className="mt-4 rounded-xl border border-[color:var(--border)] bg-indigo-950/40 p-3">
+      <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
         10-minute reset (optional)
       </div>
-      <ul className="mt-2 list-disc pl-5 text-sm text-white/85">
+      <ul className="mt-2 list-disc pl-5 text-sm text-slate-900/85">
         {plan.now3Days.remedies.slice(0, 3).map((x: string, i: number) => (
           <li key={i}>{x}</li>
         ))}
@@ -6053,17 +6053,17 @@ if (Number.isFinite(moonHouseN) && moonHouseN >= 1 && moonHouseN <= 12) {
 </div>
 
       {/* NEXT 14 DAYS */}
-      <div className="rounded-2xl border border-white/10 bg-white/5/5 p-4">
-        <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+      <div className="rounded-2xl astro-card p-4">
+        <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
           Next 14 days
         </div>
 
         {Array.isArray(plan.next14Days.areasActivated) && plan.next14Days.areasActivated.length > 0 && (
           <div className="mt-3 grid gap-2 md:grid-cols-2">
             {plan.next14Days.areasActivated.slice(0, 6).map((a: any, i: number) => (
-              <div key={i} className="rounded-xl border border-white/10 bg-white/5/5 p-3">
-                <div className="text-sm font-semibold text-white/90">{a?.area}</div>
-                <div className="mt-1 text-xs text-white/70">{a.why}</div>
+              <div key={i} className="rounded-xl astro-card p-3">
+                <div className="text-sm font-semibold text-slate-900/90">{a?.area}</div>
+                <div className="mt-1 text-xs text-slate-900">{a.why}</div>
               </div>
             ))}
           </div>
@@ -6071,10 +6071,10 @@ if (Number.isFinite(moonHouseN) && moonHouseN >= 1 && moonHouseN <= 12) {
 
         {Array.isArray(plan.next14Days.likelyScenarios) && plan.next14Days.likelyScenarios.length > 0 && (
           <div className="mt-4">
-            <div className="text-[11px] font-semibold uppercase tracking-wide text-white/60">
+            <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
               Likely scenarios
             </div>
-            <ul className="mt-2 list-disc pl-5 text-sm text-white/85">
+            <ul className="mt-2 list-disc pl-5 text-sm text-slate-900/85">
               {plan.next14Days.likelyScenarios.slice(0, 8).map((x: string, i: number) => (
                 <li key={i}>{x}</li>
               ))}
@@ -6084,10 +6084,10 @@ if (Number.isFinite(moonHouseN) && moonHouseN >= 1 && moonHouseN <= 12) {
 
         {Array.isArray(plan.next14Days.steeringPlan) && plan.next14Days.steeringPlan.length > 0 && (
           <div className="mt-4">
-            <div className="text-[11px] font-semibold uppercase tracking-wide text-white/60">
+            <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
               Steering plan
             </div>
-            <ul className="mt-2 list-disc pl-5 text-sm text-white/85">
+            <ul className="mt-2 list-disc pl-5 text-sm text-slate-900/85">
               {plan.next14Days.steeringPlan.slice(0, 8).map((x: string, i: number) => (
                 <li key={i}>{x}</li>
               ))}
@@ -6096,15 +6096,15 @@ if (Number.isFinite(moonHouseN) && moonHouseN >= 1 && moonHouseN <= 12) {
         )}
 
         {Array.isArray(plan.next14Days.timing) && plan.next14Days.timing.length > 0 && (
-          <div className="mt-4 rounded-xl border border-white/10 bg-white/5/5 p-3">
-            <div className="text-[11px] font-semibold uppercase tracking-wide text-white/60">
+          <div className="mt-4 rounded-xl astro-card p-3">
+            <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
               Timing windows
             </div>
-            <div className="mt-2 space-y-2 text-sm text-white/85">
+            <div className="mt-2 space-y-2 text-sm text-slate-900/85">
               {plan.next14Days.timing.slice(0, 6).map((t: any, i: number) => (
                 <div key={i}>
-                  <span className="text-white/90 font-semibold">{t.window}</span>
-                  <span className="text-white/70">  {t.note}</span>
+                  <span className="text-slate-900/90 font-semibold">{t.window}</span>
+                  <span className="text-slate-900">  {t.note}</span>
                 </div>
               ))}
             </div>
@@ -6112,15 +6112,15 @@ if (Number.isFinite(moonHouseN) && moonHouseN >= 1 && moonHouseN <= 12) {
         )}
 
         {Array.isArray(plan?.next14Days?.remedies) && plan.next14Days.remedies.length > 0 && (
-          <div className="mt-4 text-xs text-white/70">
+          <div className="mt-4 text-xs text-slate-900">
             Remedies: {plan.next14Days.remedies.slice(0, 3).join(" - ")}
           </div>
         )}
       </div>
 
      {/* NEXT 30 DAYS (Upgraded) */}
-<div className="rounded-2xl border border-white/10 bg-white/5/5 p-4">
-  <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+<div className="rounded-2xl astro-card p-4">
+  <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
     Next 30 days
   </div>
 
@@ -6128,9 +6128,9 @@ if (Number.isFinite(moonHouseN) && moonHouseN >= 1 && moonHouseN <= 12) {
   {Array.isArray(plan.next30Days.areasActivated) && plan.next30Days.areasActivated.length > 0 && (
     <div className="mt-3 grid gap-2 md:grid-cols-2">
       {plan.next30Days.areasActivated.slice(0, 6).map((a: any, i: number) => (
-        <div key={i} className="rounded-xl border border-white/10 bg-white/5/5 p-3">
-          <div className="text-sm font-semibold text-white/90">{a?.area}</div>
-          <div className="mt-1 text-xs text-white/70">{a?.why}</div>
+        <div key={i} className="rounded-xl astro-card p-3">
+          <div className="text-sm font-semibold text-slate-900/90">{a?.area}</div>
+          <div className="mt-1 text-xs text-slate-900">{a?.why}</div>
         </div>
       ))}
     </div>
@@ -6140,16 +6140,16 @@ if (Number.isFinite(moonHouseN) && moonHouseN >= 1 && moonHouseN <= 12) {
   {Array.isArray(plan.next30Days.runway) && plan.next30Days.runway.length > 0 && (
     <div className="mt-4 grid gap-3 md:grid-cols-3">
       {plan.next30Days.runway.slice(0, 3).map((p: any, i: number) => (
-        <div key={i} className="rounded-xl border border-white/10 bg-indigo-950/40 p-3">
-          <div className="text-[11px] font-semibold uppercase tracking-wide text-white/60">
+        <div key={i} className="rounded-xl border border-[color:var(--border)] bg-indigo-950/40 p-3">
+          <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
             {p.label || (i === 0 ? "Weeks 12" : i === 1 ? "Weeks 34" : "By day 30")}
           </div>
-          <div className="mt-2 text-sm text-white/85 leading-relaxed">
+          <div className="mt-2 text-sm text-slate-900/85 leading-relaxed">
             {p.focus}
           </div>
 
           {Array.isArray(p.likely) && p.likely.length > 0 ? (
-            <ul className="mt-2 list-disc pl-5 text-sm text-white/80 space-y-1">
+            <ul className="mt-2 list-disc pl-5 text-sm text-slate-900/80 space-y-1">
               {p.likely.slice(0, 3).map((x: string, j: number) => (
                 <li key={j}>{x}</li>
               ))}
@@ -6166,7 +6166,7 @@ if (Number.isFinite(moonHouseN) && moonHouseN >= 1 && moonHouseN <= 12) {
       <div className="text-[11px] font-semibold uppercase tracking-wide text-emerald-100/90">
         Priority wins
       </div>
-      <ul className="mt-2 list-disc pl-5 text-sm text-white/85">
+      <ul className="mt-2 list-disc pl-5 text-sm text-slate-900/85">
         {(plan.next30Days.priorityWins ?? []).slice(0, 4).map((x: string, i: number) => (
           <li key={i}>{x}</li>
         ))}
@@ -6177,18 +6177,18 @@ if (Number.isFinite(moonHouseN) && moonHouseN >= 1 && moonHouseN <= 12) {
       <div className="text-[11px] font-semibold uppercase tracking-wide text-red-100/90">
         Watch-outs
       </div>
-      <ul className="mt-2 list-disc pl-5 text-sm text-white/85">
+      <ul className="mt-2 list-disc pl-5 text-sm text-slate-900/85">
         {(plan.next30Days?.watchouts ?? []).slice(0, 4).map((x: string, i: number) => (
           <li key={i}>{x}</li>
         ))}
       </ul>
     </div>
 
-    <div className="rounded-xl border border-white/10 bg-white/5/5 p-3">
-      <div className="text-[11px] font-semibold uppercase tracking-wide text-white/60">
+    <div className="rounded-xl astro-card p-3">
+      <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
         System to install
       </div>
-      <ul className="mt-2 list-disc pl-5 text-sm text-white/85">
+      <ul className="mt-2 list-disc pl-5 text-sm text-slate-900/85">
         {(plan.next30Days?.systemToInstall ?? []).slice(0, 4).map((x: string, i: number) => (
           <li key={i}>{x}</li>
         ))}
@@ -6198,14 +6198,14 @@ if (Number.isFinite(moonHouseN) && moonHouseN >= 1 && moonHouseN <= 12) {
 </div>
 
       {/* EVIDENCE */}
-<div className="text-xs text-white/60">
+<div className="text-xs text-slate-500">
   Phase: {plan.evidence.phase || "-"}
 </div>
 
 {/* TRANSIT TRIGGERS */}
 {Array.isArray(plan?.evidence?.transitsUsed) && plan.evidence.transitsUsed.length > 0 && (
   <div className="mt-2">
-    <div className="text-[11px] font-semibold uppercase tracking-wide text-white/50">
+    <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-900">
       Transit triggers (windows)
     </div>
 
@@ -6213,7 +6213,7 @@ if (Number.isFinite(moonHouseN) && moonHouseN >= 1 && moonHouseN <= 12) {
       {plan.evidence.transitsUsed.slice(0, 8).map((x: string, i: number) => (
         <span
           key={i}
-          className="rounded-full border border-white/15 bg-white/5/5 px-2 py-1 text-[11px] text-white/80"
+          className="rounded-full border border-[color:var(--border)] bg-white/80 px-2 py-1 text-[11px] text-slate-900/80"
         >
           {x}
         </span>
@@ -6225,7 +6225,7 @@ if (Number.isFinite(moonHouseN) && moonHouseN >= 1 && moonHouseN <= 12) {
 {/* NATAL ANCHORS */}
 {Array.isArray(plan.evidence.anchorsUsed) && plan.evidence.anchorsUsed.length > 0 && (
   <div className="mt-3">
-    <div className="text-[11px] font-semibold uppercase tracking-wide text-white/50">
+    <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-900">
       Natal anchors (your chart)
     </div>
 
@@ -6233,7 +6233,7 @@ if (Number.isFinite(moonHouseN) && moonHouseN >= 1 && moonHouseN <= 12) {
       {plan.evidence.anchorsUsed.slice(0, 10).map((x: string, i: number) => (
         <span
           key={i}
-          className="rounded-full border border-white/15 bg-indigo-950/30 px-2 py-1 text-[11px] text-white/70"
+          className="rounded-full border border-[color:var(--border)] bg-indigo-950/30 px-2 py-1 text-[11px] text-slate-900"
         >
           {x}
         </span>
@@ -6242,33 +6242,33 @@ if (Number.isFinite(moonHouseN) && moonHouseN >= 1 && moonHouseN <= 12) {
   </div>
 )}
 
-<div className="text-sm text-white/80">{plan.closing}</div>
+<div className="text-sm text-slate-900/80">{plan.closing}</div>
 </div>
 )}
 </Locked>
 
           {/* 1) WHY THIS PHASE FEELS LIKE THIS */}
 <Locked title="Why this phase feels the way it does">
-  <div className="text-sm text-white/80 leading-relaxed">
+  <div className="text-sm text-slate-900/80 leading-relaxed">
     This is the current weather of your chart - explained plainly, without fear language.
   </div>
 
-  <ul className="mt-3 list-disc pl-5 text-sm text-white/75 space-y-2">
+  <ul className="mt-3 list-disc pl-5 text-sm text-slate-900/75 space-y-2">
     {why.bullets.map((b, i) => (
       <li key={i}>{b}</li>
     ))}
   </ul>
 
   {why.evidence.length ? (
-    <div className="mt-4 rounded-xl border border-white/10 bg-white/5/5 p-3">
-      <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+    <div className="mt-4 rounded-xl astro-card p-3">
+      <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
         Based on your chart
       </div>
       <div className="mt-2 flex flex-wrap gap-2">
         {why.evidence.map((e, i) => (
           <span
             key={i}
-            className="rounded-full border border-white/15 bg-white/5/5 px-2 py-1 text-[11px] text-white/70"
+            className="rounded-full border border-[color:var(--border)] bg-white/80 px-2 py-1 text-[11px] text-slate-900"
           >
             {e}
           </span>
@@ -6280,15 +6280,15 @@ if (Number.isFinite(moonHouseN) && moonHouseN >= 1 && moonHouseN <= 12) {
 
 {/* 2) YOUR CURRENT OPERATING MODE */}
 <Locked title="Your operating mode (how you function best right now)">
-  <div className="text-sm text-white/85 leading-relaxed">{operatingMode}</div>
+  <div className="text-sm text-slate-900/85 leading-relaxed">{operatingMode}</div>
 </Locked>
 
           {/* Decision Playbook (less generic framing, more operating manual) */}
-          <div className="rounded-2xl border border-white/15 bg-indigo-950/40 p-4 backdrop-blur-md shadow-xl shadow-[0_0_30px_rgba(99,102,241,0.10)]">
-            <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+          <div className="rounded-2xl border border-[color:var(--border)] bg-indigo-950/40 p-4 backdrop-blur-md shadow-xl shadow-[0_0_30px_rgba(99,102,241,0.10)]">
+            <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
               Your decision playbook (right now)
             </div>
-            <div className="mt-1 text-sm text-white/70">
+            <div className="mt-1 text-sm text-slate-900">
               This is how to work with your current cycle, not against it.
             </div>
 
@@ -6297,7 +6297,7 @@ if (Number.isFinite(moonHouseN) && moonHouseN >= 1 && moonHouseN <= 12) {
                 <div className="text-xs font-semibold uppercase tracking-wide text-emerald-200">
                   Do more of this
                 </div>
-                <ul className="mt-2 list-disc pl-4 text-xs text-white/80 space-y-1">
+                <ul className="mt-2 list-disc pl-4 text-xs text-slate-900/80 space-y-1">
                   {doList.length ? doList.map((s: string, i: number) => <li key={i}>{s}</li>) : <li></li>}
                 </ul>
               </div>
@@ -6306,7 +6306,7 @@ if (Number.isFinite(moonHouseN) && moonHouseN >= 1 && moonHouseN <= 12) {
                 <div className="text-xs font-semibold uppercase tracking-wide text-amber-200">
                   Maintain / stabilise
                 </div>
-                <ul className="mt-2 list-disc pl-4 text-xs text-white/80 space-y-1">
+                <ul className="mt-2 list-disc pl-4 text-xs text-slate-900/80 space-y-1">
                   {maintainList.length ? maintainList.map((s: string, i: number) => <li key={i}>{s}</li>) : <li></li>}
                 </ul>
               </div>
@@ -6315,27 +6315,27 @@ if (Number.isFinite(moonHouseN) && moonHouseN >= 1 && moonHouseN <= 12) {
                 <div className="text-xs font-semibold uppercase tracking-wide text-red-200">
                   Avoid / proceed carefully
                 </div>
-                <ul className="mt-2 list-disc pl-4 text-xs text-white/80 space-y-1">
+                <ul className="mt-2 list-disc pl-4 text-xs text-slate-900/80 space-y-1">
                   {avoidList.length ? avoidList.map((s: string, i: number) => <li key={i}>{s}</li>) : <li></li>}
                 </ul>
               </div>
             </div>
 
-            <div className="mt-3 text-xs text-white/60">
+            <div className="mt-3 text-xs text-slate-500">
               Full Plan adds: exact dates + why this bucket is active with chart evidence.
             </div>
             {/* Signature Insight (Pro mic-drop) */}
 <Locked title="Your signature insight (right now)">
-  <div className="text-sm text-white/85 leading-relaxed">
+  <div className="text-sm text-slate-900/85 leading-relaxed">
     {buildSignatureInsightX(report)}
   </div>
-  <div className="mt-3 text-xs text-white/60">
+  <div className="mt-3 text-xs text-slate-500">
     Full Plan adds: dated windows + why evidence for each insight.
   </div>
 </Locked>
 {/* 4) ENERGY & EMOTIONAL RULES */}
 <Locked title="Energy & emotional rules (to stay steady)">
-  <ul className="list-disc pl-5 text-sm text-white/80 space-y-2">
+  <ul className="list-disc pl-5 text-sm text-slate-900/80 space-y-2">
     {rules.map((r0, i) => (
       <li key={i}>{r0}</li>
     ))}
@@ -6347,11 +6347,11 @@ if (Number.isFinite(moonHouseN) && moonHouseN >= 1 && moonHouseN <= 12) {
       )}
 
       {/* Final CTA */}
-      <div className="rounded-2xl border border-white/15 bg-white/5/5 p-4">
+      <div className="rounded-2xl border border-[color:var(--border)] bg-white/80 p-4">
         <div className="text-sm font-semibold text-slate-100">
           Want the complete picture?
         </div>
-        <div className="mt-1 text-sm text-white/70">
+        <div className="mt-1 text-sm text-slate-900">
           Full Plan unlocks exact dated windows, deeper personalization, and day-by-day guidance across life areas.
         </div>
         <div className="mt-3 flex flex-col gap-2 sm:flex-row">
@@ -6361,7 +6361,7 @@ if (Number.isFinite(moonHouseN) && moonHouseN >= 1 && moonHouseN <= 12) {
           <Link href="/sarathi/chat" className="w-full sm:w-auto">
             <Button
               variant="outline"
-              className="w-full sm:w-auto border-white/20 hover:bg-white/5/10 text-white"
+              className="w-full sm:w-auto border-white/20 hover:bg-white/80 hover:shadow-md text-slate-900"
             >
               Ask Sarathi
             </Button>
@@ -6369,7 +6369,7 @@ if (Number.isFinite(moonHouseN) && moonHouseN >= 1 && moonHouseN <= 12) {
         </div>
       </div>
 
-      <div className="mt-6 text-center text-xs text-white/50">
+      <div className="mt-6 text-center text-xs text-slate-900">
         This guidance evolves as your cycles shift. Revisit anytime to realign with what matters most.
       </div>
     </div>
@@ -6784,7 +6784,7 @@ const todaysFocus = useMemo(
           <div className="font-medium">
             {pl.name}
             {pl.sign ? (
-              <span className="ml-2 text-xs text-white/70">
+              <span className="ml-2 text-xs text-slate-900">
                 in {pl.sign}
               </span>
             ) : null}
@@ -6803,7 +6803,7 @@ const todaysFocus = useMemo(
                 : d.weight === 1
                 ? "bg-teal-100 text-teal-800"
                 : d.weight === 0
-                ? "bg-white/10 text-white/70"
+                ? "bg-white/10 text-slate-900"
                 : "bg-red-100 text-red-800")
             }
           >
@@ -6811,7 +6811,7 @@ const todaysFocus = useMemo(
           </div>
         </div>
 
-        <div className="mt-1 text-[11px] text-white/70">
+        <div className="mt-1 text-[11px] text-slate-900">
           {retro ? "Retrograde ? " : ""}
           {pl.nakshatra ? `Nakshatra: ${pl.nakshatra}` : " "}
         </div>
@@ -7958,7 +7958,7 @@ const TabPlacements = () => {
           <CardHeader>
             <CardTitle className="text-lg font-medium">Fill details and generate.</CardTitle>
           </CardHeader>
-          <CardContent className="text-sm text-white/70">
+          <CardContent className="text-sm text-slate-900">
             Tab will populate after generation.
           </CardContent>
         </Card>
@@ -7983,7 +7983,7 @@ const TabPlacements = () => {
 
   return (
     <motion.div
-      className="space-y-6 text-white"
+      className="space-y-6 text-slate-900"
       variants={staggerContainer}
       initial="hidden"
       animate="show"
@@ -8014,7 +8014,7 @@ const TabPlacements = () => {
             {/* Key signs */}
             <div className="mt-3 grid gap-3 sm:grid-cols-2">
               <div className="rounded-xl border border-border/60 bg-muted/40 px-3 py-2">
-                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/70">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-900">
                   Moon sign
                 </div>
                 <div className="mt-1 text-sm font-semibold">
@@ -8024,19 +8024,19 @@ const TabPlacements = () => {
                       return `${moonRow?.sign ?? ""}${moonNak ? ` (${moonNak})` : ""}`;
                     })()}
                 </div>
-                <div className="mt-1 text-xs text-white/70">
+                <div className="mt-1 text-xs text-slate-900">
                   Your emotional style, what you need to feel steady and safe.
                 </div>
               </div>
 
               <div className="rounded-xl border border-border/60 bg-muted/40 px-3 py-2">
-                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/70">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-900">
                   Sun sign
                 </div>
                 <div className="mt-1 text-sm font-semibold">
                   {report.sunSign ?? (sunRow?.sign ?? "")}
                 </div>
-                <div className="mt-1 text-xs text-white/70">
+                <div className="mt-1 text-xs text-slate-900">
                   Your life direction, what you're here to build and become.
                 </div>
               </div>
@@ -8046,14 +8046,14 @@ const TabPlacements = () => {
           <CardContent className="grid md:grid-cols-2 gap-4 text-sm">
             {/* Birth data */}
             <div className="space-y-1">
-              <div className="text-xs font-semibold uppercase text-white/70 tracking-wide">
+              <div className="text-xs font-semibold uppercase text-slate-900 tracking-wide">
                 Birth Data
               </div>
               <div>
                 {report.birthDateISO} @ {report.birthTime} ({report.birthTz})
               </div>
               {typeof report.birthLat === "number" && typeof report.birthLon === "number" && (
-                <div className="text-xs text-white/70">
+                <div className="text-xs text-slate-900">
                   {report.birthLat.toFixed(3)}, {report.birthLon.toFixed(3)}
                 </div>
               )}
@@ -8083,7 +8083,7 @@ const TabPlacements = () => {
 
               return (
                 <div className="space-y-1">
-                  <div className="text-xs font-semibold uppercase text-white/70 tracking-wide">
+                  <div className="text-xs font-semibold uppercase text-slate-900 tracking-wide">
                     Panchang Snapshot
                   </div>
 
@@ -8095,7 +8095,7 @@ const TabPlacements = () => {
                     <span className="font-medium">Tithi:</span>{" "}
                     {report.panchang?.tithiName ?? ""}
                     {report.panchang?.meanings?.tithi ? (
-                      <span className="text-xs text-white/70">
+                      <span className="text-xs text-slate-900">
                         {" "}
                          {report.panchang.meanings.tithi}
                       </span>
@@ -8105,7 +8105,7 @@ const TabPlacements = () => {
                   <div>
                     <span className="font-medium">Yoga:</span> {yogaName}
                     {report.panchang?.meanings?.yoga ? (
-                      <span className="text-xs text-white/70">
+                      <span className="text-xs text-slate-900">
                         {" "}
                          {report.panchang.meanings.yoga}
                       </span>
@@ -8115,7 +8115,7 @@ const TabPlacements = () => {
                   <div>
                     <span className="font-medium">Karana:</span> {karanaName}
                     {report.panchang?.meanings?.karana ? (
-                      <span className="text-xs text-white/70">
+                      <span className="text-xs text-slate-900">
                         {" "}
                          {report.panchang.meanings.karana}
                       </span>
@@ -8139,7 +8139,7 @@ const TabPlacements = () => {
             <CardTitle className="text-lg font-semibold text-slate-50">
               Your life themes
             </CardTitle>
-            <div className="text-sm text-white/70">
+            <div className="text-sm text-slate-900">
               A simple, practical view of what your chart emphasizes, no astrology knowledge
               needed.
             </div>
@@ -8163,10 +8163,10 @@ const TabPlacements = () => {
               };
 
               const themeCard = (title: string, line1: string, line2: string) => (
-                <div className="rounded-2xl border border-white/15 bg-indigo-950/40 p-4">
+                <div className="rounded-2xl border border-[color:var(--border)] bg-indigo-950/40 p-4">
                   <div className="text-sm font-semibold">{title}</div>
-                  <div className="mt-2 text-sm text-white/90">{line1}</div>
-                  <div className="mt-1 text-xs text-white/70">{line2}</div>
+                  <div className="mt-2 text-sm text-slate-900/90">{line1}</div>
+                  <div className="mt-1 text-xs text-slate-900">{line2}</div>
                 </div>
               );
 
@@ -8216,7 +8216,7 @@ const TabPlacements = () => {
           </CardContent>
         </Card>
 
-        <div className="text-xs text-white/70">
+        <div className="text-xs text-slate-900">
           Want the technical chart view. Open the section below.
         </div>
       </motion.div>
@@ -8228,7 +8228,7 @@ const TabPlacements = () => {
             <CardTitle className="text-base font-semibold text-slate-50">
               What to focus on now
             </CardTitle>
-            <div className="text-sm text-white/70">
+            <div className="text-sm text-slate-900">
               A simple direction for the next few weeks - practical, not predictive.
             </div>
           </CardHeader>
@@ -8255,7 +8255,7 @@ const TabPlacements = () => {
                 );
 
               return (
-                <ul className="list-disc pl-5 space-y-2 text-white/90">
+                <ul className="list-disc pl-5 space-y-2 text-slate-900/90">
                   {focusLines.map((t, i) => (
                     <li key={i}>{t}</li>
                   ))}
@@ -8263,7 +8263,7 @@ const TabPlacements = () => {
               );
             })()}
 
-            <div className="pt-2 text-xs text-white/70">
+            <div className="pt-2 text-xs text-slate-900">
               Want this personalized for your situation right now? Use{" "}
               <span className="font-medium">Ask Sarathi</span>.
             </div>
@@ -8272,16 +8272,16 @@ const TabPlacements = () => {
       </motion.div>
 
       {/* Advanced placements */}
-      <div className="mt-10 border-t border-white/15 pt-6 bg-[linear-gradient(to_bottom,rgba(255,255,255,0.02),transparent_35%)]">
+      <div className="mt-10 border-t border-[color:var(--border)] pt-6 bg-[linear-gradient(to_bottom,rgba(255,255,255,0.02),transparent_35%)]">
         <motion.div variants={fadeUpSmall} className="space-y-4">
           <Accordion type="single" collapsible className="w-full">
             <AccordionItem value="placements-details">
-              <AccordionTrigger className="text-sm font-semibold text-slate-100 hover:text-white [&_svg]:text-slate-200 [&_svg]:opacity-80">
+              <AccordionTrigger className="text-sm font-semibold text-slate-100 hover:text-slate-900 [&_svg]:text-slate-200 [&_svg]:opacity-80">
                 Advanced astrology (planets, houses & interpretations)
               </AccordionTrigger>
 
               <AccordionContent>
-                <div className="mb-3 text-xs text-white/70">
+                <div className="mb-3 text-xs text-slate-900">
                   For advanced users: technical chart details like planet positions, houses, and
                   deeper interpretations.
                 </div>
@@ -8302,7 +8302,7 @@ const TabPlacements = () => {
 
                         if (!pls.length) {
                           return (
-                            <div className="text-white/70 text-sm">
+                            <div className="text-slate-900 text-sm">
                               No planet placements found. Generate / Refresh to load the chart.
                             </div>
                           );
@@ -8379,7 +8379,7 @@ const TabPlacements = () => {
                             ? "border-rose-400/30 bg-rose-500/10 text-rose-200"
                             : status === "Own"
                             ? "border-sky-400/30 bg-sky-500/10 text-sky-200"
-                            : "border-white/15 bg-white/5/5 text-white/70";
+                            : "border-[color:var(--border)] bg-white/80 text-slate-900";
 
                         return (
                           <div className="grid gap-3 sm:grid-cols-2">
@@ -8397,7 +8397,7 @@ const TabPlacements = () => {
                               return (
                                 <div
                                   key={`${name}-${idx}`}
-                                  className="rounded-xl border border-white/10 bg-white/5/5 px-4 py-3"
+                                  className="rounded-xl astro-card px-4 py-3"
                                 >
                                   <div className="flex items-center justify-between gap-3">
                                     <div className="text-sm font-semibold text-slate-50">
@@ -8414,7 +8414,7 @@ const TabPlacements = () => {
                                         {status}
                                       </span>
 
-                                      <div className="text-xs text-white/60">
+                                      <div className="text-xs text-slate-500">
                                         House {house}
                                       </div>
                                     </div>
@@ -8423,7 +8423,7 @@ const TabPlacements = () => {
                                   <div className="mt-1 text-sm text-slate-100">
                                     <span className="font-medium">{sign}</span>
                                     {nak ? (
-                                      <span className="text-white/70">
+                                      <span className="text-slate-900">
                                         {" "}
                                          <span className="font-normal">{nak}</span>
                                       </span>
@@ -8444,7 +8444,7 @@ const TabPlacements = () => {
                         No planet table available.
                       </CardTitle>
                     </CardHeader>
-                    <CardContent className="text-sm text-white/70">
+                    <CardContent className="text-sm text-slate-900">
                       Generate again to see planet placements.
                     </CardContent>
                   </Card>
@@ -8597,7 +8597,7 @@ const todayISO = new Date().toISOString().slice(0, 10);
     const sectionTrigger =
       "text-sm font-semibold text-slate-100 hover:text-slate-50";
     const subNote = "text-xs text-slate-200/70";
-    const divider = "border-white/15";
+    const divider = "border-[color:var(--border)]";
 
     return (
       <div
@@ -8717,13 +8717,13 @@ return (
           return (
             <div
               key={idx}
-              className="rounded-xl border border-white/10 bg-white/5/5 p-3"
+              className="rounded-xl astro-card p-3"
             >
               <div className="text-sm font-semibold text-slate-100">
                 {label}
               </div>
               {(when || strength !== null) ? (
-                <div className="mt-1 text-xs text-white/60">
+                <div className="mt-1 text-xs text-slate-500">
                   {when ? <span>{when}</span> : null}
                   {when && strength !== null ? <span>{" - "}</span> : null}
                   {strength !== null ? (
@@ -8825,15 +8825,15 @@ return (
                             className={
                               "flex items-center justify-between rounded-xl border px-3 py-2 " +
                               (isActive
-                                ? "border-indigo-400/40 bg-indigo-500/10"
-                                : "border-white/15 bg-slate-950/40")
+                                ? "border-indigo-400/40 bg-[color:var(--primary)]/10"
+                                : "border-[color:var(--border)] bg-slate-950/40")
                             }
                           >
                             <div className="space-y-0.5">
-                              <div className="text-[11px] font-semibold uppercase tracking-wide text-white/60">
+                              <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
                                 {row.planet} Mahadasha
                               </div>
-                              <div className="text-[13px] text-white/70">
+                              <div className="text-[13px] text-slate-900">
                                 {row.startISO} - {row.endISO}
                               </div>
                             </div>
@@ -8875,14 +8875,14 @@ return (
                         {report.lifeMilestones.slice(0, 6).map((m: any, idx: number) => (
                           <div
                             key={idx}
-                            className="relative pl-4 border-l border-white/15 last:border-l-0"
+                            className="relative pl-4 border-l border-[color:var(--border)] last:border-l-0"
                           >
                             <div className="absolute -left-[5px] top-2 h-2 w-2 rounded-full bg-indigo-400 shadow-sm" />
 
-                            <div className="rounded-xl border border-white/15 bg-slate-950/40 p-3 text-sm leading-relaxed text-slate-100">
+                            <div className="rounded-xl border border-[color:var(--border)] bg-slate-950/40 p-3 text-sm leading-relaxed text-slate-100">
                               <div className="flex flex-wrap items-start justify-between gap-2">
                                 <div className="space-y-1">
-                                  <div className="text-xs font-semibold uppercase text-white/60 tracking-wide">
+                                  <div className="text-xs font-semibold uppercase text-slate-500 tracking-wide">
                                     {m.label}
                                   </div>
 
@@ -9197,7 +9197,7 @@ window.localStorage.removeItem("sarathi.lifeReportCache.v2");
       <Suspense fallback={null}>
       <TabFromUrl onTab={setTabFromUrl} />
     </Suspense>
-      <Card className="rounded-2xl border border-white/15 bg-indigo-950/40 backdrop-blur-md shadow-xl shadow-[0_0_30px_rgba(99,102,241,0.10)]">
+      <Card className="rounded-2xl border border-[color:var(--border)] bg-indigo-950/40 backdrop-blur-md shadow-xl shadow-[0_0_30px_rgba(99,102,241,0.10)]">
         <CardHeader>
           <CardTitle className="text-xl font-semibold">
             Your birth details
@@ -9258,7 +9258,7 @@ window.localStorage.removeItem("sarathi.lifeReportCache.v2");
               placeholder="City, Country (e.g., New Delhi)"
             />
             {place && (
-              <p className="text-xs text-white/70">
+              <p className="text-xs text-slate-900">
                 lat {place.lat?.toFixed(3)}, lon {place.lon?.toFixed(3)} ({tz})
               </p>
             )}
@@ -9270,12 +9270,12 @@ window.localStorage.removeItem("sarathi.lifeReportCache.v2");
 <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
   {/* Left: profile selector + save */}
   <div className="flex flex-wrap items-center gap-2 text-xs">
-    <span className="font-semibold uppercase tracking-wide text-white/70">
+    <span className="font-semibold uppercase tracking-wide text-slate-900">
       Profiles:
     </span>
 
     <select
-      className="rounded-md border bg-background px-2 py-1 text-xs text-white/70"
+      className="rounded-md border bg-background px-2 py-1 text-xs text-slate-900"
       value={selectedProfileId}
       onChange={(e) => handleSelectProfile(e.target.value)}
     >
@@ -9289,7 +9289,7 @@ window.localStorage.removeItem("sarathi.lifeReportCache.v2");
 
     <button
       type="button"
-      className="rounded-md border px-2 py-1 text-[11px] text-white/90 border-foreground/30"
+      className="rounded-md border px-2 py-1 text-[11px] text-slate-900/90 border-foreground/30"
       onClick={handleSaveProfile}
     >
       Save current as profile
@@ -9343,7 +9343,7 @@ router.replace(`${pathname}?${sp.toString()}`, { scroll: false });
             type="button"
             variant="outline"
             size="sm"
-            className="w-full md:w-auto text-white hover:text-white border-white/20 hover:bg-white/5/10"
+            className="w-full md:w-auto text-slate-900 hover:text-slate-900 border-white/20 hover:bg-white/80 hover:shadow-md"
 
 
           >
@@ -9435,7 +9435,7 @@ const TabFullPlan: React.FC<TabFullPlanProps> = ({
    const isPreview = !isPro;
   if (!mounted) {
     return (
-      <div className="rounded-2xl border border-white/10 bg-white/5/5 p-4 text-sm text-white/70">
+      <div className="rounded-2xl astro-card p-4 text-sm text-slate-900">
         Loading Full Plan
       </div>
       
@@ -9461,8 +9461,8 @@ const month = buildMonthFromDaily(dailyHighlights);
 
   if (!hasReport) {
   return (
-    <div className="rounded-2xl border border-white/15 bg-white/5/5 p-5">
-      <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+    <div className="rounded-2xl border border-[color:var(--border)] bg-white/80 p-5">
+      <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
         Full plan
       </div>
 
@@ -9470,13 +9470,13 @@ const month = buildMonthFromDaily(dailyHighlights);
         Enter birth details to generate your Full Plan
       </div>
 
-      <div className="mt-2 text-sm text-white/70 leading-relaxed">
+      <div className="mt-2 text-sm text-slate-900 leading-relaxed">
         This section becomes personalized only after you generate your report.
       </div>
 
-      <div className="mt-4 rounded-xl border border-white/10 bg-indigo-950/40 p-3 text-sm text-white/75">
+      <div className="mt-4 rounded-xl border border-[color:var(--border)] bg-indigo-950/40 p-3 text-sm text-slate-900/75">
         Tip: Fill your birth details above and click{" "}
-        <span className="text-white/90 font-medium">Generate / Refresh Report</span>.
+        <span className="text-slate-900/90 font-medium">Generate / Refresh Report</span>.
       </div>
     </div>
   );
@@ -9877,18 +9877,18 @@ const topToday = topActiveTransitsForToday(hitsToday, todayISOTransit, 5);
         return sentenceCase(trimToSentence(toWeekTone(base).replace(/^Over the next 7 days:\s*/i, "Watch for: "), 190));
       })();
 {/* 4.5) Next 30 days (4-week view) */}
-<details className="rounded-2xl border border-white/15 bg-white/5/5 p-4">
+<details className="rounded-2xl border border-[color:var(--border)] bg-white/80 p-4">
   <summary className="cursor-pointer list-none">
     <div className="text-sm font-semibold text-slate-100">Next 30 days</div>
-    <div className="mt-1 text-xs text-white/60">
+    <div className="mt-1 text-xs text-slate-500">
       Four weekly checkpoints  theme, likely events, do/avoid.
     </div>
   </summary>
 
   <div className="mt-4 grid gap-3 md:grid-cols-2">
     {(month.weeks || []).map((w: any, i: number) => (
-      <div key={i} className="rounded-xl border border-white/10 bg-indigo-950/40 p-3">
-        <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+      <div key={i} className="rounded-xl border border-[color:var(--border)] bg-indigo-950/40 p-3">
+        <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
           {w.label}
         </div>
 
@@ -9897,10 +9897,10 @@ const topToday = topActiveTransitsForToday(hitsToday, todayISOTransit, 5);
         </div>
 
         <div className="mt-3">
-          <div className="text-[11px] font-semibold uppercase tracking-wide text-white/60">
+          <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
             Likely events
           </div>
-          <ul className="mt-1 list-disc pl-4 text-sm text-white/85 space-y-1">
+          <ul className="mt-1 list-disc pl-4 text-sm text-slate-900/85 space-y-1">
             {(w.likely || []).slice(0, 3).map((x: string, k: number) => (
               <li key={k}>{sentenceCase(trimToSentence(x, 120))}</li>
             ))}
@@ -9912,7 +9912,7 @@ const topToday = topActiveTransitsForToday(hitsToday, todayISOTransit, 5);
             <div className="text-[11px] font-semibold uppercase tracking-wide text-emerald-100/90">
               Do
             </div>
-            <ul className="mt-1 list-disc pl-4 text-sm text-white/85 space-y-1">
+            <ul className="mt-1 list-disc pl-4 text-sm text-slate-900/85 space-y-1">
               {(w.dos || []).slice(0, 3).map((x: string, k: number) => (
                 <li key={k}>{sentenceCase(trimToSentence(x, 90))}</li>
               ))}
@@ -9923,7 +9923,7 @@ const topToday = topActiveTransitsForToday(hitsToday, todayISOTransit, 5);
             <div className="text-[11px] font-semibold uppercase tracking-wide text-red-100/90">
               Avoid
             </div>
-            <ul className="mt-1 list-disc pl-4 text-sm text-white/85 space-y-1">
+            <ul className="mt-1 list-disc pl-4 text-sm text-slate-900/85 space-y-1">
               {(w.avoids || []).slice(0, 3).map((x: string, k: number) => (
                 <li key={k}>{sentenceCase(trimToSentence(x, 90))}</li>
               ))}
@@ -10101,20 +10101,20 @@ const timing = (() => {
       return (
         <>
           {/* Header */}
-          <div className="rounded-2xl border border-white/15 bg-white/5/5 p-4">
-            <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+          <div className="rounded-2xl border border-[color:var(--border)] bg-white/80 p-4">
+            <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
               Full plan  explain + act
             </div>
             <div className="mt-1 text-lg font-semibold text-slate-100">
               A clear plan for today  and the direction your next months are moving toward
             </div>
-            <div className="mt-1 text-sm text-white/70">
+            <div className="mt-1 text-sm text-slate-900">
               Built from your report signals (dasha + transits) and translated into actions.
             </div>
           </div>
       {/* Todays strong transits */}
-      <div className="rounded-2xl border border-white/15 bg-white/5/5 p-4">
-        <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+      <div className="rounded-2xl border border-[color:var(--border)] bg-white/80 p-4">
+        <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
           Todays strongest transits
         </div>
 
@@ -10123,50 +10123,50 @@ const timing = (() => {
             {topToday.map((t: any, i: number) => (
               <span
                 key={(t?.id ?? i) as any}
-                className="rounded-full border border-white/15 bg-white/5/5 px-3 py-1 text-[11px] text-white/80"
+                className="rounded-full border border-[color:var(--border)] bg-white/80 px-3 py-1 text-[11px] text-slate-900/80"
               >
                 {formatTransitChip(t)}
               </span>
             ))}
           </div>
         ) : (
-          <div className="mt-2 text-sm text-white/70">
+          <div className="mt-2 text-sm text-slate-900">
             No strong hits today  we lean more on your MD/AD signals.
           </div>
         )}
       </div>
 
           {/* 1) TODAY */}
-          <div className="rounded-2xl border border-white/15 bg-white/5/5 p-4">
+          <div className="rounded-2xl border border-[color:var(--border)] bg-white/80 p-4">
             <div className="text-sm font-semibold text-slate-100">Today: your 3 biggest drivers</div>
-            <div className="mt-1 text-sm text-white/70">
+            <div className="mt-1 text-sm text-slate-900">
               Keep these in mind all day  they explain why your mood, focus, and timing feel the way they do.
             </div>
 
             <div className="mt-3 grid gap-3 md:grid-cols-3">
               {driversToday.map((t, idx) => (
-                <div key={idx} className="rounded-xl border border-white/10 bg-indigo-950/40 p-3">
-                  <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+                <div key={idx} className="rounded-xl border border-[color:var(--border)] bg-indigo-950/40 p-3">
+                  <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                     Driver {idx + 1}
                   </div>
-                  <div className="mt-2 text-sm text-white/85 leading-relaxed">{t}</div>
+                  <div className="mt-2 text-sm text-slate-900/85 leading-relaxed">{t}</div>
                 </div>
               ))}
             </div>
           </div>
 
           {/* 2) Timing Intelligence (today � next 72 hours) */}
-<details className="rounded-2xl border border-white/15 bg-indigo-950/40 p-4 backdrop-blur-md" open>
+<details className="rounded-2xl border border-[color:var(--border)] bg-indigo-950/40 p-4 backdrop-blur-md" open>
   <summary className="cursor-pointer list-none">
     <div className="text-sm font-semibold text-slate-100">Todays Energy Windows</div>
-    <div className="mt-1 text-xs text-white/60">
+    <div className="mt-1 text-xs text-slate-500">
       When to act, when to pause  based on todays planetary rhythm.
     </div>
   </summary>
 
   <div className="mt-4 space-y-3">
-    <div className="rounded-xl border border-white/10 bg-white/5/5 p-3 text-sm text-white/75">
-      Use this like a GPS: <span className="text-white/85">do high-impact work in best windows</span>, and keep
+    <div className="rounded-xl astro-card p-3 text-sm text-slate-900/75">
+      Use this like a GPS: <span className="text-slate-900/85">do high-impact work in best windows</span>, and keep
       caution windows for low-risk tasks (admin, cleanup, light workouts).
     </div>
 
@@ -10183,12 +10183,12 @@ const timing = (() => {
               // Prefer w.why (new model), fallback to w.text (old model)
               const whyLine = stripRepeats(String(w.why || w.text || "")).trim();
               return (
-                <div key={w.key} className="rounded-lg border border-white/10 bg-white/5/5 p-3">
+                <div key={w.key} className="rounded-lg astro-card p-3">
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <div className="text-sm font-semibold text-slate-100">{w.label}</div>
-                      <div className="mt-1 text-sm text-white/85">
-                        <span className="text-white/60 text-[11px] uppercase tracking-wide mr-2">Best for</span>
+                      <div className="mt-1 text-sm text-slate-900/85">
+                        <span className="text-slate-500 text-[11px] uppercase tracking-wide mr-2">Best for</span>
                         {w.bestFor}
                       </div>
                     </div>
@@ -10196,25 +10196,25 @@ const timing = (() => {
 
                   {/* Optional "Why" (1 short line) */}
                   {clean(w.why) ? (
-  <div className="mt-2 rounded-md border border-white/10 bg-white/5/5 p-2 text-sm text-white/75 leading-relaxed">
-    <span className="text-white/60 text-[11px] uppercase tracking-wide mr-2">Why</span>
+  <div className="mt-2 rounded-md astro-card p-2 text-sm text-slate-900/75 leading-relaxed">
+    <span className="text-slate-500 text-[11px] uppercase tracking-wide mr-2">Why</span>
     {w.why}
   </div>
 ) : null}
 
                   {/* One action (always shown) */}
-                  <div className="mt-2 rounded-md border border-emerald-400/20 bg-emerald-500/10 p-2 text-sm text-white/85">
+                  <div className="mt-2 rounded-md border border-emerald-400/20 bg-emerald-500/10 p-2 text-sm text-slate-900/85">
                     <span className="text-emerald-100/90 font-semibold">One action:</span> {w.oneAction}
                   </div>
 
-                  <div className="mt-2 text-xs text-white/60">
+                  <div className="mt-2 text-xs text-slate-500">
                     Avoid: {w.avoid}
                   </div>
                 </div>
               );
             })
           ) : (
-            <div className="text-xs text-white/70">
+            <div className="text-xs text-slate-900">
               Windows will appear once schedule insights are available  until then, use the default actions above.
             </div>
           )}
@@ -10229,19 +10229,19 @@ const timing = (() => {
 
         <div className="mt-3 space-y-2">
           {(Array.isArray(timing.cautions) && timing.cautions.length ? timing.cautions : []).map((c: string, i: number) => (
-            <div key={i} className="rounded-lg border border-white/10 bg-white/5/5 p-3 text-sm text-white/85">
+            <div key={i} className="rounded-lg astro-card p-3 text-sm text-slate-900/85">
               {c}
             </div>
           ))}
 
           {!timing.cautions?.length ? (
-            <div className="rounded-lg border border-white/10 bg-white/5/5 p-3 text-sm text-white/70">
+            <div className="rounded-lg astro-card p-3 text-sm text-slate-900">
               No caution notes detected  still avoid rushed commitments when you feel pressured.
             </div>
           ) : null}
         </div>
 
-        <div className="mt-3 rounded-lg border border-red-400/20 bg-red-500/10 p-3 text-sm text-white/85">
+        <div className="mt-3 rounded-lg border border-red-400/20 bg-red-500/10 p-3 text-sm text-slate-900/85">
           <span className="font-semibold text-red-100/90">Rule of thumb:</span> during caution windows, do low-stakes tasks
           and delay big conversations, spends, or commitments.
         </div>
@@ -10252,10 +10252,10 @@ const timing = (() => {
 
           {/* 3) Next 35 days (optional but premium) */}
           {/* 3) Next 35 days (premium) */}
-<details className="rounded-2xl border border-white/15 bg-white/5/5 p-4">
+<details className="rounded-2xl border border-[color:var(--border)] bg-white/80 p-4">
   <summary className="cursor-pointer list-none">
     <div className="text-sm font-semibold text-slate-100">Next 3 days</div>
-    <div className="mt-1 text-xs text-white/60">
+    <div className="mt-1 text-xs text-slate-500">
       A short runway showing how momentum unfolds over the next few days.
     </div>
   </summary>
@@ -10273,13 +10273,13 @@ const timing = (() => {
         const body = sentenceCase(trimToSentence(stripRepeats(clean(h?.text)), 220));
 
         return (
-          <div key={idx} className="rounded-xl border border-white/10 bg-indigo-950/40 p-3">
+          <div key={idx} className="rounded-xl border border-[color:var(--border)] bg-indigo-950/40 p-3">
             <div className="flex items-start justify-between gap-3">
-              <div className="text-[11px] font-semibold uppercase tracking-wide text-white/60">
+              <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
                 {h?.dateISO || ""}
               </div>
               {clean(h?.confidence) ? (
-                <div className="rounded-full border border-white/15 bg-white/5/5 px-2 py-[2px] text-[10px] text-white/70">
+                <div className="rounded-full border border-[color:var(--border)] bg-white/80 px-2 py-[2px] text-[10px] text-slate-900">
                   {String(h.confidence).toUpperCase()}
                 </div>
               ) : null}
@@ -10291,10 +10291,10 @@ const timing = (() => {
 
             {likely.length ? (
               <div className="mt-2">
-                <div className="text-[11px] font-semibold uppercase tracking-wide text-white/60">
+                <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
                   Likely events
                 </div>
-                <ul className="mt-1 list-disc pl-4 text-sm text-white/85 space-y-1">
+                <ul className="mt-1 list-disc pl-4 text-sm text-slate-900/85 space-y-1">
                   {likely.map((x: string, i: number) => (
                     <li key={i}>{sentenceCase(trimToSentence(x, 120))}</li>
                   ))}
@@ -10303,7 +10303,7 @@ const timing = (() => {
             ) : null}
 
             {body ? (
-              <div className="mt-2 text-sm text-white/80 leading-relaxed">{body}</div>
+              <div className="mt-2 text-sm text-slate-900/80 leading-relaxed">{body}</div>
             ) : null}
 
             {(dos.length || avoids.length) ? (
@@ -10312,7 +10312,7 @@ const timing = (() => {
                   <div className="text-[11px] font-semibold uppercase tracking-wide text-emerald-100/90">
                     Do
                   </div>
-                  <ul className="mt-1 list-disc pl-4 text-sm text-white/85 space-y-1">
+                  <ul className="mt-1 list-disc pl-4 text-sm text-slate-900/85 space-y-1">
                     {(dos.length ? dos : ["Do one important thing fully."]).map((x: string, i: number) => (
                       <li key={i}>{sentenceCase(trimToSentence(x, 90))}</li>
                     ))}
@@ -10323,7 +10323,7 @@ const timing = (() => {
                   <div className="text-[11px] font-semibold uppercase tracking-wide text-red-100/90">
                     Avoid
                   </div>
-                  <ul className="mt-1 list-disc pl-4 text-sm text-white/85 space-y-1">
+                  <ul className="mt-1 list-disc pl-4 text-sm text-slate-900/85 space-y-1">
                     {(avoids.length ? avoids : ["Avoid impulsive reactions."]).map((x: string, i: number) => (
                       <li key={i}>{sentenceCase(trimToSentence(x, 90))}</li>
                     ))}
@@ -10335,27 +10335,27 @@ const timing = (() => {
         );
       })
     ) : (
-      <div className="text-xs text-white/60">No short plan available yet.</div>
+      <div className="text-xs text-slate-500">No short plan available yet.</div>
     )}
   </div>
 </details>
 
           {/* 4) Weekly insight */}
-          <details className="rounded-2xl border border-white/15 bg-white/5/5 p-4">
+          <details className="rounded-2xl border border-[color:var(--border)] bg-white/80 p-4">
             <summary className="cursor-pointer list-none">
               <div className="text-sm font-semibold text-slate-100">This week (next 7 days)</div>
-              <div className="mt-1 text-xs text-white/60">One theme + two priorities + one watch-out</div>
+              <div className="mt-1 text-xs text-slate-500">One theme + two priorities + one watch-out</div>
             </summary>
 
             <div className="mt-4 grid gap-3 md:grid-cols-2">
-              <div className="rounded-xl border border-white/10 bg-indigo-950/40 p-3 md:col-span-2">
-                <div className="text-xs font-semibold uppercase tracking-wide text-white/60">Theme</div>
-                <div className="mt-1 text-sm text-white/85 leading-relaxed">{weekThemeNice}</div>
+              <div className="rounded-xl border border-[color:var(--border)] bg-indigo-950/40 p-3 md:col-span-2">
+                <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Theme</div>
+                <div className="mt-1 text-sm text-slate-900/85 leading-relaxed">{weekThemeNice}</div>
               </div>
 
               <div className="rounded-xl border border-emerald-400/20 bg-emerald-500/10 p-3">
                 <div className="text-xs font-semibold uppercase tracking-wide text-emerald-100/90">Priorities</div>
-                <ul className="mt-2 list-disc pl-4 text-sm text-white/80 space-y-1">
+                <ul className="mt-2 list-disc pl-4 text-sm text-slate-900/80 space-y-1">
                   <li>{weeklyPriorities[0]}</li>
                   <li>{weeklyPriorities[1]}</li>
                 </ul>
@@ -10363,40 +10363,40 @@ const timing = (() => {
 
               <div className="rounded-xl border border-red-400/20 bg-red-500/10 p-3">
                 <div className="text-xs font-semibold uppercase tracking-wide text-red-100/90">Watch-out</div>
-                <div className="mt-2 text-sm text-white/80">{weeklyCaution}</div>
+                <div className="mt-2 text-sm text-slate-900/80">{weeklyCaution}</div>
               </div>
             </div>
           </details>
 
           {/* 5) Next 46 weeks */}
-          <details className="rounded-2xl border border-white/15 bg-white/5/5 p-4">
+          <details className="rounded-2xl border border-[color:var(--border)] bg-white/80 p-4">
             <summary className="cursor-pointer list-none">
               <div className="text-sm font-semibold text-slate-100">Next 46 weeks</div>
-              <div className="mt-1 text-xs text-white/60">The broader direction your energy is moving toward  not daily noise.</div>
+              <div className="mt-1 text-xs text-slate-500">The broader direction your energy is moving toward  not daily noise.</div>
             </summary>
 
             <div className="mt-4 space-y-3">
-              <div className="rounded-xl border border-white/10 bg-white/5/5 p-3">
-                <div className="text-xs font-semibold uppercase tracking-wide text-white/60">Core direction</div>
-                <div className="mt-1 text-sm text-white/85 leading-relaxed">{coreDirective}</div>
+              <div className="rounded-xl astro-card p-3">
+                <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Core direction</div>
+                <div className="mt-1 text-sm text-slate-900/85 leading-relaxed">{coreDirective}</div>
               </div>
 
-              <div className="rounded-xl border border-white/10 bg-indigo-950/40 p-3">
-                <div className="text-xs font-semibold uppercase tracking-wide text-white/60">Theme</div>
-                <div className="mt-1 text-sm text-white/85 leading-relaxed">{phase.theme}</div>
+              <div className="rounded-xl border border-[color:var(--border)] bg-indigo-950/40 p-3">
+                <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Theme</div>
+                <div className="mt-1 text-sm text-slate-900/85 leading-relaxed">{phase.theme}</div>
               </div>
 
               <div className="grid gap-3 md:grid-cols-2">
-                <div className="rounded-xl border border-white/10 bg-white/5/5 p-3">
-                  <div className="text-xs font-semibold uppercase tracking-wide text-white/60">Weeks 12</div>
-                  <div className="mt-1 text-sm text-white/80 leading-relaxed">
+                <div className="rounded-xl astro-card p-3">
+                  <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Weeks 12</div>
+                  <div className="mt-1 text-sm text-slate-900/80 leading-relaxed">
                     {phase.w12.replace(/^Weeks 12:\s*/i, "")}
                   </div>
                 </div>
 
-                <div className="rounded-xl border border-white/10 bg-white/5/5 p-3">
-                  <div className="text-xs font-semibold uppercase tracking-wide text-white/60">Weeks 34</div>
-                  <div className="mt-1 text-sm text-white/80 leading-relaxed">
+                <div className="rounded-xl astro-card p-3">
+                  <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Weeks 34</div>
+                  <div className="mt-1 text-sm text-slate-900/80 leading-relaxed">
                     {phase.w34.replace(/^Weeks 34:\s*/i, "")}
                   </div>
                 </div>
@@ -10407,53 +10407,53 @@ const timing = (() => {
                   <div className="text-xs font-semibold uppercase tracking-wide text-emerald-100/90">
                     Most meaningful move
                   </div>
-                  <div className="mt-2 text-sm text-white/80 leading-relaxed">{phase.meaningfulMove}</div>
+                  <div className="mt-2 text-sm text-slate-900/80 leading-relaxed">{phase.meaningfulMove}</div>
                 </div>
 
                 <div className="rounded-xl border border-red-400/20 bg-red-500/10 p-3">
                   <div className="text-xs font-semibold uppercase tracking-wide text-red-100/90">Watch-out</div>
-                  <div className="mt-2 text-sm text-white/80 leading-relaxed">{phase.watchOut}</div>
+                  <div className="mt-2 text-sm text-slate-900/80 leading-relaxed">{phase.watchOut}</div>
                 </div>
               </div>
             </div>
           </details>
 
           {/* 6) Next 12 months */}
-          <details className="rounded-2xl border border-white/15 bg-indigo-950/40 p-4 backdrop-blur-md">
+          <details className="rounded-2xl border border-[color:var(--border)] bg-indigo-950/40 p-4 backdrop-blur-md">
             <summary className="cursor-pointer list-none">
               <div className="text-sm font-semibold text-slate-100">Next 12 months</div>
-              <div className="mt-1 text-xs text-white/60">
+              <div className="mt-1 text-xs text-slate-500">
                 What changes + what it means (in plain English)
               </div>
             </summary>
 
             <div className="mt-4 space-y-3">
-              <div className="rounded-xl border border-white/10 bg-white/5/5 p-3 text-sm text-white/75">
-                <span className="text-white/85 font-semibold">How to read this:</span> Mahadasha is your big life chapter (years),
+              <div className="rounded-xl astro-card p-3 text-sm text-slate-900/75">
+                <span className="text-slate-900/85 font-semibold">How to read this:</span> Mahadasha is your big life chapter (years),
                 Antardasha is the sub-chapter (months/years). The most noticeable shift inside the next 12 months is usually
                 the next Antardasha change.
               </div>
 
               {(md || ad || pd) ? (
-                <div className="rounded-xl border border-white/10 bg-white/5/5 p-3">
-                  <div className="text-xs font-semibold uppercase tracking-wide text-white/60">Current cycle</div>
+                <div className="rounded-xl astro-card p-3">
+                  <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Current cycle</div>
 
-                  <div className="mt-2 text-sm text-white/85">
+                  <div className="mt-2 text-sm text-slate-900/85">
                     {md ? `Big chapter (MD): ${md}` : "Big chapter (MD): "}
                     {ad ? `  Sub-chapter (AD): ${ad}` : ""}
                     {pd ? `  Short phase (PD): ${pd}` : ""}
                   </div>
 
-                  <div className="mt-1 text-xs text-white/60">
+                  <div className="mt-1 text-xs text-slate-500">
                     {ap?.antardasha?.start && ap?.antardasha?.end
                       ? `${String(ap.antardasha.start).slice(0, 10)} � ${String(ap.antardasha.end).slice(0, 10)}`
                       : ""}
                   </div>
 
                   <div className="mt-3 grid gap-3 md:grid-cols-2">
-                    <div className="rounded-lg border border-white/10 bg-indigo-950/40 p-3">
-                      <div className="text-xs font-semibold uppercase tracking-wide text-white/60">What it means</div>
-                      <div className="mt-2 text-sm text-white/80 leading-relaxed">
+                    <div className="rounded-lg border border-[color:var(--border)] bg-indigo-950/40 p-3">
+                      <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">What it means</div>
+                      <div className="mt-2 text-sm text-slate-900/80 leading-relaxed">
                         {sentenceCase(
                           mdInfo?.theme
                             ? `MD ${md}: ${mdInfo.theme}`
@@ -10461,7 +10461,7 @@ const timing = (() => {
                         )}
                       </div>
                       {adInfo?.theme ? (
-                        <div className="mt-2 text-sm text-white/75 leading-relaxed">
+                        <div className="mt-2 text-sm text-slate-900/75 leading-relaxed">
                           {sentenceCase(`AD ${ad}: ${adInfo.theme}`)}
                         </div>
                       ) : null}
@@ -10469,7 +10469,7 @@ const timing = (() => {
 
                     <div className="rounded-lg border border-emerald-400/20 bg-emerald-500/10 p-3">
                       <div className="text-xs font-semibold uppercase tracking-wide text-emerald-100/90">How to use this</div>
-                      <ul className="mt-2 list-disc pl-4 text-sm text-white/80 space-y-1">
+                      <ul className="mt-2 list-disc pl-4 text-sm text-slate-900/80 space-y-1">
                         {(adInfo?.do?.length ? adInfo.do : mdInfo?.do?.length ? mdInfo.do : ["Pick 1 priority and finish it", "Keep routine strong", "Avoid reactive decisions"])
                           .slice(0, 3)
                           .map((x) => <li key={x}>{x}</li>)}
@@ -10481,16 +10481,16 @@ const timing = (() => {
 
               <div className="grid gap-3 md:grid-cols-2">
                 {nextAD ? (
-                  <div className="rounded-xl border border-white/10 bg-white/5/5 p-3">
-                    <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+                  <div className="rounded-xl astro-card p-3">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                       Next shift (Antardasha)
                     </div>
                     <div className="mt-1 text-sm font-semibold text-slate-100">AD: {nextAD.lord}</div>
-                    <div className="mt-1 text-xs text-white/60">{nextAD.start} � {nextAD.end}</div>
+                    <div className="mt-1 text-xs text-slate-500">{nextAD.start} � {nextAD.end}</div>
 
-                    <div className="mt-3 rounded-lg border border-white/10 bg-indigo-950/40 p-3">
-                      <div className="text-xs font-semibold uppercase tracking-wide text-white/60">What you may notice</div>
-                      <ul className="mt-2 list-disc pl-4 text-sm text-white/80 space-y-1">
+                    <div className="mt-3 rounded-lg border border-[color:var(--border)] bg-indigo-950/40 p-3">
+                      <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">What you may notice</div>
+                      <ul className="mt-2 list-disc pl-4 text-sm text-slate-900/80 space-y-1">
                         {(nextAdInfo?.expect?.length ? nextAdInfo.expect : ["A noticeable change in motivation/focus", "Different kinds of opportunities/pressure show up"])
                           .slice(0, 3)
                           .map((x) => <li key={x}>{x}</li>)}
@@ -10501,7 +10501,7 @@ const timing = (() => {
                       <div className="text-xs font-semibold uppercase tracking-wide text-emerald-100/90">
                         Best way to prepare
                       </div>
-                      <ul className="mt-2 list-disc pl-4 text-sm text-white/80 space-y-1">
+                      <ul className="mt-2 list-disc pl-4 text-sm text-slate-900/80 space-y-1">
                         {(nextAdInfo?.do?.length ? nextAdInfo.do : ["Close open loops", "Simplify commitments", "Make a simple plan"])
                           .slice(0, 3)
                           .map((x) => <li key={x}>{x}</li>)}
@@ -10509,21 +10509,21 @@ const timing = (() => {
                     </div>
                   </div>
                 ) : (
-                  <div className="rounded-xl border border-white/10 bg-white/5/5 p-3 text-sm text-white/70">
-                    <div className="text-xs font-semibold uppercase tracking-wide text-white/60">Next shift (Antardasha)</div>
+                  <div className="rounded-xl astro-card p-3 text-sm text-slate-900">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Next shift (Antardasha)</div>
                     No Antardasha boundary inside the next 12 months  the theme stays consistent. Focus on execution and compounding.
                   </div>
                 )}
 
                 {nextMD?.start ? (
-                  <div className="rounded-xl border border-white/10 bg-white/5/5 p-3">
-                    <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+                  <div className="rounded-xl astro-card p-3">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                       Major shift (Mahadasha)  longer term
                     </div>
                     <div className="mt-1 text-sm font-semibold text-slate-100">MD: {nextMD.planet}</div>
-                    <div className="mt-1 text-xs text-white/60">{nextMD.start} � {nextMD.end}</div>
+                    <div className="mt-1 text-xs text-slate-500">{nextMD.start} � {nextMD.end}</div>
 
-                    <div className="mt-3 text-sm text-white/80 leading-relaxed">
+                    <div className="mt-3 text-sm text-slate-900/80 leading-relaxed">
                       {sentenceCase(
                         nextMdInfo?.theme
                           ? `This begins a bigger life chapter: ${nextMdInfo.theme}`
@@ -10533,7 +10533,7 @@ const timing = (() => {
 
                     <div className="mt-3 rounded-lg border border-red-400/20 bg-red-500/10 p-3">
                       <div className="text-xs font-semibold uppercase tracking-wide text-red-100/90">Avoid</div>
-                      <ul className="mt-2 list-disc pl-4 text-sm text-white/80 space-y-1">
+                      <ul className="mt-2 list-disc pl-4 text-sm text-slate-900/80 space-y-1">
                         {(nextMdInfo?.avoid?.length ? nextMdInfo.avoid : ["Big reactive decisions without a plan", "Burning bridges impulsively"])
                           .slice(0, 2)
                           .map((x) => <li key={x}>{x}</li>)}
@@ -10546,34 +10546,34 @@ const timing = (() => {
           </details>
 
           {/* 7) Deep dive: Soul Alignment */}
-          <details className="rounded-2xl border border-white/15 bg-indigo-950/40 p-4 backdrop-blur-md">
+          <details className="rounded-2xl border border-[color:var(--border)] bg-indigo-950/40 p-4 backdrop-blur-md">
             <summary className="cursor-pointer list-none">
               <div className="text-sm font-semibold text-slate-100">Soul Alignment Index  explained</div>
-              <div className="mt-1 text-xs text-white/60">Why each score is high/low + do/avoid + evidence</div>
+              <div className="mt-1 text-xs text-slate-500">Why each score is high/low + do/avoid + evidence</div>
             </summary>
 
             <div className="mt-4 grid gap-4 md:grid-cols-2">
   {(Array.isArray(timing?.windows) ? timing.windows : []).slice(0, 3).map((w: any, i: number) => (
-    <div key={w.key ?? i} className="rounded-xl border border-white/10 bg-white/5/5 p-4">
+    <div key={w.key ?? i} className="rounded-xl astro-card p-4">
       <div className="text-sm font-semibold text-slate-100">{w.label}</div>
 
-      <div className="mt-1 text-xs text-white/70">
+      <div className="mt-1 text-xs text-slate-900">
         {w.bestFor ? `Best for: ${w.bestFor}` : "Best for: "}
       </div>
 
-      <div className="mt-2 rounded-lg border border-white/10 bg-white/5/5 p-3 text-sm text-white/80">
-        <span className="text-white/60 text-[11px] uppercase tracking-wide mr-2">One action</span>
+      <div className="mt-2 rounded-lg astro-card p-3 text-sm text-slate-900/80">
+        <span className="text-slate-500 text-[11px] uppercase tracking-wide mr-2">One action</span>
         {w.oneAction || "Pick one meaningful action and finish it."}
       </div>
 
-      <div className="mt-2 text-xs text-white/60">
+      <div className="mt-2 text-xs text-slate-500">
         Avoid: {w.avoid || "Rushed commitments."}
       </div>
     </div>
   ))}
 
   {!timing?.windows?.length ? (
-    <div className="rounded-xl border border-white/10 bg-white/5/5 p-4 text-sm text-white/70 md:col-span-2">
+    <div className="rounded-xl astro-card p-4 text-sm text-slate-900 md:col-span-2">
       No windows available yet. Generate/refresh the report to compute timing windows.
     </div>
   ) : null}

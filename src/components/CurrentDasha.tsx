@@ -103,7 +103,7 @@ export default function CurrentDasha({
   return (
     <section
       className={
-        "rounded-lg border p-4 md:p-6 bg-white/5 shadow-sm " + className
+        "rounded-lg border p-4 md:p-6 bg-white/80 shadow-sm " + className
       }
     >
       {/* Card title */}

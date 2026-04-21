@@ -81,7 +81,7 @@ export default function DashaTable({ dasha }: { dasha: any }) {
   const rows = useMemo(() => normalize(dasha), [dasha]);
   if (!rows.length) {
     return (
-      <section className="rounded-xl border bg-white/5 p-4" style={{ breakInside: "avoid" }}>
+      <section className="rounded-xl border bg-white/80 p-4" style={{ breakInside: "avoid" }}>
         <h3 className="text-lg font-semibold">Vimshottari Table</h3>
         <div className="text-sm text-gray-500 mt-1">No dasha data.</div>
       </section>
@@ -89,7 +89,7 @@ export default function DashaTable({ dasha }: { dasha: any }) {
   }
 
   return (
-    <section className="rounded-xl border bg-white/5 p-4" style={{ breakInside: "avoid" }}>
+    <section className="rounded-xl border bg-white/80 p-4" style={{ breakInside: "avoid" }}>
       <h3 className="text-lg font-semibold mb-2">Vimshottari Table</h3>
       <div className="overflow-x-auto">
         <table className="min-w-full text-sm">

@@ -375,13 +375,13 @@ export default function FocusedReportsPage() {
       <main className="mx-auto max-w-6xl px-4 pb-16 pt-8">
         <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-2xl border border-indigo-400/30 bg-indigo-500/10" />
+            <div className="h-10 w-10 rounded-2xl border border-indigo-400/30 bg-[color:var(--primary)]/10" />
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-xl font-semibold text-slate-100">
                   Focused Reports
                 </h1>
-                <Badge className="border border-white/10 bg-white/5/5 text-slate-200">
+                <Badge className="astro-card text-slate-200">
                   Paid report
                 </Badge>
               </div>
@@ -395,7 +395,7 @@ export default function FocusedReportsPage() {
             <Button
               onClick={loadSavedProfile}
               variant="outline"
-              className="rounded-xl border-white/10 bg-white/5/5 hover:bg-white/5/10"
+              className="rounded-xl border-[color:var(--border)] bg-white/80 hover:bg-white/80 hover:shadow-md"
             >
               Load saved profile
             </Button>
@@ -403,7 +403,7 @@ export default function FocusedReportsPage() {
             <Button
               onClick={printPage}
               variant="outline"
-              className="rounded-xl border-white/10 bg-white/5/5 hover:bg-white/5/10"
+              className="rounded-xl border-[color:var(--border)] bg-white/80 hover:bg-white/80 hover:shadow-md"
             >
               <Printer className="mr-2 h-4 w-4" />
               Print
@@ -412,7 +412,7 @@ export default function FocusedReportsPage() {
             <Button
               onClick={downloadPDF}
               variant="outline"
-              className="rounded-xl border-white/10 bg-white/5/5 hover:bg-white/5/10"
+              className="rounded-xl border-[color:var(--border)] bg-white/80 hover:bg-white/80 hover:shadow-md"
             >
               <Download className="mr-2 h-4 w-4" />
               Download PDF
@@ -421,7 +421,7 @@ export default function FocusedReportsPage() {
         </div>
 
         <div className="grid gap-6">
-          <Card className="rounded-3xl border border-white/10 bg-white/5/5 backdrop-blur">
+          <Card className="rounded-3xl astro-card backdrop-blur">
             <CardHeader>
               <CardTitle className="text-slate-100">
                 Enter birth details
@@ -442,7 +442,7 @@ export default function FocusedReportsPage() {
                     type="date"
                     value={dobISO}
                     onChange={(e) => setDobISO(e.target.value)}
-                    className="w-full rounded-xl border border-white/10 bg-slate-950/40 px-3 py-2 text-sm text-slate-100 outline-none focus:border-indigo-400/50"
+                    className="w-full rounded-xl border border-[color:var(--border)] bg-slate-950/40 px-3 py-2 text-sm text-slate-100 outline-none focus:border-[color:var(--primary)]/50"
                   />
                 </div>
 
@@ -455,7 +455,7 @@ export default function FocusedReportsPage() {
                     step={60}
                     value={tob}
                     onChange={(e) => setTob(e.target.value)}
-                    className="w-full rounded-xl border border-white/10 bg-slate-950/40 px-3 py-2 text-sm text-slate-100 outline-none focus:border-indigo-400/50"
+                    className="w-full rounded-xl border border-[color:var(--border)] bg-slate-950/40 px-3 py-2 text-sm text-slate-100 outline-none focus:border-[color:var(--primary)]/50"
                   />
                 </div>
 
@@ -471,7 +471,7 @@ export default function FocusedReportsPage() {
                       setPlacePicked(false);
                     }}
                     placeholder="Asia/Kolkata"
-                    className="w-full rounded-xl border border-white/10 bg-slate-950/40 px-3 py-2 text-sm text-slate-100 outline-none focus:border-indigo-400/50"
+                    className="w-full rounded-xl border border-[color:var(--border)] bg-slate-950/40 px-3 py-2 text-sm text-slate-100 outline-none focus:border-[color:var(--primary)]/50"
                   />
                 </div>
               </div>
@@ -482,7 +482,7 @@ export default function FocusedReportsPage() {
                 </div>
 
                 <div className="mb-4">
-                  <div className="text-xs text-white/60 mb-2">
+                  <div className="text-xs text-slate-500 mb-2">
                     What do you want clarity on?
                   </div>
 
@@ -499,8 +499,8 @@ export default function FocusedReportsPage() {
                         onClick={() => setReportType(item.key as any)}
                         className={`px-3 py-1 rounded-full text-xs border ${
                           reportType === item.key
-                            ? "bg-indigo-500 text-white"
-                            : "bg-white/5/5 text-white/70 border-white/10"
+                            ? "bg-[color:var(--primary)] text-slate-900"
+                            : "bg-white/80 text-slate-900 border-[color:var(--border)]"
                         }`}
                       >
                         {item.label}
@@ -511,7 +511,7 @@ export default function FocusedReportsPage() {
 
                 <div className="flex flex-col gap-2 md:flex-row md:items-center">
                   <div className="relative flex-1">
-                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-900" />
                     <input
                       value={placeQuery}
                       onChange={(e) => {
@@ -521,7 +521,7 @@ export default function FocusedReportsPage() {
                         searchPlaces(v);
                       }}
                       placeholder="Start typing city… (e.g., Saharanpur)"
-                      className="w-full rounded-xl border border-white/10 bg-slate-950/40 py-2 pl-10 pr-3 text-sm text-slate-100 outline-none focus:border-indigo-400/50"
+                      className="w-full rounded-xl border border-[color:var(--border)] bg-slate-950/40 py-2 pl-10 pr-3 text-sm text-slate-100 outline-none focus:border-[color:var(--primary)]/50"
                     />
                   </div>
 
@@ -529,7 +529,7 @@ export default function FocusedReportsPage() {
                     type="button"
                     variant="outline"
                     onClick={useMyLocation}
-                    className="rounded-xl border-white/10 bg-white/5/5 hover:bg-white/5/10"
+                    className="rounded-xl border-[color:var(--border)] bg-white/80 hover:bg-white/80 hover:shadow-md"
                   >
                     Use my location
                   </Button>
@@ -538,14 +538,14 @@ export default function FocusedReportsPage() {
                     type="button"
                     onClick={generate}
                     disabled={loading || !canGenerate}
-                    className="rounded-xl bg-indigo-500 hover:bg-indigo-400"
+                    className="rounded-xl bg-[color:var(--primary)] hover:opacity-90"
                   >
                     {loading ? "Generating…" : "Generate report"}
                   </Button>
                 </div>
 
                 {suggestions.length > 0 && (
-                  <div className="mt-2 overflow-hidden rounded-2xl border border-white/10 bg-slate-950/80 backdrop-blur">
+                  <div className="mt-2 overflow-hidden rounded-2xl border border-[color:var(--border)] bg-slate-950/80 backdrop-blur">
                     {suggestions.map((s, idx) => {
                       const label = s?.name ?? "Unknown place";
                       const latN =
@@ -565,7 +565,7 @@ export default function FocusedReportsPage() {
                             e.preventDefault();
                             pickSuggestion(s);
                           }}
-                          className="w-full px-4 py-3 text-left hover:bg-white/5/5"
+                          className="w-full px-4 py-3 text-left hover:bg-slate-100"
                         >
                           <div className="text-sm text-slate-100">{label}</div>
                           <div className="text-xs text-slate-300/70">{meta}</div>
@@ -600,7 +600,7 @@ export default function FocusedReportsPage() {
                   Tip: If you already generated Life Report once, your profile is
                   saved. If not, you can{" "}
                   <Link
-                    className="underline underline-offset-4 text-indigo-300 hover:text-indigo-200"
+                    className="underline underline-offset-4 text-[color:var(--primary)] hover:text-indigo-200"
                     href="/sarathi/life-report"
                   >
                     open Life Report
@@ -611,7 +611,7 @@ export default function FocusedReportsPage() {
             </CardContent>
           </Card>
 
-          <Card className="rounded-3xl border border-white/10 bg-white/5/5 backdrop-blur">
+          <Card className="rounded-3xl astro-card backdrop-blur">
             <CardHeader>
               <CardTitle className="text-slate-100">Report Preview</CardTitle>
               <p className="text-sm text-slate-300/80">
@@ -622,107 +622,107 @@ export default function FocusedReportsPage() {
             <CardContent>
               <div
                 id="guidancePrint"
-                className="rounded-2xl border border-white/10 bg-slate-950/35 p-6 text-sm text-slate-200/90"
+                className="rounded-2xl border border-[color:var(--border)] bg-slate-950/35 p-6 text-sm text-slate-200/90"
               >
                 {!report ? (
                   <div className="text-slate-300/70">
                     This page will show your area-specific paid report once generated.
                   </div>
                 ) : (
-                  <div className="space-y-6 text-sm text-white/90">
+                  <div className="space-y-6 text-sm text-slate-900/90">
                     <div>
-                      <div className="text-xs text-white/60 mb-1">Verdict</div>
+                      <div className="text-xs text-slate-500 mb-1">Verdict</div>
                       <div>{report.verdict}</div>
                     </div>
 
                     <div>
-                      <div className="text-xs text-white/60 mb-1">
+                      <div className="text-xs text-slate-500 mb-1">
                         Current reality
                       </div>
                       <div>{report.currentReality}</div>
                     </div>
 
                     <div>
-                      <div className="text-xs text-white/60 mb-1">
+                      <div className="text-xs text-slate-500 mb-1">
                         Why this area is active
                       </div>
                       {renderLines(report.whyThisAreaIsActive)}
                     </div>
 
                     <div>
-                      <div className="text-xs text-white/60 mb-1">
+                      <div className="text-xs text-slate-500 mb-1">
                         Likely developments
                       </div>
                       {renderLines(report.likelyDevelopments)}
                     </div>
 
                    <div>
-  <div className="text-xs text-white/60 mb-1">Timing</div>
+  <div className="text-xs text-slate-500 mb-1">Timing</div>
   <div className="space-y-4">
     {report.timing?.now ? (
       <div>
-        <div className="text-white/50 mb-1">Now</div>
+        <div className="text-slate-900 mb-1">Now</div>
         <div>{report.timing.now}</div>
       </div>
     ) : null}
 
     <div>
-      <div className="text-white/50 mb-1">Next 30 days</div>
+      <div className="text-slate-900 mb-1">Next 30 days</div>
       {renderLines(report.timing?.next30Days)}
     </div>
 
     <div>
-      <div className="text-white/50 mb-1">Next 60 days</div>
+      <div className="text-slate-900 mb-1">Next 60 days</div>
       {renderLines(report.timing?.next60Days)}
     </div>
 
     <div>
-      <div className="text-white/50 mb-1">Next 90 days</div>
+      <div className="text-slate-900 mb-1">Next 90 days</div>
       {renderLines(report.timing?.next90Days)}
     </div>
   </div>
 </div>
                     <div>
-  <div className="text-xs text-white/60 mb-1">
+  <div className="text-xs text-slate-500 mb-1">
     Decision guidance
   </div>
   <div className="space-y-2">
     <div>
-      <span className="text-white/50">Best move now:</span>{" "}
+      <span className="text-slate-900">Best move now:</span>{" "}
       {report.decisionGuidance?.bestMoveNow || report.decisionGuidance?.bestMove}
     </div>
     <div>
-      <span className="text-white/50">Mistake to avoid now:</span>{" "}
+      <span className="text-slate-900">Mistake to avoid now:</span>{" "}
       {report.decisionGuidance?.mistakeToAvoidNow || report.decisionGuidance?.avoid}
     </div>
     <div>
-      <span className="text-white/50">What to postpone:</span>{" "}
+      <span className="text-slate-900">What to postpone:</span>{" "}
       {report.decisionGuidance?.whatToPostpone || report.decisionGuidance?.delayIfPossible}
     </div>
     <div>
-      <span className="text-white/50">Sign of improvement:</span>{" "}
+      <span className="text-slate-900">Sign of improvement:</span>{" "}
       {report.decisionGuidance?.signOfImprovement || report.decisionGuidance?.prioritize}
     </div>
   </div>
 </div>
                     <div>
-                      <div className="text-xs text-white/60 mb-1">
+                      <div className="text-xs text-slate-500 mb-1">
                         Opportunity / Risk
                       </div>
                       <div className="space-y-2">
                         <div>
-                          <span className="text-white/50">Opportunity:</span>{" "}
+                          <span className="text-slate-900">Opportunity:</span>{" "}
                           {report.opportunity}
                         </div>
                         <div>
-                          <span className="text-white/50">Risk:</span> {report.risk}
+                          <span className="text-slate-900">Risk:</span> {report.risk}
                         </div>
                         <div>
-                          <span className="text-white/50">Control lever:</span>{" "}
+                          <span className="text-slate-900">Control lever:</span>{" "}
                           {report.controlLever}
                         </div>
                         <div>
-                          <span className="text-white/50">Non-negotiable:</span>{" "}
+                          <span className="text-slate-900">Non-negotiable:</span>{" "}
                           {report.nonNegotiable}
                         </div>
                       </div>
@@ -730,16 +730,16 @@ export default function FocusedReportsPage() {
 
                     {report.careerDeepDive ? (
                       <div>
-                        <div className="text-xs text-white/60 mb-1">
+                        <div className="text-xs text-slate-500 mb-1">
                           Career deep dive
                         </div>
                         <div className="space-y-2">
                           <div>
-                            <span className="text-white/50">Pattern now:</span>{" "}
+                            <span className="text-slate-900">Pattern now:</span>{" "}
                             {report.careerDeepDive.patternNow}
                           </div>
                           <div>
-                            <span className="text-white/50">
+                            <span className="text-slate-900">
                               What this often looks like:
                             </span>
                             <div className="mt-1">
@@ -747,13 +747,13 @@ export default function FocusedReportsPage() {
                             </div>
                           </div>
                           <div>
-                            <span className="text-white/50">
+                            <span className="text-slate-900">
                               Best use of this phase:
                             </span>{" "}
                             {report.careerDeepDive.bestUseOfThisPhase}
                           </div>
                           <div>
-                            <span className="text-white/50">
+                            <span className="text-slate-900">
                               Wrong use of this phase:
                             </span>{" "}
                             {report.careerDeepDive.wrongUseOfThisPhase}
@@ -763,16 +763,16 @@ export default function FocusedReportsPage() {
                     ) : null}
                    {report.marriageDeepDive ? (
   <div>
-    <div className="text-xs text-white/60 mb-1">
+    <div className="text-xs text-slate-500 mb-1">
       Marriage deep dive
     </div>
     <div className="space-y-2">
       <div>
-        <span className="text-white/50">Pattern now:</span>{" "}
+        <span className="text-slate-900">Pattern now:</span>{" "}
         {report.marriageDeepDive.patternNow}
       </div>
       <div>
-        <span className="text-white/50">
+        <span className="text-slate-900">
           What this often looks like:
         </span>
         <div className="mt-1">
@@ -780,13 +780,13 @@ export default function FocusedReportsPage() {
         </div>
       </div>
       <div>
-        <span className="text-white/50">
+        <span className="text-slate-900">
           Best use of this phase:
         </span>{" "}
         {report.marriageDeepDive.bestUseOfThisPhase}
       </div>
       <div>
-        <span className="text-white/50">
+        <span className="text-slate-900">
           Wrong use of this phase:
         </span>{" "}
         {report.marriageDeepDive.wrongUseOfThisPhase}
@@ -796,16 +796,16 @@ export default function FocusedReportsPage() {
 ) : null}
 {report.moneyDeepDive ? (
   <div>
-    <div className="text-xs text-white/60 mb-1">
+    <div className="text-xs text-slate-500 mb-1">
       Money deep dive
     </div>
     <div className="space-y-2">
       <div>
-        <span className="text-white/50">Pattern now:</span>{" "}
+        <span className="text-slate-900">Pattern now:</span>{" "}
         {report.moneyDeepDive.patternNow}
       </div>
       <div>
-        <span className="text-white/50">
+        <span className="text-slate-900">
           What this often looks like:
         </span>
         <div className="mt-1">
@@ -813,13 +813,13 @@ export default function FocusedReportsPage() {
         </div>
       </div>
       <div>
-        <span className="text-white/50">
+        <span className="text-slate-900">
           Best use of this phase:
         </span>{" "}
         {report.moneyDeepDive.bestUseOfThisPhase}
       </div>
       <div>
-        <span className="text-white/50">
+        <span className="text-slate-900">
           Wrong use of this phase:
         </span>{" "}
         {report.moneyDeepDive.wrongUseOfThisPhase}
@@ -829,16 +829,16 @@ export default function FocusedReportsPage() {
 ) : null}
 {report.propertyDeepDive ? (
   <div>
-    <div className="text-xs text-white/60 mb-1">
+    <div className="text-xs text-slate-500 mb-1">
       Property deep dive
     </div>
     <div className="space-y-2">
       <div>
-        <span className="text-white/50">Pattern now:</span>{" "}
+        <span className="text-slate-900">Pattern now:</span>{" "}
         {report.propertyDeepDive.patternNow}
       </div>
       <div>
-        <span className="text-white/50">
+        <span className="text-slate-900">
           What this often looks like:
         </span>
         <div className="mt-1">
@@ -846,13 +846,13 @@ export default function FocusedReportsPage() {
         </div>
       </div>
       <div>
-        <span className="text-white/50">
+        <span className="text-slate-900">
           Best use of this phase:
         </span>{" "}
         {report.propertyDeepDive.bestUseOfThisPhase}
       </div>
       <div>
-        <span className="text-white/50">
+        <span className="text-slate-900">
           Wrong use of this phase:
         </span>{" "}
         {report.propertyDeepDive.wrongUseOfThisPhase}
@@ -862,16 +862,16 @@ export default function FocusedReportsPage() {
 ) : null}
 {report.healthDeepDive ? (
   <div>
-    <div className="text-xs text-white/60 mb-1">
+    <div className="text-xs text-slate-500 mb-1">
       Health deep dive
     </div>
     <div className="space-y-2">
       <div>
-        <span className="text-white/50">Pattern now:</span>{" "}
+        <span className="text-slate-900">Pattern now:</span>{" "}
         {report.healthDeepDive.patternNow}
       </div>
       <div>
-        <span className="text-white/50">
+        <span className="text-slate-900">
           What this often looks like:
         </span>
         <div className="mt-1">
@@ -879,13 +879,13 @@ export default function FocusedReportsPage() {
         </div>
       </div>
       <div>
-        <span className="text-white/50">
+        <span className="text-slate-900">
           Best use of this phase:
         </span>{" "}
         {report.healthDeepDive.bestUseOfThisPhase}
       </div>
       <div>
-        <span className="text-white/50">
+        <span className="text-slate-900">
           Wrong use of this phase:
         </span>{" "}
         {report.healthDeepDive.wrongUseOfThisPhase}
@@ -893,11 +893,11 @@ export default function FocusedReportsPage() {
     </div>
   </div>
 ) : null}
-                    <div className="text-xs text-white/50">
+                    <div className="text-xs text-slate-900">
                       Confidence: {report.confidence}
                     </div>
 
-                    <div className="text-xs text-white/50">
+                    <div className="text-xs text-slate-900">
                       {report.confidenceNote}
                     </div>
                   </div>

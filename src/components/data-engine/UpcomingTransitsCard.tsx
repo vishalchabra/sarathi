@@ -118,17 +118,17 @@ export default function UpcomingTransitsCard({ data, ascSign }: Props) {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-2xl border border-white/10 bg-white/5 p-5 shadow-sm">
-        <h2 className="text-lg font-semibold text-white">
+      <div className="rounded-2xl border border-[color:var(--border)] bg-white/80 p-5 shadow-sm">
+        <h2 className="text-lg font-semibold text-slate-900">
           Upcoming Planetary Shifts
         </h2>
-        <p className="mt-1 text-sm text-white/70">
+        <p className="mt-1 text-sm text-slate-900">
           Next important movement for each planet.
         </p>
 
         <div className="mt-4 overflow-x-auto">
           <table className="min-w-full text-left text-sm">
-            <thead className="border-b border-white/10 text-white/50">
+            <thead className="border-b border-[color:var(--border)] text-slate-900">
               <tr>
                 <th className="px-3 py-2">Planet</th>
                 <th className="px-3 py-2">Next Event</th>
@@ -152,24 +152,24 @@ const house =
     ? houseFromRef(ascSignNum, signNum)
     : null;
                   return (
-                    <tr key={`${row.transitPlanet ?? "planet"}-${i}`} className="border-b border-white/10">
-                      <td className="px-3 py-2 font-medium text-white">
+                    <tr key={`${row.transitPlanet ?? "planet"}-${i}`} className="border-b border-[color:var(--border)]">
+                      <td className="px-3 py-2 font-medium text-slate-900">
                         {row.transitPlanet ?? "—"}
                       </td>
 
-                      <td className="px-3 py-2 text-white/80">
+                      <td className="px-3 py-2 text-slate-900/80">
                         {getNextEventText(row)}
                       </td>
 
-                      <td className="px-3 py-2 text-white/80">
+                      <td className="px-3 py-2 text-slate-900/80">
                         {row.dateISO ?? "—"}
                       </td>
 
-                      <td className="px-3 py-2 text-white/80">
+                      <td className="px-3 py-2 text-slate-900/80">
                         {getMotionText(row)}
                       </td>
 
-                      <td className="px-3 py-2 text-white/80">
+                      <td className="px-3 py-2 text-slate-900/80">
                         {typeof house === "number" ? `H${house}` : "—"}
                       </td>
                     </tr>
@@ -177,7 +177,7 @@ const house =
                 })
               ) : (
                 <tr>
-                  <td colSpan={5} className="px-3 py-4 text-white/50">
+                  <td colSpan={5} className="px-3 py-4 text-slate-900">
                     No upcoming planetary shifts found.
                   </td>
                 </tr>
@@ -187,17 +187,17 @@ const house =
         </div>
       </div>
 
-      <div className="rounded-2xl border border-white/10 bg-white/5 p-5 shadow-sm">
-        <h2 className="text-lg font-semibold text-white">
+      <div className="rounded-2xl border border-[color:var(--border)] bg-white/80 p-5 shadow-sm">
+        <h2 className="text-lg font-semibold text-slate-900">
           Moon Transits
         </h2>
-        <p className="mt-1 text-sm text-white/70">
+        <p className="mt-1 text-sm text-slate-900">
           Daily Moon movement shown separately for timing and day-level reading.
         </p>
 
         <div className="mt-4 overflow-x-auto">
           <table className="min-w-full text-left text-sm">
-            <thead className="border-b border-white/10 text-white/50">
+            <thead className="border-b border-[color:var(--border)] text-slate-900">
               <tr>
                 <th className="px-3 py-2">Date</th>
                 <th className="px-3 py-2">Sign</th>
@@ -211,35 +211,35 @@ const house =
             <tbody>
               {moonTransits.length ? (
                 moonTransits.map((m, i) => (
-                  <tr key={`${m.dateISO ?? "date"}-${i}`} className="border-b border-white/10">
-                    <td className="px-3 py-2 text-white/80">
+                  <tr key={`${m.dateISO ?? "date"}-${i}`} className="border-b border-[color:var(--border)]">
+                    <td className="px-3 py-2 text-slate-900/80">
                       {m.dateISO ?? "—"}
                     </td>
 
-                    <td className="px-3 py-2 text-white/80">
+                    <td className="px-3 py-2 text-slate-900/80">
                       {m.sign ?? "—"}
                     </td>
 
-                    <td className="px-3 py-2 text-white/80">
+                    <td className="px-3 py-2 text-slate-900/80">
                       {m.nakshatra ?? "—"}
                     </td>
 
-                    <td className="px-3 py-2 text-white/80">
+                    <td className="px-3 py-2 text-slate-900/80">
                       {formatDegree(m.degree)}
                     </td>
 
-                    <td className="px-3 py-2 text-white/80">
+                    <td className="px-3 py-2 text-slate-900/80">
                       {typeof m.houseFromLagna === "number" ? `H${m.houseFromLagna}` : "—"}
                     </td>
 
-                    <td className="px-3 py-2 text-white/80">
+                    <td className="px-3 py-2 text-slate-900/80">
                       {typeof m.houseFromMoon === "number" ? `H${m.houseFromMoon}` : "—"}
                     </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={6} className="px-3 py-4 text-white/50">
+                  <td colSpan={6} className="px-3 py-4 text-slate-900">
                     No Moon transit rows found.
                   </td>
                 </tr>

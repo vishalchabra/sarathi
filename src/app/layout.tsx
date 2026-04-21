@@ -1,9 +1,12 @@
-// FILE: src/app/layout.tsx
-import "./globals.css";   // <-- ensure this line exists
+import "./globals.css";
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
-    <html lang="en" className="dark" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <body>{children}</body>
     </html>
   );

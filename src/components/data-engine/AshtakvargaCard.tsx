@@ -14,7 +14,7 @@ type AshtakvargaData = {
 function getCellTone(value: number) {
   if (value >= 6) return "bg-emerald-50 text-emerald-700";
   if (value >= 4) return "bg-amber-50 text-amber-700";
-  return "bg-white/5 text-white/70";
+  return "bg-white/80 text-slate-900";
 }
 
 function getSarvaTone(value: number) {
@@ -30,25 +30,25 @@ export default function AshtakvargaCard({
 }) {
   if (!data?.planets?.length) {
     return (
-      <div className="rounded-2xl border border-white/10 bg-white/5 p-5 text-sm text-white/50">
+      <div className="rounded-2xl border border-[color:var(--border)] bg-white/80 p-5 text-sm text-slate-900">
         Ashtakvarga data not available.
       </div>
     );
   }
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 p-5 shadow-sm">
-      <h3 className="text-base font-semibold text-white">
+    <div className="rounded-2xl border border-[color:var(--border)] bg-white/80 p-5 shadow-sm">
+      <h3 className="text-base font-semibold text-slate-900">
         Ashtakvarga System
       </h3>
-      <p className="mt-1 text-sm text-white/50">
+      <p className="mt-1 text-sm text-slate-900">
         Planet-wise bindu distribution across houses, plus Sarva Ashtakvarga.
       </p>
 
       <div className="mt-4 overflow-x-auto">
         <table className="w-full min-w-[1100px] text-sm">
           <thead>
-            <tr className="border-b border-white/10 text-left text-[11px] uppercase tracking-wide text-white/50">
+            <tr className="border-b border-[color:var(--border)] text-left text-[11px] uppercase tracking-wide text-slate-900">
               <th className="pb-2 pr-3">Planet</th>
               {Array.from({ length: 12 }, (_, i) => (
                 <th key={i} className="pb-2 px-2 text-center">
@@ -63,9 +63,9 @@ export default function AshtakvargaCard({
             {data.planets.map((row) => (
               <tr
                 key={row.planet}
-                className="border-b border-white/10 last:border-none"
+                className="border-b border-[color:var(--border)] last:border-none"
               >
-                <td className="py-3 pr-3 font-medium text-white">
+                <td className="py-3 pr-3 font-medium text-slate-900">
                   {row.planet}
                 </td>
 
@@ -79,14 +79,14 @@ export default function AshtakvargaCard({
                   </td>
                 ))}
 
-                <td className="pl-3 py-3 text-center font-semibold text-white">
+                <td className="pl-3 py-3 text-center font-semibold text-slate-900">
                   {row.total}
                 </td>
               </tr>
             ))}
 
-            <tr className="border-t-2 border-white/15">
-              <td className="py-3 pr-3 font-semibold text-white">
+            <tr className="border-t-2 border-[color:var(--border)]">
+              <td className="py-3 pr-3 font-semibold text-slate-900">
                 Sarva
               </td>
 
@@ -100,7 +100,7 @@ export default function AshtakvargaCard({
                 </td>
               ))}
 
-              <td className="pl-3 py-3 text-center font-semibold text-white">
+              <td className="pl-3 py-3 text-center font-semibold text-slate-900">
                 {data.sarva.reduce((a, b) => a + b, 0)}
               </td>
             </tr>

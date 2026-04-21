@@ -3,7 +3,7 @@ import React from "react";
 export default function FullGuidanceBriefUI({ brief }: { brief: any }) {
       if (!brief || typeof brief !== "object") {
     return (
-      <div className="rounded-2xl border border-white/10 bg-white/5/5 p-4 text-sm text-white/70">
+      <div className="rounded-2xl astro-card p-4 text-sm text-slate-900">
         Building your full guidance…
       </div>
     );
@@ -34,27 +34,27 @@ export default function FullGuidanceBriefUI({ brief }: { brief: any }) {
       {hasLifeStory ? (
         <>
           {/* 1) Life Architecture */}
-          <div className="rounded-2xl border border-white/15 bg-white/5/5 p-4">
+          <div className="rounded-2xl border border-[color:var(--border)] bg-white/80 p-4">
             <div className="text-sm font-semibold text-slate-100">Life Architecture</div>
-            <div className="mt-1 text-xs text-white/60">
+            <div className="mt-1 text-xs text-slate-500">
               {brief?.lifeArchitecture?.oneLine || "—"}
             </div>
 
-            <div className="mt-3 space-y-2 text-sm text-white/85 leading-relaxed">
+            <div className="mt-3 space-y-2 text-sm text-slate-900/85 leading-relaxed">
               <div>
-                <span className="text-white/60">Core pattern: </span>
+                <span className="text-slate-500">Core pattern: </span>
                 {brief?.lifeArchitecture?.corePattern || "—"}
               </div>
               <div>
-                <span className="text-white/60">Primary tension: </span>
+                <span className="text-slate-500">Primary tension: </span>
                 {brief?.lifeArchitecture?.primaryTension || "—"}
               </div>
               <div>
-                <span className="text-white/60">Growth engine: </span>
+                <span className="text-slate-500">Growth engine: </span>
                 {brief?.lifeArchitecture?.growthEngine || "—"}
               </div>
               <div>
-                <span className="text-white/60">Long trajectory: </span>
+                <span className="text-slate-500">Long trajectory: </span>
                 {brief?.lifeArchitecture?.longTrajectory || "—"}
               </div>
             </div>
@@ -62,12 +62,12 @@ export default function FullGuidanceBriefUI({ brief }: { brief: any }) {
 
          {/* 2) Life Chapters (PAID CLEAN: use activePeriods + dashaTimeline, not brief.lifeChapters) */}
 <details
-  className="rounded-2xl border border-white/15 bg-indigo-950/40 p-4 backdrop-blur-md"
+  className="rounded-2xl border border-[color:var(--border)] bg-indigo-950/40 p-4 backdrop-blur-md"
   open
 >
   <summary className="cursor-pointer list-none">
     <div className="text-sm font-semibold text-slate-100">Dasha Snapshot</div>
-    <div className="mt-1 text-xs text-white/60">
+    <div className="mt-1 text-xs text-slate-500">
       Current MD/AD/PD + compact Mahadasha line. No filler.
     </div>
   </summary>
@@ -140,15 +140,15 @@ const predictions90d = Array.isArray(paid?.predictions90d) ? paid.predictions90d
         {mdLine || adLine || pdLine ? (
           <div className="space-y-2">
             {mdLine ? (
-              <div className="rounded-xl border border-white/10 bg-white/5/5 p-3">
-                <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+              <div className="rounded-xl astro-card p-3">
+                <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                   {mdLine.label}
                 </div>
-                <div className="mt-1 text-[13px] text-white/70">
+                <div className="mt-1 text-[13px] text-slate-900">
                   {mdLine.start} → {mdLine.end}
                 </div>
                 {mdLine.note ? (
-                  <div className="mt-2 text-sm text-white/85 leading-relaxed">
+                  <div className="mt-2 text-sm text-slate-900/85 leading-relaxed">
                     {mdLine.note}
                   </div>
                 ) : null}
@@ -156,15 +156,15 @@ const predictions90d = Array.isArray(paid?.predictions90d) ? paid.predictions90d
             ) : null}
 
             {adLine ? (
-              <div className="rounded-xl border border-indigo-400/25 bg-indigo-500/10 p-3">
-                <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+              <div className="rounded-xl border border-indigo-400/25 bg-[color:var(--primary)]/10 p-3">
+                <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                   {adLine.label}
                 </div>
-                <div className="mt-1 text-[13px] text-white/70">
+                <div className="mt-1 text-[13px] text-slate-900">
                   {adLine.start} → {adLine.end}
                 </div>
                 {adLine.note ? (
-                  <div className="mt-2 text-sm text-white/85 leading-relaxed">
+                  <div className="mt-2 text-sm text-slate-900/85 leading-relaxed">
                     {adLine.note}
                   </div>
                 ) : null}
@@ -172,15 +172,15 @@ const predictions90d = Array.isArray(paid?.predictions90d) ? paid.predictions90d
             ) : null}
 
             {pdLine ? (
-              <div className="rounded-xl border border-white/10 bg-white/5/5 p-3">
-                <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+              <div className="rounded-xl astro-card p-3">
+                <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                   {pdLine.label}
                 </div>
-                <div className="mt-1 text-[13px] text-white/70">
+                <div className="mt-1 text-[13px] text-slate-900">
                   {pdLine.start} → {pdLine.end}
                 </div>
                 {pdLine.note ? (
-                  <div className="mt-2 text-sm text-white/85 leading-relaxed">
+                  <div className="mt-2 text-sm text-slate-900/85 leading-relaxed">
                     {pdLine.note}
                   </div>
                 ) : null}
@@ -188,15 +188,15 @@ const predictions90d = Array.isArray(paid?.predictions90d) ? paid.predictions90d
             ) : null}
           </div>
         ) : (
-          <div className="text-sm text-white/60">
+          <div className="text-sm text-slate-500">
             Current dasha not found (activePeriods missing).
           </div>
         )}
 
         {/* Compact MD timeline (optional) */}
         {timeline.length ? (
-          <div className="rounded-xl border border-white/10 bg-white/5/5 p-3">
-            <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+          <div className="rounded-xl astro-card p-3">
+            <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
               Mahadasha timeline (compact)
             </div>
 
@@ -204,12 +204,12 @@ const predictions90d = Array.isArray(paid?.predictions90d) ? paid.predictions90d
               {timeline.slice(0, 9).map((row: any, idx: number) => (
                 <div
                   key={idx}
-                  className="flex items-center justify-between rounded-lg border border-white/10 bg-slate-950/40 px-3 py-2"
+                  className="flex items-center justify-between rounded-lg border border-[color:var(--border)] bg-slate-950/40 px-3 py-2"
                 >
-                  <div className="text-[11px] font-semibold uppercase tracking-wide text-white/60">
+                  <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
                     {row.planet} MD
                   </div>
-                  <div className="text-[12px] text-white/70">
+                  <div className="text-[12px] text-slate-900">
                     {row.startISO} → {row.endISO}
                   </div>
                 </div>
@@ -217,7 +217,7 @@ const predictions90d = Array.isArray(paid?.predictions90d) ? paid.predictions90d
             </div>
           </div>
         ) : (
-          <div className="text-xs text-white/60">
+          <div className="text-xs text-slate-500">
             No usable dashaTimeline found (or it contained invalid years).
           </div>
         )}
@@ -227,16 +227,16 @@ const predictions90d = Array.isArray(paid?.predictions90d) ? paid.predictions90d
 </details>
 
           {/* 3) Current Chapter */}
-          <div className="rounded-2xl border border-white/15 bg-white/5/5 p-4">
+          <div className="rounded-2xl border border-[color:var(--border)] bg-white/80 p-4">
             <div className="text-sm font-semibold text-slate-100">Current Chapter</div>
 
-            <div className="mt-1 text-xs text-white/60">
+            <div className="mt-1 text-xs text-slate-500">
               {(brief?.currentChapter?.md || "—")}–{(brief?.currentChapter?.ad || "—")}
               {brief?.currentChapter?.pd ? `–${brief.currentChapter.pd}` : ""}
             </div>
 
             {brief?.currentChapter?.executiveSummary ? (
-              <div className="mt-3 text-sm text-white/85 leading-relaxed">
+              <div className="mt-3 text-sm text-slate-900/85 leading-relaxed">
                 {brief.currentChapter.executiveSummary}
               </div>
             ) : null}
@@ -246,7 +246,7 @@ const predictions90d = Array.isArray(paid?.predictions90d) ? paid.predictions90d
                 <div className="text-xs font-semibold uppercase tracking-wide text-emerald-100/90">
                   Build
                 </div>
-                <ul className="mt-2 list-disc pl-5 text-sm text-white/90 space-y-1">
+                <ul className="mt-2 list-disc pl-5 text-sm text-slate-900/90 space-y-1">
                   {(brief?.currentChapter?.whatToBuild || []).slice(0, 5).map((x: string, i: number) => (
                     <li key={i}>{x}</li>
                   ))}
@@ -257,7 +257,7 @@ const predictions90d = Array.isArray(paid?.predictions90d) ? paid.predictions90d
                 <div className="text-xs font-semibold uppercase tracking-wide text-red-100/90">
                   Stop
                 </div>
-                <ul className="mt-2 list-disc pl-5 text-sm text-white/90 space-y-1">
+                <ul className="mt-2 list-disc pl-5 text-sm text-slate-900/90 space-y-1">
                   {(brief?.currentChapter?.whatToStop || []).slice(0, 5).map((x: string, i: number) => (
                     <li key={i}>{x}</li>
                   ))}
@@ -273,42 +273,42 @@ const predictions90d = Array.isArray(paid?.predictions90d) ? paid.predictions90d
          ========================= */}
 
       {/* Snapshot */}
-      <div className="rounded-2xl border border-white/15 bg-white/5/5 p-4">
+      <div className="rounded-2xl border border-[color:var(--border)] bg-white/80 p-4">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <div className="text-xs font-semibold uppercase tracking-wide text-white/60">
+            <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
               Full Guidance — Intelligence Brief
             </div>
             <div className="mt-1 text-lg font-semibold text-slate-100">90-day outcomes</div>
-            <div className="mt-1 text-sm text-white/70">Probability + confidence + triggers + actions.</div>
+            <div className="mt-1 text-sm text-slate-900">Probability + confidence + triggers + actions.</div>
           </div>
 
-          <span className="rounded-full border border-white/15 bg-white/5/5 px-3 py-1 text-[11px] text-white/80">
+          <span className="rounded-full border border-[color:var(--border)] bg-white/80 px-3 py-1 text-[11px] text-slate-900/80">
             Confidence: {brief?.overallConfidence ?? "—"}
           </span>
         </div>
 
         <div className="mt-3 grid gap-3 md:grid-cols-3">
-          <div className="rounded-xl border border-white/10 bg-indigo-950/40 p-3">
-            <div className="text-xs text-white/60 uppercase tracking-wide">Primary vector</div>
-            <div className="mt-1 text-sm text-white/85">{brief?.snapshot?.primaryVector ?? "—"}</div>
+          <div className="rounded-xl border border-[color:var(--border)] bg-indigo-950/40 p-3">
+            <div className="text-xs text-slate-500 uppercase tracking-wide">Primary vector</div>
+            <div className="mt-1 text-sm text-slate-900/85">{brief?.snapshot?.primaryVector ?? "—"}</div>
           </div>
-          <div className="rounded-xl border border-white/10 bg-indigo-950/40 p-3">
-            <div className="text-xs text-white/60 uppercase tracking-wide">Opportunity</div>
-            <div className="mt-1 text-sm text-white/85">{brief?.snapshot?.opportunity ?? "—"}</div>
+          <div className="rounded-xl border border-[color:var(--border)] bg-indigo-950/40 p-3">
+            <div className="text-xs text-slate-500 uppercase tracking-wide">Opportunity</div>
+            <div className="mt-1 text-sm text-slate-900/85">{brief?.snapshot?.opportunity ?? "—"}</div>
           </div>
-          <div className="rounded-xl border border-white/10 bg-indigo-950/40 p-3">
-            <div className="text-xs text-white/60 uppercase tracking-wide">Vulnerability</div>
-            <div className="mt-1 text-sm text-white/85">{brief?.snapshot?.vulnerability ?? "—"}</div>
+          <div className="rounded-xl border border-[color:var(--border)] bg-indigo-950/40 p-3">
+            <div className="text-xs text-slate-500 uppercase tracking-wide">Vulnerability</div>
+            <div className="mt-1 text-sm text-slate-900/85">{brief?.snapshot?.vulnerability ?? "—"}</div>
           </div>
         </div>
       </div>
 
       {/* Today */}
-      <div className="rounded-2xl border border-white/15 bg-indigo-950/40 p-4">
-        <div className="text-xs font-semibold uppercase tracking-wide text-white/60">Today</div>
+      <div className="rounded-2xl border border-[color:var(--border)] bg-indigo-950/40 p-4">
+        <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Today</div>
 
-        <div className="mt-2 rounded-xl border border-white/10 bg-white/5/5 p-3 text-sm text-white/85">
+        <div className="mt-2 rounded-xl astro-card p-3 text-sm text-slate-900/85">
           <div>
             <span className="font-semibold">Directive:</span> {brief?.today?.directive ?? "—"}
           </div>
@@ -319,21 +319,21 @@ const predictions90d = Array.isArray(paid?.predictions90d) ? paid.predictions90d
 
         <div className="mt-3 grid gap-3 md:grid-cols-3">
           {(brief?.today?.bestWindows ?? []).map((w: any, i: number) => (
-            <div key={i} className="rounded-xl border border-white/10 bg-white/5/5 p-3">
+            <div key={i} className="rounded-xl astro-card p-3">
               <div className="text-sm font-semibold text-slate-100">{w?.label ?? "—"}</div>
-              <div className="mt-1 text-xs text-white/70">Best for: {w?.bestFor ?? "—"}</div>
-              {w?.whyFact ? <div className="mt-2 text-xs text-white/60">Why: {w.whyFact}</div> : null}
-              <div className="mt-2 text-xs text-white/80">
+              <div className="mt-1 text-xs text-slate-900">Best for: {w?.bestFor ?? "—"}</div>
+              {w?.whyFact ? <div className="mt-2 text-xs text-slate-500">Why: {w.whyFact}</div> : null}
+              <div className="mt-2 text-xs text-slate-900/80">
                 <span className="font-semibold">One action:</span> {w?.oneAction ?? "—"}
               </div>
-              <div className="mt-1 text-xs text-white/60">Avoid: {w?.avoid ?? "—"}</div>
+              <div className="mt-1 text-xs text-slate-500">Avoid: {w?.avoid ?? "—"}</div>
             </div>
           ))}
         </div>
 
         <div className="mt-3 rounded-xl border border-red-400/20 bg-red-500/10 p-3">
           <div className="text-xs font-semibold uppercase tracking-wide text-red-100/90">Caution</div>
-          <ul className="mt-2 list-disc pl-5 text-sm text-white/85 space-y-1">
+          <ul className="mt-2 list-disc pl-5 text-sm text-slate-900/85 space-y-1">
             {(brief?.today?.caution ?? []).map((c: string, i: number) => (
               <li key={i}>{c}</li>
             ))}
@@ -343,31 +343,31 @@ const predictions90d = Array.isArray(paid?.predictions90d) ? paid.predictions90d
 
       {/* 14/30/60/90 */}
       {(sections as any[]).map((sec: any) => (
-  <div key={String(sec?.key ?? sec?.title ?? Math.random())} className="rounded-2xl border border-white/15 bg-white/5/5 p-4">
+  <div key={String(sec?.key ?? sec?.title ?? Math.random())} className="rounded-2xl border border-[color:var(--border)] bg-white/80 p-4">
     <div className="text-sm font-semibold text-slate-100">{sec?.title ?? "—"}</div>
 
     <div className="mt-3 space-y-3">
       {(Array.isArray(sec?.list) ? sec.list : []).map((p: any, i: number) => (
-        <div key={i} className="rounded-xl border border-white/15 bg-white/5/5 p-3">
+        <div key={i} className="rounded-xl border border-[color:var(--border)] bg-white/80 p-3">
           <div className="flex items-center justify-between gap-3">
-            <div className="text-xs text-white/60">
+            <div className="text-xs text-slate-500">
               {String(p?.domain ?? "—").toUpperCase()} • {p?.startISO ?? "—"} → {p?.endISO ?? "—"}
             </div>
             <div className="flex items-center gap-2">
-              <span className="rounded-full border border-white/15 bg-white/5/5 px-3 py-1 text-[11px] text-white/80">
+              <span className="rounded-full border border-[color:var(--border)] bg-white/80 px-3 py-1 text-[11px] text-slate-900/80">
                 {p?.probability ?? "—"}%
               </span>
-              <span className="rounded-full border border-white/15 bg-white/5/5 px-3 py-1 text-[11px] text-white/80">
+              <span className="rounded-full border border-[color:var(--border)] bg-white/80 px-3 py-1 text-[11px] text-slate-900/80">
                 {p?.confidence ?? "—"}
               </span>
             </div>
           </div>
 
-          <div className="mt-2 text-sm font-semibold text-white/90">{p?.event ?? "—"}</div>
+          <div className="mt-2 text-sm font-semibold text-slate-900/90">{p?.event ?? "—"}</div>
 
           {Array.isArray(p?.triggers) && p.triggers.length ? (
-            <div className="mt-2 text-xs text-white/75">
-              <div className="font-semibold text-white/85">Triggers</div>
+            <div className="mt-2 text-xs text-slate-900/75">
+              <div className="font-semibold text-slate-900/85">Triggers</div>
               <ul className="mt-1 list-disc pl-5 space-y-1">
                 {p.triggers.slice(0, 4).map((x: string, j: number) => (
                   <li key={j}>{x}</li>
@@ -377,8 +377,8 @@ const predictions90d = Array.isArray(paid?.predictions90d) ? paid.predictions90d
           ) : null}
 
           {Array.isArray(p?.actions) && p.actions.length ? (
-            <div className="mt-2 text-xs text-white/75">
-              <div className="font-semibold text-white/85">Actions</div>
+            <div className="mt-2 text-xs text-slate-900/75">
+              <div className="font-semibold text-slate-900/85">Actions</div>
               <ul className="mt-1 list-disc pl-5 space-y-1">
                 {p.actions.slice(0, 4).map((x: string, j: number) => (
                   <li key={j}>{x}</li>
@@ -388,18 +388,18 @@ const predictions90d = Array.isArray(paid?.predictions90d) ? paid.predictions90d
           ) : null}
 
           <div className="mt-3 grid gap-2 md:grid-cols-2">
-            <div className="rounded-lg border border-emerald-400/20 bg-emerald-500/10 p-2 text-xs text-white/85">
+            <div className="rounded-lg border border-emerald-400/20 bg-emerald-500/10 p-2 text-xs text-slate-900/85">
               <span className="font-semibold text-emerald-100/90">If followed:</span>{" "}
               {p?.consequenceIfFollowed ?? "—"}
             </div>
-            <div className="rounded-lg border border-red-400/20 bg-red-500/10 p-2 text-xs text-white/85">
+            <div className="rounded-lg border border-red-400/20 bg-red-500/10 p-2 text-xs text-slate-900/85">
               <span className="font-semibold text-red-100/90">If ignored:</span>{" "}
               {p?.consequenceIfIgnored ?? "—"}
             </div>
           </div>
 
           {Array.isArray(p?.whyFacts) && p.whyFacts.length ? (
-            <div className="mt-2 text-[11px] text-white/60">
+            <div className="mt-2 text-[11px] text-slate-500">
               Why: {p.whyFacts.slice(0, 3).join(" • ")}
             </div>
           ) : null}
@@ -408,7 +408,7 @@ const predictions90d = Array.isArray(paid?.predictions90d) ? paid.predictions90d
 
       {/* fallback when list is empty */}
       {(!Array.isArray(sec?.list) || sec.list.length === 0) ? (
-        <div className="rounded-xl border border-white/10 bg-white/5/5 p-3 text-sm text-white/70">
+        <div className="rounded-xl astro-card p-3 text-sm text-slate-900">
           No items found for {sec?.title ?? "this section"}.
         </div>
       ) : null}
@@ -416,26 +416,26 @@ const predictions90d = Array.isArray(paid?.predictions90d) ? paid.predictions90d
   </div>
 ))}
       {/* Risk + Protocol */}
-      <div className="rounded-2xl border border-white/15 bg-white/5/5 p-4">
+      <div className="rounded-2xl border border-[color:var(--border)] bg-white/80 p-4">
         <div className="text-sm font-semibold text-slate-100">Risk Index</div>
 
         <div className="mt-3 grid gap-3 md:grid-cols-2">
-          <div className="rounded-xl border border-white/10 bg-white/5/5 p-3 text-sm text-white/85">
+          <div className="rounded-xl astro-card p-3 text-sm text-slate-900/85">
             <span className="font-semibold">Likely mistake:</span> {brief?.riskIndex?.likelyMistake ?? "—"}
           </div>
-          <div className="rounded-xl border border-white/10 bg-white/5/5 p-3 text-sm text-white/85">
+          <div className="rounded-xl astro-card p-3 text-sm text-slate-900/85">
             <span className="font-semibold">Emotional trap:</span> {brief?.riskIndex?.emotionalTrap ?? "—"}
           </div>
-          <div className="rounded-xl border border-white/10 bg-white/5/5 p-3 text-sm text-white/85">
+          <div className="rounded-xl astro-card p-3 text-sm text-slate-900/85">
             <span className="font-semibold">Structural trap:</span> {brief?.riskIndex?.structuralTrap ?? "—"}
           </div>
-          <div className="rounded-xl border border-white/10 bg-white/5/5 p-3 text-sm text-white/85">
+          <div className="rounded-xl astro-card p-3 text-sm text-slate-900/85">
             <span className="font-semibold">Financial trap:</span> {brief?.riskIndex?.financialTrap ?? "—"}
           </div>
         </div>
 
         <div className="mt-4 text-sm font-semibold text-slate-100">Decision Protocol</div>
-        <ul className="mt-2 list-disc pl-5 text-sm text-white/85 space-y-1">
+        <ul className="mt-2 list-disc pl-5 text-sm text-slate-900/85 space-y-1">
           {(brief?.decisionProtocol ?? []).map((x: string, i: number) => (
             <li key={i}>{x}</li>
           ))}

@@ -137,7 +137,7 @@ export default function YogasAuto({
 
   if (list.length === 0) {
     return (
-      <div className="text-sm text-gray-500 dark:text-white/40">
+      <div className="text-sm text-gray-500 dark:text-slate-900">
         No common yogas detected by light rules.
       </div>
     );
@@ -145,13 +145,13 @@ export default function YogasAuto({
 
   return (
     <div className="space-y-2 text-sm">
-      <div className="text-xs text-gray-500 dark:text-white/40 mb-1">
+      <div className="text-xs text-gray-500 dark:text-slate-900 mb-1">
         sidereal • whole-sign houses • reproducible
       </div>
       {list.map((y, i) => (
         <div
           key={i}
-          className="rounded-lg border border-white/10 dark:border-slate-700 p-2"
+          className="rounded-lg border border-[color:var(--border)] dark:border-slate-700 p-2"
         >
           <div className="flex flex-wrap items-center gap-2">
             <b>{y.name}</b>
@@ -162,7 +162,7 @@ export default function YogasAuto({
             }>
               {y.flavor}
             </span>
-            <span className="text-gray-500 dark:text-white/40">{y.weight}</span>
+            <span className="text-gray-500 dark:text-slate-900">{y.weight}</span>
             <span className="text-gray-700 dark:text-slate-200">— {y.note}</span>
           </div>
         </div>

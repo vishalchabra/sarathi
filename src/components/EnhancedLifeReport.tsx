@@ -109,7 +109,7 @@ function CurrentCycleCard({ activePeriods }: { activePeriods?: ActivePeriods }) 
   const nowSummary = praty?.summary || antar?.summary || "";
 
   return (
-    <section className="rounded-lg border p-4 md:p-6 bg-white/5 shadow-sm mb-6">
+    <section className="rounded-lg border p-4 md:p-6 bg-white/80 shadow-sm mb-6">
       <h3 className="text-lg font-semibold mb-4">
         {titleLine}
       </h3>
@@ -139,7 +139,7 @@ function CurrentCycleCard({ activePeriods }: { activePeriods?: ActivePeriods }) 
 function PlainEnglishCard({ personalSummary }: { personalSummary?: string }) {
   if (!personalSummary) return null;
   return (
-    <section className="rounded-lg border p-4 md:p-6 bg-white/5 shadow-sm mb-6">
+    <section className="rounded-lg border p-4 md:p-6 bg-white/80 shadow-sm mb-6">
       <h3 className="text-base font-semibold mb-2 flex items-center gap-2">
         <span role="img" aria-label="spark">✨</span>
         <span>In plain English</span>
@@ -155,7 +155,7 @@ function AscendantCard({ ascendant }: { ascendant?: Report["ascendant"] }) {
   // In your screenshot I saw "Unknown Ascendant" fallback.
   if (!ascendant) {
     return (
-      <section className="rounded-lg border p-4 bg-white/5 shadow-sm mb-6">
+      <section className="rounded-lg border p-4 bg-white/80 shadow-sm mb-6">
         <h3 className="font-semibold text-base mb-2">Unknown Ascendant</h3>
         <p className="text-sm text-gray-700 leading-relaxed">
           Ascendant insights will appear here once the data loads.
@@ -165,7 +165,7 @@ function AscendantCard({ ascendant }: { ascendant?: Report["ascendant"] }) {
   }
 
   return (
-    <section className="rounded-lg border p-4 bg-white/5 shadow-sm mb-6">
+    <section className="rounded-lg border p-4 bg-white/80 shadow-sm mb-6">
       <h3 className="font-semibold text-base mb-2">{ascendant.label}</h3>
       {ascendant.summary && (
         <p className="text-sm text-gray-700 leading-relaxed">
@@ -185,7 +185,7 @@ function SoulPathCard({ soulPath }: { soulPath?: Report["soulPath"] }) {
   if (!soulPath) return null;
   return (
     <section className="grid gap-4 md:grid-cols-2 mb-6">
-      <div className="rounded-lg border p-4 bg-white/5 shadow-sm">
+      <div className="rounded-lg border p-4 bg-white/80 shadow-sm">
         <div className="text-xs text-gray-500 mb-1 font-medium">
           Emotional Purpose
         </div>
@@ -193,7 +193,7 @@ function SoulPathCard({ soulPath }: { soulPath?: Report["soulPath"] }) {
           {soulPath.emotionalPurpose || "—"}
         </div>
       </div>
-      <div className="rounded-lg border p-4 bg-white/5 shadow-sm">
+      <div className="rounded-lg border p-4 bg-white/80 shadow-sm">
         <div className="text-xs text-gray-500 mb-1 font-medium">
           Spiritual Purpose
         </div>
@@ -218,7 +218,7 @@ function HousesBlock({ houses }: { houses?: Report["houses"] }) {
         </div>
       </div>
 
-      <div className="divide-y border rounded-lg bg-white/5 shadow-sm">
+      <div className="divide-y border rounded-lg bg-white/80 shadow-sm">
         {houses.map((h) => (
           <div key={h.id} className="p-4 text-sm leading-relaxed">
             <div className="font-medium text-gray-800 mb-1">
@@ -253,7 +253,7 @@ function PlanetsBlock({ planets }: { planets?: Report["planets"] }) {
   if (!planets?.length) return (
     <section className="mb-6">
       <h3 className="font-semibold text-base mb-2">Planets</h3>
-      <div className="rounded-lg border p-4 bg-white/5 text-sm text-gray-600 shadow-sm">
+      <div className="rounded-lg border p-4 bg-white/80 text-sm text-gray-600 shadow-sm">
         No planetary data returned.
       </div>
     </section>
@@ -262,7 +262,7 @@ function PlanetsBlock({ planets }: { planets?: Report["planets"] }) {
   return (
     <section className="mb-6">
       <h3 className="font-semibold text-base mb-2">Planets</h3>
-      <div className="rounded-lg border divide-y bg-white/5 shadow-sm">
+      <div className="rounded-lg border divide-y bg-white/80 shadow-sm">
         {planets.map((p, i) => (
           <div key={i} className="p-4 text-sm leading-relaxed">
             <div className="font-medium text-gray-800 mb-1">
@@ -302,7 +302,7 @@ export default function EnhancedLifeReport({
   } = report || {};
   console.log("DEBUG activePeriods", activePeriods);
   return (
-    <div className="max-w-5xl mx-auto space-y-6 text-white/90 print:bg-white/5 print:text-black">
+    <div className="max-w-5xl mx-auto space-y-6 text-slate-900/90 print:bg-white/80 print:text-black">
       
       {/* CURRENT CYCLE CARD with Mahadasha / Antardasha / Pratyantardasha */}
       <div>
