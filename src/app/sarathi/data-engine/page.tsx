@@ -876,6 +876,11 @@ const upagrahas = useMemo(
   () => data?.foundations?.upagrahas ?? data?.upagrahas ?? null,
   [data]
 );
+useEffect(() => {
+  if (upagrahas) {
+    console.log("UPAGRAHA DEBUG", upagrahas);
+  }
+}, [upagrahas]);
 const solarShadowPoints = useMemo(
   () =>
     data?.foundations?.solarShadowPoints ??

@@ -102,64 +102,63 @@ const NAKSHATRA_NAMES = [
  */
 const ASTROSAGE_RULES: RuleMatrix = {
   day: {
-    Sunday: {
-      gulika: { spanChoice: "previous_night", segmentIndex: 1, momentType: "start" },
-      mandi: { spanChoice: "previous_night", segmentIndex: 1, momentType: "midpoint" },
-      yamakantaka: { spanChoice: "previous_night", segmentIndex: 4, momentType: "start" },
-      kala: { spanChoice: "previous_night", segmentIndex: 5, momentType: "start" },
-      mrityu: { spanChoice: "previous_night", segmentIndex: 7, momentType: "start" },
-      arthaprahara: { spanChoice: "previous_night", segmentIndex: 3, momentType: "start" },
-    },
-    Monday: {
-      gulika: { spanChoice: "previous_night", segmentIndex: 2, momentType: "start" },
-      mandi: { spanChoice: "previous_night", segmentIndex: 2, momentType: "midpoint" },
-      yamakantaka: { spanChoice: "previous_night", segmentIndex: 5, momentType: "start" },
-      kala: { spanChoice: "previous_night", segmentIndex: 6, momentType: "start" },
-      mrityu: { spanChoice: "previous_night", segmentIndex: 8, momentType: "start" },
-      arthaprahara: { spanChoice: "previous_night", segmentIndex: 4, momentType: "start" },
-    },
-    Tuesday: {
-      gulika: { spanChoice: "previous_night", segmentIndex: 3, momentType: "start" },
-      mandi: { spanChoice: "previous_night", segmentIndex: 3, momentType: "midpoint" },
-      yamakantaka: { spanChoice: "previous_night", segmentIndex: 6, momentType: "start" },
-      kala: { spanChoice: "previous_night", segmentIndex: 7, momentType: "start" },
-      mrityu: { spanChoice: "previous_night", segmentIndex: 1, momentType: "start" },
-      arthaprahara: { spanChoice: "previous_night", segmentIndex: 5, momentType: "start" },
-    },
-    Wednesday: {
-      gulika: { spanChoice: "previous_night", segmentIndex: 4, momentType: "start" },
-      mandi: { spanChoice: "previous_night", segmentIndex: 4, momentType: "midpoint" },
-      yamakantaka: { spanChoice: "previous_night", segmentIndex: 7, momentType: "start" },
-      kala: { spanChoice: "previous_night", segmentIndex: 8, momentType: "start" },
-      mrityu: { spanChoice: "previous_night", segmentIndex: 2, momentType: "start" },
-      arthaprahara: { spanChoice: "previous_night", segmentIndex: 6, momentType: "start" },
-    },
-    Thursday: {
-      gulika: { spanChoice: "previous_night", segmentIndex: 5, momentType: "start" },
-      mandi: { spanChoice: "previous_night", segmentIndex: 5, momentType: "midpoint" },
-      yamakantaka: { spanChoice: "previous_night", segmentIndex: 8, momentType: "start" },
-      kala: { spanChoice: "previous_night", segmentIndex: 1, momentType: "start" },
-      mrityu: { spanChoice: "previous_night", segmentIndex: 3, momentType: "start" },
-      arthaprahara: { spanChoice: "previous_night", segmentIndex: 7, momentType: "start" },
-    },
-    Friday: {
-      gulika: { spanChoice: "previous_night", segmentIndex: 6, momentType: "start" },
-      mandi: { spanChoice: "previous_night", segmentIndex: 6, momentType: "midpoint" },
-      yamakantaka: { spanChoice: "previous_night", segmentIndex: 1, momentType: "start" },
-      kala: { spanChoice: "previous_night", segmentIndex: 2, momentType: "start" },
-      mrityu: { spanChoice: "previous_night", segmentIndex: 4, momentType: "start" },
-      arthaprahara: { spanChoice: "previous_night", segmentIndex: 8, momentType: "start" },
-    },
-    Saturday: {
-      gulika: { spanChoice: "previous_night", segmentIndex: 5, momentType: "start" },
-      mandi: { spanChoice: "previous_night", segmentIndex: 5, momentType: "ratio", ratio: 3 / 7 },
-      yamakantaka: { spanChoice: "previous_night", segmentIndex: 3, momentType: "ratio", ratio: 3 / 7 },
-      kala: { spanChoice: "previous_night", segmentIndex: 7, momentType: "ratio", ratio: 3 / 7 },
-      mrityu: { spanChoice: "previous_night", segmentIndex: 1, momentType: "ratio", ratio: 3 / 7 },
-      arthaprahara: { spanChoice: "previous_night", segmentIndex: 2, momentType: "ratio", ratio: 3 / 7 },
-    },
-  },
-
+Sunday: {
+  gulika: { spanChoice: "day", segmentIndex: 7, momentType: "start" },
+  mandi: { spanChoice: "day", segmentIndex: 7, momentType: "midpoint" },
+  yamakantaka: { spanChoice: "day", segmentIndex: 5, momentType: "midpoint" },
+  kala: { spanChoice: "day", segmentIndex: 1, momentType: "start" },
+  mrityu: { spanChoice: "day", segmentIndex: 4, momentType: "start" },
+  arthaprahara: { spanChoice: "day", segmentIndex: 3, momentType: "start" },
+},
+ Monday: {
+  gulika: { spanChoice: "day", segmentIndex: 6, momentType: "start" },
+  mandi: { spanChoice: "day", segmentIndex: 6, momentType: "midpoint" },
+  yamakantaka: { spanChoice: "day", segmentIndex: 4, momentType: "start" },
+  kala: { spanChoice: "day", segmentIndex: 8, momentType: "start" },
+  mrityu: { spanChoice: "day", segmentIndex: 2, momentType: "start" },
+  arthaprahara: { spanChoice: "previous_night", segmentIndex: 4, momentType: "start" },
+},
+  Tuesday: {
+  gulika: { spanChoice: "day", segmentIndex: 5, momentType: "start" },
+  mandi: { spanChoice: "day", segmentIndex: 5, momentType: "midpoint" },
+  yamakantaka: { spanChoice: "day", segmentIndex: 4, momentType: "start" },
+  kala: { spanChoice: "day", segmentIndex: 8, momentType: "start" },
+  mrityu: { spanChoice: "day", segmentIndex: 1, momentType: "start" },
+  arthaprahara: { spanChoice: "previous_night", segmentIndex: 5, momentType: "start" },
+},
+ Wednesday: {
+  gulika: { spanChoice: "day", segmentIndex: 3, momentType: "midpoint" },
+  mandi: { spanChoice: "day", segmentIndex: 4, momentType: "midpoint" },
+  yamakantaka: { spanChoice: "day", segmentIndex: 2, momentType: "start" },
+  kala: { spanChoice: "day", segmentIndex: 6, momentType: "start" },
+  mrityu: { spanChoice: "day", segmentIndex: 8, momentType: "start" },
+  arthaprahara: { spanChoice: "previous_night", segmentIndex: 6, momentType: "start" },
+},
+Thursday: {
+  gulika: { spanChoice: "day", segmentIndex: 2, momentType: "midpoint" },
+  mandi: { spanChoice: "day", segmentIndex: 3, momentType: "midpoint" },
+ yamakantaka: { spanChoice: "day", segmentIndex: 8, momentType: "start" },
+  kala: { spanChoice: "day", segmentIndex: 5, momentType: "start" },
+  mrityu: { spanChoice: "day", segmentIndex: 8, momentType: "start" },
+  arthaprahara: { spanChoice: "day", segmentIndex: 7, momentType: "start" },
+},
+ Friday: {
+  gulika: { spanChoice: "day", segmentIndex: 2, momentType: "start" },
+  mandi: { spanChoice: "day", segmentIndex: 2, momentType: "midpoint" },
+  yamakantaka: { spanChoice: "day", segmentIndex: 8, momentType: "midpoint" },
+  kala: { spanChoice: "day", segmentIndex: 5, momentType: "start" },
+  mrityu: { spanChoice: "day", segmentIndex: 6, momentType: "start" },
+  arthaprahara: { spanChoice: "previous_night", segmentIndex: 8, momentType: "start" },
+},
+ Saturday: {
+  gulika: { spanChoice: "day", segmentIndex: 1, momentType: "start" },
+  mandi: { spanChoice: "day", segmentIndex: 1, momentType: "midpoint" },
+  yamakantaka: { spanChoice: "day", segmentIndex: 8, momentType: "start" },
+  kala: { spanChoice: "day", segmentIndex: 3, momentType: "midpoint" },
+  mrityu: { spanChoice: "day", segmentIndex: 6, momentType: "start" },
+  arthaprahara: { spanChoice: "previous_night", segmentIndex: 2, momentType: "ratio", ratio: 3 / 7 },
+},
+},
   /**
    * Evening/night births before midnight.
    */
@@ -294,7 +293,36 @@ const ASTROSAGE_RULES: RuleMatrix = {
     },
   },
 };
+const CORRECTABLE_UPAGRAHAS: UpagrahaKey[] = [
+  "yamakantaka",
+  "kala",
+  "mrityu",
+];
 
+const WEEKDAY_UPAGRAHA_SEGMENT_CORRECTIONS: Partial<
+  Record<string, Partial<Record<UpagrahaKey, number>>>
+> = {
+};
+
+function wrapSegmentIndex(index: number) {
+  const normalized = ((index - 1) % 8 + 8) % 8;
+  return normalized + 1;
+}
+
+function getCorrectedSegmentIndex(
+  weekdayName: string,
+  key: UpagrahaKey,
+  segmentIndex: number
+) {
+  if (!CORRECTABLE_UPAGRAHAS.includes(key)) {
+    return segmentIndex;
+  }
+
+  const weekdayCorrections =
+    WEEKDAY_UPAGRAHA_SEGMENT_CORRECTIONS[weekdayName] ?? null;
+  const delta = weekdayCorrections?.[key] ?? 0;
+  return wrapSegmentIndex(segmentIndex + delta);
+}
 function getRule(
   family: RuleFamily,
   weekdayName: string,
@@ -716,7 +744,11 @@ async function buildSegmentedUpagraha(params: {
   const rule = getRule(ruleFamily, weekdayName, key);
   if (!rule) return null;
 
-  const segmentIndex = rule.segmentIndex;
+ const segmentIndex = getCorrectedSegmentIndex(
+  weekdayName,
+  key,
+  rule.segmentIndex
+);
 
   const segments = buildEightSegments(spanStartDT, spanEndDT);
   const chosenSegment =
@@ -1002,6 +1034,7 @@ async function buildUpagrahaPack(params: {
     kala,
     mrityu,
     arthaprahara,
+    ardhaprahara: arthaprahara,
   };
 }
 
@@ -1278,7 +1311,7 @@ export async function buildUpagrahaData(params: {
     kala,
     mrityu,
     arthaprahara,
-
+    ardhaprahara: arthaprahara,
     previousNightPack,
     dayPack,
     nextNightPack,
