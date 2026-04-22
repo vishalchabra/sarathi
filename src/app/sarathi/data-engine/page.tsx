@@ -1413,6 +1413,11 @@ const errorBoxClass =
       point={upagrahas?.mrityu}
       methodLabel={upagrahas?.traditionLabel ?? upagrahas?.methodId ?? "—"}
     />
+    <UpagrahaCard
+  title="Ardhaprahara"
+  point={upagrahas?.arthaprahara}
+  methodLabel={upagrahas?.traditionLabel ?? upagrahas?.methodId ?? "—"}
+/>
    <UpagrahaCard
   title="Dhuma"
   point={solarShadowPoints?.dhuma}

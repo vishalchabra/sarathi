@@ -169,7 +169,7 @@ export default function UpagrahaCard({
                   <p>{point.interpretation.practicalReading}</p>
                 ) : null}
                 {point.interpretation.caution ? (
-                  <p className="text-amber-200/90">{point.interpretation.caution}</p>
+                  <p className="text-[#9a6b00]">{point.interpretation.caution}</p>
                 ) : null}
               </div>
             </div>
