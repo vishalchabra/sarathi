@@ -34,6 +34,12 @@ import tzLookup from "tz-lookup";
 import { buildArudhas } from "./buildArudhaLagna";
 import { buildUpagrahaData } from "./buildUpagrahaData";
 import { buildSolarShadowPoints } from "./buildSolarShadowPoints";
+import { buildKpPlanetOnCusp } from "@/lib/astrology/kp/buildKpPlanetOnCusp";
+import {
+  sweJulday as sweWasmJulday,
+  sweCalcUt as sweWasmCalcUt,
+  sweGetAyanamsaUt as sweWasmGetAyanamsaUt,
+} from "../astro/swe-wasm";
 export type DataEnginePlan = "light" | "pro";
 
 export type BirthInput = {
@@ -200,6 +206,7 @@ timing: {
         degree: number;
       } | null;
     }>;
+    kpPlanetOnCusp: any;
     fiveFoldFriendship: Array<{
       planet: string;
       relationships: Array<{
@@ -231,6 +238,7 @@ timing: {
   houseJudgement: any;
   upagrahas: any;
   solarShadowPoints: any;
+  kpPlanetOnCusp: any;
   bhavaChalit: any;
   classicChalit: any;
   dasha: any;
@@ -738,19 +746,8 @@ const utilityPlace = params.utilityPlace ?? {
   timezone: birth.timezone,
 };
 const utilityTimezone = utilityPlace.timezone || birth.timezone;
-console.log("BUILD DATA ENGINE UTILITIES DEBUG", {
-  utilityDateISO,
-  utilityHoraDateISO,
-  utilityTime,
-  utilityPlace,
-  utilityTimezone,
-});
-console.log("CALLING UTILITY PANCHANG", {
-  dateISO: utilityDateISO,
-  timezone: utilityTimezone,
-  lat: utilityPlace.lat,
-  lon: utilityPlace.lon,
-});
+
+
 const utilityPanchang = await buildPanchangData({
   dateISO: utilityDateISO,
   timezone: utilityTimezone,
@@ -810,7 +807,8 @@ if (asc.lon < 0 || asc.lon > 360) {
 }
 
 const ascSignNum = SIGN_TO_NUM[ascSign] ?? 0;
-const reportPlanets = (Array.isArray(rawPlacements) ? rawPlacements : []).map((p: any) => {
+
+const classicalReportPlanets = (Array.isArray(rawPlacements) ? rawPlacements : []).map((p: any) => {
   if (p.planet === "Rahu") {
     const lon =
       typeof rawNodeLonMap.get("Rahu") === "number"
@@ -884,40 +882,126 @@ const reportPlanets = (Array.isArray(rawPlacements) ? rawPlacements : []).map((p
   };
 });
 
- 
-  const natalAspects = buildNatalAspects({
+const OUTER_PLANET_CODES = [
+  { planet: "Uranus", code: 7 },
+  { planet: "Neptune", code: 8 },
+  { planet: "Pluto", code: 9 },
+];
+
+const birthDtUtc = DateTime.fromISO(`${birth.dateISO}T${birth.time}`, {
+  zone: birth.timezone,
+}).toUTC();
+
+const birthHour =
+  birthDtUtc.hour +
+  birthDtUtc.minute / 60 +
+  birthDtUtc.second / 3600;
+
+const outerJdUt = await sweWasmJulday(
+  birthDtUtc.year,
+  birthDtUtc.month,
+  birthDtUtc.day,
+  birthHour,
+  1
+);
+
+const outerAyanamsa = await sweWasmGetAyanamsaUt(outerJdUt);
+
+const signNames = [
+  "Aries",
+  "Taurus",
+  "Gemini",
+  "Cancer",
+  "Leo",
+  "Virgo",
+  "Libra",
+  "Scorpio",
+  "Sagittarius",
+  "Capricorn",
+  "Aquarius",
+  "Pisces",
+];
+
+const outerPlanets = await Promise.all(
+  OUTER_PLANET_CODES.map(async ({ planet, code }) => {
+    const r: any = await sweWasmCalcUt(outerJdUt, code, 0);
+
+    const lonTrop =
+      r?.longitude ??
+      r?.x?.[0] ??
+      r?.xx?.[0] ??
+      (Array.isArray(r) ? r[0] : null);
+
+    if (typeof lonTrop !== "number" || !Number.isFinite(lonTrop)) {
+      return null;
+    }
+
+    const lon = ((lonTrop - outerAyanamsa) % 360 + 360) % 360;
+    const signNum = Math.floor(lon / 30) + 1;
+    const sign = signNames[signNum - 1] ?? "Unknown";
+    const nakInfo = getNakshatraAndPadaFromLon(lon);
+
+    const house =
+      signNum && ascSignNum
+        ? ((signNum - ascSignNum + 12) % 12) + 1
+        : null;
+
+    return {
+      planet,
+      lon,
+      longitude: lon,
+      sign,
+      signNum,
+      degree: Number((lon % 30).toFixed(2)),
+      house,
+      nakshatra: nakInfo.nakshatra,
+      pada: nakInfo.pada,
+      retrograde: false,
+      combust: false,
+      lordships: [],
+    };
+  })
+);
+
+const reportPlanets = [
+  ...classicalReportPlanets,
+  ...outerPlanets.filter(Boolean),
+];
+
+const natalAspects = buildNatalAspects({
+  natalPlanets: reportPlanets,
+});
+
+const natalBase = {
+  ayanamsa: "Lahiri",
+  birthUTCISO: toBirthUTCISO(birth),
+  moonLonSidDeg:
+    reportPlanets.find((p: any) => p.planet === "Moon")?.lon ?? null,
+
+  ascendant: {
+    sign: ascSign,
+    signNum: ascSignNum,
+    degree:
+      typeof ascLon === "number"
+        ? Number((ascLon % 30).toFixed(2))
+        : null,
+    house: 1,
+    lon: typeof ascLon === "number" ? ascLon : null,
+  },
+
+  planets: reportPlanets,
+  aspects: natalAspects,
+  sourceNote: "Built directly from placements + ascendant",
+};
+
+const natal = {
+  ...natalBase,
+  strengths: buildPlanetStrength({
     natalPlanets: reportPlanets,
-  });
+    vargaData: {},
+  }),
+};
 
-  const natalBase = {
-    ayanamsa: "Lahiri",
-    birthUTCISO: toBirthUTCISO(birth),
-    moonLonSidDeg:
-      reportPlanets.find((p: any) => p.planet === "Moon")?.lon ?? null,
-
-    ascendant: {
-      sign: ascSign,
-      signNum: ascSignNum,
-      degree:
-        typeof ascLon === "number"
-          ? Number((ascLon % 30).toFixed(2))
-          : null,
-      house: 1,
-      lon: typeof ascLon === "number" ? ascLon : null,
-    },
-
-    planets: reportPlanets,
-    aspects: natalAspects,
-    sourceNote: "Built directly from placements + ascendant",
-  };
-
-  const natal = {
-    ...natalBase,
-    strengths: buildPlanetStrength({
-      natalPlanets: reportPlanets,
-      vargaData: {},
-    }),
-  };
 const ascendantForBuilders = {
   sign: natalBase.ascendant?.sign ?? "—",
   signNum: natalBase.ascendant?.signNum ?? 0,
@@ -925,6 +1009,7 @@ const ascendantForBuilders = {
   house: 1,
   lon: natalBase.ascendant?.lon ?? null,
 } as any;
+
 const houses = await buildHouseData({
   ascendant: ascendantForBuilders,
   natalPlanets: natalBase.planets,
@@ -936,23 +1021,23 @@ const roles = await buildFunctionalRoles({
   natalPlanets: natalBase.planets,
 });
 
-  const vargas = await buildVargaData({
-    birth,
-    plan,
-    natalPlanets: natal.planets,
-    natalAscendant: {
-      sign: natal.ascendant?.sign ?? null,
-      lon: natal.ascendant?.lon ?? null,
-    },
-  });
+const vargas = await buildVargaData({
+  birth,
+  plan,
+  natalPlanets: natal.planets,
+  natalAscendant: {
+    sign: natal.ascendant?.sign ?? null,
+    lon: natal.ascendant?.lon ?? null,
+  },
+});
 
-  const natalWithStrengths = {
-    ...natalBase,
-    strengths: buildPlanetStrength({
-      natalPlanets: reportPlanets,
-      vargaData: vargas,
-    }),
-  };
+const natalWithStrengths = {
+  ...natalBase,
+  strengths: buildPlanetStrength({
+    natalPlanets: reportPlanets,
+    vargaData: vargas,
+  }),
+};
 const natalMoonRow =
   Array.isArray(natalWithStrengths.planets)
     ? natalWithStrengths.planets.find((p: any) => p?.planet === "Moon") ?? null
@@ -1002,7 +1087,33 @@ const chandrabalam = getChandrabalam(
   const bhavMadhya = buildBhavMadhya({
     cusps: houseCusps.cusps ?? [],
   });
+   
+const kpPlanets = (natalWithStrengths.planets ?? []).map((p: any) => ({
+  planet: p?.planet,
+  lon: p?.lon ?? p?.longitude ?? null,
+}));
+console.log(
+  "KP PLANET NAMES",
+  kpPlanets.map((p: any) => p.planet)
+);
+const kpPlanetOnCusp = buildKpPlanetOnCusp({
+  cusps: (houseCusps?.cusps ?? []).map((lon: number, index: number) => ({
+    cusp: index + 1,
+    lon,
+  })),
+  planets: kpPlanets,
+  zodiac: "sidereal",
+  ayanamsa: natalWithStrengths?.ayanamsa ?? "Lahiri",
+});
+console.log(
+  "NATAL PLANET KEYS",
+  Object.keys(natalWithStrengths ?? {})
+);
 
+console.log(
+  "NATAL PLANET NAMES",
+  (natalWithStrengths.planets ?? []).map((p: any) => p?.planet)
+);
   const fiveFoldFriendship = buildFiveFoldFriendship({
     natalPlanets: natalWithStrengths.planets,
   });
@@ -1052,21 +1163,7 @@ const chandrabalam = getChandrabalam(
     birth,
     natalAscendant: natalAscendantForEngine,
   });
- console.log(
-  "UPAGRAHA DEBUG PREV NIGHT",
-  JSON.stringify(upagrahas?.debugPreviousNightSegments, null, 2)
-);
-
-console.log(
-  "UPAGRAHA DEBUG DAY",
-  JSON.stringify(upagrahas?.debugDaySegments, null, 2)
-);
-
-console.log(
-  "UPAGRAHA DEBUG NEXT NIGHT",
-  JSON.stringify(upagrahas?.debugNextNightSegments, null, 2)
-);
-
+ 
   const solarShadowPoints = buildSolarShadowPoints({
   natalPlanets: natalWithStrengths.planets,
   natalAscendant: natalAscendantForEngine,
@@ -1112,12 +1209,7 @@ console.log(
     lon: birth.lon,
     transitNow,
   });
-console.log("CALLING BIRTH PANCHANG", {
-  dateISO: birth.dateISO,
-  timezone: birth.timezone,
-  lat: birth.lat,
-  lon: birth.lon,
-});
+
   const birthPanchang = await buildPanchangData({
     dateISO: birth.dateISO,
     timezone: birth.timezone,
@@ -1289,6 +1381,7 @@ const horaInfo = getAccurateHoraLord({
       ashtakvarga,
       prasthara,
       bhavMadhya,
+      kpPlanetOnCusp,
       fiveFoldFriendship,
       avakhada,
     },
@@ -1314,5 +1407,6 @@ const horaInfo = getAccurateHoraLord({
     transitWindows,
     bhavaChalit,
     classicChalit,
+    kpPlanetOnCusp,
   };
 }

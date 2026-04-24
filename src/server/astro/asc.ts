@@ -47,7 +47,6 @@ function signFromDeg(longitude: number) {
 
 /** Returns sidereal Ascendant (Lahiri) { lon, sign } */
 export async function getAscendant(birth: BirthInput) {
-  console.error("GET ASCENDANT CALLED", birth);
 
   const d = toUTC(birth);
 

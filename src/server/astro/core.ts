@@ -100,16 +100,25 @@ export async function getNatal(birth?: BirthInput): Promise<Natal> {
   const date = dt.toJSDate();
   const jd = await julianDayUTC(date);
 
-  const PLANETS = [
-    constants.SE_SUN,
-    constants.SE_MOON,
-    constants.SE_MERCURY,
-    constants.SE_VENUS,
-    constants.SE_MARS,
-    constants.SE_JUPITER,
-    constants.SE_SATURN,
-    constants.SE_TRUE_NODE,
-  ];
+const SE_URANUS = 7;
+const SE_NEPTUNE = 8;
+const SE_PLUTO = 9;
+
+const PLANETS = [
+  constants.SE_SUN,
+  constants.SE_MOON,
+  constants.SE_MERCURY,
+  constants.SE_VENUS,
+  constants.SE_MARS,
+  constants.SE_JUPITER,
+  constants.SE_SATURN,
+
+  SE_URANUS,
+  SE_NEPTUNE,
+  SE_PLUTO,
+
+  constants.SE_TRUE_NODE,
+];
 
   const out: Natal = { planets: {} };
 

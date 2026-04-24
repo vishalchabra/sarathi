@@ -245,14 +245,7 @@ export async function computeDailyMoonNakshatras(
       lon: birth.lon,
       horizon: days,
     });
-    console.log("[dailyMoon] natalMoon (trop->sid)", {
-      jdNatal,
-      ayanamsa: ayNatal,
-      lonTrop: natalMoonLonTrop,
-      lonSid: natalMoonLonSid,
-      nakSid:
-        typeof natalMoonLonSid === "number" ? nakFromDegSidereal(natalMoonLonSid) : null,
-    });
+    
   }
 
   // 2) Series start date: use baseDateISO
@@ -291,18 +284,7 @@ export async function computeDailyMoonNakshatras(
     }
 
     if (process.env.NODE_ENV !== "production" && i < 2) {
-      console.log("[dailyMoon] day debug (trop->sid)", {
-        i,
-        dayISO,
-        baseTime,
-        tz: birth.tz,
-        dayUtcInstant: dayUtc.toISOString(),
-        jdUt,
-        ayanamsa: ay,
-        lonTrop,
-        lonSid,
-        nakSid: moonNakshatra,
-      });
+     
     }
 
     out.push({

@@ -391,16 +391,7 @@ const venusDebug = planetsWithMoon.find(
   (p: any) => p.planet === "Venus"
 );
 
-console.log("TRANSIT SNAPSHOT DEBUG", {
-  dateISO,
-  transitTime,
-  timezone: birth.timezone,
-  snapshotMode:
-    dateISO === getCurrentDateISOInTimezone(birth.timezone)
-      ? "live_now"
-      : "fixed_noon",
-  venus: venusDebug,
-});
+
   return {
     dateISO,
     snapshotTime: transitTime,

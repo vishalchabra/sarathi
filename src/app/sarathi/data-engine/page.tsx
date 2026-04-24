@@ -31,6 +31,8 @@ import FiveFoldFriendshipCard from "@/components/data-engine/FiveFoldFriendshipC
 import AvakhadaCard from "@/components/data-engine/AvakhadaCard";
 import tzLookup from "tz-lookup";
 import UpagrahaCard from "@/components/data-engine/UpagrahaCard";
+import KpPlanetOnCuspCard from "@/components/data-engine/KpPlanetOnCuspCard";
+import { formatKpPlanetOnCuspForAstroSage } from "@/lib/astrology/kp/formatKpPlanetOnCuspForAstroSage";
 
 type TabKey =
   | "foundations"
@@ -69,6 +71,7 @@ type DataEngineResponse = {
   bhavaChalit?: any;
   classicChalit?: any;
   debugLifeReport?: any;
+  kpPlanetOnCusp?: any;
   vargas?: Record<string, any>;
   arudhas?: Record<string, { sign: string }>;
 
@@ -108,6 +111,7 @@ type DataEngineResponse = {
   roles?: any;
   vedicAspects?: any;
   houseJudgement?: any;
+  kpPlanetOnCusp?: any;
   bhavaChalit?: any;
   upagrahas?: any;
   solarShadowPoints?: any;
@@ -205,6 +209,7 @@ type DataEngineResponse = {
         degree: number;
       } | null;
     }>;
+    kpPlanetOnCusp?: any;
     fiveFoldFriendship?: Array<{
       planet: string;
       relationships: Array<{
@@ -223,6 +228,7 @@ type DataEngineResponse = {
       nadi: string;
       varna: string;
     } | null;
+    
   };
 };
 
@@ -867,7 +873,15 @@ const utilityPanchang = useMemo(
   () => utilityPanchangData ?? null,
   [utilityPanchangData]
 );
+const kpPlanetOnCusp = useMemo(() => {
+  const raw =
+    data?.strength?.kpPlanetOnCusp ??
+    data?.foundations?.kpPlanetOnCusp ??
+    data?.kpPlanetOnCusp ??
+    null;
 
+  return raw;
+}, [data]);
 const utilityHora = useMemo(
   () => utilityHoraData ?? null,
   [utilityHoraData]
@@ -1629,7 +1643,7 @@ const errorBoxClass =
               </div>
             ) : null}
 
-            {data && activeTab === "strength" ? (
+                    {data && activeTab === "strength" ? (
               <div className="mt-6 space-y-6">
                 <section className="space-y-4">
                   <div>
@@ -1643,6 +1657,9 @@ const errorBoxClass =
                   <AshtakvargaCard data={data?.strength?.ashtakvarga} />
                   <PrastharaCard data={data?.strength?.prasthara} />
                   <BhavMadhyaCard data={data?.strength?.bhavMadhya} />
+                  <KpPlanetOnCuspCard
+  data={formatKpPlanetOnCuspForAstroSage(kpPlanetOnCusp)}
+/>
                   <FiveFoldFriendshipCard data={data?.strength?.fiveFoldFriendship} />
                   <AvakhadaCard data={data?.strength?.avakhada} />
                 </section>

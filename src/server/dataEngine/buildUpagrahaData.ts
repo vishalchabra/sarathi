@@ -1240,10 +1240,7 @@ export async function buildUpagrahaData(params: {
           label: "next_night",
         })
       : null;
-console.log("UPAGRAHA WEEKDAY DEBUG", {
-  operativeWeekday,
-  ruleFamily,
-});
+
   const [gulika, mandi, yamakantaka, kala, mrityu, arthaprahara] =
     await Promise.all([
       buildRuledUpagraha({
