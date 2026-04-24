@@ -1692,6 +1692,8 @@ const errorBoxClass =
     currentDasha?.ad ??
     null
   }
+  currentDasha={currentDasha}
+dashaTimelines={data?.timing?.dasha?.timelines ?? data?.dasha?.timelines ?? null}
   sarvaAshtakvarga={data?.strength?.ashtakvarga?.sarva ?? []}
   arudhas={data?.arudhas ?? {}}
   upagrahas={upagrahas}

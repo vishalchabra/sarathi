@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 
 type ChartPlanet = {
   planet: string;
@@ -68,6 +68,7 @@ type MediumNorthIndianChartProps = {
   showArudhas?: boolean;
   showUpagrahas?: boolean;
   showAspects?: boolean;
+  rightPanel?: ReactNode;
 };
 
 const PLANET_SHORT: Record<string, string> = {
@@ -172,26 +173,26 @@ type LayoutConfig = {
 };
 
 const PRIMARY_LAYOUT: LayoutConfig = {
-  frameWidth: 620,
-  frameHeight: 600,
-  outerRect: { x: 62, y: 50, width: 496, height: 476 },
+  frameWidth: 720,
+  frameHeight: 650,
+  outerRect: { x: 70, y: 54, width: 570, height: 540 },
   anchors: [
-    { house: 2, x: 200, y: 78, width: 88, minHeight: 104 },
-    { house: 12, x: 420, y: 78, width: 88, minHeight: 104 },
+    { house: 2, x: 230, y: 86, width: 96, minHeight: 112 },
+    { house: 12, x: 490, y: 86, width: 96, minHeight: 112 },
 
-    { house: 3, x: 128, y: 154, width: 86, minHeight: 104 },
-    { house: 1, x: 310, y: 128, width: 110, minHeight: 104 },
-    { house: 11, x: 492, y: 154, width: 86, minHeight: 104 },
+    { house: 3, x: 146, y: 176, width: 96, minHeight: 112 },
+    { house: 1, x: 360, y: 146, width: 120, minHeight: 112 },
+    { house: 11, x: 574, y: 176, width: 96, minHeight: 112 },
 
-    { house: 4, x: 200, y: 266, width: 86, minHeight: 104 },
-    { house: 10, x: 420, y: 266, width: 86, minHeight: 104 },
+    { house: 4, x: 230, y: 304, width: 96, minHeight: 112 },
+    { house: 10, x: 490, y: 304, width: 96, minHeight: 112 },
 
-    { house: 5, x: 122, y: 356, width: 96, minHeight: 112 },
-    { house: 7, x: 310, y: 374, width: 110, minHeight: 104 },
-    { house: 9, x: 510, y: 368, width: 80, minHeight: 104 },
+    { house: 5, x: 146, y: 410, width: 104, minHeight: 120 },
+    { house: 7, x: 360, y: 430, width: 120, minHeight: 112 },
+    { house: 9, x: 590, y: 422, width: 92, minHeight: 112 },
 
-    { house: 6, x: 192, y: 434, width: 94, minHeight: 112 },
-    { house: 8, x: 420, y: 442, width: 86, minHeight: 104 },
+    { house: 6, x: 222, y: 512, width: 104, minHeight: 120 },
+    { house: 8, x: 490, y: 520, width: 96, minHeight: 112 },
   ],
   housePlanetShifts: {
     1: "translate(0,-2px)",
@@ -209,45 +210,43 @@ const PRIMARY_LAYOUT: LayoutConfig = {
     12: "translateY(6px)",
   },
   houseMaxHeights: {
-    1: 62,
-    2: 62,
-    3: 62,
-    4: 62,
-    5: 62,
-    6: 62,
-    7: 62,
-    8: 62,
-    9: 62,
-    10: 62,
-    11: 62,
-    12: 62,
+    1: 72,
+    2: 72,
+    3: 72,
+    4: 72,
+    5: 72,
+    6: 72,
+    7: 72,
+    8: 72,
+    9: 72,
+    10: 72,
+    11: 72,
+    12: 72,
   },
   houseArudhaShifts: {},
   houseMarkerShifts: {},
 };
 const PRIMARY_ASPECT_ANCHORS: Record<number, { left: number; top: number; width: number }> = {
-  // Aspect rail is keyed by HOUSE number, not by the sign number displayed in each house.
-  // For Virgo asc in your screenshot, Rahu appears in the area labelled "2", but that area is H9.
-  // So H9 aspects must render on the H9 rail position, not the sign-2 rail by mistake.
+  // Aspect rail is keyed by HOUSE number, not by displayed sign number.
   // Top rail: H2 • H1 • H12
-  2: { left: 145, top: 18, width: 105 },
-  1: { left: 257, top: 18, width: 105 },
-  12: { left: 370, top: 18, width: 105 },
+  2: { left: 175, top: 20, width: 110 },
+  1: { left: 305, top: 20, width: 110 },
+  12: { left: 435, top: 20, width: 110 },
 
   // Left rail: H3 • H4 • H5
-  3: { left: 8, top: 140, width: 105 },
-  4: { left: 8, top: 282, width: 105 },
-  5: { left: 8, top: 424, width: 105 },
+  3: { left: 10, top: 160, width: 110 },
+  4: { left: 10, top: 320, width: 110 },
+  5: { left: 10, top: 480, width: 110 },
 
   // Right rail: H11 • H10 • H9
-  11: { left: 508, top: 140, width: 105 },
-  10: { left: 508, top: 282, width: 105 },
-  9: { left: 508, top: 424, width: 105 },
+  11: { left: 600, top: 160, width: 110 },
+  10: { left: 600, top: 320, width: 110 },
+  9: { left: 600, top: 480, width: 110 },
 
   // Bottom rail: H6 • H7 • H8
-  6: { left: 145, top: 544, width: 105 },
-  7: { left: 257, top: 544, width: 105 },
-  8: { left: 370, top: 544, width: 105 },
+  6: { left: 175, top: 604, width: 110 },
+  7: { left: 305, top: 604, width: 110 },
+  8: { left: 435, top: 604, width: 110 },
 };
 
 const SECONDARY_ASPECT_ANCHORS: Record<number, { left: number; top: number; width: number }> = {
@@ -597,6 +596,7 @@ export default function MediumNorthIndianChart({
   showArudhas = false,
   showUpagrahas = false,
   showAspects = false,
+  rightPanel = null,
 }: MediumNorthIndianChartProps) {
   const [selected, setSelected] = useState<ChartPlanet | null>(null);
   const [hovered, setHovered] = useState<ChartPlanet | null>(null);
@@ -640,6 +640,8 @@ export default function MediumNorthIndianChart({
         </div>
       </div>
 
+      <div className={rightPanel ? "mt-4 grid grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(0,1fr)_210px]" : "mt-4"}>
+        <div className="min-w-0">
       <div className="mt-4 flex justify-center overflow-visible">
         <div
           className="relative mx-auto overflow-visible rounded-2xl bg-white ring-1 ring-slate-200 shadow-sm"
@@ -861,6 +863,14 @@ export default function MediumNorthIndianChart({
             );
           }) : null}
         </div>
+      </div>
+        </div>
+
+        {rightPanel ? (
+          <div className="hidden xl:block xl:pt-8">
+            {rightPanel}
+          </div>
+        ) : null}
       </div>
 
       <div className="mt-3 flex flex-wrap items-center justify-center gap-4 text-[11px] text-slate-700">

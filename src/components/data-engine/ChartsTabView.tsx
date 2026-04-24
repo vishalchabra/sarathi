@@ -315,6 +315,253 @@ const HOUSE_REFERENCE_OPTIONS: HouseReferenceOption[] = [
   { house: 12, key: "loss", label: "12th House — Loss, Foreign & Moksha", shortLabel: "Loss / Foreign / Moksha" },
 ];
 
+
+function formatDashaDate(value: any) {
+  if (!value) return "—";
+
+  try {
+    const date = new Date(value);
+    if (!Number.isNaN(date.getTime())) {
+      return date.toLocaleDateString("en-IN", {
+        year: "numeric",
+        month: "short",
+        day: "2-digit",
+      });
+    }
+  } catch {}
+
+  return String(value);
+}
+
+function getDashaNode(currentDasha: any, keys: string[]) {
+  for (const key of keys) {
+    const value = currentDasha?.[key];
+    if (value) return value;
+  }
+
+  return null;
+}
+
+function getDashaPlanet(node: any) {
+  if (!node) return "—";
+  if (typeof node === "string") return node;
+
+  return (
+    node?.planet ??
+    node?.lord ??
+    node?.name ??
+    node?.dashaLord ??
+    "—"
+  );
+}
+
+function getDashaStart(node: any) {
+  if (!node || typeof node === "string") return null;
+
+  return (
+    node?.start ??
+    node?.startDate ??
+    node?.startISO ??
+    node?.from ??
+    node?.fromISO ??
+    node?.begin ??
+    node?.beginISO ??
+    null
+  );
+}
+
+function getDashaEnd(node: any) {
+  if (!node || typeof node === "string") return null;
+
+  return (
+    node?.end ??
+    node?.endDate ??
+    node?.endISO ??
+    node?.to ??
+    node?.toISO ??
+    node?.finish ??
+    node?.finishISO ??
+    null
+  );
+}
+
+function getTimelineRows(dashaTimelines: any, keys: string[]) {
+  for (const key of keys) {
+    const value = dashaTimelines?.[key];
+    if (Array.isArray(value)) return value;
+  }
+
+  return [];
+}
+
+function getTimelinePlanet(row: any) {
+  if (!row) return "—";
+  if (typeof row === "string") return row;
+
+  return (
+    row?.planet ??
+    row?.lord ??
+    row?.name ??
+    row?.dashaLord ??
+    row?.md ??
+    row?.ad ??
+    row?.pd ??
+    "—"
+  );
+}
+
+function getTimelineStart(row: any) {
+  if (!row || typeof row === "string") return null;
+
+  return (
+    row?.start ??
+    row?.startDate ??
+    row?.startISO ??
+    row?.from ??
+    row?.fromISO ??
+    row?.begin ??
+    row?.beginISO ??
+    null
+  );
+}
+
+function getTimelineEnd(row: any) {
+  if (!row || typeof row === "string") return null;
+
+  return (
+    row?.end ??
+    row?.endDate ??
+    row?.endISO ??
+    row?.to ??
+    row?.toISO ??
+    row?.finish ??
+    row?.finishISO ??
+    null
+  );
+}
+
+function isDateWithinRow(row: any, now = new Date()) {
+  const start = getTimelineStart(row);
+  const end = getTimelineEnd(row);
+
+  if (!start || !end) return false;
+
+  const startDate = new Date(start);
+  const endDate = new Date(end);
+
+  if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
+    return false;
+  }
+
+  return startDate.getTime() <= now.getTime() && now.getTime() <= endDate.getTime();
+}
+
+function findCurrentTimelineRow(rows: any[], planet: string) {
+  if (!Array.isArray(rows) || !rows.length) return null;
+
+  const byDate = rows.find((row) => isDateWithinRow(row));
+  if (byDate) return byDate;
+
+  if (planet && planet !== "—") {
+    const byPlanet = rows.find((row) => getTimelinePlanet(row) === planet);
+    if (byPlanet) return byPlanet;
+  }
+
+  return null;
+}
+
+function enrichDashaNodeFromTimeline(node: any, rows: any[]) {
+  const planet = getDashaPlanet(node);
+  const timelineRow = findCurrentTimelineRow(rows, planet);
+
+  if (!timelineRow) return node;
+
+  return {
+    ...(typeof node === "object" && node ? node : { planet }),
+    start: getDashaStart(node) ?? getTimelineStart(timelineRow),
+    end: getDashaEnd(node) ?? getTimelineEnd(timelineRow),
+  };
+}
+
+function ActiveDashaPanel({
+  currentDasha,
+  dashaTimelines,
+}: {
+  currentDasha?: any;
+  dashaTimelines?: any;
+}) {
+  const rawMd = getDashaNode(currentDasha, ["md", "mahadasha", "mahaDasha"]);
+  const rawAd = getDashaNode(currentDasha, ["ad", "antardasha", "antarDasha"]);
+  const rawPd = getDashaNode(currentDasha, ["pd", "pratyantardasha", "pratyantarDasha"]);
+
+  const md = enrichDashaNodeFromTimeline(
+    rawMd,
+    getTimelineRows(dashaTimelines, ["md", "mahadasha", "mahaDasha"])
+  );
+
+  const ad = enrichDashaNodeFromTimeline(
+    rawAd,
+    getTimelineRows(dashaTimelines, ["adInCurrentMd", "ad", "antardasha", "antarDasha"])
+  );
+
+  const pd = enrichDashaNodeFromTimeline(
+    rawPd,
+    getTimelineRows(dashaTimelines, ["pdInCurrentAd", "pd", "pratyantardasha", "pratyantarDasha"])
+  );
+
+  const rows = [
+    { label: "MD", node: md },
+    { label: "AD", node: ad },
+    { label: "PD", node: pd },
+  ];
+
+  return (
+    <aside className="h-full rounded-2xl border border-[color:var(--border)] bg-white/90 p-4 shadow-sm">
+      <div>
+        <h4 className="text-sm font-semibold text-slate-900">Active Dasha</h4>
+        <p className="mt-1 text-xs text-slate-500">
+          Current running Vimshottari periods.
+        </p>
+      </div>
+
+      <div className="mt-4 space-y-3">
+        {rows.map((row) => {
+          const planet = getDashaPlanet(row.node);
+          const start = getDashaStart(row.node);
+          const end = getDashaEnd(row.node);
+
+          return (
+            <div
+              key={row.label}
+              className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-[11px] font-bold text-indigo-700">
+                  {row.label}
+                </span>
+                <span className="text-sm font-semibold text-slate-900">
+                  {planet}
+                </span>
+              </div>
+
+              <div className="mt-2 text-[11px] leading-relaxed text-slate-600">
+                <div>
+                  <span className="font-medium text-slate-500">Start:</span>{" "}
+                  {formatDashaDate(start)}
+                </div>
+                <div>
+                  <span className="font-medium text-slate-500">End:</span>{" "}
+                  {formatDashaDate(end)}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </aside>
+  );
+}
+
 export default function ChartsTabView({
   selectedDateISO,
   setSelectedDateISO,
@@ -330,6 +577,8 @@ export default function ChartsTabView({
   birthTimezone,
   currentMdPlanet,
   currentAdPlanet,
+  currentDasha,
+  dashaTimelines,
   sarvaAshtakvarga,
   arudhas,
   upagrahas,
@@ -350,6 +599,8 @@ export default function ChartsTabView({
   birthTimezone: string;
   currentMdPlanet: string | null;
   currentAdPlanet: string | null;
+  currentDasha?: any;
+  dashaTimelines?: any;
   sarvaAshtakvarga?: number[];
   arudhas?: Record<string, { sign: string }>;
   upagrahas?: any;
@@ -714,29 +965,29 @@ export default function ChartsTabView({
               Toggle overlays to keep the D1 chart clean while reviewing specific technical layers.
             </p>
           </div>
-
-          <div className="mb-2 flex items-center gap-2 text-xs text-slate-900">
-            <span className="font-medium text-slate-900">Sarva AV</span>
-            <span>values shown inside each house</span>
-          </div>
-
-          <MediumNorthIndianChart
-            title=""
-            ascSign={natalAscSign}
-            planets={normalizeChartPlanets(natalPlanets)}
-            transitPlanets={
-              showTransitOverlay
-                ? normalizeTransitPlanets(transitPlanets, natalAscSign)
-                : []
+<MediumNorthIndianChart
+              title=""
+              ascSign={natalAscSign}
+              planets={normalizeChartPlanets(natalPlanets)}
+              transitPlanets={
+                showTransitOverlay
+                  ? normalizeTransitPlanets(transitPlanets, natalAscSign)
+                  : []
+              }
+              arudhas={arudhas}
+              upagrahas={upagrahas}
+              solarShadowPoints={solarShadowPoints}
+              vedicAspects={vedicAspects}
+              showArudhas={showArudhaOverlay}
+              showUpagrahas={showUpagrahaOverlay}
+              showAspects={showAspectOverlay}
+              layoutVariant="primary"
+              rightPanel={
+              <ActiveDashaPanel
+                currentDasha={currentDasha}
+                dashaTimelines={dashaTimelines}
+              />
             }
-            arudhas={arudhas}
-            upagrahas={upagrahas}
-            solarShadowPoints={solarShadowPoints}
-            vedicAspects={vedicAspects}
-            showArudhas={showArudhaOverlay}
-            showUpagrahas={showUpagrahaOverlay}
-            showAspects={showAspectOverlay}
-            layoutVariant="primary"
           />
         </ChartCard>
 
