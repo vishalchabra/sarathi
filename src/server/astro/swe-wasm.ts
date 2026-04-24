@@ -10,14 +10,12 @@ async function getEph() {
     ephPromise = (async () => {
       const Sweph: any = SwephModule as any;
 
-      const wasmPath = path.join(
-        process.cwd(),
-        "node_modules",
-        "sweph-wasm",
-        "dist",
-        "wasm",
-        "swisseph.wasm"
-      );
+  const wasmPath = path.join(
+  process.cwd(),
+  "public",
+  "wasm",
+  "swisseph.wasm"
+);
 
       const wasmBinary = await fs.readFile(wasmPath);
       const wasmDataUrl =
