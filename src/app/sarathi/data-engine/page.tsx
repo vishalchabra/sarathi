@@ -1668,33 +1668,36 @@ const errorBoxClass =
 
             {data && activeTab === "charts" ? (
               <ChartsTabView
-                selectedDateISO={selectedDateISO}
-                setSelectedDateISO={setSelectedDateISO}
-                selectedDateChartLabel={`Showing chart date: ${selectedDateISO}`}
-                natalAscSign={natal?.ascendant?.sign ?? null}
-                natalPlanets={planets}
-                vargaMap={vargaMap}
-                chartGalleryKeys={chartGalleryKeys}
-                bhavaChalit={bhavaChalit}
-                classicChalit={data?.classicChalit ?? null}
-                birthLat={Number(birthMeta?.lat ?? 0)}
-                birthLon={Number(birthMeta?.lon ?? 0)}
-                birthTimezone={String(birthMeta?.timezone ?? "UTC")}
-                currentMdPlanet={
-                  currentDasha?.md?.planet ??
-                  currentDasha?.mahadasha?.planet ??
-                  currentDasha?.md ??
-                  null
-                }
-                currentAdPlanet={
-                  currentDasha?.ad?.planet ??
-                  currentDasha?.antardasha?.planet ??
-                  currentDasha?.ad ??
-                  null
-                }
-                sarvaAshtakvarga={data?.strength?.ashtakvarga?.sarva ?? []}
-                arudhas={data?.arudhas ?? {}}
-              />
+  selectedDateISO={selectedDateISO}
+  setSelectedDateISO={setSelectedDateISO}
+  selectedDateChartLabel={`Showing chart date: ${selectedDateISO}`}
+  natalAscSign={natal?.ascendant?.sign ?? null}
+  natalPlanets={planets}
+  vargaMap={vargaMap}
+  chartGalleryKeys={chartGalleryKeys}
+  bhavaChalit={bhavaChalit}
+  classicChalit={data?.classicChalit ?? null}
+  birthLat={Number(birthMeta?.lat ?? 0)}
+  birthLon={Number(birthMeta?.lon ?? 0)}
+  birthTimezone={String(birthMeta?.timezone ?? "UTC")}
+  currentMdPlanet={
+    currentDasha?.md?.planet ??
+    currentDasha?.mahadasha?.planet ??
+    currentDasha?.md ??
+    null
+  }
+  currentAdPlanet={
+    currentDasha?.ad?.planet ??
+    currentDasha?.antardasha?.planet ??
+    currentDasha?.ad ??
+    null
+  }
+  sarvaAshtakvarga={data?.strength?.ashtakvarga?.sarva ?? []}
+  arudhas={data?.arudhas ?? {}}
+  upagrahas={upagrahas}
+  solarShadowPoints={solarShadowPoints}
+  vedicAspects={vedicAspects}
+/>
             ) : null}
          {data && activeTab === "utilities" ? (
   <div className="mt-6 space-y-8">

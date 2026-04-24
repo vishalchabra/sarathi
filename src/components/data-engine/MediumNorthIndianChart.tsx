@@ -18,6 +18,39 @@ type ChartPlanet = {
 type ArudhaMap = Record<string, { sign: string }>;
 type LayoutVariant = "auto" | "primary" | "secondary";
 
+type AstroPoint = {
+  sign?: string | null;
+  rashi?: string | null;
+  house?: number | null;
+  rashiHouse?: number | null;
+  degree?: number | null;
+  deg?: number | null;
+  lon?: number | null;
+  nakshatra?: string | null;
+  pada?: number | null;
+  [key: string]: any;
+};
+
+type ChartMarker = {
+  key: string;
+  label: string;
+  name: string;
+  type: "upagraha" | "shadow";
+  sign?: string | null;
+  house?: number | null;
+  degree?: number | null;
+  nakshatra?: string | null;
+  pada?: number | null;
+};
+
+type HouseAspectMarker = {
+  key: string;
+  fromPlanet: string;
+  label: string;
+  aspectLabel?: string | null;
+  raw: any;
+};
+
 type MediumNorthIndianChartProps = {
   title?: string;
   ascSign?: string | null;
@@ -29,6 +62,12 @@ type MediumNorthIndianChartProps = {
   showPlanetDetails?: boolean;
   arudhas?: ArudhaMap;
   layoutVariant?: LayoutVariant;
+  upagrahas?: Record<string, AstroPoint> | null;
+  solarShadowPoints?: Record<string, AstroPoint> | null;
+  vedicAspects?: any;
+  showArudhas?: boolean;
+  showUpagrahas?: boolean;
+  showAspects?: boolean;
 };
 
 const PLANET_SHORT: Record<string, string> = {
@@ -44,6 +83,42 @@ const PLANET_SHORT: Record<string, string> = {
   Uranus: "Ur",
   Neptune: "Ne",
   Pluto: "Pl",
+};
+
+const UPAGRAHA_LABELS: Record<string, string> = {
+  gulika: "Gk",
+  mandi: "Md",
+  yamakantaka: "Yg",
+  kala: "Ka",
+  mrityu: "Mr",
+  ardhaprahara: "Ap",
+  arthaprahara: "Ap",
+};
+
+const UPAGRAHA_NAMES: Record<string, string> = {
+  gulika: "Gulika",
+  mandi: "Mandi",
+  yamakantaka: "Yamakantaka",
+  kala: "Kala",
+  mrityu: "Mrityu",
+  ardhaprahara: "Ardhaprahara",
+  arthaprahara: "Ardhaprahara",
+};
+
+const SHADOW_LABELS: Record<string, string> = {
+  dhuma: "Dh",
+  vyatipata: "Vy",
+  parivesha: "Pa",
+  indrachapa: "In",
+  upaketu: "Uk",
+};
+
+const SHADOW_NAMES: Record<string, string> = {
+  dhuma: "Dhuma",
+  vyatipata: "Vyatipata",
+  parivesha: "Parivesha",
+  indrachapa: "Indrachapa",
+  upaketu: "Upaketu",
 };
 
 const SIGNS = [
@@ -93,29 +168,30 @@ type LayoutConfig = {
   houseLabelShifts?: Partial<Record<number, string>>;
   houseMaxHeights?: Partial<Record<number, number>>;
   houseArudhaShifts?: Partial<Record<number, string>>;
+  houseMarkerShifts?: Partial<Record<number, string>>;
 };
 
 const PRIMARY_LAYOUT: LayoutConfig = {
-  frameWidth: 560,
-  frameHeight: 540,
-  outerRect: { x: 32, y: 32, width: 496, height: 476 },
+  frameWidth: 620,
+  frameHeight: 600,
+  outerRect: { x: 62, y: 50, width: 496, height: 476 },
   anchors: [
-    { house: 2, x: 170, y: 60, width: 88, minHeight: 104 },
-    { house: 12, x: 390, y: 60, width: 88, minHeight: 104 },
+    { house: 2, x: 200, y: 78, width: 88, minHeight: 104 },
+    { house: 12, x: 420, y: 78, width: 88, minHeight: 104 },
 
-    { house: 3, x: 98, y: 136, width: 86, minHeight: 104 },
-    { house: 1, x: 280, y: 110, width: 110, minHeight: 104 },
-    { house: 11, x: 462, y: 136, width: 86, minHeight: 104 },
+    { house: 3, x: 128, y: 154, width: 86, minHeight: 104 },
+    { house: 1, x: 310, y: 128, width: 110, minHeight: 104 },
+    { house: 11, x: 492, y: 154, width: 86, minHeight: 104 },
 
-    { house: 4, x: 170, y: 248, width: 86, minHeight: 104 },
-    { house: 10, x: 390, y: 248, width: 86, minHeight: 104 },
+    { house: 4, x: 200, y: 266, width: 86, minHeight: 104 },
+    { house: 10, x: 420, y: 266, width: 86, minHeight: 104 },
 
-    { house: 5, x: 92, y: 338, width: 96, minHeight: 112 },
-    { house: 7, x: 280, y: 356, width: 110, minHeight: 104 },
-    { house: 9, x: 480, y: 350, width: 80, minHeight: 104 },
+    { house: 5, x: 122, y: 356, width: 96, minHeight: 112 },
+    { house: 7, x: 310, y: 374, width: 110, minHeight: 104 },
+    { house: 9, x: 510, y: 368, width: 80, minHeight: 104 },
 
-    { house: 6, x: 162, y: 416, width: 94, minHeight: 112 },
-    { house: 8, x: 390, y: 424, width: 86, minHeight: 104 },
+    { house: 6, x: 192, y: 434, width: 94, minHeight: 112 },
+    { house: 8, x: 420, y: 442, width: 86, minHeight: 104 },
   ],
   housePlanetShifts: {
     1: "translate(0,-2px)",
@@ -133,16 +209,65 @@ const PRIMARY_LAYOUT: LayoutConfig = {
     12: "translateY(6px)",
   },
   houseMaxHeights: {
-    5: 56,
-    6: 54,
-    9: 44,
+    1: 62,
+    2: 62,
+    3: 62,
+    4: 62,
+    5: 62,
+    6: 62,
+    7: 62,
+    8: 62,
+    9: 62,
+    10: 62,
+    11: 62,
+    12: 62,
   },
-  houseArudhaShifts: {
-    5: "translateY(6px)",
-    6: "translateY(8px)",
-  },
+  houseArudhaShifts: {},
+  houseMarkerShifts: {},
+};
+const PRIMARY_ASPECT_ANCHORS: Record<number, { left: number; top: number; width: number }> = {
+  // Aspect rail is keyed by HOUSE number, not by the sign number displayed in each house.
+  // For Virgo asc in your screenshot, Rahu appears in the area labelled "2", but that area is H9.
+  // So H9 aspects must render on the H9 rail position, not the sign-2 rail by mistake.
+  // Top rail: H2 • H1 • H12
+  2: { left: 145, top: 18, width: 105 },
+  1: { left: 257, top: 18, width: 105 },
+  12: { left: 370, top: 18, width: 105 },
+
+  // Left rail: H3 • H4 • H5
+  3: { left: 8, top: 140, width: 105 },
+  4: { left: 8, top: 282, width: 105 },
+  5: { left: 8, top: 424, width: 105 },
+
+  // Right rail: H11 • H10 • H9
+  11: { left: 508, top: 140, width: 105 },
+  10: { left: 508, top: 282, width: 105 },
+  9: { left: 508, top: 424, width: 105 },
+
+  // Bottom rail: H6 • H7 • H8
+  6: { left: 145, top: 544, width: 105 },
+  7: { left: 257, top: 544, width: 105 },
+  8: { left: 370, top: 544, width: 105 },
 };
 
+const SECONDARY_ASPECT_ANCHORS: Record<number, { left: number; top: number; width: number }> = {
+  // Same HOUSE-number mapping for secondary charts.
+  2: { left: 112, top: 10, width: 96 },
+  1: { left: 212, top: 10, width: 96 },
+  12: { left: 312, top: 10, width: 96 },
+
+  3: { left: 0, top: 112, width: 96 },
+  4: { left: 0, top: 232, width: 96 },
+  5: { left: 0, top: 352, width: 96 },
+
+  11: { left: 424, top: 112, width: 96 },
+  10: { left: 424, top: 232, width: 96 },
+  9: { left: 424, top: 352, width: 96 },
+
+  6: { left: 112, top: 468, width: 96 },
+  7: { left: 212, top: 468, width: 96 },
+  8: { left: 312, top: 468, width: 96 },
+};
 const SECONDARY_LAYOUT: LayoutConfig = {
   frameWidth: 520,
   frameHeight: 500,
@@ -179,9 +304,21 @@ const SECONDARY_LAYOUT: LayoutConfig = {
     12: "translateY(4px)",
   },
   houseMaxHeights: {
-    9: 30,
+    1: 72,
+    2: 72,
+    3: 72,
+    4: 72,
+    5: 72,
+    6: 72,
+    7: 72,
+    8: 72,
+    9: 72,
+    10: 72,
+    11: 72,
+    12: 72,
   },
   houseArudhaShifts: {},
+  houseMarkerShifts: {},
 };
 
 function getSignNumber(sign?: string | null) {
@@ -241,6 +378,33 @@ function getAscSignIndex(ascSign?: string | null) {
   return SIGNS.findIndex((s) => s === ascSign);
 }
 
+function normalizeDegree(point: AstroPoint) {
+  if (typeof point?.degree === "number") return point.degree;
+  if (typeof point?.deg === "number") return point.deg;
+  if (typeof point?.lon === "number") return Number((((point.lon % 30) + 30) % 30).toFixed(2));
+  return null;
+}
+
+function getPointSign(point: AstroPoint) {
+  return point?.sign ?? point?.rashi ?? null;
+}
+
+function getHouseFromSign(sign: string | null | undefined, ascSign?: string | null) {
+  const ascIndex = getAscSignIndex(ascSign);
+  if (!sign || ascIndex < 0) return null;
+
+  const signIndex = SIGNS.findIndex((s) => s === sign);
+  if (signIndex < 0) return null;
+
+  return ((signIndex - ascIndex + 12) % 12) + 1;
+}
+
+function getPointHouse(point: AstroPoint, ascSign?: string | null) {
+  if (typeof point?.rashiHouse === "number") return point.rashiHouse;
+  if (typeof point?.house === "number") return point.house;
+  return getHouseFromSign(getPointSign(point), ascSign);
+}
+
 function getPlanetTitle(p: ChartPlanet) {
   const parts = [
     p.isTransit ? "Transit" : "Natal",
@@ -249,6 +413,19 @@ function getPlanetTitle(p: ChartPlanet) {
     typeof p.degree === "number" ? `${p.degree.toFixed(2)}°` : null,
     p.nakshatra ? p.nakshatra : null,
     p.pada ? `Pada ${p.pada}` : null,
+  ].filter(Boolean);
+
+  return parts.join(" • ");
+}
+
+function getMarkerTitle(marker: ChartMarker) {
+  const parts = [
+    marker.name,
+    marker.type === "upagraha" ? "Upagraha" : "Solar shadow point",
+    marker.sign ? `in ${marker.sign}` : null,
+    typeof marker.degree === "number" ? `${marker.degree.toFixed(2)}°` : null,
+    marker.nakshatra ? marker.nakshatra : null,
+    marker.pada ? `Pada ${marker.pada}` : null,
   ].filter(Boolean);
 
   return parts.join(" • ");
@@ -275,18 +452,134 @@ function getArudhasByHouse(arudhas: ArudhaMap | undefined, ascSign?: string | nu
     const sign = value?.sign;
     if (!sign) continue;
 
-    for (let house = 1; house <= 12; house++) {
-      const houseSign = getHouseSignName(house, ascSign);
-      if (houseSign === sign) {
-        if (!map.has(house)) map.set(house, []);
-        map.get(house)!.push(label);
-      }
+    const house = getHouseFromSign(sign, ascSign);
+    if (!house) continue;
+
+    if (!map.has(house)) map.set(house, []);
+    map.get(house)!.push(label);
+  }
+
+  return map;
+}
+
+function buildMarkersByHouse(
+  upagrahas: Record<string, AstroPoint> | null | undefined,
+  solarShadowPoints: Record<string, AstroPoint> | null | undefined,
+  ascSign?: string | null
+) {
+  const map = new Map<number, ChartMarker[]>();
+
+  const addMarker = (key: string, point: AstroPoint | undefined, type: ChartMarker["type"]) => {
+    if (!point || typeof point !== "object") return;
+
+    const label = type === "upagraha" ? UPAGRAHA_LABELS[key] : SHADOW_LABELS[key];
+    const name = type === "upagraha" ? UPAGRAHA_NAMES[key] : SHADOW_NAMES[key];
+
+    if (!label || !name) return;
+
+    const house = getPointHouse(point, ascSign);
+    if (!house || house < 1 || house > 12) return;
+
+    const marker: ChartMarker = {
+      key,
+      label,
+      name,
+      type,
+      sign: getPointSign(point),
+      house,
+      degree: normalizeDegree(point),
+      nakshatra: point?.nakshatra ?? null,
+      pada: typeof point?.pada === "number" ? point.pada : null,
+    };
+
+    if (!map.has(house)) map.set(house, []);
+    map.get(house)!.push(marker);
+  };
+
+  for (const key of Object.keys(UPAGRAHA_LABELS)) {
+    addMarker(key, upagrahas?.[key], "upagraha");
+  }
+
+  for (const key of Object.keys(SHADOW_LABELS)) {
+    addMarker(key, solarShadowPoints?.[key], "shadow");
+  }
+
+  return map;
+}
+
+function normalizeAspectLabel(value: any) {
+  if (value === null || value === undefined || value === "") return null;
+  return String(value);
+}
+
+function getHouseAspectsByHouse(vedicAspects: any) {
+  const map = new Map<number, HouseAspectMarker[]>();
+
+  // Exact schema used by VedicHouseAspectsCard:
+  // data.houses = [
+  //   {
+  //     house: number,
+  //     aspectedBy: [
+  //       { planet, fromHouse, aspectType, housesAway }
+  //     ]
+  //   }
+  // ]
+  const rows = Array.isArray(vedicAspects?.houses) ? vedicAspects.houses : [];
+
+  for (const row of rows) {
+    const house = Number(row?.house);
+
+    if (!Number.isFinite(house) || house < 1 || house > 12) continue;
+
+    const aspectedBy = Array.isArray(row?.aspectedBy) ? row.aspectedBy : [];
+
+    for (let idx = 0; idx < aspectedBy.length; idx += 1) {
+      const item = aspectedBy[idx];
+      const planet = item?.planet ? String(item.planet) : "";
+
+      if (!planet) continue;
+
+      if (!map.has(house)) map.set(house, []);
+
+      const aspectLabel = normalizeAspectLabel(item?.aspectType);
+      const label = PLANET_SHORT[planet] ?? planet.slice(0, 2);
+
+      map.get(house)!.push({
+        key: `${house}-${planet}-${item?.fromHouse ?? "x"}-${aspectLabel ?? "aspect"}-${idx}`,
+        fromPlanet: planet,
+        label,
+        aspectLabel,
+        raw: item,
+      });
     }
   }
 
   return map;
 }
 
+function getAspectTitle(house: number, marker: HouseAspectMarker) {
+  const fromHouse = marker.raw?.fromHouse;
+  const housesAway = marker.raw?.housesAway;
+
+  return [
+    `House ${house} aspected by ${marker.fromPlanet}`,
+    fromHouse !== null && fromHouse !== undefined ? `From H${fromHouse}` : null,
+    marker.aspectLabel ? `Aspect: ${marker.aspectLabel}` : null,
+    housesAway !== null && housesAway !== undefined ? `${housesAway} houses away` : null,
+  ]
+    .filter(Boolean)
+    .join(" • ");
+}
+function getAspectPlanetLabel(row: any) {
+  const planet =
+    row?.fromPlanet ??
+    row?.planet ??
+    row?.sourcePlanet ??
+    row?.aspectingPlanet ??
+    "";
+
+  return PLANET_SHORT[planet] ?? String(planet).slice(0, 2);
+}
 export default function MediumNorthIndianChart({
   title = "North Indian Chart",
   ascSign,
@@ -298,6 +591,12 @@ export default function MediumNorthIndianChart({
   showPlanetDetails = true,
   arudhas = {},
   layoutVariant = "auto",
+  upagrahas = null,
+  solarShadowPoints = null,
+  vedicAspects = null,
+  showArudhas = false,
+  showUpagrahas = false,
+  showAspects = false,
 }: MediumNorthIndianChartProps) {
   const [selected, setSelected] = useState<ChartPlanet | null>(null);
   const [hovered, setHovered] = useState<ChartPlanet | null>(null);
@@ -305,14 +604,28 @@ export default function MediumNorthIndianChart({
   const planetsByHouse = useMemo(() => getPlanetsByHouse(planets), [planets]);
   const transitPlanetsByHouse = useMemo(() => getPlanetsByHouse(transitPlanets), [transitPlanets]);
   const arudhasByHouse = useMemo(() => getArudhasByHouse(arudhas, ascSign), [arudhas, ascSign]);
+  const markersByHouse = useMemo(
+    () => buildMarkersByHouse(upagrahas, solarShadowPoints, ascSign),
+    [upagrahas, solarShadowPoints, ascSign]
+  );
+  const aspectsByHouse = useMemo(
+    () => getHouseAspectsByHouse(vedicAspects),
+    [vedicAspects]
+  );
   const layout = useMemo(() => getLayoutConfig(title, layoutVariant), [title, layoutVariant]);
 
-  const centerX = layout.frameWidth / 2;
-  const centerY = layout.frameHeight / 2;
   const rectLeft = layout.outerRect.x;
   const rectTop = layout.outerRect.y;
   const rectRight = layout.outerRect.x + layout.outerRect.width;
   const rectBottom = layout.outerRect.y + layout.outerRect.height;
+  const centerX = rectLeft + layout.outerRect.width / 2;
+  const centerY = rectTop + layout.outerRect.height / 2;
+  const resolvedLayoutVariant = resolveLayoutVariant(title, layoutVariant);
+  const aspectAnchors =
+    resolvedLayoutVariant === "primary"
+      ? PRIMARY_ASPECT_ANCHORS
+      : SECONDARY_ASPECT_ANCHORS;
+  const activePlanet = hovered || selected;
 
   return (
     <div className="rounded-2xl border border-[color:var(--border)] bg-white p-4 shadow-sm backdrop-blur-sm">
@@ -327,9 +640,9 @@ export default function MediumNorthIndianChart({
         </div>
       </div>
 
-      <div className="mt-4 flex justify-center overflow-x-auto">
+      <div className="mt-4 flex justify-center overflow-visible">
         <div
-          className="relative mx-auto rounded-2xl bg-white ring-1 ring-slate-200 shadow-sm"
+          className="relative mx-auto overflow-visible rounded-2xl bg-white ring-1 ring-slate-200 shadow-sm"
           style={{ width: layout.frameWidth, height: layout.frameHeight }}
         >
           <svg
@@ -368,7 +681,9 @@ export default function MediumNorthIndianChart({
             const houseMaxHeight = layout.houseMaxHeights?.[anchor.house] ?? 46;
             const allForTitle = [...housePlanets, ...houseTransitPlanets];
             const houseArudhas = arudhasByHouse.get(anchor.house) ?? [];
-
+            const houseMarkers = markersByHouse.get(anchor.house) ?? [];
+            
+            const houseSarva = sarvaAshtakvarga?.[anchor.house - 1];
             return (
               <div
                 key={anchor.house}
@@ -380,17 +695,21 @@ export default function MediumNorthIndianChart({
                   minHeight: anchor.minHeight ?? 104,
                 }}
               >
+                
+
                 <div className="flex flex-col items-center">
                   <div
                     className={`text-[15px] font-semibold leading-none ${isAscHouse ? "text-indigo-700" : "text-slate-700"}`}
                     style={{ transform: houseLabelShift }}
                   >
                     {houseLabel}
+                    {typeof houseSarva === "number" ? (
+                      <span className="ml-1 text-[9px] font-medium text-slate-400">{houseSarva}</span>
+                    ) : null}
                   </div>
                 </div>
-
                 <div
-                  className="mt-1 grid grid-cols-2 content-start justify-items-center gap-1 overflow-hidden"
+                  className="mt-1 grid grid-cols-2 content-start justify-items-center gap-1"
                   style={{
                     maxHeight: houseMaxHeight,
                     transform: planetShift,
@@ -454,10 +773,10 @@ export default function MediumNorthIndianChart({
                   ))}
                 </div>
 
-                {houseArudhas.length ? (
+                {showArudhas && houseArudhas.length ? (
                   <div
-                    className="mt-1 flex flex-wrap justify-center gap-[3px] opacity-80"
-                    style={{ lineHeight: "10px", transform: layout.houseArudhaShifts?.[anchor.house] ?? "translateY(0px)" }}
+                    className="mt-1 flex w-full flex-wrap justify-center gap-[2px] opacity-90"
+                    style={{ lineHeight: "9px" }}
                   >
                     {houseArudhas.map((label) => {
                       const isAL = label === "AL";
@@ -468,10 +787,10 @@ export default function MediumNorthIndianChart({
                           key={`${anchor.house}-${label}`}
                           className={
                             isAL
-                              ? "rounded bg-fuchsia-100 px-[3px] py-0.5 text-[8px] font-bold text-fuchsia-700"
+                              ? "rounded bg-fuchsia-100 px-[2px] py-[1px] text-[7px] font-bold text-fuchsia-700"
                               : isUL
-                                ? "rounded bg-fuchsia-50 px-[3px] py-0.5 text-[8px] font-semibold text-fuchsia-600"
-                                : "rounded bg-fuchsia-50 px-[3px] py-0.5 text-[8px] font-medium text-fuchsia-500"
+                                ? "rounded bg-fuchsia-50 px-[2px] py-[1px] text-[7px] font-semibold text-fuchsia-600"
+                                : "rounded bg-fuchsia-50 px-[2px] py-[1px] text-[7px] font-medium text-fuchsia-500"
                           }
                           title={`${label} in ${getHouseSignName(anchor.house, ascSign) ?? "—"}`}
                         >
@@ -481,67 +800,177 @@ export default function MediumNorthIndianChart({
                     })}
                   </div>
                 ) : null}
+
+                {showUpagrahas && houseMarkers.length ? (
+                  <div
+                    className="mt-1 flex w-full flex-wrap justify-center gap-[2px]"
+                    style={{ lineHeight: "9px" }}
+                  >
+                    {houseMarkers.map((marker) => (
+                      <span
+                        key={`${anchor.house}-${marker.type}-${marker.key}`}
+                        className={
+                          marker.type === "upagraha"
+                            ? "rounded-sm border border-violet-100 bg-violet-50 px-[2px] py-[1px] text-[7px] font-semibold text-violet-700"
+                            : "rounded-sm border border-cyan-100 bg-cyan-50 px-[2px] py-[1px] text-[7px] font-semibold text-cyan-700"
+                        }
+                        title={getMarkerTitle(marker)}
+                      >
+                        {marker.label}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
               </div>
             );
           })}
+
+          {/* Professional outer house-aspect rail: outside the chart lines, not inside houses. */}
+          {showAspects ? Array.from({ length: 12 }, (_, i) => i + 1).map((house) => {
+            const rows = aspectsByHouse.get(house) ?? [];
+            const aspectAnchor = aspectAnchors[house];
+
+            if (!rows.length || !aspectAnchor) return null;
+
+            return (
+              <div
+                key={`outer-aspect-${house}`}
+                className="pointer-events-none absolute z-30 flex flex-wrap justify-center gap-[3px]"
+                style={{
+                  left: aspectAnchor.left,
+                  top: aspectAnchor.top,
+                  width: aspectAnchor.width,
+                }}
+              >
+                {rows.slice(0, 3).map((aspect) => (
+                  <span
+                    key={aspect.key}
+                    className="rounded-full border border-violet-300 bg-violet-50 px-1.5 py-[2px] text-[9px] font-semibold leading-none text-violet-700 shadow-sm"
+                    title={getAspectTitle(house, aspect)}
+                  >
+                    {aspect.label}
+                  </span>
+                ))}
+
+                {rows.length > 3 ? (
+                  <span className="rounded-full border border-violet-300 bg-violet-50 px-1.5 py-[2px] text-[9px] font-semibold leading-none text-violet-700 shadow-sm">
+                    +{rows.length - 3}
+                  </span>
+                ) : null}
+              </div>
+            );
+          }) : null}
         </div>
       </div>
 
-      {showPlanetDetails && (hovered || selected) ? (
+      <div className="mt-3 flex flex-wrap items-center justify-center gap-4 text-[11px] text-slate-700">
+        <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-orange-400" /> Planets</span>
+        <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-emerald-400" /> Transits</span>
+        {showUpagrahas ? (
+          <>
+            <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-violet-500" /> Upagrahas</span>
+            <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-cyan-400" /> Shadow Points</span>
+          </>
+        ) : null}
+        {showArudhas ? (
+          <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-fuchsia-400" /> Arudhas</span>
+        ) : null}
+        {showAspects ? (
+          <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full border border-violet-300 bg-violet-50" /> House Aspects</span>
+        ) : null}
+        <span>* Retrograde</span>
+      </div>
+
+      {(showUpagrahas || showArudhas) ? (
+      <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+        <div className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+          Abbreviations
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 text-xs text-slate-700 md:grid-cols-3">
+          <div>
+            <div className="mb-2 font-semibold text-violet-700">Upagrahas</div>
+            <div className="grid grid-cols-2 gap-x-3 gap-y-1">
+              <span><b>Gk</b> Gulika</span>
+              <span><b>Md</b> Mandi</span>
+              <span><b>Yg</b> Yamakantaka</span>
+              <span><b>Ka</b> Kala</span>
+              <span><b>Mr</b> Mrityu</span>
+              <span><b>Ap</b> Ardhaprahara</span>
+            </div>
+          </div>
+
+          <div>
+            <div className="mb-2 font-semibold text-cyan-700">Solar Shadow Points</div>
+            <div className="grid grid-cols-2 gap-x-3 gap-y-1">
+              <span><b>Dh</b> Dhuma</span>
+              <span><b>Vy</b> Vyatipata</span>
+              <span><b>Pa</b> Parivesha</span>
+              <span><b>In</b> Indrachapa</span>
+              <span><b>Uk</b> Upaketu</span>
+            </div>
+          </div>
+
+          <div>
+            <div className="mb-2 font-semibold text-fuchsia-700">Arudhas</div>
+            <div className="grid grid-cols-2 gap-x-3 gap-y-1">
+              <span><b>AL</b> Lagna Arudha</span>
+              <span><b>UL</b> Upapada Lagna</span>
+              <span><b>A2–A12</b> House Arudhas</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      ) : null}
+
+      {showPlanetDetails && activePlanet ? (
         <div className="mt-4 rounded-xl border border-[color:var(--border)] bg-slate-50 p-4 shadow-sm">
-          {(() => {
-            const activePlanet = hovered || selected;
+          <div className="text-sm font-semibold text-slate-900">{activePlanet?.planet ?? "Planet"}</div>
 
-            return (
-              <>
-                <div className="text-sm font-semibold text-slate-900">{activePlanet?.planet ?? "Planet"}</div>
+          <div className="mt-2 grid grid-cols-2 gap-3 text-xs text-slate-900/80 md:grid-cols-4">
+            <div>
+              <div className="text-[10px] uppercase tracking-wide text-slate-900">Sign</div>
+              <div className="mt-1">{activePlanet?.sign ?? "—"}</div>
+            </div>
 
-                <div className="mt-2 grid grid-cols-2 gap-3 text-xs text-slate-900/80 md:grid-cols-4">
-                  <div>
-                    <div className="text-[10px] uppercase tracking-wide text-slate-900">Sign</div>
-                    <div className="mt-1">{activePlanet?.sign ?? "—"}</div>
-                  </div>
+            <div>
+              <div className="text-[10px] uppercase tracking-wide text-slate-900">House</div>
+              <div className="mt-1">{activePlanet?.house ?? "—"}</div>
+            </div>
 
-                  <div>
-                    <div className="text-[10px] uppercase tracking-wide text-slate-900">House</div>
-                    <div className="mt-1">{activePlanet?.house ?? "—"}</div>
-                  </div>
+            <div>
+              <div className="text-[10px] uppercase tracking-wide text-slate-900">Degree</div>
+              <div className="mt-1">
+                {typeof activePlanet?.degree === "number" ? `${activePlanet.degree.toFixed(2)}°` : "—"}
+              </div>
+            </div>
 
-                  <div>
-                    <div className="text-[10px] uppercase tracking-wide text-slate-900">Degree</div>
-                    <div className="mt-1">
-                      {typeof activePlanet?.degree === "number" ? `${activePlanet.degree.toFixed(2)}°` : "—"}
-                    </div>
-                  </div>
+            <div>
+              <div className="text-[10px] uppercase tracking-wide text-slate-900">Retrograde</div>
+              <div className="mt-1">{activePlanet?.retrograde ? "Yes" : "No"}</div>
+            </div>
 
-                  <div>
-                    <div className="text-[10px] uppercase tracking-wide text-slate-900">Retrograde</div>
-                    <div className="mt-1">{activePlanet?.retrograde ? "Yes" : "No"}</div>
-                  </div>
+            <div>
+              <div className="text-[10px] uppercase tracking-wide text-slate-900">Nakshatra</div>
+              <div className="mt-1">{activePlanet?.nakshatra ?? "—"}</div>
+            </div>
 
-                  <div>
-                    <div className="text-[10px] uppercase tracking-wide text-slate-900">Nakshatra</div>
-                    <div className="mt-1">{activePlanet?.nakshatra ?? "—"}</div>
-                  </div>
+            <div>
+              <div className="text-[10px] uppercase tracking-wide text-slate-900">Pada</div>
+              <div className="mt-1">{activePlanet?.pada ?? "—"}</div>
+            </div>
 
-                  <div>
-                    <div className="text-[10px] uppercase tracking-wide text-slate-900">Pada</div>
-                    <div className="mt-1">{activePlanet?.pada ?? "—"}</div>
-                  </div>
+            <div>
+              <div className="text-[10px] uppercase tracking-wide text-slate-900">Combust</div>
+              <div className="mt-1">{activePlanet?.combust ? "Yes" : "No"}</div>
+            </div>
 
-                  <div>
-                    <div className="text-[10px] uppercase tracking-wide text-slate-900">Combust</div>
-                    <div className="mt-1">{activePlanet?.combust ? "Yes" : "No"}</div>
-                  </div>
+            <div>
+              <div className="text-[10px] uppercase tracking-wide text-slate-900">State</div>
+              <div className="mt-1">{hovered?.planet === activePlanet?.planet ? "Hovering" : "Selected"}</div>
+            </div>
+          </div>
 
-                  <div>
-                    <div className="text-[10px] uppercase tracking-wide text-slate-900">State</div>
-                    <div className="mt-1">{hovered?.planet === activePlanet?.planet ? "Hovering" : "Selected"}</div>
-                  </div>
-                </div>
-              </>
-            );
-          })()}
         </div>
       ) : null}
     </div>

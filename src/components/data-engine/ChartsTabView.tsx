@@ -332,6 +332,9 @@ export default function ChartsTabView({
   currentAdPlanet,
   sarvaAshtakvarga,
   arudhas,
+  upagrahas,
+  solarShadowPoints,
+  vedicAspects,
 }: {
   selectedDateISO: string;
   setSelectedDateISO: (value: string) => void;
@@ -349,6 +352,9 @@ export default function ChartsTabView({
   currentAdPlanet: string | null;
   sarvaAshtakvarga?: number[];
   arudhas?: Record<string, { sign: string }>;
+  upagrahas?: any;
+  solarShadowPoints?: any;
+  vedicAspects?: any;
 }) {
   const [transitPlanets, setTransitPlanets] = useState<any[]>([]);
   const [transitLoading, setTransitLoading] = useState(false);
@@ -362,6 +368,9 @@ export default function ChartsTabView({
   );
   const [referenceMode, setReferenceMode] = useState<ReferenceMode>("md");
   const [showTransitOverlay, setShowTransitOverlay] = useState(false);
+  const [showArudhaOverlay, setShowArudhaOverlay] = useState(false);
+  const [showUpagrahaOverlay, setShowUpagrahaOverlay] = useState(false);
+  const [showAspectOverlay, setShowAspectOverlay] = useState(false);
   const [expandedChart, setExpandedChart] = useState<ExpandedChartState>(null);
   const [referenceMenuOpen, setReferenceMenuOpen] = useState(false);
   const [selectedHouseReference, setSelectedHouseReference] = useState<number>(1);
@@ -658,22 +667,52 @@ export default function ChartsTabView({
           title="Natal Lagna Chart"
           subtitle="Primary natal D1 chart."
         >
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <label className="inline-flex items-center gap-3 text-base font-medium text-slate-900/80">
-              <input
-                type="checkbox"
-                checked={showTransitOverlay}
-                onChange={(e) => setShowTransitOverlay(e.target.checked)}
-                className="h-5 w-5 rounded border-[color:var(--border)]"
-              />
-              Show transits
-            </label>
+          <div className="mb-4 rounded-2xl border border-[color:var(--border)] bg-slate-50/70 p-3">
+            <div className="flex flex-wrap items-center gap-3 text-sm font-medium text-slate-800">
+              <label className="inline-flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={showTransitOverlay}
+                  onChange={(e) => setShowTransitOverlay(e.target.checked)}
+                  className="h-4 w-4 rounded border-[color:var(--border)]"
+                />
+                Transits
+              </label>
 
-            {showTransitOverlay ? (
-              <div className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-xs text-black">
-                Transit overlay active across chart views
-              </div>
-            ) : null}
+              <label className="inline-flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={showArudhaOverlay}
+                  onChange={(e) => setShowArudhaOverlay(e.target.checked)}
+                  className="h-4 w-4 rounded border-[color:var(--border)]"
+                />
+                Arudhas / AL
+              </label>
+
+              <label className="inline-flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={showUpagrahaOverlay}
+                  onChange={(e) => setShowUpagrahaOverlay(e.target.checked)}
+                  className="h-4 w-4 rounded border-[color:var(--border)]"
+                />
+                Upagrahas
+              </label>
+
+              <label className="inline-flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={showAspectOverlay}
+                  onChange={(e) => setShowAspectOverlay(e.target.checked)}
+                  className="h-4 w-4 rounded border-[color:var(--border)]"
+                />
+                House aspects
+              </label>
+            </div>
+
+            <p className="mt-2 text-xs text-slate-500">
+              Toggle overlays to keep the D1 chart clean while reviewing specific technical layers.
+            </p>
           </div>
 
           <div className="mb-2 flex items-center gap-2 text-xs text-slate-900">
@@ -691,6 +730,12 @@ export default function ChartsTabView({
                 : []
             }
             arudhas={arudhas}
+            upagrahas={upagrahas}
+            solarShadowPoints={solarShadowPoints}
+            vedicAspects={vedicAspects}
+            showArudhas={showArudhaOverlay}
+            showUpagrahas={showUpagrahaOverlay}
+            showAspects={showAspectOverlay}
             layoutVariant="primary"
           />
         </ChartCard>
@@ -759,6 +804,12 @@ export default function ChartsTabView({
                     )
                   : []
               }
+              upagrahas={upagrahas}
+              solarShadowPoints={solarShadowPoints}
+              vedicAspects={vedicAspects}
+            showArudhas={showArudhaOverlay}
+            showUpagrahas={showUpagrahaOverlay}
+            showAspects={showAspectOverlay}
               layoutVariant="primary"
             />
           ) : (
