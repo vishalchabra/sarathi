@@ -981,6 +981,7 @@ export default function ChartsTabView({
               showArudhas={showArudhaOverlay}
               showUpagrahas={showUpagrahaOverlay}
               showAspects={showAspectOverlay}
+              aspectHouseReferenceHouse={1}
               layoutVariant="primary"
               rightPanel={
               <ActiveDashaPanel
@@ -1061,6 +1062,7 @@ export default function ChartsTabView({
             showArudhas={showArudhaOverlay}
             showUpagrahas={showUpagrahaOverlay}
             showAspects={showAspectOverlay}
+              aspectHouseReferenceHouse={selectedHouseReference}
               layoutVariant="primary"
             />
           ) : (

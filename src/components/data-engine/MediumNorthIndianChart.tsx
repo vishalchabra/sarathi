@@ -68,6 +68,7 @@ type MediumNorthIndianChartProps = {
   showArudhas?: boolean;
   showUpagrahas?: boolean;
   showAspects?: boolean;
+  aspectHouseReferenceHouse?: number;
   rightPanel?: ReactNode;
 };
 
@@ -511,7 +512,15 @@ function normalizeAspectLabel(value: any) {
   return String(value);
 }
 
-function getHouseAspectsByHouse(vedicAspects: any) {
+function remapHouseForReference(house: number, referenceHouse = 1) {
+  const ref = Number(referenceHouse);
+
+  if (!Number.isFinite(ref) || ref < 1 || ref > 12) return house;
+
+  return ((house - ref + 12) % 12) + 1;
+}
+
+function getHouseAspectsByHouse(vedicAspects: any, referenceHouse = 1) {
   const map = new Map<number, HouseAspectMarker[]>();
 
   // Exact schema used by VedicHouseAspectsCard:
@@ -526,9 +535,11 @@ function getHouseAspectsByHouse(vedicAspects: any) {
   const rows = Array.isArray(vedicAspects?.houses) ? vedicAspects.houses : [];
 
   for (const row of rows) {
-    const house = Number(row?.house);
+    const natalHouse = Number(row?.house);
 
-    if (!Number.isFinite(house) || house < 1 || house > 12) continue;
+    if (!Number.isFinite(natalHouse) || natalHouse < 1 || natalHouse > 12) continue;
+
+    const house = remapHouseForReference(natalHouse, referenceHouse);
 
     const aspectedBy = Array.isArray(row?.aspectedBy) ? row.aspectedBy : [];
 
@@ -544,11 +555,11 @@ function getHouseAspectsByHouse(vedicAspects: any) {
       const label = PLANET_SHORT[planet] ?? planet.slice(0, 2);
 
       map.get(house)!.push({
-        key: `${house}-${planet}-${item?.fromHouse ?? "x"}-${aspectLabel ?? "aspect"}-${idx}`,
+        key: `${house}-natal-${natalHouse}-${planet}-${item?.fromHouse ?? "x"}-${aspectLabel ?? "aspect"}-${idx}`,
         fromPlanet: planet,
         label,
         aspectLabel,
-        raw: item,
+        raw: { ...item, natalTargetHouse: natalHouse, displayTargetHouse: house },
       });
     }
   }
@@ -559,9 +570,11 @@ function getHouseAspectsByHouse(vedicAspects: any) {
 function getAspectTitle(house: number, marker: HouseAspectMarker) {
   const fromHouse = marker.raw?.fromHouse;
   const housesAway = marker.raw?.housesAway;
+  const natalTargetHouse = marker.raw?.natalTargetHouse;
 
   return [
-    `House ${house} aspected by ${marker.fromPlanet}`,
+    `Displayed house ${house} aspected by ${marker.fromPlanet}`,
+    natalTargetHouse && natalTargetHouse !== house ? `Natal H${natalTargetHouse}` : null,
     fromHouse !== null && fromHouse !== undefined ? `From H${fromHouse}` : null,
     marker.aspectLabel ? `Aspect: ${marker.aspectLabel}` : null,
     housesAway !== null && housesAway !== undefined ? `${housesAway} houses away` : null,
@@ -596,6 +609,7 @@ export default function MediumNorthIndianChart({
   showArudhas = false,
   showUpagrahas = false,
   showAspects = false,
+  aspectHouseReferenceHouse = 1,
   rightPanel = null,
 }: MediumNorthIndianChartProps) {
   const [selected, setSelected] = useState<ChartPlanet | null>(null);
@@ -609,8 +623,8 @@ export default function MediumNorthIndianChart({
     [upagrahas, solarShadowPoints, ascSign]
   );
   const aspectsByHouse = useMemo(
-    () => getHouseAspectsByHouse(vedicAspects),
-    [vedicAspects]
+    () => getHouseAspectsByHouse(vedicAspects, aspectHouseReferenceHouse),
+    [vedicAspects, aspectHouseReferenceHouse]
   );
   const layout = useMemo(() => getLayoutConfig(title, layoutVariant), [title, layoutVariant]);
 
