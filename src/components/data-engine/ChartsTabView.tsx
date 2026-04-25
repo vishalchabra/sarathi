@@ -483,6 +483,45 @@ function enrichDashaNodeFromTimeline(node: any, rows: any[]) {
   };
 }
 
+function findDashaRowByDate(rows: any[], dateISO: string) {
+  if (!Array.isArray(rows) || !rows.length || !dateISO) return null;
+
+  const target = new Date(`${dateISO}T00:00:00`).getTime();
+
+  return (
+    rows.find((row) => {
+      const start = getTimelineStart(row);
+      const end = getTimelineEnd(row);
+
+      if (!start || !end) return false;
+
+      const startTime = new Date(start).getTime();
+      const endTime = new Date(end).getTime();
+
+      if (Number.isNaN(startTime) || Number.isNaN(endTime)) return false;
+
+      return startTime <= target && target <= endTime;
+    }) ?? null
+  );
+}
+
+function formatDashaCompactDate(value: any) {
+  if (!value) return "—";
+
+  try {
+    const date = new Date(value);
+    if (!Number.isNaN(date.getTime())) {
+      return date.toLocaleDateString("en-IN", {
+        year: "numeric",
+        month: "short",
+        day: "2-digit",
+      });
+    }
+  } catch {}
+
+  return String(value);
+}
+
 function ActiveDashaPanel({
   currentDasha,
   dashaTimelines,
@@ -490,24 +529,49 @@ function ActiveDashaPanel({
   currentDasha?: any;
   dashaTimelines?: any;
 }) {
+  const [lookupDate, setLookupDate] = useState(() =>
+    new Date().toISOString().slice(0, 10)
+  );
+
   const rawMd = getDashaNode(currentDasha, ["md", "mahadasha", "mahaDasha"]);
   const rawAd = getDashaNode(currentDasha, ["ad", "antardasha", "antarDasha"]);
-  const rawPd = getDashaNode(currentDasha, ["pd", "pratyantardasha", "pratyantarDasha"]);
+  const rawPd = getDashaNode(currentDasha, [
+    "pd",
+    "pratyantardasha",
+    "pratyantarDasha",
+  ]);
 
-  const md = enrichDashaNodeFromTimeline(
-    rawMd,
-    getTimelineRows(dashaTimelines, ["md", "mahadasha", "mahaDasha"])
-  );
+  const mdRows = getTimelineRows(dashaTimelines, [
+    "md",
+    "mahadasha",
+    "mahaDasha",
+  ]);
 
-  const ad = enrichDashaNodeFromTimeline(
-    rawAd,
-    getTimelineRows(dashaTimelines, ["adInCurrentMd", "ad", "antardasha", "antarDasha"])
-  );
+  const adRows = getTimelineRows(dashaTimelines, [
+    "adInCurrentMd",
+    "ad",
+    "antardasha",
+    "antarDasha",
+  ]);
 
-  const pd = enrichDashaNodeFromTimeline(
-    rawPd,
-    getTimelineRows(dashaTimelines, ["pdInCurrentAd", "pd", "pratyantardasha", "pratyantarDasha"])
-  );
+  const pdRows = getTimelineRows(dashaTimelines, [
+    "pdInCurrentAd",
+    "pd",
+    "pratyantardasha",
+    "pratyantarDasha",
+  ]);
+
+  const md =
+    findDashaRowByDate(mdRows, lookupDate) ??
+    enrichDashaNodeFromTimeline(rawMd, mdRows);
+
+  const ad =
+    findDashaRowByDate(adRows, lookupDate) ??
+    enrichDashaNodeFromTimeline(rawAd, adRows);
+
+  const pd =
+    findDashaRowByDate(pdRows, lookupDate) ??
+    enrichDashaNodeFromTimeline(rawPd, pdRows);
 
   const rows = [
     { label: "MD", node: md },
@@ -515,27 +579,54 @@ function ActiveDashaPanel({
     { label: "PD", node: pd },
   ];
 
+  const chain = rows
+    .map((row) => getDashaPlanet(row.node))
+    .filter((planet) => planet && planet !== "—")
+    .join(" / ");
+
   return (
     <aside className="h-full rounded-2xl border border-[color:var(--border)] bg-white/90 p-4 shadow-sm">
       <div>
-        <h4 className="text-sm font-semibold text-slate-900">Active Dasha</h4>
+        <h4 className="text-sm font-semibold text-slate-900">Dasha Lookup</h4>
         <p className="mt-1 text-xs text-slate-500">
-          Current running Vimshottari periods.
+          Check the Vimshottari chain for any date.
         </p>
       </div>
 
-      <div className="mt-4 space-y-3">
+      <div className="mt-3">
+        <label className="text-[10px] font-bold uppercase tracking-wide text-slate-400">
+          Date
+        </label>
+        <input
+          type="date"
+          value={lookupDate}
+          onChange={(e) => setLookupDate(e.target.value)}
+          className="mt-1 w-full rounded-xl border border-[color:var(--border)] bg-white px-3 py-2 text-xs font-medium text-slate-900 shadow-sm outline-none focus:border-[color:var(--primary)]"
+        />
+      </div>
+
+      <div className="mt-4 rounded-2xl border border-indigo-100 bg-indigo-50/60 px-3 py-3">
+        <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-indigo-400">
+          Running Chain
+        </div>
+        <div className="mt-1 text-base font-semibold leading-snug text-slate-950">
+          {chain || "—"}
+        </div>
+        <div className="mt-1 text-[11px] text-slate-500">MD / AD / PD</div>
+      </div>
+
+      <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-white">
         {rows.map((row) => {
           const planet = getDashaPlanet(row.node);
-          const start = getDashaStart(row.node);
-          const end = getDashaEnd(row.node);
+          const start = getTimelineStart(row.node) ?? getDashaStart(row.node);
+          const end = getTimelineEnd(row.node) ?? getDashaEnd(row.node);
 
           return (
             <div
               key={row.label}
-              className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2"
+              className="border-b border-slate-100 px-3 py-2.5 last:border-b-0"
             >
-              <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
                 <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-[11px] font-bold text-indigo-700">
                   {row.label}
                 </span>
@@ -544,15 +635,8 @@ function ActiveDashaPanel({
                 </span>
               </div>
 
-              <div className="mt-2 text-[11px] leading-relaxed text-slate-600">
-                <div>
-                  <span className="font-medium text-slate-500">Start:</span>{" "}
-                  {formatDashaDate(start)}
-                </div>
-                <div>
-                  <span className="font-medium text-slate-500">End:</span>{" "}
-                  {formatDashaDate(end)}
-                </div>
+              <div className="mt-1 text-[11px] leading-relaxed text-slate-500">
+                {formatDashaCompactDate(start)} → {formatDashaCompactDate(end)}
               </div>
             </div>
           );
@@ -561,6 +645,7 @@ function ActiveDashaPanel({
     </aside>
   );
 }
+
 
 export default function ChartsTabView({
   selectedDateISO,
