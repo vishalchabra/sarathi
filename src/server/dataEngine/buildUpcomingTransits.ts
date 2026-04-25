@@ -292,8 +292,16 @@ const event = {
   dateISO,
   transitPlanet,
   type: "sign_ingress",
+
   fromSign: prevSign,
   toSign: currentSign,
+
+  sign: currentSign,
+  nakshatra: currentNakshatra,
+  pada: transit?.pada ?? null,
+  retrograde: transit?.retrograde ?? false,
+  lon: transit?.lon ?? null,
+
   houseFromLagna:
     signNum && ascSignNum ? houseFromRef(ascSignNum, signNum) : null,
 };
@@ -302,19 +310,33 @@ const event = {
       }
 
       // nakshatra ingress
-      if (prev && prevNakshatra && currentNakshatra && prevNakshatra !== currentNakshatra) {
-        const event = {
-          dateISO,
-          transitPlanet,
-          type: "nakshatra_ingress",
-          fromNakshatra: prevNakshatra,
-          toNakshatra: currentNakshatra,
-        };
-        planetaryTransits.push(event);
-        allEvents.push(event);
-      }
+if (prev && prevNakshatra && currentNakshatra && prevNakshatra !== currentNakshatra) {
+  const signNum = SIGN_TO_NUM[currentSign] ?? 0;
 
-      if (
+  const event = {
+    dateISO,
+    transitPlanet,
+    type: "nakshatra_ingress",
+
+    fromNakshatra: prevNakshatra,
+    toNakshatra: currentNakshatra,
+
+    sign: currentSign,
+    nakshatra: currentNakshatra,
+    pada: transit?.pada ?? null,
+    retrograde: transit?.retrograde ?? false,
+    lon: transit?.lon ?? null,
+
+    houseFromLagna:
+      signNum && ascSignNum ? houseFromRef(ascSignNum, signNum) : null,
+  };
+
+  planetaryTransits.push(event);
+  allEvents.push(event);
+}
+
+// retrograde / direct change
+if (
   prev &&
   typeof prev?.retrograde === "boolean" &&
   typeof transit?.retrograde === "boolean" &&
@@ -326,7 +348,13 @@ const event = {
     dateISO,
     transitPlanet,
     type: transit.retrograde ? "retrograde_start" : "retrograde_end",
+
     sign: currentSign,
+    nakshatra: currentNakshatra,
+    pada: transit?.pada ?? null,
+    retrograde: transit?.retrograde ?? false,
+    lon: transit?.lon ?? null,
+
     houseFromLagna:
       signNum && ascSignNum ? houseFromRef(ascSignNum, signNum) : null,
   };

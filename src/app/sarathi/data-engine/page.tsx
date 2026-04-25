@@ -13,6 +13,7 @@ import TransitTable from "@/components/data-engine/TransitTable";
 import VargaCard from "@/components/data-engine/VargaCard";
 import UpcomingTransitsCard from "@/components/data-engine/UpcomingTransitsCard";
 import TransitWindowsCard from "@/components/data-engine/TransitWindowsCard";
+import MajorTransitTimelineCard from "@/components/data-engine/MajorTransitTimelineCard";
 import PlanetTransitTimelineCard from "@/components/data-engine/PlanetTransitTimelineCard";
 import PanchangCard from "@/components/data-engine/PanchangCard";
 import PlanetStrengthCard from "@/components/data-engine/PlanetStrengthCard";
@@ -39,6 +40,7 @@ type TabKey =
   | "foundations"
   | "timing"
   | "transits"
+  | "forecast"
   | "vargas"
   | "charts"
   | "strength"
@@ -1605,6 +1607,19 @@ const errorBoxClass =
                 {transitWindows?.length ? (
                   <TransitWindowsCard windows={transitWindows} />
                 ) : null}
+              </div>
+            ) : null}
+
+            {data && activeTab === "forecast" ? (
+              <div className="mt-6 space-y-6">
+<MajorTransitTimelineCard
+  transitWindows={transitWindows}
+  transitNow={Array.isArray(transitNow) ? transitNow : []}
+  upcomingTransits={upcomingTransitItems}
+  ascSign={natal?.ascendant?.sign ?? null}
+  currentDasha={currentDasha}
+  currentDashaLabel={currentDashaLabel}
+/>
               </div>
             ) : null}
 
