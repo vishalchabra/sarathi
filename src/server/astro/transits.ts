@@ -1189,7 +1189,82 @@ return tPlanets.map((p) => {
 });
 }
 
+export type PlanetTimelineRow = {
+  from: string;
+  to: string;
+  sign: string;
+  nakshatra: string;
+  pada: number;
+  retrograde: boolean;
+};
 
+export async function buildPlanetTransitTimeline(params: {
+  planet: string;
+  fromDateISO: string;
+  toDateISO: string;
+  timezone?: string;
+}) {
+  const { planet, fromDateISO, toDateISO } = params;
+
+  const constants = await getSweConstants();
+
+  const start = new Date(`${fromDateISO}T00:00:00Z`);
+  const end = new Date(`${toDateISO}T00:00:00Z`);
+
+  const rows: PlanetTimelineRow[] = [];
+
+  let cursor = new Date(start);
+
+  let active: PlanetTimelineRow | null = null;
+
+  while (cursor.getTime() <= end.getTime()) {
+    const planets = await computeTransitPlanetsForDay(cursor, constants);
+
+    const p = planets.find(
+      (x) => x.name.toLowerCase() === planet.toLowerCase()
+    );
+
+    if (!p) {
+      cursor = new Date(cursor.getTime() + 86400000);
+      continue;
+    }
+
+    const sign = signFromLonSidereal(p.lon);
+    const nak = nakFromDegSidereal(p.lon);
+    const pada = padaFromDegSidereal(p.lon);
+    const retrograde = !!p.retrograde;
+
+    const dayISO = cursor.toISOString().slice(0, 10);
+
+    const sameAsCurrent =
+      active &&
+      active.sign === sign &&
+      active.nakshatra === nak &&
+      active.pada === pada &&
+      active.retrograde === retrograde;
+
+    if (sameAsCurrent && active) {
+      active.to = dayISO;
+    } else {
+      if (active) rows.push(active);
+
+      active = {
+        from: dayISO,
+        to: dayISO,
+        sign,
+        nakshatra: nak,
+        pada,
+        retrograde,
+      };
+    }
+
+    cursor = new Date(cursor.getTime() + 86400000);
+  }
+
+  if (active) rows.push(active);
+
+  return rows;
+}
 /* -------------------------------------------------------
    PUBLIC API – USED BY /api/transits
 -------------------------------------------------------- */

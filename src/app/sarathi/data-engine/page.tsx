@@ -13,6 +13,7 @@ import TransitTable from "@/components/data-engine/TransitTable";
 import VargaCard from "@/components/data-engine/VargaCard";
 import UpcomingTransitsCard from "@/components/data-engine/UpcomingTransitsCard";
 import TransitWindowsCard from "@/components/data-engine/TransitWindowsCard";
+import PlanetTransitTimelineCard from "@/components/data-engine/PlanetTransitTimelineCard";
 import PanchangCard from "@/components/data-engine/PanchangCard";
 import PlanetStrengthCard from "@/components/data-engine/PlanetStrengthCard";
 import NatalAspectsCard from "@/components/data-engine/NatalAspectsCard";
@@ -1703,6 +1704,8 @@ dashaTimelines={data?.timing?.dasha?.timelines ?? data?.dasha?.timelines ?? null
             ) : null}
          {data && activeTab === "utilities" ? (
   <div className="mt-6 space-y-8">
+    <PlanetTransitTimelineCard defaultTimezone={String(birthMeta?.timezone ?? timezone ?? "Asia/Kolkata")} />
+
     <div className="rounded-3xl border border-[color:var(--border)] bg-white/80 p-6 shadow-sm ring-1 ring-black/5">
       <h2 className="text-xl font-semibold text-slate-900">Hora</h2>
       <p className="mt-1 text-sm text-slate-500">
