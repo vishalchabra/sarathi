@@ -123,6 +123,44 @@ const SHADOW_NAMES: Record<string, string> = {
   upaketu: "Upaketu",
 };
 
+const NAKSHATRA_LORD_SHORT: Record<string, string> = {
+  Ashwini: "Ke",
+  Bharani: "Ve",
+  Krittika: "Su",
+  Rohini: "Mo",
+  Mrigashira: "Ma",
+  Ardra: "Ra",
+  Punarvasu: "Ju",
+  Pushya: "Sa",
+  Ashlesha: "Me",
+  Magha: "Ke",
+  "Purva Phalguni": "Ve",
+  "Uttara Phalguni": "Su",
+  Hasta: "Mo",
+  Chitra: "Ma",
+  Swati: "Ra",
+  Vishakha: "Ju",
+  Anuradha: "Sa",
+  Jyeshtha: "Me",
+  Mula: "Ke",
+  "Purva Ashadha": "Ve",
+  "Uttara Ashadha": "Su",
+  Shravana: "Mo",
+  Dhanishta: "Ma",
+  Shatabhisha: "Ra",
+  "Purva Bhadrapada": "Ju",
+  "Uttara Bhadrapada": "Sa",
+  Revati: "Me",
+};
+
+function formatNakshatraWithLord(nakshatra?: string | null) {
+  if (!nakshatra) return "—";
+
+  const lord = NAKSHATRA_LORD_SHORT[nakshatra];
+
+  return lord ? `${nakshatra} (${lord})` : nakshatra;
+}
+
 const SIGNS = [
   "Aries",
   "Taurus",
@@ -411,7 +449,7 @@ function getPlanetTitle(p: ChartPlanet) {
     p.planet,
     p.sign ? `in ${p.sign}` : null,
     typeof p.degree === "number" ? `${p.degree.toFixed(2)}°` : null,
-    p.nakshatra ? p.nakshatra : null,
+    p.nakshatra ? formatNakshatraWithLord(p.nakshatra) : null,
     p.pada ? `Pada ${p.pada}` : null,
   ].filter(Boolean);
 
@@ -424,7 +462,7 @@ function getMarkerTitle(marker: ChartMarker) {
     marker.type === "upagraha" ? "Upagraha" : "Solar shadow point",
     marker.sign ? `in ${marker.sign}` : null,
     typeof marker.degree === "number" ? `${marker.degree.toFixed(2)}°` : null,
-    marker.nakshatra ? marker.nakshatra : null,
+    marker.nakshatra ? formatNakshatraWithLord(marker.nakshatra) : null,
     marker.pada ? `Pada ${marker.pada}` : null,
   ].filter(Boolean);
 
@@ -905,6 +943,57 @@ export default function MediumNorthIndianChart({
         <span>* Retrograde</span>
       </div>
 
+      {showPlanetDetails && activePlanet ? (
+        <div className="mt-4 rounded-xl border border-[color:var(--border)] bg-slate-50 p-4 shadow-sm">
+          <div className="text-sm font-semibold text-slate-900">{activePlanet?.planet ?? "Planet"}</div>
+
+          <div className="mt-2 grid grid-cols-2 gap-3 text-xs text-slate-900/80 md:grid-cols-4">
+            <div>
+              <div className="text-[10px] uppercase tracking-wide text-slate-900">Sign</div>
+              <div className="mt-1">{activePlanet?.sign ?? "—"}</div>
+            </div>
+
+            <div>
+              <div className="text-[10px] uppercase tracking-wide text-slate-900">House</div>
+              <div className="mt-1">{activePlanet?.house ?? "—"}</div>
+            </div>
+
+            <div>
+              <div className="text-[10px] uppercase tracking-wide text-slate-900">Degree</div>
+              <div className="mt-1">
+                {typeof activePlanet?.degree === "number" ? `${activePlanet.degree.toFixed(2)}°` : "—"}
+              </div>
+            </div>
+
+            <div>
+              <div className="text-[10px] uppercase tracking-wide text-slate-900">Retrograde</div>
+              <div className="mt-1">{activePlanet?.retrograde ? "Yes" : "No"}</div>
+            </div>
+
+            <div>
+              <div className="text-[10px] uppercase tracking-wide text-slate-900">Nakshatra</div>
+              <div className="mt-1">{formatNakshatraWithLord(activePlanet?.nakshatra)}</div>
+            </div>
+
+            <div>
+              <div className="text-[10px] uppercase tracking-wide text-slate-900">Pada</div>
+              <div className="mt-1">{activePlanet?.pada ?? "—"}</div>
+            </div>
+
+            <div>
+              <div className="text-[10px] uppercase tracking-wide text-slate-900">Combust</div>
+              <div className="mt-1">{activePlanet?.combust ? "Yes" : "No"}</div>
+            </div>
+
+            <div>
+              <div className="text-[10px] uppercase tracking-wide text-slate-900">State</div>
+              <div className="mt-1">{hovered?.planet === activePlanet?.planet ? "Hovering" : "Selected"}</div>
+            </div>
+          </div>
+
+        </div>
+      ) : null}
+
       {(showUpagrahas || showArudhas) ? (
       <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
         <div className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -947,56 +1036,6 @@ export default function MediumNorthIndianChart({
       </div>
       ) : null}
 
-      {showPlanetDetails && activePlanet ? (
-        <div className="mt-4 rounded-xl border border-[color:var(--border)] bg-slate-50 p-4 shadow-sm">
-          <div className="text-sm font-semibold text-slate-900">{activePlanet?.planet ?? "Planet"}</div>
-
-          <div className="mt-2 grid grid-cols-2 gap-3 text-xs text-slate-900/80 md:grid-cols-4">
-            <div>
-              <div className="text-[10px] uppercase tracking-wide text-slate-900">Sign</div>
-              <div className="mt-1">{activePlanet?.sign ?? "—"}</div>
-            </div>
-
-            <div>
-              <div className="text-[10px] uppercase tracking-wide text-slate-900">House</div>
-              <div className="mt-1">{activePlanet?.house ?? "—"}</div>
-            </div>
-
-            <div>
-              <div className="text-[10px] uppercase tracking-wide text-slate-900">Degree</div>
-              <div className="mt-1">
-                {typeof activePlanet?.degree === "number" ? `${activePlanet.degree.toFixed(2)}°` : "—"}
-              </div>
-            </div>
-
-            <div>
-              <div className="text-[10px] uppercase tracking-wide text-slate-900">Retrograde</div>
-              <div className="mt-1">{activePlanet?.retrograde ? "Yes" : "No"}</div>
-            </div>
-
-            <div>
-              <div className="text-[10px] uppercase tracking-wide text-slate-900">Nakshatra</div>
-              <div className="mt-1">{activePlanet?.nakshatra ?? "—"}</div>
-            </div>
-
-            <div>
-              <div className="text-[10px] uppercase tracking-wide text-slate-900">Pada</div>
-              <div className="mt-1">{activePlanet?.pada ?? "—"}</div>
-            </div>
-
-            <div>
-              <div className="text-[10px] uppercase tracking-wide text-slate-900">Combust</div>
-              <div className="mt-1">{activePlanet?.combust ? "Yes" : "No"}</div>
-            </div>
-
-            <div>
-              <div className="text-[10px] uppercase tracking-wide text-slate-900">State</div>
-              <div className="mt-1">{hovered?.planet === activePlanet?.planet ? "Hovering" : "Selected"}</div>
-            </div>
-          </div>
-
-        </div>
-      ) : null}
     </div>
   );
 }
