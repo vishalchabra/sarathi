@@ -35,7 +35,7 @@ import tzLookup from "tz-lookup";
 import UpagrahaCard from "@/components/data-engine/UpagrahaCard";
 import KpPlanetOnCuspCard from "@/components/data-engine/KpPlanetOnCuspCard";
 import { formatKpPlanetOnCuspForAstroSage } from "@/lib/astrology/kp/formatKpPlanetOnCuspForAstroSage";
-
+import DashaLordTransitTrackerCard from "@/components/data-engine/DashaLordTransitTrackerCard";
 type TabKey =
   | "foundations"
   | "timing"
@@ -1617,6 +1617,11 @@ const errorBoxClass =
   transitNow={Array.isArray(transitNow) ? transitNow : []}
   upcomingTransits={upcomingTransitItems}
   ascSign={natal?.ascendant?.sign ?? null}
+  currentDasha={currentDasha}
+  currentDashaLabel={currentDashaLabel}
+/>
+<DashaLordTransitTrackerCard
+  upcomingTransits={upcomingTransitItems}
   currentDasha={currentDasha}
   currentDashaLabel={currentDashaLabel}
 />
