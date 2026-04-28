@@ -1990,57 +1990,57 @@ dashaTimelines={data?.timing?.dasha?.timelines ?? data?.dasha?.timelines ?? null
 
             <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
               <div className="rounded-2xl border border-red-400/20 bg-red-500/10 p-5">
-                <div className="text-xs uppercase tracking-wide text-red-200/70">
+                <div className="text-xs uppercase tracking-wide font-semibold text-white-200/70">
                   Rahu Kaal
                 </div>
-                <div className="mt-2 text-lg font-semibold text-red-100">
+                <div className="mt-2 text-lg font-semibold text-white-100">
                   {utilityPanchang?.rahuKaal
                     ? `${utilityPanchang.rahuKaal.start} to ${utilityPanchang.rahuKaal.end}`
                     : "—"}
                 </div>
-                <p className="mt-2 text-sm text-red-100/70">
+                <p className="mt-2 text-sm text-white-100/70">
                   Traditionally avoided for major beginnings.
                 </p>
               </div>
 
               <div className="rounded-2xl border border-amber-400/20 bg-amber-500/10 p-5">
-                <div className="text-xs uppercase tracking-wide text-amber-200/70">
+                <div className="text-xs uppercase tracking-wide font-semibold text-white-200/70">
                   Yamaganda
                 </div>
-                <div className="mt-2 text-lg font-semibold text-amber-100">
+                <div className="mt-2 text-lg font-semibold text-white-100">
                   {utilityPanchang?.yamaganda
                     ? `${utilityPanchang.yamaganda.start} to ${utilityPanchang.yamaganda.end}`
                     : "—"}
                 </div>
-                <p className="mt-2 text-sm text-amber-100/70">
+                <p className="mt-2 text-sm text-white-100/70">
                   Usually avoided for travel and new activity.
                 </p>
               </div>
 
               <div className="rounded-2xl border border-fuchsia-400/20 bg-fuchsia-500/10 p-5">
-                <div className="text-xs uppercase tracking-wide text-fuchsia-200/70">
+                <div className="text-xs uppercase tracking-wide font-semibold text-white-200/70">
                   Gulika
                 </div>
-                <div className="mt-2 text-lg font-semibold text-fuchsia-100">
+                <div className="mt-2 text-lg font-semibold text-white-100">
                   {utilityPanchang?.gulika
                     ? `${utilityPanchang.gulika.start} to ${utilityPanchang.gulika.end}`
                     : "—"}
                 </div>
-                <p className="mt-2 text-sm text-fuchsia-100/70">
+                <p className="mt-2 text-sm text-white-100/70">
                   Important for certain electional considerations.
                 </p>
               </div>
 
               <div className="rounded-2xl border border-emerald-400/20 bg-emerald-500/10 p-5">
-                <div className="text-xs uppercase tracking-wide text-emerald-200/70">
+                <div className="text-xs uppercase tracking-wide font-semibold text-white-200/70">
                   Abhijit Muhurat
                 </div>
-                <div className="mt-2 text-lg font-semibold text-emerald-100">
+                <div className="mt-2 text-lg font-semibold text-white-100">
                   {utilityPanchang?.abhijitMuhurat
                     ? `${utilityPanchang.abhijitMuhurat.start} to ${utilityPanchang.abhijitMuhurat.end}`
                     : "—"}
                 </div>
-                <p className="mt-2 text-sm text-emerald-100/70">
+                <p className="mt-2 text-sm text-white-100/70">
                   Generally considered supportive for auspicious action.
                 </p>
               </div>
