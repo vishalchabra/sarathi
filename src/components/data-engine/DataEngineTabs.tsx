@@ -7,6 +7,7 @@ type TabKey =
   | "forecast"
   | "vargas"
   | "charts"
+  | "compare"
   | "strength"
   | "utilities";
   
@@ -23,6 +24,7 @@ const TABS: Array<{ key: TabKey; label: string }> = [
   { key: "forecast", label: "Forecast" },
   { key: "vargas", label: "Vargas" },
   { key: "charts", label: "Charts" },
+  { key: "compare", label: "Compare Charts" },
   { key: "strength", label: "Strength & Systems" },
   { key: "utilities", label: "Utilities" },
 ];

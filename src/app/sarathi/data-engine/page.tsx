@@ -36,6 +36,7 @@ import UpagrahaCard from "@/components/data-engine/UpagrahaCard";
 import KpPlanetOnCuspCard from "@/components/data-engine/KpPlanetOnCuspCard";
 import { formatKpPlanetOnCuspForAstroSage } from "@/lib/astrology/kp/formatKpPlanetOnCuspForAstroSage";
 import DashaLordTransitTrackerCard from "@/components/data-engine/DashaLordTransitTrackerCard";
+import ChartCompareTabView from "@/components/data-engine/ChartCompareTabView";
 type TabKey =
   | "foundations"
   | "timing"
@@ -43,6 +44,7 @@ type TabKey =
   | "forecast"
   | "vargas"
   | "charts"
+  | "compare"
   | "strength"
   | "utilities";
 
@@ -1722,6 +1724,21 @@ dashaTimelines={data?.timing?.dasha?.timelines ?? data?.dasha?.timelines ?? null
   vedicAspects={vedicAspects}
 />
             ) : null}
+            {data && activeTab === "compare" ? (
+  <ChartCompareTabView
+    personAData={data}
+    personAAscSign={natal?.ascendant?.sign ?? null}
+    personAPlanets={planets}
+    personAVargaMap={vargaMap}
+    personAArudhas={data?.arudhas ?? {}}
+    personAUpagrahas={upagrahas}
+    personASolarShadowPoints={solarShadowPoints}
+    personAVedicAspects={vedicAspects}
+    selectedDateISO={selectedDateISO}
+    timezone={timezone}
+    plan={plan}
+  />
+) : null}
          {data && activeTab === "utilities" ? (
   <div className="mt-6 space-y-8">
     <PlanetTransitTimelineCard defaultTimezone={String(birthMeta?.timezone ?? timezone ?? "Asia/Kolkata")} />

@@ -13,6 +13,8 @@ type ChartPlanet = {
   pada?: number | null;
   combust?: boolean;
   isTransit?: boolean;
+  isSynastryOverlay?: boolean;
+synastrySource?: "A" | "B";
 };
 
 type ArudhaMap = Record<string, { sign: string }>;
@@ -68,6 +70,8 @@ type MediumNorthIndianChartProps = {
   showArudhas?: boolean;
   showUpagrahas?: boolean;
   showAspects?: boolean;
+  showAbbreviations?: boolean;
+  compactPlanetLabels?: boolean;
   aspectHouseReferenceHouse?: number;
   rightPanel?: ReactNode;
 };
@@ -387,10 +391,10 @@ function getLayoutConfig(title: string, layoutVariant: LayoutVariant): LayoutCon
 function formatPlanetLabel(p: ChartPlanet) {
   const planetName = p?.planet ?? "??";
   const short = PLANET_SHORT[planetName] ?? String(planetName).slice(0, 2);
-  const prefix = p?.isTransit ? "T:" : "";
-  return `${prefix}${short}${p.retrograde ? "*" : ""}`;
-}
+  const transitPrefix = p?.isTransit ? "T-" : "";
 
+  return `${transitPrefix}${short}${p.retrograde ? "*" : ""}`;
+}
 function getPlanetsByHouse(planets: ChartPlanet[]) {
   const map = new Map<number, ChartPlanet[]>();
 
@@ -647,6 +651,8 @@ export default function MediumNorthIndianChart({
   showArudhas = false,
   showUpagrahas = false,
   showAspects = false,
+  showAbbreviations = true,
+  compactPlanetLabels = false,
   aspectHouseReferenceHouse = 1,
   rightPanel = null,
 }: MediumNorthIndianChartProps) {
@@ -782,7 +788,14 @@ export default function MediumNorthIndianChart({
                         setSelected(p);
                         onPlanetClick?.(p);
                       }}
-                      className={`rounded-md px-1.5 py-0.5 text-[10px] font-medium leading-none shadow-sm transition ${
+                      className={`${
+  compactPlanetLabels
+    ? "max-w-[34px] rounded px-1 py-[1px] text-[9px]"
+    : "rounded-md px-1.5 py-0.5 text-[10px]"
+} font-medium leading-none shadow-sm transition ${
+                        p.isSynastryOverlay
+  ? "border border-violet-200 bg-violet-50 text-violet-700"
+  :
                         p.rashiHouse !== p.house
                           ? "border border-orange-200 bg-orange-50 text-orange-700"
                           : p.planet === "Moon"
@@ -813,7 +826,11 @@ export default function MediumNorthIndianChart({
                         setSelected(p);
                         onPlanetClick?.(p);
                       }}
-                      className={`rounded-md px-1.5 py-0.5 text-[10px] font-medium leading-none shadow-sm transition ${
+                      className={`${
+  compactPlanetLabels
+    ? "max-w-[34px] rounded px-1 py-[1px] text-[9px]"
+    : "rounded-md px-1.5 py-0.5 text-[10px]"
+} font-medium leading-none shadow-sm transition ${
                         selected?.planet === p.planet && selected?.isTransit
                           ? "border border-emerald-200 bg-emerald-100 text-emerald-700"
                           : hovered?.planet === p.planet && hovered?.isTransit
@@ -994,7 +1011,7 @@ export default function MediumNorthIndianChart({
         </div>
       ) : null}
 
-      {(showUpagrahas || showArudhas) ? (
+      {showAbbreviations && (showUpagrahas || showArudhas) ? (
       <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
         <div className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
           Abbreviations
