@@ -98,7 +98,7 @@ const UPAGRAHA_LABELS: Record<string, string> = {
   kala: "Ka",
   mrityu: "Mr",
   ardhaprahara: "Ap",
-  arthaprahara: "Ap",
+  
 };
 
 const UPAGRAHA_NAMES: Record<string, string> = {
@@ -108,7 +108,6 @@ const UPAGRAHA_NAMES: Record<string, string> = {
   kala: "Kala",
   mrityu: "Mrityu",
   ardhaprahara: "Ardhaprahara",
-  arthaprahara: "Ardhaprahara",
 };
 
 const SHADOW_LABELS: Record<string, string> = {
@@ -151,6 +150,7 @@ const NAKSHATRA_LORD_SHORT: Record<string, string> = {
   "Uttara Ashadha": "Su",
   Shravana: "Mo",
   Dhanishta: "Ma",
+  Dhanishtha: "Ma",
   Shatabhisha: "Ra",
   "Purva Bhadrapada": "Ju",
   "Uttara Bhadrapada": "Sa",

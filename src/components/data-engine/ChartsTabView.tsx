@@ -712,8 +712,18 @@ export default function ChartsTabView({
   solarShadowPoints?: any;
   vedicAspects?: any;
 }) {
-  const [transitPlanets, setTransitPlanets] = useState<any[]>([]);
-  const [transitLoading, setTransitLoading] = useState(false);
+const [overlayTransitPlanets, setOverlayTransitPlanets] = useState<any[]>([]);
+const [transitChartPlanets, setTransitChartPlanets] = useState<any[]>([]);
+const [transitLoading, setTransitLoading] = useState(false);
+  const [transitChartDateISO, setTransitChartDateISO] = useState(selectedDateISO);
+  const [overlayTransitTime] = useState(() =>
+    new Intl.DateTimeFormat("en-GB", {
+      timeZone: birthTimezone || "UTC",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    }).format(new Date())
+  );
   const [transitTime, setTransitTime] = useState(() =>
     new Intl.DateTimeFormat("en-GB", {
       timeZone: birthTimezone || "UTC",
@@ -871,12 +881,51 @@ export default function ChartsTabView({
   ]);
 
   const selectedDateTimeLabel = useMemo(
-    () => `Showing chart date: ${selectedDateISO} ${transitTime}`,
-    [selectedDateISO, transitTime]
-  );
+  () => `Showing chart date: ${transitChartDateISO} ${transitTime}`,
+  [transitChartDateISO, transitTime]
+);
 
   useEffect(() => {
+    if (!showTransitOverlay) {
+      setOverlayTransitPlanets([]);
+      return;
+    }
+
     if (!selectedDateISO || !Number.isFinite(birthLat) || !Number.isFinite(birthLon)) return;
+
+    async function fetchOverlayTransitChart() {
+      try {
+        const res = await fetch("/api/transit-chart", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            dateISO: selectedDateISO,
+            time: overlayTransitTime,
+            timezone: birthTimezone,
+            lat: birthLat,
+            lon: birthLon,
+          }),
+        });
+
+        const json = await res.json();
+
+        if (json?.ok) {
+          setOverlayTransitPlanets(Array.isArray(json?.planets) ? json.planets : []);
+        } else {
+          setOverlayTransitPlanets([]);
+        }
+      } catch {
+        setOverlayTransitPlanets([]);
+      }
+    }
+
+    fetchOverlayTransitChart();
+  }, [showTransitOverlay, selectedDateISO, overlayTransitTime, birthLat, birthLon, birthTimezone]);
+
+  useEffect(() => {
+  if (!transitChartDateISO || !Number.isFinite(birthLat) || !Number.isFinite(birthLon)) return;
 
     async function fetchTransitChart() {
       setTransitLoading(true);
@@ -887,7 +936,7 @@ export default function ChartsTabView({
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            dateISO: selectedDateISO,
+            dateISO: transitChartDateISO,
             time: transitTime,
             timezone: birthTimezone,
             lat: birthLat,
@@ -897,19 +946,19 @@ export default function ChartsTabView({
 
         const json = await res.json();
         if (json?.ok) {
-          setTransitPlanets(Array.isArray(json?.planets) ? json.planets : []);
+          setTransitChartPlanets(Array.isArray(json?.planets) ? json.planets : []);
         } else {
-          setTransitPlanets([]);
+          setTransitChartPlanets([]);
         }
       } catch {
-        setTransitPlanets([]);
+        setTransitChartPlanets([]);
       } finally {
         setTransitLoading(false);
       }
     }
 
     fetchTransitChart();
-  }, [selectedDateISO, transitTime, birthLat, birthLon, birthTimezone]);
+  }, [transitChartDateISO, transitTime, birthLat, birthLon, birthTimezone]);
 
   const getVargaChart = (key: string) => {
     if (key === "d1") {
@@ -946,8 +995,8 @@ export default function ChartsTabView({
   };
 
   const transitMoonInfo = useMemo(() => {
-    const moon = Array.isArray(transitPlanets)
-      ? transitPlanets.find((p) => (p?.name ?? p?.id ?? p?.planet) === "Moon")
+    const moon = Array.isArray(transitChartPlanets)
+      ? transitChartPlanets.find((p) => (p?.name ?? p?.id ?? p?.planet) === "Moon")
       : null;
 
     if (!moon) return null;
@@ -963,7 +1012,7 @@ export default function ChartsTabView({
       nakshatra: moon?.nakshatra ?? moon?.nakName ?? null,
       pada: moon?.pada ?? null,
     };
-  }, [transitPlanets]);
+  }, [transitChartPlanets]);
 
   const expandedChartModal =
     expandedChart && isMounted
@@ -1076,8 +1125,8 @@ export default function ChartsTabView({
               planets={normalizeChartPlanets(natalPlanets)}
               transitPlanets={
                 showTransitOverlay
-                  ? normalizeTransitPlanets(transitPlanets, natalAscSign)
-                  : []
+  ? normalizeTransitPlanets(overlayTransitPlanets, natalAscSign)
+  : []
               }
               arudhas={arudhas}
               upagrahas={upagrahas}
@@ -1156,7 +1205,7 @@ export default function ChartsTabView({
               transitPlanets={
                 showTransitOverlay
                   ? normalizeTransitPlanets(
-                      transitPlanets,
+                      overlayTransitPlanets,
                       selectedHouseReferenceChart.ascSign
                     )
                   : []
@@ -1325,10 +1374,10 @@ export default function ChartsTabView({
               <label className="text-xs font-medium uppercase tracking-wide text-slate-900">
                 Chart date
               </label>
-              <input
-                type="date"
-                value={selectedDateISO}
-                onChange={(e) => setSelectedDateISO(e.target.value)}
+<input
+  type="date"
+  value={transitChartDateISO}
+  onChange={(e) => setTransitChartDateISO(e.target.value)}
                 className="mt-1 w-full rounded-xl border border-[color:var(--border)] px-3 py-2 text-sm outline-none focus:border-slate-500"
               />
             </div>
@@ -1355,7 +1404,7 @@ export default function ChartsTabView({
 
           {transitLoading ? (
             <PlaceholderChart label="Loading transit chart..." />
-          ) : transitPlanets.length ? (
+          ) : transitChartPlanets.length ? (
             <div className="space-y-4">
               {transitMoonInfo ? (
                 <div className="rounded-xl border border-indigo-200 bg-indigo-50 p-3">
@@ -1408,7 +1457,7 @@ export default function ChartsTabView({
               <MediumNorthIndianChart
                 title=""
                 ascSign={natalAscSign}
-                planets={normalizeTransitPlanets(transitPlanets, natalAscSign)}
+                planets={normalizeTransitPlanets(transitChartPlanets, natalAscSign)}
                 layoutVariant="secondary"
               />
             </div>
