@@ -64,7 +64,21 @@ function mapAdRows(antarList: Array<any>) {
     endISO: fmtISO(a.end),
   }));
 }
+function buildAllAdRows(mahaList: Array<any>) {
+  return (Array.isArray(mahaList) ? mahaList : []).flatMap((md) =>
+    mapAdRows(getAntardashaTimeline(md))
+  );
+}
 
+function buildAllPdRows(mahaList: Array<any>) {
+  return (Array.isArray(mahaList) ? mahaList : []).flatMap((md) => {
+    const adList = getAntardashaTimeline(md);
+
+    return (Array.isArray(adList) ? adList : []).flatMap((ad) =>
+      mapPdRows(getPratyantardashaTimeline(ad))
+    );
+  });
+}
 function mapPdRows(pdList: Array<any>) {
   return (Array.isArray(pdList) ? pdList : []).map((p) => ({
     lord: p.subSubLord ?? null,
@@ -313,12 +327,20 @@ export async function buildDashaData(params: BuildDashaDataParams) {
     current,
     stack,
     timelines: {
-      md: mapMdRows(mahaList),
-      adInCurrentMd: mapAdRows(adInCurrentMd),
-      ...(plan === "pro"
-        ? { pdInCurrentAd: mapPdRows(pdInCurrentAd) }
-        : {}),
-    },
+  md: mapMdRows(mahaList),
+
+  // Full lifetime lookup timelines
+  ad: buildAllAdRows(mahaList),
+  ...(plan === "pro"
+    ? { pd: buildAllPdRows(mahaList) }
+    : {}),
+
+  // Keep existing current-context timelines for timing cards
+  adInCurrentMd: mapAdRows(adInCurrentMd),
+  ...(plan === "pro"
+    ? { pdInCurrentAd: mapPdRows(pdInCurrentAd) }
+    : {}),
+},
     tree,
     sourceNote: `Real dasha data for ${birth.dateISO}`,
   };

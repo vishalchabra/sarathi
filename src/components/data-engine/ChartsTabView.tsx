@@ -521,7 +521,21 @@ function formatDashaCompactDate(value: any) {
 
   return String(value);
 }
+function filterRowsWithinParent(rows: any[], parentRow: any) {
+  if (!Array.isArray(rows) || !parentRow) return [];
 
+  const parentStart = new Date(getTimelineStart(parentRow)).getTime();
+  const parentEnd = new Date(getTimelineEnd(parentRow)).getTime();
+
+  return rows.filter((row) => {
+    const start = new Date(getTimelineStart(row)).getTime();
+    const end = new Date(getTimelineEnd(row)).getTime();
+
+    if (Number.isNaN(start) || Number.isNaN(end)) return false;
+
+    return start >= parentStart && end <= parentEnd;
+  });
+}
 function ActiveDashaPanel({
   currentDasha,
   dashaTimelines,
@@ -547,31 +561,37 @@ function ActiveDashaPanel({
     "mahaDasha",
   ]);
 
-  const adRows = getTimelineRows(dashaTimelines, [
-    "adInCurrentMd",
-    "ad",
-    "antardasha",
-    "antarDasha",
-  ]);
+ const adRows = getTimelineRows(dashaTimelines, [
+  "ad",
+  "antardasha",
+  "antarDasha",
+  "adInCurrentMd",
+]);
 
-  const pdRows = getTimelineRows(dashaTimelines, [
-    "pdInCurrentAd",
-    "pd",
-    "pratyantardasha",
-    "pratyantarDasha",
-  ]);
+const pdRows = getTimelineRows(dashaTimelines, [
+  "pd",
+  "pratyantardasha",
+  "pratyantarDasha",
+  "pdInCurrentAd",
+]);
 
-  const md =
-    findDashaRowByDate(mdRows, lookupDate) ??
-    enrichDashaNodeFromTimeline(rawMd, mdRows);
+  // 1. Find MD for lookup date
+const md = findDashaRowByDate(mdRows, lookupDate) ??
+  enrichDashaNodeFromTimeline(rawMd, mdRows);
 
-  const ad =
-    findDashaRowByDate(adRows, lookupDate) ??
-    enrichDashaNodeFromTimeline(rawAd, adRows);
+// 2. Filter ADs inside THIS MD
+const adRowsForMd = filterRowsWithinParent(adRows, md);
 
-  const pd =
-    findDashaRowByDate(pdRows, lookupDate) ??
-    enrichDashaNodeFromTimeline(rawPd, pdRows);
+// 3. Find AD inside selected MD
+const ad = findDashaRowByDate(adRowsForMd, lookupDate) ??
+  enrichDashaNodeFromTimeline(rawAd, adRowsForMd);
+
+// 4. Filter PDs inside THIS AD
+const pdRowsForAd = filterRowsWithinParent(pdRows, ad);
+
+// 5. Find PD inside selected AD
+const pd = findDashaRowByDate(pdRowsForAd, lookupDate) ??
+  enrichDashaNodeFromTimeline(rawPd, pdRowsForAd);
 
   const rows = [
     { label: "MD", node: md },
