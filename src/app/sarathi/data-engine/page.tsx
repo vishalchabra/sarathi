@@ -187,6 +187,7 @@ type DataEngineResponse = {
 
   strength?: {
     shadbala?: any[];
+    shadbalaInsights?: any[];
     ashtakvarga?: {
       planets: Array<{
         planet: string;
@@ -1676,7 +1677,11 @@ const errorBoxClass =
                     </p>
                   </div>
 
-                  <ShadbalaCard data={data?.strength?.shadbala} />
+                  <ShadbalaCard
+  data={data?.strength?.shadbala}
+  insights={data?.strength?.shadbalaInsights}
+/>
+
                   <AshtakvargaCard data={data?.strength?.ashtakvarga} />
                   <PrastharaCard data={data?.strength?.prasthara} />
                   <BhavMadhyaCard data={data?.strength?.bhavMadhya} />
