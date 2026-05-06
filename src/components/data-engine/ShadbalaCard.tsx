@@ -190,7 +190,7 @@ export default function ShadbalaCard({
     <div className="space-y-6">
       <div className="rounded-2xl border border-[color:var(--border)] bg-white/80 p-5 shadow-sm">
         <h3 className="text-base font-semibold text-slate-900">
-          Shadbala Strength
+          Shadbala Strength V2
         </h3>
         <p className="mt-1 text-sm text-slate-900">
           Planetary strength summary in rupas, with component totals in virupas.
