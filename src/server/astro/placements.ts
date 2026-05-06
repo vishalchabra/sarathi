@@ -109,12 +109,15 @@ export async function computePlacements(birth: BirthInput) {
 
   let rahuLon: number | null = null;
   const out: Array<{
-    planet: string;
-    sign: string;
-    house: number | null;
-    degree: number;
-    lon: number;
-  }> = [];
+  planet: string;
+  sign: string;
+  house: number | null;
+  degree: number;
+  lon: number;
+  speed?: number | null;
+  speedLon?: number | null;
+  retrograde?: boolean;
+}> = [];
 
   for (const P of PLANETS) {
     const pid = (constants as any)[P.key] as number | undefined;
@@ -130,6 +133,20 @@ export async function computePlacements(birth: BirthInput) {
     : NaN;
 
 if (isNaN(lonTrop)) continue;
+
+let speedLon =
+  typeof res?.speedLon === "number"
+    ? res.speedLon
+    : typeof res?.speed === "number"
+    ? res.speed
+    : Array.isArray(res?.x) && typeof res.x[3] === "number"
+    ? res.x[3]
+    : null;
+
+// 👉 FIX MOON SPEED
+if (P.name === "Moon" && speedLon === null) {
+  speedLon = 13.176; // average daily motion
+}
 
 // convert tropical -> sidereal
 const lonSid = norm360(lonTrop - ayan);
@@ -151,6 +168,9 @@ out.push({
   house,
   degree,
   lon: lonSid,
+  speed: speedLon,
+  speedLon,
+  retrograde: typeof speedLon === "number" ? speedLon < 0 : false,
 });
   }
 
@@ -166,7 +186,16 @@ out.push({
       house = ((signIdx - ascIdx + 12) % 12) + 1;
     }
 
-    out.push({ planet: "Ketu", sign, house, degree, lon });
+    out.push({
+  planet: "Ketu",
+  sign,
+  house,
+  degree,
+  lon,
+  speed: -0.052954,
+  speedLon: -0.052954,
+  retrograde: true,
+});
   }
 
   return out;

@@ -13,7 +13,12 @@ import { sweJulday, sweCall, getSweConstants } from "@/server/astro/swe-remote";
 import { buildTransitContacts } from "./buildTransitContacts";
 import { buildUpcomingTransits } from "./buildUpcomingTransits";
 import { buildTransitWindows } from "./buildTransitWindows";
+import { computeDegreeHits } from "./triggerEngine/degreeHits";
 import { buildPanchangData } from "./buildPanchangData";
+import { buildTriggerFacts } from "./triggerEngine/buildFacts";
+import { scoreAllTriggerAreas } from "./triggerEngine/scoring";
+import { getTopAreas } from "./triggerEngine/selectTop";
+import { buildMicroTriggerDays } from "./triggerEngine/microTriggerDays";
 import { buildNatalAspects } from "./buildNatalAspects";
 import { buildPlanetStrength } from "./buildPlanetStrength";
 import { buildTransitNatalInteractions } from "./buildTransitNatalInteractions";
@@ -35,6 +40,9 @@ import { buildArudhas } from "./buildArudhaLagna";
 import { buildUpagrahaData } from "./buildUpagrahaData";
 import { buildSolarShadowPoints } from "./buildSolarShadowPoints";
 import { buildKpPlanetOnCusp } from "@/lib/astrology/kp/buildKpPlanetOnCusp";
+import { buildShadbalaInsights } from "./interpretShadbala";
+import { getAffliction } from "./affliction";
+
 import {
   sweJulday as sweWasmJulday,
   sweCalcUt as sweWasmCalcUt,
@@ -167,18 +175,38 @@ timing: {
     transitWindows: any[];
     compare: any | null;
   };
+triggerEngine: {
+  topAreas: any[];
+  facts: any[];
+  scores: any[];
+  degreeHits: any[];
+  microTriggerDays: any[];
+};
+   strength: {
+  shadbala: Array<{
+    planet: string;
+    total: number;
+    sthana: number;
+    dig: number;
+    kala: number;
+    chestha: number;
+    naisargika: number;
+    drik: number;
+  }>;
 
-    strength: {
-    shadbala: Array<{
-      planet: string;
-      total: number;
-      sthana: number;
-      dig: number;
-      kala: number;
-      chestha: number;
-      naisargika: number;
-      drik: number;
-    }>;
+  shadbalaInsights: Array<{
+    planet: string;
+    strength: "strong" | "medium" | "weak";
+    tone: "support" | "mixed" | "pressure";
+    summary: string;
+    usageNote: string;
+  }>;
+    afflictions?: Array<{
+    planet: string;
+    level: "clean" | "mild" | "afflicted";
+    score: number;
+    reasons: string[];
+  }>;
     ashtakvarga: {
       planets: Array<{
         planet: string;
@@ -809,6 +837,7 @@ if (asc.lon < 0 || asc.lon > 360) {
 const ascSignNum = SIGN_TO_NUM[ascSign] ?? 0;
 
 const classicalReportPlanets = (Array.isArray(rawPlacements) ? rawPlacements : []).map((p: any) => {
+
   if (p.planet === "Rahu") {
     const lon =
       typeof rawNodeLonMap.get("Rahu") === "number"
@@ -822,18 +851,31 @@ const classicalReportPlanets = (Array.isArray(rawPlacements) ? rawPlacements : [
         ? ((signNum - ascSignNum + 12) % 12) + 1
         : null;
 
-    return {
-      ...p,
-      lon,
-      degree: Number((lon % 30).toFixed(2)),
-      signNum,
-      house,
-      nakshatra: p.nakshatra ?? nakInfo.nakshatra,
-      pada: p.pada ?? nakInfo.pada,
-      retrograde: true,
-      combust: false,
-      lordships: [],
-    };
+   return {
+  ...p,
+  signNum,
+  house,
+  nakshatra: p.nakshatra ?? nakInfo.nakshatra,
+  pada: p.pada ?? nakInfo.pada,
+  speed:
+    typeof p.speed === "number"
+      ? p.speed
+      : typeof p.speedLon === "number"
+      ? p.speedLon
+      : typeof p.longitudeSpeed === "number"
+      ? p.longitudeSpeed
+      : null,
+  retrograde:
+    typeof p.speed === "number"
+      ? p.speed < 0
+      : typeof p.speedLon === "number"
+      ? p.speedLon < 0
+      : typeof p.longitudeSpeed === "number"
+      ? p.longitudeSpeed < 0
+      : false,
+  combust: false,
+  lordships: [],
+};
   }
 
   if (p.planet === "Ketu") {
@@ -1066,11 +1108,48 @@ const chandrabalam = getChandrabalam(
   natalMoonSign,
   utilityTransitMoonSign
 );
-  const shadbala = buildShadbala({
-    natalPlanets: natalWithStrengths.planets,
-    aspects: (natalWithStrengths.aspects ?? []) as any[],
-    isDayBirth: true,
+  const birthDateTime = DateTime.fromISO(`${birth.dateISO}T${birth.time}`, {
+  zone: birth.timezone,
+});
+const birthPanchang = await buildPanchangData({
+    dateISO: birth.dateISO,
+    timezone: birth.timezone,
+    lat: birth.lat,
+    lon: birth.lon,
+    transitNow: null,
   });
+const horaInfo = getAccurateHoraLord({
+  birthDateISO: birth.dateISO,
+  birthTime: birth.time,
+  timezone: birth.timezone,
+  sunrise: birthPanchang?._sunriseDT ?? null,
+  sunset: birthPanchang?._sunsetDT ?? null,
+  previousSunset: birthPanchang?._previousSunsetDT ?? null,
+  nextSunrise: birthPanchang?._nextSunriseDT ?? null,
+});
+const shadbala = buildShadbala({
+  natalPlanets: natalWithStrengths.planets,
+  aspects: (natalWithStrengths.aspects ?? []) as any[],
+  isDayBirth: true,
+  vargaData: vargas,
+  birthWeekday: birthDateTime.weekday,
+  birthMonth: birthDateTime.month,
+  birthHoraLord: horaInfo?.horaLord ?? null,
+});
+  const vedicAspects = buildVedicAspects({
+    natalPlanets: natalWithStrengths.planets,
+  });
+   const afflictionAspects = (natalWithStrengths.aspects ?? []) as any[];
+
+const afflictions = natalWithStrengths.planets.map((p: any) =>
+  getAffliction(
+    p,
+    afflictionAspects,
+    natalWithStrengths.planets,
+    natalWithStrengths.ascendant?.sign ?? null
+  )
+);
+const shadbalaInsights = buildShadbalaInsights(shadbala, afflictions);
 
   const ashtakvarga = buildAshtakvarga({
     natalPlanets: natalWithStrengths.planets,
@@ -1092,10 +1171,7 @@ const kpPlanets = (natalWithStrengths.planets ?? []).map((p: any) => ({
   planet: p?.planet,
   lon: p?.lon ?? p?.longitude ?? null,
 }));
-console.log(
-  "KP PLANET NAMES",
-  kpPlanets.map((p: any) => p.planet)
-);
+
 const kpPlanetOnCusp = buildKpPlanetOnCusp({
   cusps: (houseCusps?.cusps ?? []).map((lon: number, index: number) => ({
     cusp: index + 1,
@@ -1105,15 +1181,7 @@ const kpPlanetOnCusp = buildKpPlanetOnCusp({
   zodiac: "sidereal",
   ayanamsa: natalWithStrengths?.ayanamsa ?? "Lahiri",
 });
-console.log(
-  "NATAL PLANET KEYS",
-  Object.keys(natalWithStrengths ?? {})
-);
 
-console.log(
-  "NATAL PLANET NAMES",
-  (natalWithStrengths.planets ?? []).map((p: any) => p?.planet)
-);
   const fiveFoldFriendship = buildFiveFoldFriendship({
     natalPlanets: natalWithStrengths.planets,
   });
@@ -1142,9 +1210,7 @@ console.log(
     natalPlanets: natalWithStrengths.planets,
   });
 
-  const vedicAspects = buildVedicAspects({
-    natalPlanets: natalWithStrengths.planets,
-  });
+
 
   const houseJudgement = buildHouseJudgement({
     houses,
@@ -1210,13 +1276,7 @@ console.log(
     transitNow,
   });
 
-  const birthPanchang = await buildPanchangData({
-    dateISO: birth.dateISO,
-    timezone: birth.timezone,
-    lat: birth.lat,
-    lon: birth.lon,
-    transitNow: null,
-  });
+  
 
   const moonContext = {
     sign: transitNow?.moonToday?.sign ?? null,
@@ -1259,7 +1319,35 @@ console.log(
       ? upcomingTransits.planetaryTransits
       : []
   );
+const triggerFacts = buildTriggerFacts({
+  transitPlanets: transitNow?.planets ?? [],
+  natal: {
+    ...natalWithStrengths,
+    lagnaSign: natalWithStrengths.ascendant?.signNum ?? null,
+  },
+  dasha,
+  shadbala,
+  afflictions,
+});
 
+  const triggerScores = scoreAllTriggerAreas(triggerFacts);
+  
+
+const topTriggerAreas = getTopAreas(triggerScores);
+console.log("TRIGGER_DEBUG", {
+  transitPlanets: transitNow?.planets,
+  facts: triggerFacts,
+  scores: triggerScores,
+  topAreas: topTriggerAreas,
+});
+const degreeHits = computeDegreeHits({
+  transitPlanets: transitNow?.planets ?? [],
+  natalPlanets: natalWithStrengths.planets ?? [],
+});
+const microTriggerDays = buildMicroTriggerDays({
+  moonTransits: upcomingTransits?.moonTransits ?? [],
+  area: "career",
+});
   const compare = compareDateISO
     ? await buildCompareData({
         birth,
@@ -1280,15 +1368,7 @@ console.log(
       })
     : null;
 
-const horaInfo = getAccurateHoraLord({
-  birthDateISO: birth.dateISO,
-  birthTime: birth.time,
-  timezone: birth.timezone,
-  sunrise: birthPanchang?._sunriseDT ?? null,
-  sunset: birthPanchang?._sunsetDT ?? null,
-  previousSunset: birthPanchang?._previousSunsetDT ?? null,
-  nextSunrise: birthPanchang?._nextSunriseDT ?? null,
-});
+
 
   const birthMeta: BirthMeta = {
     name: birth.name,
@@ -1375,9 +1455,17 @@ const horaInfo = getAccurateHoraLord({
       transitWindows,
       compare,
     },
-
+ triggerEngine: {
+  topAreas: topTriggerAreas,
+  scores: triggerScores,
+  facts: triggerFacts,
+  degreeHits,
+  microTriggerDays,
+},
     strength: {
       shadbala,
+      shadbalaInsights,
+      afflictions,
       ashtakvarga,
       prasthara,
       bhavMadhya,

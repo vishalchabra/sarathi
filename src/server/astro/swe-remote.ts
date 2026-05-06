@@ -209,7 +209,14 @@ function jdToDateUtc(jdUt: number): Date {
   const ms = (jdUt - 2440587.5) * 86400_000;
   return new Date(ms);
 }
+function lonDeltaSigned(nextLon: number, prevLon: number): number {
+  let d = wrap360(nextLon) - wrap360(prevLon);
 
+  if (d > 180) d -= 360;
+  if (d < -180) d += 360;
+
+  return d;
+}
 // ---------------------------------------------------------------------
 // astronomy-engine loader + body mapping
 // ---------------------------------------------------------------------
@@ -386,7 +393,11 @@ if (bodyName === "Moon") {
 //   });
 // }
 
-    return { longitude: wrap360(lon) } as T;
+    return { longitude: wrap360(lon) } as T;return {
+  longitude: wrap360(lon),
+  speedLon: 13.176,
+  speed: 13.176,
+} as T;
   }
 
   // 2) Next best: EclipticGeoMoon(time)
@@ -402,7 +413,11 @@ if (bodyName === "Moon") {
 //   });
 // }
 
-    return { longitude: wrap360(lon) } as T;
+    return {
+  longitude: wrap360(lon),
+  speedLon: 13.176,
+  speed: 13.176,
+} as T;
   }
 }
 
@@ -412,8 +427,40 @@ const vec = (Astronomy as any).GeoVector(body, time, true);
 const ecl = (Astronomy as any).Ecliptic(vec);
 const lon = Number(ecl?.elon);
 
-if (!Number.isFinite(lon)) throw new Error(`Ecliptic lon non-finite: ${String(lon)}`);
-return { longitude: wrap360(lon) } as T;
+if (!Number.isFinite(lon)) {
+  throw new Error(`Ecliptic lon non-finite: ${String(lon)}`);
+}
+
+// Calculate approximate daily longitude speed.
+const prevTime =
+  typeof (Astronomy as any).MakeTime === "function"
+    ? (Astronomy as any).MakeTime(new Date(date.getTime() - 86400_000))
+    : new (Astronomy as any).AstroTime(new Date(date.getTime() - 86400_000));
+
+const nextTime =
+  typeof (Astronomy as any).MakeTime === "function"
+    ? (Astronomy as any).MakeTime(new Date(date.getTime() + 86400_000))
+    : new (Astronomy as any).AstroTime(new Date(date.getTime() + 86400_000));
+
+const prevVec = (Astronomy as any).GeoVector(body, prevTime, true);
+const nextVec = (Astronomy as any).GeoVector(body, nextTime, true);
+
+const prevEcl = (Astronomy as any).Ecliptic(prevVec);
+const nextEcl = (Astronomy as any).Ecliptic(nextVec);
+
+const prevLon = Number(prevEcl?.elon);
+const nextLon = Number(nextEcl?.elon);
+
+const speedLon =
+  Number.isFinite(prevLon) && Number.isFinite(nextLon)
+    ? lonDeltaSigned(nextLon, prevLon) / 2
+    : null;
+
+return {
+  longitude: wrap360(lon),
+  speedLon,
+  speed: speedLon,
+} as T;
 
       } catch (e) {
     // if (process.env.NODE_ENV !== "production") {
@@ -567,7 +614,14 @@ export async function getPlanetPositions(input: {
     );
 
     const tropicalLon = Number(calc?.longitude ?? 0);
-    const siderealLon = wrap360(tropicalLon - ayanamsa);
+const siderealLon = wrap360(tropicalLon - ayanamsa);
+
+const speedLon =
+  typeof calc?.speedLon === "number"
+    ? calc.speedLon
+    : typeof calc?.speed === "number"
+    ? calc.speed
+    : null;
     if (p.name === "Moon") {
   
 }
@@ -584,6 +638,9 @@ planets.push({
   house,
   deg,
   siderealLongitude: siderealLon,
+  speedLon,
+  speed: speedLon,
+  retrograde: typeof speedLon === "number" ? speedLon < 0 : false,
   nakshatra: nak.nakshatra,
   pada: nak.pada,
 });
