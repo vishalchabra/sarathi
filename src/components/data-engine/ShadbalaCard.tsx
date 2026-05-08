@@ -190,7 +190,7 @@ export default function ShadbalaCard({
     <div className="space-y-6">
       <div className="rounded-2xl border border-[color:var(--border)] bg-white/80 p-5 shadow-sm">
         <h3 className="text-base font-semibold text-slate-900">
-          Shadbala Strength 
+          Shadbala Strength git commit -m "Add yoga activation engine and forecast timing improvements"
         </h3>
         <p className="mt-1 text-sm text-slate-900">
           Planetary strength summary in rupas, with component totals in virupas.
@@ -281,30 +281,58 @@ export default function ShadbalaCard({
           </p>
 
           <div className="mt-4 grid grid-cols-1 gap-3 xl:grid-cols-2">
-            {insights.map((insight) => (
+            {insights.map((insight) => {
+  const matchingRow = data.find((r) => r.planet === insight.planet);
+
+  const normalizedStrength =
+  (matchingRow?.status ?? insight.strength ?? "Medium").toLowerCase();
+
+const normalizedTone =
+  normalizedStrength === "strong"
+    ? "support"
+    : normalizedStrength === "weak"
+      ? "pressure"
+      : "mixed";
+
+const normalizedSummary =
+  normalizedStrength === "strong"
+    ? `${insight.planet} has good Shadbala support. When activated, it can deliver results with better stability and expression.`
+    : normalizedStrength === "weak"
+      ? `${insight.planet} has low Shadbala. When activated, it may show delay, pressure, friction, or weaker results.`
+      : `${insight.planet} has moderate Shadbala. When activated, results may come but need support from dasha, house strength, and transit confirmation.`;
+
+const normalizedUsageNote =
+  normalizedStrength === "strong"
+    ? `Use ${insight.planet} as a supportive factor when judging dasha, transit, house activation, or lordship results.`
+    : normalizedStrength === "weak"
+      ? `Treat ${insight.planet} as a caution factor. Its activation may show effort, delay, instability, or corrective karma.`
+      : `Use ${insight.planet} cautiously. It can support results if other chart factors are also favorable.`;
+
+  return (
               <div
                 key={insight.planet}
                 className={`rounded-xl border p-4 ${getInsightTone(
-                  insight.tone
-                )}`}
+  normalizedTone
+)}`}
               >
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="font-semibold">
-                    {insight.planet} — {insight.strength.toUpperCase()}
+                    {insight.planet} — {normalizedStrength.toUpperCase()}
                   </div>
                   <div className="rounded-full border border-current/20 bg-white/50 px-2.5 py-1 text-xs font-medium">
-                    {insight.tone}
+                    {normalizedTone}
                   </div>
                 </div>
 
                 <p className="mt-2 text-sm leading-relaxed">
-                  {insight.summary}
+                  {normalizedSummary}
                 </p>
                 <p className="mt-2 text-xs leading-relaxed opacity-80">
-                  {insight.usageNote}
+                  {normalizedUsageNote}
                 </p>
               </div>
-            ))}
+            );
+})}
           </div>
         </div>
       ) : null}
