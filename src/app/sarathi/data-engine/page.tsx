@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Suspense } from "react";
 import React, { useEffect, useMemo, useState } from "react";
 import { Input } from "@/components/ui/input";
 import DataEngineTabs from "@/components/data-engine/DataEngineTabs";
@@ -558,7 +559,7 @@ function getTodayISOInTimezone(tz: string) {
 
 
 
-export default function DataEnginePage() {
+function DataEnginePageContent() {
   const [activeTab, setActiveTab] = useState<TabKey>("foundations");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -2943,5 +2944,12 @@ dashaTimelines={data?.timing?.dasha?.timelines ?? data?.dasha?.timelines ?? null
         </div>
       </section>
     </main>
+  );
+}
+export default function DataEnginePage() {
+  return (
+    <Suspense fallback={<div className="p-6 text-sm text-slate-600">Loading Data Engine...</div>}>
+      <DataEnginePageContent />
+    </Suspense>
   );
 }
