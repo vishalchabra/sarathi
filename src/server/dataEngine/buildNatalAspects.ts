@@ -166,9 +166,9 @@ export function buildNatalAspects(params: {
       if (rulesA.includes(hDistAB)) {
   const row = buildAspectRow(A, B, hDistAB);
 
-  if (row.orb <= 6) {   // ⭐ KEY FILTER
-    aspects.push(row);
-  }
+ if (row.orb <= 12) {
+  aspects.push(row);
+}
 }
 
      if (rulesB.includes(hDistBA)) {

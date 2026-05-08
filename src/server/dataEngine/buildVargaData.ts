@@ -16,7 +16,24 @@ const SIGNS = [
   "Aquarius",
   "Pisces",
 ];
+function adjustNodeLonForVargaBoundary(lon: number, varga: number) {
+  const normalized = wrap360(lon);
+  const signStart = Math.floor(normalized / 30) * 30;
+  const inSignDeg = normalized - signStart;
+  const divisionSize = 30 / varga;
 
+  const remainder = inSignDeg % divisionSize;
+
+  // Nodes are boundary-sensitive in high vargas.
+  // If Rahu/Ketu is just after a varga boundary, keep it in the previous division.
+  const toleranceDeg = 0.08; // about 4.8 arcminutes
+
+  if (remainder > 0 && remainder <= toleranceDeg) {
+    return wrap360(normalized - toleranceDeg);
+  }
+
+  return normalized;
+}
 function wrap360(x: number) {
   x = x % 360;
   return x < 0 ? x + 360 : x;
@@ -310,16 +327,7 @@ function shastiamsaSign(deg: number): string {
   // start from the same sign and advance by division count
   return SIGNS[(signIndex + division) % 12];
 }
-function chaturvimshamsaSignForNode(deg: number): string {
-  const inSignDeg = wrap360(deg) % 30;
-  const division = Math.floor(inSignDeg / (30 / 24)); // 0..23
 
-  // Node calibration from your trace:
-  // Rahu/Ketu need Leo start to land in the expected sign.
-  const startIndex = 4; // Leo
-
-  return SIGNS[(startIndex + division) % 12];
-}
 function genericVargaSign(deg: number, varga: number): string {
   const signIndex = Math.floor(wrap360(deg) / 30);
   const inSignDeg = wrap360(deg) % 30;
@@ -395,15 +403,16 @@ function buildOneVargaFromTrustedAsc(opts: {
   const planets = opts.natalPlanets
     .filter((p) => typeof p?.lon === "number")
     .map((p) => {
-      const plLon = p.lon as number;
+      const rawPlLon = p.lon as number;
+
+const plLon =
+  p.planet === "Rahu" || p.planet === "Ketu"
+    ? adjustNodeLonForVargaBoundary(rawPlLon, opts.varga)
+    : rawPlLon;
 
 let plSign: string;
 
-if (opts.varga === 24 && (p.planet === "Rahu" || p.planet === "Ketu")) {
-  plSign = chaturvimshamsaSignForNode(plLon);
-} else {
-  plSign = signFn(plLon);
-}
+plSign = signFn(plLon);
 
 const house = computeVargaHouses(ascSign, plSign);
 if (
@@ -420,7 +429,8 @@ if (
         name: p.planet,
         sign: plSign,
         house,
-        siderealLongitude: plLon,
+        siderealLongitude: rawPlLon,
+vargaCalculationLongitude: plLon,
       };
     });
 

@@ -536,6 +536,357 @@ function filterRowsWithinParent(rows: any[], parentRow: any) {
     return start >= parentStart && end <= parentEnd;
   });
 }
+function NabhasaYogasCard({ data }: { data?: any }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const detected = Array.isArray(data?.detected) ? data.detected : [];
+
+  return (
+    <aside className="h-full rounded-2xl border border-[color:var(--border)] bg-white/90 p-4 shadow-sm">
+      <button
+        type="button"
+        onClick={() => setIsOpen((v) => !v)}
+        className="flex w-full items-start justify-between text-left"
+      >
+        <div>
+          <h4 className="text-sm font-semibold text-slate-900">
+            Nabhasa Yogas
+          </h4>
+          <p className="mt-1 text-xs text-slate-500">
+            Pattern yogas based on the 7 classical planets.
+          </p>
+        </div>
+
+        <span className="rounded-full bg-slate-50 px-2 py-1 text-xs font-semibold text-slate-500">
+          {isOpen ? "▲" : "▼"}
+        </span>
+      </button>
+
+      {isOpen ? (
+        <>
+          {!detected.length ? (
+            <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-xs text-slate-600">
+              No major Nabhasa pattern detected.
+            </div>
+          ) : (
+            <div className="mt-4 space-y-3">
+              {detected.slice(0, 5).map((yoga: any) => (
+                <div
+                  key={yoga.id}
+                  className="rounded-xl border border-amber-100 bg-amber-50/60 px-3 py-3"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="text-sm font-semibold text-slate-950">
+                        {yoga.name}
+                      </div>
+                      <div className="mt-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-700">
+                        {yoga.group}
+                      </div>
+                    </div>
+                    <span className="rounded-full bg-white px-2 py-1 text-[10px] font-semibold text-amber-700 ring-1 ring-amber-100">
+                      Detected
+                    </span>
+                  </div>
+
+                  <div className="mt-2 text-xs leading-relaxed text-slate-700">
+                    {yoga.rule}
+                  </div>
+
+                  {yoga.theme ? (
+                    <div className="mt-2 text-xs leading-relaxed text-slate-600">
+                      <span className="font-semibold text-slate-800">
+                        Theme:
+                      </span>{" "}
+                      {yoga.theme}
+                    </div>
+                  ) : null}
+                </div>
+              ))}
+
+              {detected.length > 5 ? (
+                <div className="text-xs text-slate-500">
+                  +{detected.length - 5} more yoga(s) detected.
+                </div>
+              ) : null}
+            </div>
+          )}
+
+          <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] text-slate-500">
+            Houses checked:{" "}
+            {Array.isArray(data?.summary?.occupiedHouses)
+              ? data.summary.occupiedHouses.join(", ")
+              : "—"}
+          </div>
+        </>
+      ) : null}
+    </aside>
+  );
+}
+function ClassicYogasCard({
+  data,
+  currentDasha,
+}: {
+  data?: any;
+  currentDasha?: any;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const rawDetected = Array.isArray(data) ? data : [];
+  
+  const currentDashaPlanets = [
+  currentDasha?.md?.planet ?? currentDasha?.md?.lord ?? currentDasha?.md,
+  currentDasha?.ad?.planet ?? currentDasha?.ad?.lord ?? currentDasha?.ad,
+  currentDasha?.pd?.planet ?? currentDasha?.pd?.lord ?? currentDasha?.pd,
+]
+  .filter(Boolean)
+  .map(String);
+
+function getActiveYogaReason(yoga: any): string | null {
+  const involved = Array.isArray(yoga?.involvedPlanets)
+    ? yoga.involvedPlanets
+    : [];
+
+  const activePlanet = involved.find((p: string) =>
+    currentDashaPlanets.includes(p)
+  );
+
+  if (!activePlanet) return null;
+
+  return `Current dasha lord ${activePlanet} participates in this yoga.`;
+}
+
+  const detected: any[] = Object.values(
+    rawDetected.reduce((acc: any, yoga: any) => {
+      const key = yoga?.name ?? yoga?.id ?? "Unknown Yoga";
+
+      if (!acc[key]) {
+        acc[key] = {
+          ...yoga,
+          combinations: [],
+        };
+      }
+
+      acc[key].combinations.push({
+        rule: yoga.rule,
+        evidence: yoga.evidence,
+      });
+
+      return acc;
+    }, {})
+  );
+const yogaCategoryMap: Record<string, string> = {
+  "Raj Yoga": "Career / Authority",
+  "Dharma-Karmadhipati Yoga": "Career / Authority",
+  "Vipreet Raj Yoga": "Resilience / Reversal",
+  "Dhana Yoga": "Wealth",
+  "Lakshmi Yoga": "Wealth",
+  "Gajakesari Yoga": "Support / Wisdom",
+  "Budhaditya Yoga": "Intellect / Status",
+  "Chandra-Mangal Yoga": "Wealth / Action",
+  "Adhi Yoga": "Support / Protection",
+  "Parivartana Yoga": "Exchange / Structural",
+  "Neechabhanga Raj Yoga": "Cancellation / Recovery",
+  "Daridra Yoga": "Challenge",
+  "Kemadruma Yoga": "Mind / Isolation",
+};
+
+const groupedDetected: Record<string, any[]> = detected.reduce((acc: Record<string, any[]>, yoga: any) => {
+  const category = yogaCategoryMap[yoga?.name] ?? "Other Yogas";
+
+  if (!acc[category]) acc[category] = [];
+  acc[category].push(yoga);
+
+  return acc;
+}, {});
+const activeYogas = detected.filter((yoga: any) => yoga?.isActive);
+
+const topActiveYoga =
+  activeYogas.find((yoga: any) => yoga?.activationLevel === "Strong") ??
+  activeYogas.find((yoga: any) => yoga?.activationLevel === "Moderate") ??
+  activeYogas[0] ??
+  null;
+  const peakLine =
+  Array.isArray(topActiveYoga?.activation)
+    ? topActiveYoga.activation.find((r: string) =>
+        r.toLowerCase().includes("peak")
+      )
+    : null;
+  return (
+    <aside className="h-full rounded-2xl border border-[color:var(--border)] bg-white/90 p-4 shadow-sm">
+      <div>
+  <button
+    type="button"
+    onClick={() => setIsOpen((v) => !v)}
+    className="flex w-full items-start justify-between text-left"
+  >
+    <div>
+      <h4 className="text-sm font-semibold text-slate-900">Classic Yogas</h4>
+      <p className="mt-1 text-xs text-slate-500">
+        Rule-based yoga checks with evidence only.
+      </p>
+    </div>
+
+    <span className="rounded-full bg-slate-50 px-2 py-1 text-xs font-semibold text-slate-500">
+      {isOpen ? "▲" : "▼"}
+    </span>
+  </button>
+        {topActiveYoga ? (
+  <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-3 py-3">
+    <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-emerald-700">
+      Strongest Active Yoga Now
+    </div>
+
+    <div className="mt-1 text-sm font-semibold text-slate-950">
+      {topActiveYoga.name}
+    </div>
+
+    <div className="mt-1 text-xs text-emerald-700">
+  {topActiveYoga.activationLevel} Activation
+</div>
+
+{peakLine && (
+  <div className="mt-1 text-[11px] font-medium text-emerald-800">
+    {String(peakLine)}
+  </div>
+)}
+
+    {Array.isArray(topActiveYoga.activation) && topActiveYoga.activation.length ? (
+      <ul className="mt-2 list-disc space-y-1 pl-4 text-[11px] font-medium text-emerald-700">
+        {topActiveYoga.activation.slice(0, 3).map((reason: string, index: number) => (
+          <li key={index}>{String(reason)}</li>
+        ))}
+      </ul>
+    ) : null}
+  </div>
+) : null}
+      </div>
+
+      {isOpen ? (
+  !detected.length ? (
+        <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-xs text-slate-600">
+          No major classic yoga detected (based on current rule set).
+        </div>
+      ) : (
+        <div className="mt-4 space-y-3">
+        {Object.entries(groupedDetected).map(([category, yogas]) => (
+  <div key={category} className="space-y-3">
+    <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">
+      <span>{category} ({(yogas as any[]).length})</span>
+    </div>
+
+    {(yogas as any[]).map((yoga: any) => (
+      <div
+  key={yoga.id}
+  className={`rounded-xl border px-3 py-3 ${
+    yoga.isActive
+      ? yoga.activationLevel === "Strong"
+        ? "border-emerald-300 bg-emerald-50"
+        : "border-emerald-200 bg-emerald-50/50"
+      : "border-indigo-100 bg-indigo-50/50"
+  }`}
+>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <div className="text-sm font-semibold text-slate-950">
+              {yoga.name}
+            </div>
+            <div className="mt-0.5 text-[10px] font-bold uppercase tracking-wide text-indigo-700">
+              {yoga.group}
+            </div>
+          </div>
+
+          <span className="rounded-full bg-white px-2 py-1 text-[10px] font-semibold text-indigo-700 ring-1 ring-indigo-100">
+            Detected
+          </span>
+        </div>
+
+       <div className="mt-2 text-xs leading-relaxed text-slate-700">
+  {yoga.rule}
+</div>
+
+{yoga.isActive && (
+  <>
+    <div className="mt-2 text-[10px] font-bold text-emerald-700">
+      {yoga.activationLevel} Activation
+    </div>
+
+    <div className="mt-2 rounded-lg border border-emerald-100 bg-emerald-50 px-2 py-2 text-[11px] font-medium text-emerald-700">
+      Active now:
+      <ul className="mt-1 list-disc pl-4">
+        {yoga.activation.map((r: string, i: number) => (
+          <li key={i}>
+  {r.toLowerCase().includes("peak") ? (
+    <span className="font-semibold text-emerald-800">
+      {String(r)}
+    </span>
+  ) : (
+    String(r)
+  )}
+</li>
+        ))}
+      </ul>
+    </div>
+  </>
+)}
+
+        {Array.isArray(yoga.combinations) && yoga.combinations.length ? (
+          <div className="mt-2 space-y-2">
+            {yoga.combinations.slice(0, 4).map((combo: any, index: number) => (
+              <div
+                key={index}
+                className="rounded-lg border border-white/80 bg-white/70 px-2 py-2 text-[11px] leading-relaxed text-slate-600"
+              >
+                <div className="mb-1 font-semibold text-slate-700">
+                  Combination {index + 1}
+                </div>
+
+                {combo.rule ? (
+                  <div className="mb-1 text-slate-600">{combo.rule}</div>
+                ) : null}
+
+                {combo.evidence
+                  ? Object.entries(combo.evidence).map(([key, value]) => (
+                      <div key={key}>
+                        <span className="font-semibold text-slate-700">
+                          {key === "associationType" ? "Association" : key}:
+                        </span>{" "}
+                        {key === "associationType"
+                          ? value === "conjunction"
+                            ? "Conjunction"
+                            : value === "mutual_aspect"
+                            ? "7th Aspect"
+                            : value === "jupiter_aspect"
+                            ? "Jupiter Aspect"
+                            : value === "mars_aspect"
+                            ? "Mars Aspect"
+                            : value === "saturn_aspect"
+                            ? "Saturn Aspect"
+                            : String(value ?? "—")
+                          : Array.isArray(value)
+                          ? value.join(", ")
+                          : String(value ?? "—")}
+                      </div>
+                    ))
+                  : null}
+              </div>
+            ))}
+          </div>
+        ) : null}
+      </div>
+    ))}
+  </div>
+))}
+
+          {detected.length > 6 ? (
+            <div className="text-xs text-slate-500">
+              +{detected.length - 6} more yoga(s) detected.
+            </div>
+          ) : null}
+        </div>
+           )
+) : null}
+    </aside>
+  );
+}
 function ActiveDashaPanel({
   currentDasha,
   dashaTimelines,
@@ -689,6 +1040,8 @@ export default function ChartsTabView({
   upagrahas,
   solarShadowPoints,
   vedicAspects,
+  nabhasaYogas,
+  classicYogas,
 }: {
   selectedDateISO: string;
   setSelectedDateISO: (value: string) => void;
@@ -711,6 +1064,8 @@ export default function ChartsTabView({
   upagrahas?: any;
   solarShadowPoints?: any;
   vedicAspects?: any;
+  nabhasaYogas?: any;
+  classicYogas?: any;
 }) {
 const [overlayTransitPlanets, setOverlayTransitPlanets] = useState<any[]>([]);
 const [transitChartPlanets, setTransitChartPlanets] = useState<any[]>([]);
@@ -779,15 +1134,8 @@ const [transitLoading, setTransitLoading] = useState(false);
     window.addEventListener("keydown", onKeyDown);
 
     requestAnimationFrame(() => {
-      window.scrollTo(0, 0);
-      document.documentElement.scrollTop = 0;
-      document.body.scrollTop = 0;
-      modalCardRef.current?.scrollIntoView({
-        block: "start",
-        inline: "nearest",
-        behavior: "instant" as ScrollBehavior,
-      });
-    });
+  modalCardRef.current?.focus?.();
+});
 
     return () => {
       window.removeEventListener("keydown", onKeyDown);
@@ -1064,7 +1412,26 @@ const [transitLoading, setTransitLoading] = useState(false);
           document.body
         )
       : null;
+const d1PlanetsWithBhava = useMemo(() => {
+  const chalitPlanets = Array.isArray(bhavaChalit?.planets)
+  ? bhavaChalit.planets
+  : [];
 
+  return normalizeChartPlanets(natalPlanets).map((p) => {
+    const chalit = chalitPlanets.find(
+      (c: any) => (c?.planet ?? c?.name) === p.planet
+    );
+
+    return {
+      ...p,
+      rashiHouse: p.house,
+      house:
+        typeof chalit?.house === "number"
+          ? chalit.house
+          : p.house,
+    };
+  });
+}, [natalPlanets, bhavaChalit]);
   return (
     <div className="mt-6 space-y-6">
       <div className="space-y-6">
@@ -1122,7 +1489,7 @@ const [transitLoading, setTransitLoading] = useState(false);
 <MediumNorthIndianChart
               title=""
               ascSign={natalAscSign}
-              planets={normalizeChartPlanets(natalPlanets)}
+              planets={d1PlanetsWithBhava}
               transitPlanets={
                 showTransitOverlay
   ? normalizeTransitPlanets(overlayTransitPlanets, natalAscSign)
@@ -1143,7 +1510,15 @@ const [transitLoading, setTransitLoading] = useState(false);
                 dashaTimelines={dashaTimelines}
               />
             }
-          />
+                    />
+
+          <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-2">
+            <NabhasaYogasCard data={nabhasaYogas} />
+            <ClassicYogasCard
+  data={classicYogas}
+  currentDasha={currentDasha}
+/>
+          </div>
         </ChartCard>
 
         <ChartCard

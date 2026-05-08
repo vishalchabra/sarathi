@@ -42,7 +42,10 @@ import { buildSolarShadowPoints } from "./buildSolarShadowPoints";
 import { buildKpPlanetOnCusp } from "@/lib/astrology/kp/buildKpPlanetOnCusp";
 import { buildShadbalaInsights } from "./interpretShadbala";
 import { getAffliction } from "./affliction";
-
+import { buildNabhasaYogas } from "./buildNabhasaYogas";
+import { buildClassicYogas } from "./buildClassicYogas";
+import { buildYogaActivation } from "./buildYogaActivation";
+import { computeDegreeHitWindows } from "./triggerEngine/degreeHitWindows";
 import {
   sweJulday as sweWasmJulday,
   sweCalcUt as sweWasmCalcUt,
@@ -114,6 +117,8 @@ export type DataEngineOutput = {
     houseJudgement: any;
     upagrahas: any;
     solarShadowPoints: any;
+    nabhasaYogas: any;
+    classicYogas: any;
     personalStrength: any;
   };
 
@@ -269,6 +274,8 @@ triggerEngine: {
   kpPlanetOnCusp: any;
   bhavaChalit: any;
   classicChalit: any;
+  nabhasaYogas: any;
+  classicYogas: any;
   dasha: any;
   transitNow: any;
   transitContacts: any[];
@@ -826,7 +833,12 @@ const utilityHoraInfo = getAccurateHoraLord({
 if (!asc || typeof asc.lon !== "number") {
   throw new Error("Ascendant calculation failed — invalid result");
 }
-
+console.log("NODE_COMPARE", {
+  trueRahu: trueNodeLons.rahuLonSid,
+  trueKetu: trueNodeLons.ketuLonSid,
+  rawRahu: rawNodeLonMap.get("Rahu"),
+  rawKetu: rawNodeLonMap.get("Ketu"),
+});
 const ascSign = asc.sign;
 const ascLon = asc.lon;
 
@@ -839,10 +851,7 @@ const ascSignNum = SIGN_TO_NUM[ascSign] ?? 0;
 const classicalReportPlanets = (Array.isArray(rawPlacements) ? rawPlacements : []).map((p: any) => {
 
   if (p.planet === "Rahu") {
-    const lon =
-      typeof rawNodeLonMap.get("Rahu") === "number"
-        ? rawNodeLonMap.get("Rahu")
-        : trueNodeLons.rahuLonSid;
+    const lon = trueNodeLons.rahuLonSid;
 
     const nakInfo = getNakshatraAndPadaFromLon(lon);
     const signNum = SIGN_TO_NUM[p.sign] ?? 0;
@@ -851,8 +860,11 @@ const classicalReportPlanets = (Array.isArray(rawPlacements) ? rawPlacements : [
         ? ((signNum - ascSignNum + 12) % 12) + 1
         : null;
 
-   return {
+  return {
   ...p,
+  lon,
+  longitude: lon,
+  degree: Number((lon % 30).toFixed(2)),
   signNum,
   house,
   nakshatra: p.nakshatra ?? nakInfo.nakshatra,
@@ -865,24 +877,14 @@ const classicalReportPlanets = (Array.isArray(rawPlacements) ? rawPlacements : [
       : typeof p.longitudeSpeed === "number"
       ? p.longitudeSpeed
       : null,
-  retrograde:
-    typeof p.speed === "number"
-      ? p.speed < 0
-      : typeof p.speedLon === "number"
-      ? p.speedLon < 0
-      : typeof p.longitudeSpeed === "number"
-      ? p.longitudeSpeed < 0
-      : false,
+  retrograde: true,
   combust: false,
   lordships: [],
 };
   }
 
   if (p.planet === "Ketu") {
-    const lon =
-      typeof rawNodeLonMap.get("Ketu") === "number"
-        ? rawNodeLonMap.get("Ketu")
-        : trueNodeLons.ketuLonSid;
+    const lon = trueNodeLons.ketuLonSid;
 
     const nakInfo = getNakshatraAndPadaFromLon(lon);
     const signNum = SIGN_TO_NUM[p.sign] ?? 0;
@@ -1209,6 +1211,15 @@ const kpPlanetOnCusp = buildKpPlanetOnCusp({
     },
     natalPlanets: natalWithStrengths.planets,
   });
+  const nabhasaYogas = buildNabhasaYogas({
+    natalPlanets: natalWithStrengths.planets,
+  });
+const classicYogasRaw = buildClassicYogas({
+  natalPlanets: natalWithStrengths.planets,
+  houses,
+});
+
+
 
 
 
@@ -1344,6 +1355,17 @@ const degreeHits = computeDegreeHits({
   transitPlanets: transitNow?.planets ?? [],
   natalPlanets: natalWithStrengths.planets ?? [],
 });
+const degreeHitWindows = await computeDegreeHitWindows({
+  birth,
+  natalPlanets: natalWithStrengths.planets,
+  natalAscendant: {
+    sign: natalAscendantForEngine.sign ?? "—",
+    signNum: natalAscendantForEngine.signNum ?? 0,
+    degree: natalAscendantForEngine.degree ?? 0,
+    house: 1,
+  },
+  startDateISO: selectedDateISO,
+});
 const microTriggerDays = buildMicroTriggerDays({
   moonTransits: upcomingTransits?.moonTransits ?? [],
   area: "career",
@@ -1392,7 +1414,13 @@ const microTriggerDays = buildMicroTriggerDays({
     houses,
     vargas,
   });
-
+const classicYogas = buildYogaActivation({
+  yogas: classicYogasRaw.detected ?? [],
+  dasha,
+  transitPlanets: transitNow?.planets ?? [],
+  degreeHits,
+  degreeHitWindows,
+});
   return {
     meta: {
       generatedAtISO: new Date().toISOString(),
@@ -1411,6 +1439,8 @@ const microTriggerDays = buildMicroTriggerDays({
   houseJudgement,
   upagrahas,
   solarShadowPoints,
+  nabhasaYogas,
+  classicYogas,
   personalStrength: {
     tarabalam,
     chandrabalam,
@@ -1495,6 +1525,8 @@ const microTriggerDays = buildMicroTriggerDays({
     transitWindows,
     bhavaChalit,
     classicChalit,
+    nabhasaYogas,
+    classicYogas,
     kpPlanetOnCusp,
   };
 }

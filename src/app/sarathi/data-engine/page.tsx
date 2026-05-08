@@ -37,6 +37,15 @@ import KpPlanetOnCuspCard from "@/components/data-engine/KpPlanetOnCuspCard";
 import { formatKpPlanetOnCuspForAstroSage } from "@/lib/astrology/kp/formatKpPlanetOnCuspForAstroSage";
 import DashaLordTransitTrackerCard from "@/components/data-engine/DashaLordTransitTrackerCard";
 import ChartCompareTabView from "@/components/data-engine/ChartCompareTabView";
+import { useRouter, useSearchParams } from "next/navigation";
+import MediumNorthIndianChart from "@/components/data-engine/MediumNorthIndianChart";
+import {
+  addClientChart,
+  createAstrologerClient,
+  getAstrologerClient,
+  type AstrologerClient,
+  type ClientChart,
+} from "@/lib/supabase/astrologer-crm-service";
 type TabKey =
   | "foundations"
   | "timing"
@@ -75,6 +84,8 @@ type DataEngineResponse = {
   solarShadowPoints?: any;
   bhavaChalit?: any;
   classicChalit?: any;
+  nabhasaYogas?: any;
+  classicYogas?: any;
   debugLifeReport?: any;
   kpPlanetOnCusp?: any;
   vargas?: Record<string, any>;
@@ -97,7 +108,13 @@ type DataEngineResponse = {
   transitWindows?: any[];
   selectedDate?: any;
   compare?: any | null;
-
+  triggerEngine?: {
+  topAreas?: any[];
+  facts?: any[];
+  scores?: any[];
+  degreeHits?: any[];
+  microTriggerDays?: any[];
+};
   foundations?: {
   birthMeta?: any;
   ascendant?: any;
@@ -118,6 +135,8 @@ type DataEngineResponse = {
   houseJudgement?: any;
   kpPlanetOnCusp?: any;
   bhavaChalit?: any;
+  nabhasaYogas?: any;
+  classicYogas?: any;
   upagrahas?: any;
   solarShadowPoints?: any;
   personalStrength?: {
@@ -536,6 +555,9 @@ function getTodayISOInTimezone(tz: string) {
 
   return `${year}-${month}-${day}`;
 }
+
+
+
 export default function DataEnginePage() {
   const [activeTab, setActiveTab] = useState<TabKey>("foundations");
   const [loading, setLoading] = useState(false);
@@ -555,8 +577,32 @@ export default function DataEnginePage() {
   const [compareDateISO, setCompareDateISO] = useState("");
  const [utilityPanchangData, setUtilityPanchangData] = useState<any | null>(null);
 const [utilityHoraData, setUtilityHoraData] = useState<any | null>(null);
+const searchParams = useSearchParams();
+const router = useRouter();
+const crmClientId: string | null = searchParams?.get("clientId") ?? null;
+
+const [linkedClient, setLinkedClient] = useState<AstrologerClient | null>(null);
+const [linkedClientCharts, setLinkedClientCharts] = useState<ClientChart[]>([]);
+const [selectedLinkedChartId, setSelectedLinkedChartId] = useState("");
+const [linkedClientLoading, setLinkedClientLoading] = useState(false);
+const [saveToClientLoading, setSaveToClientLoading] = useState(false);
+const [saveToClientMessage, setSaveToClientMessage] = useState("");
+const [crmConsultationType, setCrmConsultationType] = useState("");
+const [savedCrmClientId, setSavedCrmClientId] = useState<string | null>(null);
+const [showSavePanel, setShowSavePanel] = useState(false);
+const [saveLoading, setSaveLoading] = useState(false);
+const [crmIsVip, setCrmIsVip] = useState(false);
+const [crmName, setCrmName] = useState("");
+const [crmPhone, setCrmPhone] = useState("");
+const [crmEmail, setCrmEmail] = useState("");
+const [crmPrimaryIssue, setCrmPrimaryIssue] = useState("");
+const [crmRemediesSuggested, setCrmRemediesSuggested] = useState("");
+const [crmNotes, setCrmNotes] = useState("");
+const [crmFollowUpDate, setCrmFollowUpDate] = useState("");
 
 
+// TEMP: later replace with real subscription check
+const isPremierUser = true;
 const [utilityPanchangLoading, setUtilityPanchangLoading] = useState(false);
 const [utilityHoraLoading, setUtilityHoraLoading] = useState(false);
 
@@ -714,12 +760,63 @@ async function handleGenerate() {
     if (!res.ok || json?.ok === false) {
       throw new Error(json?.error || "Failed to generate.");
     }
-
+console.log("DEGREE FOLLOWUP DEBUG", {
+  natalPlanets: json?.foundations?.natal?.planets ?? json?.natal?.planets,
+  transitNow: json?.transits?.transitNow ?? json?.transitNow,
+  transitWindows: json?.transits?.transitWindows ?? json?.transitWindows,
+});
     setData(json);
   } catch (e: any) {
     setError(e?.message || "Something went wrong.");
   } finally {
     setLoading(false);
+  }
+}
+async function handleSaveGeneratedChartToClient() {
+  if (!crmClientId) {
+    setSaveToClientMessage("No CRM client linked.");
+    return;
+  }
+
+  const sourceBirthMeta =
+    data?.foundations?.birthMeta ?? data?.birthMeta ?? null;
+
+  const saveDateISO = sourceBirthMeta?.dateISO ?? dateISO;
+  const saveTime = sourceBirthMeta?.time ?? time;
+  const saveTimezone = sourceBirthMeta?.timezone ?? timezone;
+  const saveLat = Number(sourceBirthMeta?.lat ?? selectedPlace?.lat ?? 0);
+  const saveLon = Number(sourceBirthMeta?.lon ?? selectedPlace?.lon ?? 0);
+  const savePlaceName =
+    sourceBirthMeta?.city ??
+    sourceBirthMeta?.place_name ??
+    selectedPlace?.name ??
+    "";
+
+  if (!saveDateISO || !saveTime || !saveLat || !saveLon) {
+    setSaveToClientMessage("Generate a valid chart before saving.");
+    return;
+  }
+
+  try {
+    setSaveToClientLoading(true);
+    setSaveToClientMessage("");
+
+    await addClientChart({
+      clientId: crmClientId,
+      chartName: `${linkedClient?.name ?? name ?? "Client"} Birth Chart`,
+      birthDateISO: saveDateISO,
+      birthTime: saveTime,
+      birthTz: saveTimezone,
+      lat: saveLat,
+      lon: saveLon,
+      placeName: savePlaceName,
+    });
+    setSavedCrmClientId(crmClientId);
+    setSaveToClientMessage("Chart saved to client profile.");
+  } catch (e: any) {
+    setSaveToClientMessage(e?.message || "Failed to save chart.");
+  } finally {
+    setSaveToClientLoading(false);
   }
 }
 async function handleGenerateHora() {
@@ -788,6 +885,106 @@ async function handleGenerateHora() {
     setUtilityHoraError(e?.message || "Something went wrong.");
   } finally {
     setUtilityHoraLoading(false);
+  }
+}
+async function handleSaveToCRM() {
+  if (!data) return;
+
+  if (!isPremierUser) {
+    alert("Upgrade to Premier to save clients");
+    return;
+  }
+
+  setCrmName((current) => current || name.trim());
+
+
+  setShowSavePanel(true);
+}
+async function handleSaveGeneratedChartAsClient() {
+  if (!data) return;
+
+  const sourceBirthMeta = data?.foundations?.birthMeta ?? data?.birthMeta ?? null;
+
+  const saveName = crmName.trim() || name.trim();
+  const saveDateISO = sourceBirthMeta?.dateISO ?? dateISO;
+  const saveTime = sourceBirthMeta?.time ?? time;
+  const saveTimezone = sourceBirthMeta?.timezone ?? timezone;
+  const saveLat = Number(sourceBirthMeta?.lat ?? selectedPlace?.lat ?? 0);
+  const saveLon = Number(sourceBirthMeta?.lon ?? selectedPlace?.lon ?? 0);
+  const savePlaceName =
+    sourceBirthMeta?.city ??
+    sourceBirthMeta?.place_name ??
+    selectedPlace?.name ??
+    "";
+
+  if (!saveName || !saveDateISO || !saveTime || !saveLat || !saveLon) {
+    setSaveToClientMessage("Missing chart/client details. Generate a valid chart first.");
+    return;
+  }
+
+  try {
+    setSaveLoading(true);
+    setSaveToClientMessage("");
+
+    const client = await createAstrologerClient({
+      name: saveName,
+      phone: crmPhone,
+      email: crmEmail,
+      notes: crmNotes,
+      primaryIssue: crmPrimaryIssue,
+      remediesSuggested: crmRemediesSuggested,
+      clientStatus: crmFollowUpDate ? "follow_up" : "active",
+      nextAction: crmFollowUpDate ? "Follow up with client" : "",
+      nextFollowUpDate: crmFollowUpDate,
+      isVip: crmIsVip,
+      consultationType: crmConsultationType,
+    });
+
+    await addClientChart({
+      clientId: client.id,
+      chartName: `${saveName} Birth Chart`,
+      birthDateISO: saveDateISO,
+      birthTime: saveTime,
+      birthTz: saveTimezone,
+      lat: saveLat,
+      lon: saveLon,
+      placeName: savePlaceName,
+    });
+
+    setSaveToClientMessage("Client and chart saved to Premier CRM.");
+setShowSavePanel(false);
+
+setSavedCrmClientId(client.id);
+setSaveToClientMessage("Client and chart saved to Premier CRM.");
+setShowSavePanel(false);
+return;
+  } catch (e: any) {
+    setSaveToClientMessage(e?.message || "Failed to save client and chart.");
+  } finally {
+    setSaveLoading(false);
+  }
+}
+function loadLinkedChartIntoForm(chartId: string) {
+  setSelectedLinkedChartId(chartId);
+
+  const chart = linkedClientCharts.find((item) => item.id === chartId);
+
+  if (!chart) return;
+
+  setDateISO(chart.birth_date_iso ?? "");
+  setTime(chart.birth_time ?? "");
+  setTimezone(chart.birth_tz ?? "Asia/Kolkata");
+
+  if (
+    chart.place_name &&
+    typeof chart.lat === "number" &&
+    typeof chart.lon === "number"
+  ) {
+    setSelectedPlace({
+      name: chart.place_name,
+      lat: chart.lat,
+      lon: chart.lon,
+    });
   }
 }
   const birthMeta = useMemo(
@@ -865,7 +1062,128 @@ async function handleGenerateHora() {
     () => data?.transits?.transitWindows ?? data?.transitWindows ?? [],
     [data]
   );
+  const triggerEngine = useMemo(
+  () => data?.triggerEngine ?? null,
+  [data]
+);
+const activationFacts = useMemo(
+  () => triggerEngine?.facts ?? [],
+  [triggerEngine]
+);
 
+const activeHouseRows = useMemo(() => {
+  type HouseRow = {
+  house: number;
+  total: number;
+  facts: any[];
+};
+
+const rows = new Map<number, HouseRow>();
+
+  const getFactHouse = (fact: any) => {
+    if (typeof fact?.house === "number") return fact.house;
+
+    const raw = String(fact?.target ?? "");
+    const match = raw.match(/house\s+(\d+)/i);
+    return match ? Number(match[1]) : null;
+  };
+
+  for (const fact of activationFacts) {
+    if (!["transit_house", "transit_aspect"].includes(String(fact?.kind))) continue;
+    if (fact?.priority !== "primary") continue;
+    const house = getFactHouse(fact);
+    if (!house) continue;
+
+    const existing = rows.get(house);
+
+if (existing) {
+  existing.total += 1;
+  const alreadyExists = existing.facts.some(
+  (f: any) => f.planet === fact.planet && f.kind === fact.kind
+);
+
+if (!alreadyExists) {
+  existing.facts.push(fact);
+}
+} else {
+  rows.set(house, {
+    house,
+    total: Number(fact?.strength ?? 0),
+    facts: [fact],
+  });
+}
+  }
+
+  return Array.from(rows.values())
+    .sort((a, b) => b.total - a.total)
+    .slice(0, 8);
+}, [activationFacts]);
+const activeDashaPlanetRows = useMemo(() => {
+  
+  const md =
+    currentDasha?.md?.planet ??
+    currentDasha?.mahadasha?.planet ??
+    currentDasha?.md ??
+    null;
+  
+  const ad =
+    currentDasha?.ad?.planet ??
+    currentDasha?.antardasha?.planet ??
+    currentDasha?.ad ??
+    null;
+
+  const active = [md, ad].filter(Boolean).map(String);
+
+  return active.map((planet) => {
+    const natalRow = planets.find((p: any) => p?.planet === planet);
+    const transitRow = transitNow?.planets?.find((p: any) => p?.planet === planet);
+
+    return {
+      planet,
+      natalHouse: natalRow?.house ?? natalRow?.houseFromLagna ?? "—",
+      natalSign: natalRow?.sign ?? "—",
+      natalDegree: natalRow?.degree ?? null,
+      natalNakshatra: natalRow?.nakshatra ?? "—",
+      transitHouse: transitRow?.houseFromLagna ?? transitRow?.house ?? "—",
+      transitSign: transitRow?.sign ?? "—",
+      transitDegree: transitRow?.degree ?? null,
+      transitNakshatra: transitRow?.nakshatra ?? "—",
+    };
+  });
+}, [currentDasha, planets, transitNow]);
+const activeDashaPlanetNames = useMemo(
+  () => activeDashaPlanetRows.map((row: any) => row.planet).filter(Boolean),
+  [activeDashaPlanetRows]
+);
+const activePlanetRows = useMemo(() => {
+  const planets = transitNow?.planets ?? [];
+
+  const factScoreByPlanet = new Map<string, number>();
+
+  for (const fact of activationFacts) {
+    const planet = String(fact?.planet ?? "");
+    if (!planet) continue;
+
+    factScoreByPlanet.set(
+      planet,
+      (factScoreByPlanet.get(planet) ?? 0) + Number(fact?.strength ?? 0)
+    );
+  }
+
+  return planets
+    .map((p: any) => ({
+      planet: p?.planet ?? "—",
+      sign: p?.sign ?? "—",
+      house: p?.houseFromLagna ?? p?.house ?? "—",
+      degree: p?.degree ?? null,
+      nakshatra: p?.nakshatra ?? "—",
+      pada: p?.pada ?? null,
+      score: factScoreByPlanet.get(String(p?.planet ?? "")) ?? 0,
+    }))
+    .sort((a: any, b: any) => b.score - a.score)
+    .slice(0, 12);
+}, [transitNow, activationFacts]);
+const mainArea = triggerEngine?.topAreas?.[0] ?? null;
   const vedicAspects = useMemo(
     () => data?.foundations?.vedicAspects ?? data?.vedicAspects ?? null,
     [data]
@@ -1118,7 +1436,62 @@ const foundationPersonalStrength = useMemo(
       setSelectedVarga(vargaEntries[0][0]);
     }
   }, [vargaEntries, selectedVarga]);
+useEffect(() => {
+  if (!crmClientId) return;
 
+  let alive = true;
+
+  async function loadLinkedClient() {
+    try {
+      setLinkedClientLoading(true);
+      setSaveToClientMessage("");
+
+      const result = await getAstrologerClient(crmClientId as string);
+
+      if (!alive) return;
+
+      setLinkedClient(result.client);
+      setLinkedClientCharts(result.charts ?? []);
+
+      const latestChart = result.charts?.[0];
+      if (latestChart?.id) {
+  setSelectedLinkedChartId(latestChart.id);
+}
+      if (result.client?.name) {
+        setName(result.client.name);
+      }
+
+      if (latestChart) {
+        setDateISO(latestChart.birth_date_iso ?? "");
+        setTime(latestChart.birth_time ?? "");
+        setTimezone(latestChart.birth_tz ?? "Asia/Kolkata");
+
+        if (
+          latestChart.place_name &&
+          typeof latestChart.lat === "number" &&
+          typeof latestChart.lon === "number"
+        ) {
+          setSelectedPlace({
+            name: latestChart.place_name,
+            lat: latestChart.lat,
+            lon: latestChart.lon,
+          });
+        }
+      }
+    } catch (e: any) {
+      if (!alive) return;
+      setError(e?.message || "Failed to load linked client.");
+    } finally {
+      if (alive) setLinkedClientLoading(false);
+    }
+  }
+
+  loadLinkedClient();
+
+  return () => {
+    alive = false;
+  };
+}, [crmClientId]);
   const selectedVargaValue =
   vargaEntries.find(([key]) => key === selectedVarga)?.[1] ?? null;
 
@@ -1188,7 +1561,46 @@ const errorBoxClass =
   <h2 className="text-base font-semibold text-slate-900">
     Built for astrologers who want all technical chart data in one place
   </h2>
+{crmClientId ? (
+  <div className="mt-4 mb-2 rounded-2xl border border-violet-200 bg-violet-50 px-4 py-3 text-sm text-violet-800">
+    {linkedClientLoading ? (
+      "Loading linked CRM client..."
+    ) : linkedClient ? (
+      <>
+        Working on client:{" "}
+        <span className="font-semibold">{linkedClient.name}</span>
 
+        {linkedClientCharts.length ? (
+          <span> • {linkedClientCharts.length} saved chart(s)</span>
+        ) : (
+          <span> • No saved charts yet</span>
+        )}
+        {linkedClientCharts.length ? (
+  <div className="mt-3">
+    <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-violet-700">
+      Load saved chart
+    </label>
+
+    <select
+      value={selectedLinkedChartId}
+      onChange={(e) => loadLinkedChartIntoForm(e.target.value)}
+      className="w-full rounded-xl border border-violet-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-violet-400 md:w-96"
+    >
+      {linkedClientCharts.map((chart) => (
+        <option key={chart.id} value={chart.id}>
+          {chart.chart_name || "Birth Chart"} — {chart.birth_date_iso}{" "}
+          {chart.birth_time} — {chart.place_name || "Place"}
+        </option>
+      ))}
+    </select>
+  </div>
+) : null}
+      </>
+    ) : (
+      "CRM client linked."
+    )}
+  </div>
+) : null}
   <p className="mt-3 text-sm leading-relaxed text-slate-700">
     Sārathi Astrologer’s Desk was created for practicing astrologers who do not
     want to waste time jumping between multiple tools, calculations, and
@@ -1284,22 +1696,159 @@ const errorBoxClass =
               </div>
             </div>
 
-            <div className="mt-4 flex justify-end">
-              <button
-                type="button"
-                onClick={handleGenerate}
-                disabled={loading}
-                className={primaryButtonClass}
-              >
-                {loading ? "Generating..." : "Generate Data Engine"}
-              </button>
-            </div>
+           <div className="mt-4 flex flex-col gap-3 md:flex-row md:justify-end">
+  {crmClientId && data ? (
+    <button
+      type="button"
+      onClick={handleSaveGeneratedChartToClient}
+      disabled={saveToClientLoading}
+      className="rounded-xl border border-[color:var(--border)] bg-white px-7 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-60"
+    >
+      {saveToClientLoading ? "Saving..." : "Save Chart to Client"}
+    </button>
+  ) : null}
 
-            {error ? (
-              <div className={errorBoxClass}>
-  {error}
+  <button
+    type="button"
+    onClick={handleGenerate}
+    disabled={loading}
+    className={primaryButtonClass}
+  >
+    {loading ? "Generating..." : "Generate Data Engine"}
+  </button>
 </div>
-            ) : null}
+{data && (
+  <div className="mt-6 flex gap-3">
+    {isPremierUser ? (
+      <button
+        onClick={handleSaveToCRM}
+        className="px-5 py-2.5 rounded-xl bg-purple-600 text-white font-medium"
+      >
+        Save to Premier CRM
+      </button>
+    ) : (
+      <button
+        onClick={() => alert("Redirect to subscription page")}
+        className="px-5 py-2.5 rounded-xl border text-gray-700"
+      >
+        Upgrade to Premier
+      </button>
+    )}
+  </div>
+)}
+
+{showSavePanel && (
+  <div className="mt-6 space-y-4 rounded-2xl border border-[color:var(--border)] bg-white/80 p-5">
+    <h3 className="text-lg font-semibold text-slate-900">
+      Save Client Details
+    </h3>
+
+    <input
+      value={crmName}
+      onChange={(e) => setCrmName(e.target.value)}
+      placeholder="Client Name"
+      className="w-full rounded-xl border p-3"
+    />
+
+    <input
+      value={crmPhone}
+      onChange={(e) => setCrmPhone(e.target.value)}
+      placeholder="Phone"
+      className="w-full rounded-xl border p-3"
+    />
+
+    <input
+      value={crmEmail}
+      onChange={(e) => setCrmEmail(e.target.value)}
+      placeholder="Email"
+      className="w-full rounded-xl border p-3"
+    />
+ <select
+  value={crmConsultationType}
+  onChange={(e) => {
+    const nextType = e.target.value;
+    setCrmConsultationType(nextType);
+  }}
+  className="w-full rounded-xl border p-3"
+>
+  <option value="">Consultation Type</option>
+  <option value="Marriage">Marriage</option>
+  <option value="Career">Career</option>
+  <option value="Finance">Finance</option>
+  <option value="Health">Health</option>
+  <option value="Property">Property</option>
+  <option value="Education">Education</option>
+  <option value="General">General</option>
+</select>
+    <textarea
+      value={crmPrimaryIssue}
+      onChange={(e) => setCrmPrimaryIssue(e.target.value)}
+      placeholder="Primary Issue"
+      className="w-full rounded-xl border p-3"
+    />
+
+    <textarea
+      value={crmRemediesSuggested}
+      onChange={(e) => setCrmRemediesSuggested(e.target.value)}
+      placeholder="Remedies Suggested"
+      className="w-full rounded-xl border p-3"
+    />
+
+    <textarea
+      value={crmNotes}
+      onChange={(e) => setCrmNotes(e.target.value)}
+      placeholder="General Notes"
+      className="w-full rounded-xl border p-3"
+    />
+    <label className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+  <input
+    type="checkbox"
+    checked={crmIsVip}
+    onChange={(e) => setCrmIsVip(e.target.checked)}
+    className="mt-1"
+  />
+  <span>
+    <span className="block text-sm font-semibold text-amber-800">
+      Mark as VIP Client
+    </span>
+    <span className="mt-1 block text-xs leading-relaxed text-amber-700">
+      Prioritize this client for deeper review, remedy tracking, important-date reminders, and faster follow-ups.
+    </span>
+  </span>
+</label>
+ 
+
+   <input
+  type="date"
+  value={crmFollowUpDate}
+  onChange={(e) => setCrmFollowUpDate(e.target.value)}
+  className="w-full rounded-xl border p-3"
+/>
+
+    <button
+      type="button"
+      onClick={handleSaveGeneratedChartAsClient}
+      disabled={saveLoading}
+      className="w-full rounded-xl bg-violet-600 py-3 font-semibold text-white disabled:opacity-60"
+    >
+      {saveLoading ? "Saving..." : "Save Client + Chart"}
+    </button>
+  </div>
+)}
+{saveToClientMessage ? (
+  <div className="mt-3 flex flex-col gap-3 rounded-2xl border border-[color:var(--border)] bg-white px-4 py-3 text-sm text-slate-700 md:flex-row md:items-center md:justify-between">
+    <span>{saveToClientMessage}</span>
+
+    {savedCrmClientId ? (
+      <Link
+        href={`/sarathi/data-engine/clients/${savedCrmClientId}`}
+        className="rounded-xl bg-violet-600 px-4 py-2 text-sm font-semibold text-white"
+      >
+        Go to Client Dashboard
+      </Link>
+    ) : null}
+  </div>
+) : null}
           </div>
 
           <div className="rounded-3xl astro-card p-6 shadow-sm ring-1 ring-black/5">
@@ -1614,22 +2163,291 @@ const errorBoxClass =
             ) : null}
 
             {data && activeTab === "forecast" ? (
-              <div className="mt-6 space-y-6">
-<MajorTransitTimelineCard
-  transitWindows={transitWindows}
-  transitNow={Array.isArray(transitNow) ? transitNow : []}
-  upcomingTransits={upcomingTransitItems}
+  <div className="mt-6 space-y-6">
+    <section className="rounded-2xl border border-[color:var(--border)] bg-white/70 p-5 shadow-sm backdrop-blur-sm">
+  <div>
+    <h2 className="text-lg font-semibold text-slate-900">
+      Activation Layer
+    </h2>
+    <p className="mt-1 text-sm text-slate-600">
+      Data-only view of active houses, transit overlays, degree proximity and Moon timing.
+    </p>
+  </div>
+<div className="mt-5">
+ <MediumNorthIndianChart
+  title="Activation Transit Chart"
   ascSign={natal?.ascendant?.sign ?? null}
-  currentDasha={currentDasha}
-  currentDashaLabel={currentDashaLabel}
+  planets={[]}
+  transitPlanets={(transitNow?.planets ?? []).map((p: any) => ({
+    ...p,
+    house: p.houseFromLagna ?? p.house,
+    rashiHouse: p.houseFromLagna ?? p.house,
+    isTransit: true,
+  }))}
+  layoutVariant="secondary"
+  showPlanetDetails={false}
+  showAbbreviations={false}
+  compactPlanetLabels={true}
+  highlightPlanets={activeDashaPlanetNames}
 />
-<DashaLordTransitTrackerCard
-  upcomingTransits={upcomingTransitItems}
-  currentDasha={currentDasha}
-  currentDashaLabel={currentDashaLabel}
-/>
+</div>
+  <div className="mt-5 grid grid-cols-1 gap-4 xl:grid-cols-2">
+    <div className="rounded-2xl border border-[color:var(--border)] bg-white p-4">
+      <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+        Active Houses / Transit Triggers
+      </div>
+
+      <div className="mt-3 space-y-3">
+        {activeHouseRows.length ? (
+          activeHouseRows.map((row) => (
+            <div key={row.house} className="rounded-xl bg-slate-50 px-4 py-3">
+              <div className="flex items-center justify-between">
+                <div className="font-semibold text-slate-900">
+                  <div>
+  <div className="font-semibold text-slate-900">
+    House {row.house}
+  </div>
+  <div className="mt-0.5 text-xs text-slate-500">
+    {row.house === 1
+      ? "Self / Body"
+      : row.house === 2
+      ? "Wealth / Family"
+      : row.house === 3
+      ? "Effort / Communication"
+      : row.house === 4
+      ? "Home / Property"
+      : row.house === 5
+      ? "Education / Children"
+      : row.house === 6
+      ? "Work / Health"
+      : row.house === 7
+      ? "Relationship / Public"
+      : row.house === 8
+      ? "Change / Vulnerability"
+      : row.house === 9
+      ? "Dharma / Fortune"
+      : row.house === 10
+      ? "Career / Status"
+      : row.house === 11
+      ? "Gains / Network"
+      : row.house === 12
+      ? "Loss / Spiritual"
+      : ""}
+  </div>
+</div>
+
+<div className="text-xs font-medium text-slate-500">
+  {row.facts.length} triggers
+</div>
+                </div>
+                <div className="text-xs font-medium text-slate-500">
+                  {row.facts.length} triggers
+                </div>
               </div>
-            ) : null}
+
+              <div className="mt-2 flex flex-wrap gap-2">
+                {row.facts.map((fact: any) => (
+                  <span
+                    key={fact.id}
+                    className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-700"
+                  >
+                    <span
+  className={`rounded-full border px-3 py-1 text-xs ${
+    fact.priority === "primary"
+      ? "bg-indigo-50 border-indigo-200 text-indigo-700"
+      : "bg-slate-50 border-slate-200 text-slate-500"
+  }`}
+>
+  {fact.planet} ({fact.kind === "transit_house" ? "transit" : "aspect"})
+</span>
+                  </span>
+                ))}
+              </div>
+            </div>
+          ))
+        ) : (
+          <div className="text-sm text-slate-500">
+            No active house data detected.
+          </div>
+        )}
+      </div>
+    </div>
+
+    <div className="rounded-2xl border border-[color:var(--border)] bg-white p-4">
+      <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+        Transit Overlay
+      </div>
+
+      <div className="mt-3 overflow-hidden rounded-xl border border-slate-100">
+        <table className="w-full text-left text-xs">
+          <thead className="bg-slate-50 text-slate-500">
+            <tr>
+              <th className="px-3 py-2">Planet</th>
+              <th className="px-3 py-2">Transit</th>
+              <th className="px-3 py-2">House</th>
+              <th className="px-3 py-2">Degree</th>
+              <th className="px-3 py-2">Nakshatra</th>
+            </tr>
+          </thead>
+
+          <tbody className="divide-y divide-slate-100">
+            {activePlanetRows.map((p: any) => (
+              <tr key={p.planet} className={p.score ? "bg-indigo-50/40" : "bg-white"}>
+                <td className="px-3 py-2 font-medium text-slate-900">
+                  {p.planet}
+                </td>
+                <td className="px-3 py-2 text-slate-600">
+                  {p.sign}
+                </td>
+                <td className="px-3 py-2 text-slate-600">
+                  {p.house}
+                </td>
+                <td className="px-3 py-2 text-slate-600">
+                  {p.degree == null ? "—" : `${Number(p.degree).toFixed(2)}°`}
+                </td>
+                <td className="px-3 py-2 text-slate-600">
+                  {p.nakshatra}
+                  {p.pada ? ` ${p.pada}` : ""}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+<div className="mt-4 rounded-2xl border border-[color:var(--border)] bg-white p-4">
+  <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+    Active Dasha Planet Natal Placement
+  </div>
+
+  <div className="mt-3 overflow-hidden rounded-xl border border-slate-100">
+    <table className="w-full text-left text-xs">
+      <thead className="bg-slate-50 text-slate-500">
+        <tr>
+          <th className="px-3 py-2">Planet</th>
+          <th className="px-3 py-2">Natal Placement</th>
+          <th className="px-3 py-2">Natal Nakshatra</th>
+          <th className="px-3 py-2">Transit Placement</th>
+          <th className="px-3 py-2">Transit Nakshatra</th>
+        </tr>
+      </thead>
+
+      <tbody className="divide-y divide-slate-100">
+        {activeDashaPlanetRows.length ? (
+          activeDashaPlanetRows.map((row: any) => (
+            <tr key={row.planet} className="bg-white">
+              <td className="px-3 py-2 font-medium text-slate-900">
+                {row.planet}
+              </td>
+
+              <td className="px-3 py-2 text-slate-600">
+                H{row.natalHouse} · {row.natalSign}
+                {row.natalDegree == null
+                  ? ""
+                  : ` · ${Number(row.natalDegree).toFixed(2)}°`}
+              </td>
+
+              <td className="px-3 py-2 text-slate-600">
+                {row.natalNakshatra}
+              </td>
+
+              <td className="px-3 py-2 text-slate-600">
+                H{row.transitHouse} · {row.transitSign}
+                {row.transitDegree == null
+                  ? ""
+                  : ` · ${Number(row.transitDegree).toFixed(2)}°`}
+              </td>
+
+              <td className="px-3 py-2 text-slate-600">
+                {row.transitNakshatra}
+              </td>
+            </tr>
+          ))
+        ) : (
+          <tr>
+            <td colSpan={5} className="px-3 py-4 text-slate-500">
+              No active dasha planet placement data available.
+            </td>
+          </tr>
+        )}
+      </tbody>
+    </table>
+  </div>
+</div>
+  <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-2">
+    <div className="rounded-2xl border border-[color:var(--border)] bg-white p-4">
+      <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+        Degree Proximity
+      </div>
+
+      <div className="mt-3 space-y-2">
+        {triggerEngine?.degreeHits?.length ? (
+          triggerEngine.degreeHits.slice(0, 6).map((hit: any, index: number) => (
+            <div key={index} className="rounded-xl bg-slate-50 px-3 py-2 text-sm">
+              <div className="font-medium text-slate-800">
+                Transit {hit.transitPlanet} → Natal {hit.natalPlanet}
+              </div>
+              <div className="mt-1 text-xs text-slate-500">
+                Distance {Number(hit.distance ?? 0).toFixed(2)}° · Strength{" "}
+                {hit.strength ?? "—"}
+              </div>
+            </div>
+          ))
+        ) : (
+          <div className="text-sm text-slate-500">
+            No close degree proximity detected.
+          </div>
+        )}
+      </div>
+    </div>
+
+    <div className="rounded-2xl border border-[color:var(--border)] bg-white p-4">
+      <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+        Moon Timing
+      </div>
+
+      <div className="mt-3 space-y-2">
+        {triggerEngine?.microTriggerDays?.length ? (
+          triggerEngine.microTriggerDays.map((day: any) => (
+            <div key={day.dateISO} className="rounded-xl bg-slate-50 px-3 py-2 text-sm">
+              <div className="font-medium text-slate-800">
+                {day.dateISO}
+              </div>
+              <div className="mt-1 text-xs text-slate-600">
+                Moon activating house {day.house ?? "—"}
+              </div>
+              <div className="mt-1 text-xs text-slate-500">
+                {day.sign ?? "—"} · Strength {day.strength ?? "—"}
+              </div>
+            </div>
+          ))
+        ) : (
+          <div className="text-sm text-slate-500">
+            No Moon timing data detected.
+          </div>
+        )}
+      </div>
+    </div>
+  </div>
+</section>
+
+    <MajorTransitTimelineCard
+      transitWindows={transitWindows}
+      transitNow={Array.isArray(transitNow) ? transitNow : []}
+      upcomingTransits={upcomingTransitItems}
+      ascSign={natal?.ascendant?.sign ?? null}
+      currentDasha={currentDasha}
+      currentDashaLabel={currentDashaLabel}
+    />
+
+    <DashaLordTransitTrackerCard
+      upcomingTransits={upcomingTransitItems}
+      currentDasha={currentDasha}
+      currentDashaLabel={currentDashaLabel}
+    />
+  </div>
+) : null}
 
             {data && activeTab === "vargas" ? (
               <div className="mt-6 space-y-6">
@@ -1727,6 +2545,8 @@ dashaTimelines={data?.timing?.dasha?.timelines ?? data?.dasha?.timelines ?? null
   upagrahas={upagrahas}
   solarShadowPoints={solarShadowPoints}
   vedicAspects={vedicAspects}
+  nabhasaYogas={data?.foundations?.nabhasaYogas ?? data?.nabhasaYogas ?? null}
+  classicYogas={data?.foundations?.classicYogas ?? data?.classicYogas ?? null}
 />
             ) : null}
             {data && activeTab === "compare" ? (

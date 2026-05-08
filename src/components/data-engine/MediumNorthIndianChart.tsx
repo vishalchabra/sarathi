@@ -74,6 +74,7 @@ type MediumNorthIndianChartProps = {
   compactPlanetLabels?: boolean;
   aspectHouseReferenceHouse?: number;
   rightPanel?: ReactNode;
+highlightPlanets?: string[];
 };
 
 const PLANET_SHORT: Record<string, string> = {
@@ -399,12 +400,16 @@ function getPlanetsByHouse(planets: ChartPlanet[]) {
   const map = new Map<number, ChartPlanet[]>();
 
   for (const p of planets) {
+    const isNode = p.planet === "Rahu" || p.planet === "Ketu";
+
     const house =
-      typeof p.rashiHouse === "number"
-        ? p.rashiHouse
-        : typeof p.house === "number"
-          ? p.house
-          : null;
+      isNode && typeof p.house === "number"
+        ? p.house
+        : typeof p.rashiHouse === "number"
+          ? p.rashiHouse
+          : typeof p.house === "number"
+            ? p.house
+            : null;
 
     if (typeof house !== "number") continue;
 
@@ -655,6 +660,7 @@ export default function MediumNorthIndianChart({
   compactPlanetLabels = false,
   aspectHouseReferenceHouse = 1,
   rightPanel = null,
+highlightPlanets = [],
 }: MediumNorthIndianChartProps) {
   const [selected, setSelected] = useState<ChartPlanet | null>(null);
   const [hovered, setHovered] = useState<ChartPlanet | null>(null);
@@ -684,7 +690,7 @@ export default function MediumNorthIndianChart({
       ? PRIMARY_ASPECT_ANCHORS
       : SECONDARY_ASPECT_ANCHORS;
   const activePlanet = hovered || selected;
-
+  const highlightSet = new Set(highlightPlanets.map(String));
   return (
     <div className="rounded-2xl border border-[color:var(--border)] bg-white p-4 shadow-sm backdrop-blur-sm">
       <div className="flex flex-col gap-1 md:flex-row md:items-end md:justify-between">
@@ -831,11 +837,13 @@ export default function MediumNorthIndianChart({
     ? "max-w-[34px] rounded px-1 py-[1px] text-[9px]"
     : "rounded-md px-1.5 py-0.5 text-[10px]"
 } font-medium leading-none shadow-sm transition ${
-                        selected?.planet === p.planet && selected?.isTransit
-                          ? "border border-emerald-200 bg-emerald-100 text-emerald-700"
-                          : hovered?.planet === p.planet && hovered?.isTransit
-                            ? "border border-emerald-200 bg-emerald-50 text-emerald-700"
-                            : "border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                        highlightSet.has(p.planet)
+  ? "border border-indigo-300 bg-indigo-50 text-indigo-700"
+  : selected?.planet === p.planet && selected?.isTransit
+    ? "border border-emerald-200 bg-emerald-100 text-emerald-700"
+    : hovered?.planet === p.planet && hovered?.isTransit
+      ? "border border-emerald-200 bg-emerald-50 text-emerald-700"
+      : "border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
                       }`}
                       title={getPlanetTitle(p)}
                     >
@@ -913,21 +921,15 @@ export default function MediumNorthIndianChart({
                   width: aspectAnchor.width,
                 }}
               >
-                {rows.slice(0, 3).map((aspect) => (
-                  <span
-                    key={aspect.key}
-                    className="rounded-full border border-violet-300 bg-violet-50 px-1.5 py-[2px] text-[9px] font-semibold leading-none text-violet-700 shadow-sm"
-                    title={getAspectTitle(house, aspect)}
-                  >
-                    {aspect.label}
-                  </span>
-                ))}
-
-                {rows.length > 3 ? (
-                  <span className="rounded-full border border-violet-300 bg-violet-50 px-1.5 py-[2px] text-[9px] font-semibold leading-none text-violet-700 shadow-sm">
-                    +{rows.length - 3}
-                  </span>
-                ) : null}
+                {rows.map((aspect) => (
+  <span
+    key={aspect.key}
+    className="rounded-full border border-violet-300 bg-violet-50 px-1.5 py-[2px] text-[8px] font-semibold leading-none text-violet-700 shadow-sm"
+    title={getAspectTitle(house, aspect)}
+  >
+    {aspect.label}
+  </span>
+))}
               </div>
             );
           }) : null}
@@ -971,9 +973,24 @@ export default function MediumNorthIndianChart({
             </div>
 
             <div>
-              <div className="text-[10px] uppercase tracking-wide text-slate-900">House</div>
-              <div className="mt-1">{activePlanet?.house ?? "—"}</div>
-            </div>
+  <div className="text-[10px] uppercase tracking-wide text-slate-900">
+    Bhava House
+  </div>
+
+  <div className="mt-1">
+    {activePlanet?.house ?? "—"}
+  </div>
+</div>
+
+<div>
+  <div className="text-[10px] uppercase tracking-wide text-slate-900">
+    Rashi House
+  </div>
+
+  <div className="mt-1">
+    {activePlanet?.rashiHouse ?? activePlanet?.house ?? "—"}
+  </div>
+</div>
 
             <div>
               <div className="text-[10px] uppercase tracking-wide text-slate-900">Degree</div>

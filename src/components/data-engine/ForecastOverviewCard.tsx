@@ -181,7 +181,11 @@ function summarize(rows:Signal[], focus:ForecastFocus) {
   const score = areaRows.reduce((s,r)=>s + Math.max(0.25, Number(r.strength||0.45)),0);
   return { focus, label: FOCUS_LABEL[focus], rows: areaRows, houses, planets, score };
 }
-
+function strengthLabel(score: number) {
+  if (score >= 18) return "Very Strong";
+  if (score >= 10) return "Moderate";
+  return "Mild";
+}
 export default function ForecastOverviewCard(props: Props) {
   const [months, setMonths] = useState(6);
   const [open, setOpen] = useState<ForecastFocus | null>(null);
@@ -257,16 +261,43 @@ export default function ForecastOverviewCard(props: Props) {
           <div className="mt-4 space-y-3">
             {top.map((area, idx) => {
               const isOpen = open === area.focus;
+              const first = area.rows[0];
+const last = area.rows[area.rows.length - 1];
               return <div key={area.focus} className="rounded-2xl border border-slate-200 bg-slate-50/60">
                 <button type="button" onClick={()=>setOpen(isOpen?null:area.focus)} className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left">
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="grid h-6 w-6 place-items-center rounded-full bg-white text-xs font-bold text-slate-700 shadow-sm">{idx+1}</span>
-                      <span className="font-semibold text-slate-900">{area.label}</span>
+                      <div>
+  <div className="font-semibold text-slate-900">
+    {area.label}
+  </div>
+
+  <div className="mt-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-700">
+    {strengthLabel(area.score)}
+  </div>
+</div>
                     </div>
                     <div className="mt-1 text-xs text-slate-500">
                       {area.rows.length} timing rows{area.houses.length ? ` • H${area.houses.join(", H")}` : ""}{area.planets.length ? ` • ${area.planets.join(", ")}` : ""}
                     </div>
+                    <div className="mt-2 rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2">
+  <div className="text-[10px] font-bold uppercase tracking-wide text-emerald-700">
+    Why Active
+  </div>
+<div className="mt-2 text-[11px] text-slate-500">
+  Peak Window: {fmt(first?.dateISO)} – {fmt(last?.dateISO)}
+</div>
+  <ul className="mt-1 space-y-1 text-[11px] text-emerald-700">
+    {area.planets.slice(0, 3).map((planet) => (
+      <li key={planet}>• {planet} activation involved</li>
+    ))}
+
+    {area.houses.slice(0, 2).map((house) => (
+      <li key={house}>• House {house} emphasized</li>
+    ))}
+  </ul>
+</div>
                   </div>
                   <span className="text-xs font-medium text-slate-500">{isOpen ? "Hide" : "Details"}</span>
                 </button>
