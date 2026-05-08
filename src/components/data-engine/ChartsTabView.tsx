@@ -1422,14 +1422,29 @@ const d1PlanetsWithBhava = useMemo(() => {
       (c: any) => (c?.planet ?? c?.name) === p.planet
     );
 
-    return {
-      ...p,
-      rashiHouse: p.house,
-      house:
-        typeof chalit?.house === "number"
-          ? chalit.house
-          : p.house,
-    };
+const isNode = p.planet === "Rahu" || p.planet === "Ketu";
+
+const bhavaHouse =
+  typeof chalit?.house === "number"
+    ? chalit.house
+    : p.house;
+
+const degreeInSign =
+  typeof p.degree === "number"
+    ? p.degree
+    : typeof p.lon === "number"
+      ? ((p.lon % 30) + 30) % 30
+      : null;
+
+const isBorderlineNode =
+  isNode && typeof degreeInSign === "number" && degreeInSign >= 29;
+
+return {
+  ...p,
+  rashiHouse: p.house,
+  house: bhavaHouse,
+  displayHouse: isBorderlineNode ? bhavaHouse : p.house,
+};
   });
 }, [natalPlanets, bhavaChalit]);
   return (

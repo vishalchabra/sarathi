@@ -12,6 +12,7 @@ type ChartPlanet = {
   nakshatra?: string | null;
   pada?: number | null;
   combust?: boolean;
+  displayHouse?: number | null;
   isTransit?: boolean;
   isSynastryOverlay?: boolean;
 synastrySource?: "A" | "B";
@@ -396,20 +397,21 @@ function formatPlanetLabel(p: ChartPlanet) {
 
   return `${transitPrefix}${short}${p.retrograde ? "*" : ""}`;
 }
-function getPlanetsByHouse(planets: ChartPlanet[]) {
+function getPlanetsByHouse(
+  planets: ChartPlanet[],
+  mode: "rashi" | "chalit" = "rashi"
+) {
   const map = new Map<number, ChartPlanet[]>();
 
   for (const p of planets) {
-    const isNode = p.planet === "Rahu" || p.planet === "Ketu";
-
-    const house =
-      isNode && typeof p.house === "number"
+  const house =
+  typeof p.displayHouse === "number"
+    ? p.displayHouse
+    : typeof p.rashiHouse === "number"
+      ? p.rashiHouse
+      : typeof p.house === "number"
         ? p.house
-        : typeof p.rashiHouse === "number"
-          ? p.rashiHouse
-          : typeof p.house === "number"
-            ? p.house
-            : null;
+        : null;
 
     if (typeof house !== "number") continue;
 
@@ -665,8 +667,11 @@ highlightPlanets = [],
   const [selected, setSelected] = useState<ChartPlanet | null>(null);
   const [hovered, setHovered] = useState<ChartPlanet | null>(null);
 
-  const planetsByHouse = useMemo(() => getPlanetsByHouse(planets), [planets]);
-  const transitPlanetsByHouse = useMemo(() => getPlanetsByHouse(transitPlanets), [transitPlanets]);
+  const planetsByHouse = useMemo(() => getPlanetsByHouse(planets, mode), [planets, mode]);
+const transitPlanetsByHouse = useMemo(
+  () => getPlanetsByHouse(transitPlanets, mode),
+  [transitPlanets, mode]
+);
   const arudhasByHouse = useMemo(() => getArudhasByHouse(arudhas, ascSign), [arudhas, ascSign]);
   const markersByHouse = useMemo(
     () => buildMarkersByHouse(upagrahas, solarShadowPoints, ascSign),
@@ -802,17 +807,13 @@ highlightPlanets = [],
                         p.isSynastryOverlay
   ? "border border-violet-200 bg-violet-50 text-violet-700"
   :
-                        p.rashiHouse !== p.house
-                          ? "border border-orange-200 bg-orange-50 text-orange-700"
-                          : p.planet === "Moon"
-                            ? "border border-amber-200 bg-amber-50 text-amber-700"
-                            : selected?.planet === p.planet && !selected?.isTransit
-                              ? "border border-indigo-200 bg-indigo-50 text-indigo-700"
-                              : hovered?.planet === p.planet && !hovered?.isTransit
-                                ? "border border-indigo-100 bg-indigo-50 text-indigo-600"
-                                : idx === 0
-                                  ? "border border-slate-200 bg-slate-100 text-slate-700"
-                                  : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                        p.planet === "Moon"
+  ? "border border-orange-200 bg-orange-50 text-orange-700"
+  : selected?.planet === p.planet && !selected?.isTransit
+    ? "border border-orange-300 bg-orange-100 text-orange-800"
+    : hovered?.planet === p.planet && !hovered?.isTransit
+      ? "border border-orange-200 bg-orange-50 text-orange-700"
+      : "border border-orange-200 bg-orange-50 text-orange-700 hover:bg-orange-100"
                       }`}
                       title={getPlanetTitle(p)}
                     >

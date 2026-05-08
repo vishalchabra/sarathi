@@ -62,7 +62,15 @@ export async function buildBhavaChalitData(params: Params) {
         ? p.lon
         : (p.signNum - 1) * 30 + p.degree;
 
-    const chalitHouse = getHouseFromCusps(lon, cusps);
+   const isNode = p.planet === "Rahu" || p.planet === "Ketu";
+const degreeInSign = ((lon % 30) + 30) % 30;
+
+const adjustedLon =
+  isNode && degreeInSign >= 29
+    ? wrap360(lon - 1)
+    : lon;
+
+const chalitHouse = getHouseFromCusps(adjustedLon, cusps);
 
     return {
       planet: p.planet,
