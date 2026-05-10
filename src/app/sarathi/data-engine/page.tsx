@@ -2930,6 +2930,46 @@ dashaTimelines={data?.timing?.dasha?.timelines ?? data?.dasha?.timelines ?? null
               </div>
             </div>
           </div>
+          {utilityHora?.table ? (
+  <div className="mt-6 grid grid-cols-1 gap-5 xl:grid-cols-2">
+    {[
+      ["Day Hora Muhurta", utilityHora.table.day],
+      ["Night Hora Muhurta", utilityHora.table.night],
+    ].map(([title, rows]: any) => (
+      <div
+        key={title}
+        className="overflow-hidden rounded-2xl border border-[color:var(--border)] bg-white"
+      >
+        <div className="grid grid-cols-[1fr_1.2fr] bg-amber-100 px-4 py-3 text-sm font-bold text-slate-900">
+          <div>{title}</div>
+          <div>Time</div>
+        </div>
+
+        <div className="divide-y divide-slate-100">
+          {(rows ?? []).map((row: any) => {
+            const isActive =
+              utilityHora?.phase === (title.startsWith("Day") ? "day" : "night") &&
+              Number(utilityHora?.horaNumber) === Number(row.number);
+
+            return (
+              <div
+                key={`${title}-${row.number}`}
+                className={`grid grid-cols-[1fr_1.2fr] px-4 py-3 text-sm ${
+                  isActive ? "bg-emerald-50 font-semibold text-emerald-800" : "text-slate-700"
+                }`}
+              >
+                <div>{row.planet}</div>
+                <div>
+                  {row.start} - {row.end}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    ))}
+  </div>
+) : null}
         </div>
       ) : null}
     </div>
