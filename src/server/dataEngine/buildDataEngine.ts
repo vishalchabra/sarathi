@@ -344,7 +344,76 @@ const WEEKDAY_LORDS = [
   "Venus",
   "Saturn",
 ] as const;
+function buildHoraTable(params: {
+  sunriseDT: any;
+  sunsetDT: any;
+  nextSunriseDT: any;
+  weekdayIndex: number;
+}) {
+  const {
+    sunriseDT,
+    sunsetDT,
+    nextSunriseDT,
+    weekdayIndex,
+  } = params;
 
+  if (!sunriseDT || !sunsetDT || !nextSunriseDT) {
+    return {
+      day: [],
+      night: [],
+    };
+  }
+
+  const dayStartLord = WEEKDAY_LORDS[weekdayIndex];
+  const dayStartIndex = getHoraIndexForPlanet(dayStartLord);
+
+  const nightStartIndex = (dayStartIndex + 12) % 7;
+
+  const dayMinutes = sunsetDT.diff(sunriseDT, "minutes").minutes;
+  const nightMinutes = nextSunriseDT.diff(sunsetDT, "minutes").minutes;
+
+  const dayHoraLength = dayMinutes / 12;
+  const nightHoraLength = nightMinutes / 12;
+
+  const day = Array.from({ length: 12 }, (_, i) => {
+    const start = sunriseDT.plus({
+      minutes: i * dayHoraLength,
+    });
+
+    const end = sunriseDT.plus({
+      minutes: (i + 1) * dayHoraLength,
+    });
+
+    return {
+      number: i + 1,
+      planet: HORA_SEQUENCE[(dayStartIndex + i) % 7],
+      start: start.toFormat("hh:mm a"),
+      end: end.toFormat("hh:mm a"),
+    };
+  });
+
+  const night = Array.from({ length: 12 }, (_, i) => {
+    const start = sunsetDT.plus({
+      minutes: i * nightHoraLength,
+    });
+
+    const end = sunsetDT.plus({
+      minutes: (i + 1) * nightHoraLength,
+    });
+
+    return {
+      number: i + 1,
+      planet: HORA_SEQUENCE[(nightStartIndex + i) % 7],
+      start: start.toFormat("hh:mm a"),
+      end: end.toFormat("hh:mm a"),
+    };
+  });
+
+  return {
+    day,
+    night,
+  };
+}
 function getHoraIndexForPlanet(planet: string) {
   return HORA_SEQUENCE.findIndex((p) => p === planet);
 }
@@ -798,7 +867,7 @@ const utilityHoraPanchang = await buildPanchangData({
   transitNow: null,
 });
 
-const utilityHoraInfo = getAccurateHoraLord({
+const utilityHoraInfoBase = getAccurateHoraLord({
   birthDateISO: utilityHoraDateISO,
   birthTime: utilityTime,
   timezone: utilityTimezone,
@@ -807,6 +876,20 @@ const utilityHoraInfo = getAccurateHoraLord({
   previousSunset: utilityHoraPanchang?._previousSunsetDT ?? null,
   nextSunrise: utilityHoraPanchang?._nextSunriseDT ?? null,
 });
+
+const utilityHoraInfo = {
+  ...utilityHoraInfoBase,
+
+  table: buildHoraTable({
+    sunriseDT: utilityHoraPanchang?._sunriseDT ?? null,
+    sunsetDT: utilityHoraPanchang?._sunsetDT ?? null,
+    nextSunriseDT: utilityHoraPanchang?._nextSunriseDT ?? null,
+    weekdayIndex:
+      DateTime.fromISO(utilityHoraDateISO, {
+        zone: utilityTimezone,
+      }).weekday % 7,
+  }),
+};
   const asc = await getAscendant({
     dateISO: birth.dateISO,
     time: birth.time,
