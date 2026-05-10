@@ -202,14 +202,14 @@ function akshavedamsaSign(deg: number) {
 
 function shashtiamsaSign(deg: number) {
   // D60
-  const signIndex = Math.floor(deg / 30);
-  const inSignDeg = deg % 30;
+  const signIndex = Math.floor(wrap360(deg) / 30);
+  const inSignDeg = wrap360(deg) % 30;
 
   const part = 0.5; // 30° / 60
   const division = Math.floor(inSignDeg / part);
 
-  const idx = division % 12;
-  return SIGNS[idx];
+  // Start from natal sign and advance
+  return SIGNS[(signIndex + division) % 12];
 }
 
 /* ---------------------------------------------------------

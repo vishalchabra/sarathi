@@ -40,6 +40,7 @@ import DashaLordTransitTrackerCard from "@/components/data-engine/DashaLordTrans
 import ChartCompareTabView from "@/components/data-engine/ChartCompareTabView";
 import { useRouter, useSearchParams } from "next/navigation";
 import MediumNorthIndianChart from "@/components/data-engine/MediumNorthIndianChart";
+import ForecastOverviewCard from "@/components/data-engine/ForecastOverviewCard";
 import {
   addClientChart,
   createAstrologerClient,
@@ -600,8 +601,23 @@ const [crmPrimaryIssue, setCrmPrimaryIssue] = useState("");
 const [crmRemediesSuggested, setCrmRemediesSuggested] = useState("");
 const [crmNotes, setCrmNotes] = useState("");
 const [crmFollowUpDate, setCrmFollowUpDate] = useState("");
-
-
+const [showForecastTransits, setShowForecastTransits] = useState(true);
+const [showForecastDashaHighlight, setShowForecastDashaHighlight] = useState(true);
+const [showForecastActivatedHouses, setShowForecastActivatedHouses] = useState(true);
+const [showForecastDegreeHits, setShowForecastDegreeHits] = useState(true);
+const [showForecastMoonTriggers, setShowForecastMoonTriggers] = useState(true);
+const [showForecastNatalPlanets, setShowForecastNatalPlanets] = useState(true);
+const [forecastLens, setForecastLens] = useState<
+  | "career"
+  | "money"
+  | "marriage"
+  | "property"
+  | "health"
+  | "foreign"
+  | "spiritual"
+  | "disputes"
+  | "children"
+>("career");
 // TEMP: later replace with real subscription check
 const isPremierUser = true;
 const [utilityPanchangLoading, setUtilityPanchangLoading] = useState(false);
@@ -625,6 +641,63 @@ const [utilityHoraDateISO, setUtilityHoraDateISO] = useState(
 );
 
 const [utilityHoraTime, setUtilityHoraTime] = useState("12:00");
+const FORECAST_LENS_META = {
+  career: {
+    label: "Career",
+    houses: [10, 6, 2, 11],
+    planets: ["Sun", "Saturn", "Jupiter", "Mercury"],
+  },
+
+  money: {
+    label: "Money",
+    houses: [2, 11, 5, 9],
+    planets: ["Jupiter", "Venus", "Mercury"],
+  },
+
+  marriage: {
+    label: "Marriage",
+    houses: [7, 2, 11],
+    planets: ["Venus", "Jupiter", "Moon"],
+  },
+
+  property: {
+    label: "Property",
+    houses: [4, 11, 2],
+    planets: ["Mars", "Moon", "Venus"],
+  },
+
+  health: {
+    label: "Health",
+    houses: [6, 8, 12],
+    planets: ["Saturn", "Mars", "Sun"],
+  },
+
+  foreign: {
+    label: "Foreign",
+    houses: [12, 9, 7],
+    planets: ["Rahu", "Moon", "Saturn"],
+  },
+
+  spiritual: {
+    label: "Spiritual",
+    houses: [12, 8, 9],
+    planets: ["Ketu", "Jupiter", "Moon"],
+  },
+
+  disputes: {
+    label: "Disputes",
+    houses: [6, 8, 3],
+    planets: ["Mars", "Saturn", "Rahu"],
+  },
+
+  children: {
+    label: "Children",
+    houses: [5, 9, 2],
+    planets: ["Jupiter", "Sun", "Moon"],
+  },
+} as const;
+const focusedHouses: number[] =
+  [...FORECAST_LENS_META[forecastLens].houses];
 useEffect(() => {
   setSelectedDateISO(getTodayISOInTimezone(timezone));
 }, [timezone]);
@@ -1152,6 +1225,31 @@ const activeDashaPlanetRows = useMemo(() => {
     };
   });
 }, [currentDasha, planets, transitNow]);
+const dashaHouseRows = useMemo(() => {
+  return activeDashaPlanetRows.flatMap((row: any) => {
+    const out: any[] = [];
+
+    if (typeof row.natalHouse === "number") {
+      out.push({
+        house: row.natalHouse,
+        facts: [
+          {
+            id: `${row.planet}-natal-placement`,
+            planet: row.planet,
+            kind: "dasha_placement",
+            priority: "primary",
+          },
+        ],
+      });
+    }
+
+    return out;
+  });
+}, [activeDashaPlanetRows]);
+
+const forecastHouseRows = useMemo(() => {
+  return [...activeHouseRows, ...dashaHouseRows];
+}, [activeHouseRows, dashaHouseRows]);
 const activeDashaPlanetNames = useMemo(
   () => activeDashaPlanetRows.map((row: any) => row.planet).filter(Boolean),
   [activeDashaPlanetRows]
@@ -2166,284 +2264,439 @@ const errorBoxClass =
             {data && activeTab === "forecast" ? (
   <div className="mt-6 space-y-6">
     <section className="rounded-2xl border border-[color:var(--border)] bg-white/70 p-5 shadow-sm backdrop-blur-sm">
-  <div>
-    <h2 className="text-lg font-semibold text-slate-900">
-      Activation Layer
-    </h2>
-    <p className="mt-1 text-sm text-slate-600">
-      Data-only view of active houses, transit overlays, degree proximity and Moon timing.
-    </p>
-  </div>
-<div className="mt-5">
- <MediumNorthIndianChart
-  title="Activation Transit Chart"
-  ascSign={natal?.ascendant?.sign ?? null}
-  planets={[]}
-  transitPlanets={(transitNow?.planets ?? []).map((p: any) => ({
-    ...p,
-    house: p.houseFromLagna ?? p.house,
-    rashiHouse: p.houseFromLagna ?? p.house,
-    isTransit: true,
-  }))}
-  layoutVariant="secondary"
-  showPlanetDetails={false}
-  showAbbreviations={false}
-  compactPlanetLabels={true}
-  highlightPlanets={activeDashaPlanetNames}
-/>
-</div>
-  <div className="mt-5 grid grid-cols-1 gap-4 xl:grid-cols-2">
-    <div className="rounded-2xl border border-[color:var(--border)] bg-white p-4">
-      <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-        Active Houses / Transit Triggers
+      <div>
+        <h2 className="text-lg font-semibold text-slate-900">
+          Astrologer Forecast Dashboard
+        </h2>
+        <p className="mt-1 text-sm text-slate-600">
+          Prediction-focused dashboard showing active houses, dasha triggers, transit pressure, and timing windows.
+        </p>
+
+        <div className="mt-4 flex flex-wrap gap-2">
+          {Object.entries(FORECAST_LENS_META).map(([key, value]) => {
+            const active = forecastLens === key;
+
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setForecastLens(key as any)}
+                className={`rounded-full border px-4 py-1.5 text-sm font-medium transition ${
+                  active
+                    ? "border-indigo-300 bg-indigo-50 text-indigo-700"
+                    : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                }`}
+              >
+                {value.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      <div className="mt-3 space-y-3">
-        {activeHouseRows.length ? (
-          activeHouseRows.map((row) => (
-            <div key={row.house} className="rounded-xl bg-slate-50 px-4 py-3">
-              <div className="flex items-center justify-between">
-                <div className="font-semibold text-slate-900">
-                  <div>
-  <div className="font-semibold text-slate-900">
-    House {row.house}
-  </div>
-  <div className="mt-0.5 text-xs text-slate-500">
-    {row.house === 1
-      ? "Self / Body"
-      : row.house === 2
-      ? "Wealth / Family"
-      : row.house === 3
-      ? "Effort / Communication"
-      : row.house === 4
-      ? "Home / Property"
-      : row.house === 5
-      ? "Education / Children"
-      : row.house === 6
-      ? "Work / Health"
-      : row.house === 7
-      ? "Relationship / Public"
-      : row.house === 8
-      ? "Change / Vulnerability"
-      : row.house === 9
-      ? "Dharma / Fortune"
-      : row.house === 10
-      ? "Career / Status"
-      : row.house === 11
-      ? "Gains / Network"
-      : row.house === 12
-      ? "Loss / Spiritual"
-      : ""}
-  </div>
-</div>
+      <div className="mt-5 rounded-2xl border border-[color:var(--border)] bg-slate-50/70 p-4">
+        <div className="mb-4 flex flex-wrap items-center gap-4 text-sm font-medium text-slate-800">
+          <label className="inline-flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={showForecastNatalPlanets}
+              onChange={(e) => setShowForecastNatalPlanets(e.target.checked)}
+              className="h-4 w-4 rounded border-[color:var(--border)]"
+            />
+            Natal planets
+          </label>
 
-<div className="text-xs font-medium text-slate-500">
-  {row.facts.length} triggers
-</div>
-                </div>
-                <div className="text-xs font-medium text-slate-500">
-                  {row.facts.length} triggers
-                </div>
-              </div>
+          <label className="inline-flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={showForecastTransits}
+              onChange={(e) => setShowForecastTransits(e.target.checked)}
+              className="h-4 w-4 rounded border-[color:var(--border)]"
+            />
+            Transit planets
+          </label>
 
-              <div className="mt-2 flex flex-wrap gap-2">
-                {row.facts.map((fact: any) => (
+          <label className="inline-flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={showForecastDashaHighlight}
+              onChange={(e) => setShowForecastDashaHighlight(e.target.checked)}
+              className="h-4 w-4 rounded border-[color:var(--border)]"
+            />
+            Highlight dasha lords
+          </label>
+
+          <label className="inline-flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={showForecastActivatedHouses}
+              onChange={(e) => setShowForecastActivatedHouses(e.target.checked)}
+              className="h-4 w-4 rounded border-[color:var(--border)]"
+            />
+            Activated houses
+          </label>
+
+          <label className="inline-flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={showForecastDegreeHits}
+              onChange={(e) => setShowForecastDegreeHits(e.target.checked)}
+              className="h-4 w-4 rounded border-[color:var(--border)]"
+            />
+            Degree hits
+          </label>
+
+          <label className="inline-flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={showForecastMoonTriggers}
+              onChange={(e) => setShowForecastMoonTriggers(e.target.checked)}
+              className="h-4 w-4 rounded border-[color:var(--border)]"
+            />
+            Moon triggers
+          </label>
+        </div>
+
+        <MediumNorthIndianChart
+          title="Activation Transit Chart"
+          ascSign={natal?.ascendant?.sign ?? null}
+          planets={showForecastNatalPlanets ? natal?.planets ?? [] : []}
+          transitPlanets={
+            showForecastTransits
+              ? (transitNow?.planets ?? []).map((p: any) => ({
+                  ...p,
+                  house: p.houseFromLagna ?? p.house,
+                  rashiHouse: p.houseFromLagna ?? p.house,
+                  isTransit: true,
+                }))
+              : []
+          }
+          layoutVariant="secondary"
+          showPlanetDetails={false}
+          showAbbreviations={false}
+          compactPlanetLabels={true}
+          highlightPlanets={
+            showForecastDashaHighlight
+              ? [
+                  ...activeDashaPlanetNames,
+                  ...FORECAST_LENS_META[forecastLens].planets,
+                ]
+              : []
+          }
+        />
+
+        <div className="mt-4 rounded-xl border border-indigo-100 bg-indigo-50/60 p-4">
+          <div className="text-xs font-semibold uppercase tracking-wide text-indigo-700">
+            Current Prediction Lens
+          </div>
+
+          <div className="mt-2 text-lg font-semibold text-slate-900">
+            {FORECAST_LENS_META[forecastLens].label}
+          </div>
+
+          <div className="mt-2 text-sm text-slate-600">
+            Focus Houses:{" "}
+            {FORECAST_LENS_META[forecastLens].houses.map((h) => `H${h}`).join(" • ")}
+          </div>
+
+          <div className="mt-1 text-sm text-slate-600">
+            Key Planets:{" "}
+            {FORECAST_LENS_META[forecastLens].planets.join(" • ")}
+          </div>
+        </div>
+
+        {showForecastActivatedHouses && activeHouseRows.length ? (
+          <div className="mt-4 rounded-xl border border-indigo-100 bg-indigo-50/60 p-3">
+            <div className="text-xs font-semibold uppercase tracking-wide text-indigo-700">
+              Activated Houses
+            </div>
+
+            <div className="mt-2 flex flex-wrap gap-2">
+              {forecastHouseRows
+                .filter((row: any) => focusedHouses.includes((row.house as any)))
+                .slice(0, 6)
+                .map((row: any, index: number) => (
                   <span
-                    key={fact.id}
-                    className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-700"
+                    key={`${row.house}-${index}`}
+                    className="rounded-full border border-indigo-200 bg-white px-3 py-1 text-xs font-medium text-indigo-700"
                   >
-                    <span
-  className={`rounded-full border px-3 py-1 text-xs ${
-    fact.priority === "primary"
-      ? "bg-indigo-50 border-indigo-200 text-indigo-700"
-      : "bg-slate-50 border-slate-200 text-slate-500"
-  }`}
->
-  {fact.planet} ({fact.kind === "transit_house" ? "transit" : "aspect"})
-</span>
+                    H{row.house} · {row.facts?.length ?? 0} triggers
                   </span>
                 ))}
-              </div>
             </div>
-          ))
-        ) : (
-          <div className="text-sm text-slate-500">
-            No active house data detected.
           </div>
-        )}
+        ) : null}
+
+        {showForecastDegreeHits && triggerEngine?.degreeHits?.length ? (
+          <div className="mt-3 rounded-xl border border-amber-100 bg-amber-50/70 p-3">
+            <div className="text-xs font-semibold uppercase tracking-wide text-amber-700">
+              Close Degree Hits
+            </div>
+
+            <div className="mt-2 flex flex-wrap gap-2">
+              {triggerEngine.degreeHits.slice(0, 5).map((hit: any, index: number) => (
+                <span
+                  key={index}
+                  className="rounded-full border border-amber-200 bg-white px-3 py-1 text-xs font-medium text-amber-700"
+                >
+                  {hit.transitPlanet} → {hit.natalPlanet} · {Number(hit.distance ?? 0).toFixed(2)}°
+                </span>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
+        {showForecastMoonTriggers && triggerEngine?.microTriggerDays?.length ? (
+          <div className="mt-3 rounded-xl border border-sky-100 bg-sky-50/70 p-3">
+            <div className="text-xs font-semibold uppercase tracking-wide text-sky-700">
+              Moon Trigger Days
+            </div>
+
+            <div className="mt-2 flex flex-wrap gap-2">
+              {triggerEngine.microTriggerDays.slice(0, 5).map((day: any) => (
+                <span
+                  key={day.dateISO}
+                  className="rounded-full border border-sky-200 bg-white px-3 py-1 text-xs font-medium text-sky-700"
+                >
+                  {day.dateISO} · H{day.house ?? "—"}
+                </span>
+              ))}
+            </div>
+          </div>
+        ) : null}
       </div>
-    </div>
 
-    <div className="rounded-2xl border border-[color:var(--border)] bg-white p-4">
-      <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-        Transit Overlay
+      <div className="mt-5 grid grid-cols-1 gap-4 xl:grid-cols-[1.4fr_0.8fr]">
+        <div className="rounded-2xl border border-[color:var(--border)] bg-white p-4">
+          <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+            Top Activated Houses
+          </div>
+
+          <div className="mt-3 space-y-3">
+            {forecastHouseRows.filter((row: any) => focusedHouses.includes((row.house as any))).length ? (
+              forecastHouseRows
+                .filter((row: any) => focusedHouses.includes((row.house as any)))
+                .map((row: any, index: number) => (
+                  <div key={`${row.house}-${index}`} className="rounded-xl bg-slate-50 px-4 py-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="font-semibold text-slate-900">
+                          House {row.house}
+                        </div>
+
+                        <div className="mt-0.5 text-xs text-slate-500">
+                          {row.house === 1
+                            ? "Self / Body"
+                            : row.house === 2
+                            ? "Wealth / Family"
+                            : row.house === 3
+                            ? "Effort / Communication"
+                            : row.house === 4
+                            ? "Home / Property"
+                            : row.house === 5
+                            ? "Education / Children"
+                            : row.house === 6
+                            ? "Work / Health"
+                            : row.house === 7
+                            ? "Relationship / Public"
+                            : row.house === 8
+                            ? "Change / Vulnerability"
+                            : row.house === 9
+                            ? "Dharma / Fortune"
+                            : row.house === 10
+                            ? "Career / Status"
+                            : row.house === 11
+                            ? "Gains / Network"
+                            : row.house === 12
+                            ? "Loss / Spiritual"
+                            : ""}
+                        </div>
+                      </div>
+
+                      <div className="text-xs font-medium text-slate-500">
+                        {row.facts?.length ?? 0} triggers
+                      </div>
+                    </div>
+
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {(row.facts ?? []).map((fact: any, index: number) => (
+                        <span
+                          key={fact.id ?? `${row.house}-${index}`}
+                          className={`rounded-full border px-3 py-1 text-xs ${
+                            fact.priority === "primary"
+                              ? "bg-indigo-50 border-indigo-200 text-indigo-700"
+                              : "bg-slate-50 border-slate-200 text-slate-500"
+                          }`}
+                        >
+                          {fact.planet} • {fact.kind === "transit_house" ? "Transit" : "Aspect"}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ))
+            ) : (
+              <div className="text-sm text-slate-500">
+                No active house data detected for this prediction lens.
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-[color:var(--border)] bg-white p-4">
+          <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+            Major Transit Activity
+          </div>
+
+          <div className="mt-3 overflow-hidden rounded-xl border border-slate-100">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-slate-50 text-slate-500">
+                <tr>
+                  <th className="px-3 py-2">Planet</th>
+                  <th className="px-3 py-2">Transit</th>
+                  <th className="px-3 py-2">House</th>
+                  <th className="px-3 py-2">Degree</th>
+                  <th className="px-3 py-2">Nakshatra</th>
+                </tr>
+              </thead>
+
+              <tbody className="divide-y divide-slate-100">
+                {activePlanetRows.map((p: any) => (
+                  <tr key={p.planet} className={p.score ? "bg-indigo-50/40" : "bg-white"}>
+                    <td className="px-3 py-2 font-medium text-slate-900">
+                      {p.planet}
+                    </td>
+                    <td className="px-3 py-2 text-slate-600">{p.sign}</td>
+                    <td className="px-3 py-2 text-slate-600">{p.house}</td>
+                    <td className="px-3 py-2 text-slate-600">
+                      {p.degree == null ? "—" : `${Number(p.degree).toFixed(2)}°`}
+                    </td>
+                    <td className="px-3 py-2 text-slate-600">
+                      {p.nakshatra}
+                      {p.pada ? ` ${p.pada}` : ""}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
 
-      <div className="mt-3 overflow-hidden rounded-xl border border-slate-100">
-        <table className="w-full text-left text-xs">
-          <thead className="bg-slate-50 text-slate-500">
-            <tr>
-              <th className="px-3 py-2">Planet</th>
-              <th className="px-3 py-2">Transit</th>
-              <th className="px-3 py-2">House</th>
-              <th className="px-3 py-2">Degree</th>
-              <th className="px-3 py-2">Nakshatra</th>
-            </tr>
-          </thead>
+      <div className="mt-4 rounded-2xl border border-[color:var(--border)] bg-white p-4">
+        <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+          Active Dasha Lords
+        </div>
 
-          <tbody className="divide-y divide-slate-100">
-            {activePlanetRows.map((p: any) => (
-              <tr key={p.planet} className={p.score ? "bg-indigo-50/40" : "bg-white"}>
-                <td className="px-3 py-2 font-medium text-slate-900">
-                  {p.planet}
-                </td>
-                <td className="px-3 py-2 text-slate-600">
-                  {p.sign}
-                </td>
-                <td className="px-3 py-2 text-slate-600">
-                  {p.house}
-                </td>
-                <td className="px-3 py-2 text-slate-600">
-                  {p.degree == null ? "—" : `${Number(p.degree).toFixed(2)}°`}
-                </td>
-                <td className="px-3 py-2 text-slate-600">
-                  {p.nakshatra}
-                  {p.pada ? ` ${p.pada}` : ""}
-                </td>
+        <div className="mt-3 overflow-hidden rounded-xl border border-slate-100">
+          <table className="w-full text-left text-xs">
+            <thead className="bg-slate-50 text-slate-500">
+              <tr>
+                <th className="px-3 py-2">Planet</th>
+                <th className="px-3 py-2">Natal Placement</th>
+                <th className="px-3 py-2">Natal Nakshatra</th>
+                <th className="px-3 py-2">Transit Placement</th>
+                <th className="px-3 py-2">Transit Nakshatra</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-<div className="mt-4 rounded-2xl border border-[color:var(--border)] bg-white p-4">
-  <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-    Active Dasha Planet Natal Placement
-  </div>
+            </thead>
 
-  <div className="mt-3 overflow-hidden rounded-xl border border-slate-100">
-    <table className="w-full text-left text-xs">
-      <thead className="bg-slate-50 text-slate-500">
-        <tr>
-          <th className="px-3 py-2">Planet</th>
-          <th className="px-3 py-2">Natal Placement</th>
-          <th className="px-3 py-2">Natal Nakshatra</th>
-          <th className="px-3 py-2">Transit Placement</th>
-          <th className="px-3 py-2">Transit Nakshatra</th>
-        </tr>
-      </thead>
-
-      <tbody className="divide-y divide-slate-100">
-        {activeDashaPlanetRows.length ? (
-          activeDashaPlanetRows.map((row: any) => (
-            <tr key={row.planet} className="bg-white">
-              <td className="px-3 py-2 font-medium text-slate-900">
-                {row.planet}
-              </td>
-
-              <td className="px-3 py-2 text-slate-600">
-                H{row.natalHouse} · {row.natalSign}
-                {row.natalDegree == null
-                  ? ""
-                  : ` · ${Number(row.natalDegree).toFixed(2)}°`}
-              </td>
-
-              <td className="px-3 py-2 text-slate-600">
-                {row.natalNakshatra}
-              </td>
-
-              <td className="px-3 py-2 text-slate-600">
-                H{row.transitHouse} · {row.transitSign}
-                {row.transitDegree == null
-                  ? ""
-                  : ` · ${Number(row.transitDegree).toFixed(2)}°`}
-              </td>
-
-              <td className="px-3 py-2 text-slate-600">
-                {row.transitNakshatra}
-              </td>
-            </tr>
-          ))
-        ) : (
-          <tr>
-            <td colSpan={5} className="px-3 py-4 text-slate-500">
-              No active dasha planet placement data available.
-            </td>
-          </tr>
-        )}
-      </tbody>
-    </table>
-  </div>
-</div>
-  <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-2">
-    <div className="rounded-2xl border border-[color:var(--border)] bg-white p-4">
-      <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-        Degree Proximity
+            <tbody className="divide-y divide-slate-100">
+              {activeDashaPlanetRows.length ? (
+                activeDashaPlanetRows.map((row: any) => (
+                  <tr key={row.planet} className="bg-white">
+                    <td className="px-3 py-2 font-medium text-slate-900">
+                      {row.planet}
+                    </td>
+                    <td className="px-3 py-2 text-slate-600">
+                      House {row.natalHouse} · {row.natalSign}
+                      {row.natalDegree == null
+                        ? ""
+                        : ` · ${Number(row.natalDegree).toFixed(2)}°`}
+                    </td>
+                    <td className="px-3 py-2 text-slate-600">
+                      {row.natalNakshatra}
+                    </td>
+                    <td className="px-3 py-2 text-slate-600">
+                      House {row.transitHouse} · {row.transitSign}
+                      {row.transitDegree == null
+                        ? ""
+                        : ` · ${Number(row.transitDegree).toFixed(2)}°`}
+                    </td>
+                    <td className="px-3 py-2 text-slate-600">
+                      {row.transitNakshatra}
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={5} className="px-3 py-4 text-slate-500">
+                    No active dasha planet placement data available.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
-      <div className="mt-3 space-y-2">
-        {triggerEngine?.degreeHits?.length ? (
-          triggerEngine.degreeHits.slice(0, 6).map((hit: any, index: number) => (
-            <div key={index} className="rounded-xl bg-slate-50 px-3 py-2 text-sm">
-              <div className="font-medium text-slate-800">
-                Transit {hit.transitPlanet} → Natal {hit.natalPlanet}
-              </div>
-              <div className="mt-1 text-xs text-slate-500">
-                Distance {Number(hit.distance ?? 0).toFixed(2)}° · Strength{" "}
-                {hit.strength ?? "—"}
-              </div>
-            </div>
-          ))
-        ) : (
-          <div className="text-sm text-slate-500">
-            No close degree proximity detected.
+      <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-2">
+        <div className="rounded-2xl border border-[color:var(--border)] bg-white p-4">
+          <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+            Close Degree Contacts
           </div>
-        )}
-      </div>
-    </div>
 
-    <div className="rounded-2xl border border-[color:var(--border)] bg-white p-4">
-      <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-        Moon Timing
-      </div>
-
-      <div className="mt-3 space-y-2">
-        {triggerEngine?.microTriggerDays?.length ? (
-          triggerEngine.microTriggerDays.map((day: any) => (
-            <div key={day.dateISO} className="rounded-xl bg-slate-50 px-3 py-2 text-sm">
-              <div className="font-medium text-slate-800">
-                {day.dateISO}
+          <div className="mt-3 space-y-2">
+            {triggerEngine?.degreeHits?.length ? (
+              triggerEngine.degreeHits.slice(0, 6).map((hit: any, index: number) => (
+                <div key={index} className="rounded-xl bg-slate-50 px-3 py-2 text-sm">
+                  <div className="font-medium text-slate-800">
+                    Transit {hit.transitPlanet} → Natal {hit.natalPlanet}
+                  </div>
+                  <div className="mt-1 text-xs text-slate-500">
+                    Orb {Number(hit.distance ?? 0).toFixed(2)}° · {hit.strength ?? "—"} activation
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-sm text-slate-500">
+                No close degree proximity detected.
               </div>
-              <div className="mt-1 text-xs text-slate-600">
-                Moon activating house {day.house ?? "—"}
-              </div>
-              <div className="mt-1 text-xs text-slate-500">
-                {day.sign ?? "—"} · Strength {day.strength ?? "—"}
-              </div>
-            </div>
-          ))
-        ) : (
-          <div className="text-sm text-slate-500">
-            No Moon timing data detected.
+            )}
           </div>
-        )}
+        </div>
+
+        <div className="rounded-2xl border border-[color:var(--border)] bg-white p-4">
+          <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+            Moon Activation Windows
+          </div>
+
+          <div className="mt-3 space-y-2">
+            {triggerEngine?.microTriggerDays?.length ? (
+              triggerEngine.microTriggerDays.map((day: any) => (
+                <div key={day.dateISO} className="rounded-xl bg-slate-50 px-3 py-2 text-sm">
+                  <div className="font-medium text-slate-800">{day.dateISO}</div>
+                  <div className="mt-1 text-xs text-slate-600">
+                    Moon trigger through House {day.house ?? "—"}
+                  </div>
+                  <div className="mt-1 text-xs text-slate-500">
+                    {day.sign ?? "—"} · Strength {day.strength ?? "—"}
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-sm text-slate-500">
+                No Moon timing data detected.
+              </div>
+            )}
+          </div>
+        </div>
       </div>
-    </div>
-  </div>
-</section>
+    </section>
 
     <MajorTransitTimelineCard
       transitWindows={transitWindows}
       transitNow={Array.isArray(transitNow) ? transitNow : []}
       upcomingTransits={upcomingTransitItems}
       ascSign={natal?.ascendant?.sign ?? null}
-      currentDasha={currentDasha}
-      currentDashaLabel={currentDashaLabel}
-    />
-
-    <DashaLordTransitTrackerCard
-      upcomingTransits={upcomingTransitItems}
       currentDasha={currentDasha}
       currentDashaLabel={currentDashaLabel}
     />

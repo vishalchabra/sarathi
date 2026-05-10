@@ -16,24 +16,7 @@ const SIGNS = [
   "Aquarius",
   "Pisces",
 ];
-function adjustNodeLonForVargaBoundary(lon: number, varga: number) {
-  const normalized = wrap360(lon);
-  const signStart = Math.floor(normalized / 30) * 30;
-  const inSignDeg = normalized - signStart;
-  const divisionSize = 30 / varga;
 
-  const remainder = inSignDeg % divisionSize;
-
-  // Nodes are boundary-sensitive in high vargas.
-  // If Rahu/Ketu is just after a varga boundary, keep it in the previous division.
-  const toleranceDeg = 0.08; // about 4.8 arcminutes
-
-  if (remainder > 0 && remainder <= toleranceDeg) {
-    return wrap360(normalized - toleranceDeg);
-  }
-
-  return normalized;
-}
 function wrap360(x: number) {
   x = x % 360;
   return x < 0 ? x + 360 : x;
@@ -405,10 +388,26 @@ function buildOneVargaFromTrustedAsc(opts: {
     .map((p) => {
       const rawPlLon = p.lon as number;
 
-const plLon =
-  p.planet === "Rahu" || p.planet === "Ketu"
-    ? adjustNodeLonForVargaBoundary(rawPlLon, opts.varga)
-    : rawPlLon;
+const isNode = p.planet === "Rahu" || p.planet === "Ketu";
+
+function adjustNodeVargaBoundary(lon: number, varga: number) {
+  const inSignDeg = ((lon % 30) + 30) % 30;
+  const divisionSize = 30 / varga;
+  const positionInDivision = inSignDeg % divisionSize;
+  const distanceToNextBoundary = divisionSize - positionInDivision;
+
+  // Only nudge Rahu/Ketu if extremely close to the next varga boundary.
+  // This avoids shifting normal node placements like 21°.
+  if (distanceToNextBoundary <= 0.03) {
+    return wrap360(lon + 0.03);
+  }
+
+  return lon;
+}
+
+const plLon = isNode
+  ? adjustNodeVargaBoundary(rawPlLon, opts.varga)
+  : rawPlLon;
 
 let plSign: string;
 
