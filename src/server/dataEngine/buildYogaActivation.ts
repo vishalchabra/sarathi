@@ -96,12 +96,17 @@ if (degreeHit) {
   );
 }
 if (windowHit) {
- reasons.push(
-  `Next window: ${formatShortDate(windowHit.windowStart)} – ${formatShortDate(
-    windowHit.windowEnd
-  )}`
-);
-reasons.push(`Peak: ${formatShortDate(windowHit.peakDate)}`);
+  const start = formatShortDate(windowHit.windowStart);
+  const end = formatShortDate(windowHit.windowEnd);
+  const peak = formatShortDate(windowHit.peakDate);
+
+  if (start === end) {
+    reasons.push(`Trigger date: ${start}`);
+  } else {
+    reasons.push(`Next window: ${start} – ${end}`);
+  }
+
+  reasons.push(`Peak: ${peak}`);
 }
     const dateStr = upcomingHit?.date
   ? new Date(upcomingHit.date).toLocaleDateString()

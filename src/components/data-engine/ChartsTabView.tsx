@@ -850,20 +850,61 @@ const topActiveYoga =
                           {key === "associationType" ? "Association" : key}:
                         </span>{" "}
                         {key === "associationType"
-                          ? value === "conjunction"
-                            ? "Conjunction"
-                            : value === "mutual_aspect"
-                            ? "7th Aspect"
-                            : value === "jupiter_aspect"
-                            ? "Jupiter Aspect"
-                            : value === "mars_aspect"
-                            ? "Mars Aspect"
-                            : value === "saturn_aspect"
-                            ? "Saturn Aspect"
-                            : String(value ?? "—")
-                          : Array.isArray(value)
-                          ? value.join(", ")
-                          : String(value ?? "—")}
+  ? value === "conjunction"
+    ? "Conjunction"
+    : value === "mutual_aspect"
+    ? "7th Aspect"
+    : value === "jupiter_aspect"
+    ? "Jupiter Aspect"
+    : value === "mars_aspect"
+    ? "Mars Aspect"
+    : value === "saturn_aspect"
+    ? "Saturn Aspect"
+    : String(value ?? "—")
+
+  : key === "yogaStrength" &&
+    value &&
+    typeof value === "object"
+
+  ? (() => {
+      const ys = value as any;
+
+      return (
+        <div className="space-y-1">
+          <div>
+            strength: {String(ys?.strength ?? "—")}
+          </div>
+         <div>
+  score: {ys?.score == null ? "—" : `${ys.score}/100`}
+</div>
+          {ys?.supportingReasons?.length ? (
+            <div>
+              supportingReasons:{" "}
+              {ys.supportingReasons.join(", ")}
+            </div>
+          ) : null}
+
+          {ys?.weakeningReasons?.length ? (
+            <div>
+              weakeningReasons:{" "}
+              {ys.weakeningReasons.join(", ")}
+            </div>
+          ) : null}
+
+          {ys?.cancellationReasons?.length ? (
+            <div>
+              cancellationReasons:{" "}
+              {ys.cancellationReasons.join(", ")}
+            </div>
+          ) : null}
+        </div>
+      );
+    })()
+
+  : Array.isArray(value)
+  ? value.join(", ")
+
+  : String(value ?? "—")}
                       </div>
                     ))
                   : null}
