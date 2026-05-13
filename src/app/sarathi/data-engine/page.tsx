@@ -41,6 +41,7 @@ import ChartCompareTabView from "@/components/data-engine/ChartCompareTabView";
 import { useRouter, useSearchParams } from "next/navigation";
 import MediumNorthIndianChart from "@/components/data-engine/MediumNorthIndianChart";
 import ForecastOverviewCard from "@/components/data-engine/ForecastOverviewCard";
+import AnalysisFrameworkCard from "@/components/data-engine/AnalysisFrameworkCard";
 import {
   addClientChart,
   createAstrologerClient,
@@ -50,6 +51,7 @@ import {
 } from "@/lib/supabase/astrologer-crm-service";
 type TabKey =
   | "foundations"
+  | "analysis"
   | "timing"
   | "transits"
   | "forecast"
@@ -542,6 +544,114 @@ function PrimarySignalsCard({
     </div>
   );
 }
+type TransitQueryCondition = {
+  id: string;
+  planet: string;
+  conditionType:
+    | "sign_degree"
+    | "nakshatra"
+    | "retrograde"
+    | "same_sign_as"
+    | "conjunct_natal";
+  sign: string;
+  degree: string;
+  minute: string;
+  orb: string;
+  nakshatra: string;
+  comparePlanet: string;
+  natalPlanet: string;
+  enabled: boolean;
+};
+
+type TransitQueryMatch = {
+  dateISO: string;
+  time?: string;
+  endTime?: string;
+  durationHours?: number;
+strengthScore?: number;
+strengthLabel?: string;
+matchedPlanets: Array<{
+    planet: string;
+    sign: string;
+    degree: number | null;
+    targetDegree: number;
+    orb: number;
+    nakshatra?: string;
+    pada?: number | null;
+  }>;
+};
+
+const TRANSIT_QUERY_PLANETS = [
+  "Sun",
+  "Moon",
+  "Mars",
+  "Mercury",
+  "Jupiter",
+  "Venus",
+  "Saturn",
+  "Rahu",
+  "Ketu",
+];
+
+const TRANSIT_QUERY_SIGNS = [
+  "Aries",
+  "Taurus",
+  "Gemini",
+  "Cancer",
+  "Leo",
+  "Virgo",
+  "Libra",
+  "Scorpio",
+  "Sagittarius",
+  "Capricorn",
+  "Aquarius",
+  "Pisces",
+];
+const TRANSIT_QUERY_NAKSHATRAS = [
+  "Ashwini",
+  "Bharani",
+  "Krittika",
+  "Rohini",
+  "Mrigashira",
+  "Ardra",
+  "Punarvasu",
+  "Pushya",
+  "Ashlesha",
+  "Magha",
+  "Purva Phalguni",
+  "Uttara Phalguni",
+  "Hasta",
+  "Chitra",
+  "Swati",
+  "Vishakha",
+  "Anuradha",
+  "Jyeshtha",
+  "Mula",
+  "Purva Ashadha",
+  "Uttara Ashadha",
+  "Shravana",
+  "Dhanishta",
+  "Shatabhisha",
+  "Purva Bhadrapada",
+  "Uttara Bhadrapada",
+  "Revati",
+];
+function addDaysISO(dateISO: string, days: number) {
+  const d = new Date(`${dateISO}T00:00:00`);
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+function daysBetweenISO(startISO: string, endISO: string) {
+  const start = new Date(`${startISO}T00:00:00`).getTime();
+  const end = new Date(`${endISO}T00:00:00`).getTime();
+  return Math.floor((end - start) / 86400000);
+}
+
+function degreeMatches(actual: number | null | undefined, target: number, orb: number) {
+  if (actual === null || actual === undefined || Number.isNaN(Number(actual))) return false;
+  return Math.abs(Number(actual) - target) <= orb;
+}
 
 function getTodayISOInTimezone(tz: string) {
   const parts = new Intl.DateTimeFormat("en-CA", {
@@ -557,7 +667,243 @@ function getTodayISOInTimezone(tz: string) {
 
   return `${year}-${month}-${day}`;
 }
+function timeToMinutes(time?: string) {
+  if (!time) return null;
 
+  const [hh, mm] = time.split(":").map(Number);
+
+  if (!Number.isFinite(hh) || !Number.isFinite(mm)) return null;
+
+  return hh * 60 + mm;
+}
+function calculateMatchStrength(
+  matchedPlanets: TransitQueryMatch["matchedPlanets"]
+) {
+  if (!matchedPlanets.length) {
+    return {
+      score: 0,
+      label: "Weak",
+    };
+  }
+
+  let totalCloseness = 0;
+
+  for (const row of matchedPlanets) {
+    const actual = Number(row.degree ?? 0);
+    const target = Number(row.targetDegree ?? 0);
+    const orb = Math.max(0.01, Number(row.orb ?? 1));
+
+    const diff = Math.abs(actual - target);
+
+    // closer to target = higher score
+    const closeness = Math.max(0, 1 - diff / orb);
+
+    totalCloseness += closeness;
+  }
+
+  const avg = totalCloseness / matchedPlanets.length;
+
+  let label = "Broad";
+
+  if (avg >= 0.92) {
+    label = "Exact";
+  } else if (avg >= 0.75) {
+    label = "Strong";
+  } else if (avg >= 0.5) {
+    label = "Moderate";
+  }
+
+  return {
+    score: Number((avg * 100).toFixed(1)),
+    label,
+  };
+}
+function buildTransitConditionSummary(
+  condition: TransitQueryCondition
+) {
+  const planet = condition.planet;
+
+  if (condition.conditionType === "sign_degree") {
+    return `${planet} in ${condition.sign} ${condition.degree}°`;
+  }
+
+  if (condition.conditionType === "nakshatra") {
+    return `${planet} in ${condition.nakshatra}`;
+  }
+
+  if (condition.conditionType === "retrograde") {
+    return `${planet} retrograde`;
+  }
+
+  if (condition.conditionType === "same_sign_as") {
+    return `${planet} in same sign as ${condition.comparePlanet}`;
+  }
+
+  if (condition.conditionType === "conjunct_natal") {
+    return `${planet} hits natal ${condition.natalPlanet} within ±${condition.orb}°`;
+  }
+
+  return planet;
+}
+function getTransitStrengthClasses(label?: string) {
+  switch (label) {
+    case "Exact":
+      return {
+        outer:
+          "border-emerald-300 bg-emerald-50/80",
+        inner:
+          "border-emerald-200 bg-white",
+        heading:
+          "text-emerald-900",
+        badge:
+          "bg-emerald-600 text-white",
+      };
+
+    case "Strong":
+      return {
+        outer:
+          "border-sky-300 bg-sky-50/80",
+        inner:
+          "border-sky-200 bg-white",
+        heading:
+          "text-sky-900",
+        badge:
+          "bg-sky-600 text-white",
+      };
+
+    case "Moderate":
+      return {
+        outer:
+          "border-amber-300 bg-amber-50/80",
+        inner:
+          "border-amber-200 bg-white",
+        heading:
+          "text-amber-900",
+        badge:
+          "bg-amber-500 text-white",
+      };
+
+    default:
+      return {
+        outer:
+          "border-slate-300 bg-slate-50/80",
+        inner:
+          "border-slate-200 bg-white",
+        heading:
+          "text-slate-800",
+        badge:
+          "bg-slate-500 text-white",
+      };
+  }
+}
+function sortTransitQueryMatches(
+  matches: TransitQueryMatch[],
+  sortBy: "strongest" | "longest" | "earliest" | "exact"
+) {
+  const rows = [...matches];
+
+  if (sortBy === "exact") {
+    return rows
+      .filter((row) => Number(row.strengthScore ?? 0) >= 92)
+      .sort((a, b) => Number(b.strengthScore ?? 0) - Number(a.strengthScore ?? 0));
+  }
+
+  if (sortBy === "longest") {
+    return rows.sort(
+      (a, b) => Number(b.durationHours ?? 0) - Number(a.durationHours ?? 0)
+    );
+  }
+
+  if (sortBy === "earliest") {
+    return rows.sort((a, b) => {
+      const aKey = `${a.dateISO}T${a.time ?? "00:00"}`;
+      const bKey = `${b.dateISO}T${b.time ?? "00:00"}`;
+      return aKey.localeCompare(bKey);
+    });
+  }
+
+  return rows.sort((a, b) => {
+    const strengthDiff =
+      Number(b.strengthScore ?? 0) - Number(a.strengthScore ?? 0);
+
+    if (Math.abs(strengthDiff) > 0.1) return strengthDiff;
+
+    return Number(b.durationHours ?? 0) - Number(a.durationHours ?? 0);
+  });
+}
+function mergeTransitQueryMatches(matches: TransitQueryMatch[]) {
+  if (!matches.length) return [];
+
+  const sorted = [...matches].sort((a, b) => {
+    const aKey = `${a.dateISO}T${a.time ?? "00:00"}`;
+    const bKey = `${b.dateISO}T${b.time ?? "00:00"}`;
+    return aKey.localeCompare(bKey);
+  });
+
+  const merged: TransitQueryMatch[] = [];
+
+  for (const match of sorted) {
+    const last = merged[merged.length - 1];
+
+    if (!last) {
+      const strength = calculateMatchStrength(match.matchedPlanets);
+
+merged.push({
+  ...match,
+  endTime: match.time,
+  durationHours: 1,
+  strengthScore: strength.score,
+  strengthLabel: strength.label,
+});
+      continue;
+    }
+
+    const sameDate = last.dateISO === match.dateISO;
+    const lastEndMinutes = timeToMinutes(last.endTime ?? last.time);
+    const currentMinutes = timeToMinutes(match.time);
+
+    const isNextHour =
+      sameDate &&
+      lastEndMinutes !== null &&
+      currentMinutes !== null &&
+      currentMinutes - lastEndMinutes <= 60;
+
+    if (isNextHour) {
+      last.endTime = match.time;
+      last.durationHours = Math.max(
+        1,
+        Math.round(((currentMinutes - timeToMinutes(last.time)!) / 60) + 1)
+      );
+
+      // Keep the latest planet degrees so result reflects the end of the window.
+      const updatedStrength = calculateMatchStrength(match.matchedPlanets);
+
+last.strengthScore = updatedStrength.score;
+last.strengthLabel = updatedStrength.label;
+    } else {
+      const strength = calculateMatchStrength(match.matchedPlanets);
+
+merged.push({
+  ...match,
+  endTime: match.time,
+  durationHours: 1,
+  strengthScore: strength.score,
+  strengthLabel: strength.label,
+});
+    }
+  }
+
+  return merged.sort((a, b) => {
+  const strengthDiff =
+    Number(b.strengthScore ?? 0) - Number(a.strengthScore ?? 0);
+
+  if (Math.abs(strengthDiff) > 0.1) {
+    return strengthDiff;
+  }
+
+  return Number(b.durationHours ?? 0) - Number(a.durationHours ?? 0);
+});
+}
 
 
 function DataEnginePageContent() {
@@ -641,6 +987,52 @@ const [utilityHoraDateISO, setUtilityHoraDateISO] = useState(
 );
 
 const [utilityHoraTime, setUtilityHoraTime] = useState("12:00");
+const [transitQueryConditions, setTransitQueryConditions] = useState<
+  TransitQueryCondition[]
+>([
+{
+  id: "condition-1",
+  planet: "Sun",
+  conditionType: "sign_degree",
+  sign: "Taurus",
+  degree: "21",
+  minute: "0",
+  orb: "1",
+  nakshatra: "Rohini",
+  comparePlanet: "Moon",
+  natalPlanet: "Moon",
+enabled: true,
+},
+{
+  id: "condition-2",
+  planet: "Moon",
+  conditionType: "sign_degree",
+  sign: "Gemini",
+  degree: "18",
+  minute: "0",
+  orb: "1",
+  nakshatra: "Mrigashira",
+  comparePlanet: "Sun",
+  natalPlanet: "Moon",
+  enabled: true,
+}
+]);
+
+const [transitQueryFromISO, setTransitQueryFromISO] = useState(
+  new Date().toISOString().slice(0, 10)
+);
+
+const [transitQueryToISO, setTransitQueryToISO] = useState(
+  addDaysISO(new Date().toISOString().slice(0, 10), 30)
+);
+
+const [transitQueryLoading, setTransitQueryLoading] = useState(false);
+const [transitQueryError, setTransitQueryError] = useState("");
+const [transitQueryMatches, setTransitQueryMatches] = useState<TransitQueryMatch[]>([]);
+const [transitQuerySortBy, setTransitQuerySortBy] = useState<
+  "strongest" | "longest" | "earliest" | "exact"
+>("strongest");
+const [transitQueryHasSearched, setTransitQueryHasSearched] = useState(false);
 const FORECAST_LENS_META = {
   career: {
     label: "Career",
@@ -728,7 +1120,102 @@ useEffect(() => {
     setUtilityHoraTimezone(tz);
   } catch {}
 }, [utilityHoraPlace]);
+function updateTransitQueryCondition(
+  id: string,
+  patch: Partial<TransitQueryCondition>
+) {
+  setTransitQueryConditions((rows) =>
+    rows.map((row) => (row.id === id ? { ...row, ...patch } : row))
+  );
+}
 
+function addTransitQueryCondition() {
+  setTransitQueryConditions((rows) => [
+    ...rows,
+{
+  id: `condition-${Date.now()}`,
+  planet: "Jupiter",
+  conditionType: "sign_degree",
+  sign: "Aries",
+  degree: "0",
+  minute: "0",
+  orb: "1",
+  nakshatra: "Ashwini",
+  comparePlanet: "Moon",
+  natalPlanet: "Moon",
+  enabled: true,
+}
+  ]);
+}
+
+function removeTransitQueryCondition(id: string) {
+  setTransitQueryConditions((rows) =>
+    rows.length <= 1 ? rows : rows.filter((row) => row.id !== id)
+  );
+}
+
+async function handleRunTransitQuery() {
+  if (!selectedPlace) {
+    setTransitQueryError("Please select birth city and generate the Data Engine first.");
+    return;
+  }
+
+  if (!dateISO.trim() || !time.trim()) {
+    setTransitQueryError("Please enter birth date and time first.");
+    return;
+  }
+
+  const activeConditions = transitQueryConditions.filter((row) => row.enabled);
+
+  if (!activeConditions.length) {
+    setTransitQueryError("Please enable at least one condition.");
+    return;
+  }
+
+  try {
+    setTransitQueryLoading(true);
+    setTransitQueryError("");
+    setTransitQueryMatches([]);
+
+    const res = await fetch("/api/transit-query", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        birth: {
+          name: name.trim() || "Transit Query",
+          city: selectedPlace.name,
+          dateISO: dateISO.trim(),
+          time: time.trim(),
+          timezone,
+          lat: selectedPlace.lat,
+          lon: selectedPlace.lon,
+        },
+        fromISO: transitQueryFromISO,
+        toISO: transitQueryToISO,
+        conditions: activeConditions,
+natalPlanets: planets,
+      }),
+    });
+
+    const json = await res.json();
+
+    if (!res.ok || json?.ok === false) {
+      throw new Error(json?.error || "Transit query failed.");
+    }
+
+    const rawMatches = json?.matches ?? [];
+const mergedMatches = mergeTransitQueryMatches(rawMatches);
+
+setTransitQueryMatches(sortTransitQueryMatches(mergedMatches, transitQuerySortBy));
+setTransitQueryHasSearched(true);
+  } catch (e: any) {
+    setTransitQueryError(e?.message || "Something went wrong.");
+  } finally {
+    setTransitQueryLoading(false);
+  }
+}
 async function handleGeneratePanchang() {
   if (!data?.birthMeta && !birthMeta) {
     setUtilityPanchangError("Please generate the Data Engine first.");
@@ -1318,6 +1805,11 @@ useEffect(() => {
     console.log("UPAGRAHA DEBUG", upagrahas);
   }
 }, [upagrahas]);
+useEffect(() => {
+  setTransitQueryMatches((current) =>
+    sortTransitQueryMatches(current, transitQuerySortBy)
+  );
+}, [transitQuerySortBy]);
 const solarShadowPoints = useMemo(
   () =>
     data?.foundations?.solarShadowPoints ??
@@ -1958,7 +2450,21 @@ const errorBoxClass =
                 Generate to see chart data here.
               </div>
             ) : null}
-
+           {data && activeTab === "analysis" ? (
+  <div className="mt-6">
+    <AnalysisFrameworkCard
+      natal={natal}
+      planets={planets}
+      houses={houses}
+      roles={roles}
+      currentDasha={currentDasha}
+      transitNow={transitNow}
+      triggerEngine={triggerEngine}
+      vargas={data?.vargas ?? {}}
+      houseJudgement={houseJudgement}
+    />
+  </div>
+) : null}
             {data && activeTab === "foundations" ? (
               <div className="mt-6 space-y-8">
                 <section className="space-y-4">
@@ -2821,7 +3327,424 @@ dashaTimelines={data?.timing?.dasha?.timelines ?? data?.dasha?.timelines ?? null
          {data && activeTab === "utilities" ? (
   <div className="mt-6 space-y-8">
     <PlanetTransitTimelineCard defaultTimezone={String(birthMeta?.timezone ?? timezone ?? "Asia/Kolkata")} />
+    <div className="rounded-3xl border border-[color:var(--border)] bg-white/80 p-6 shadow-sm ring-1 ring-black/5">
+  <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+    <div>
+      <h2 className="text-xl font-semibold text-slate-900">
+        Transit Query Engine
+      </h2>
+      <p className="mt-1 text-sm text-slate-500">
+        Find dates when multiple planets match selected sign and degree conditions.
+      </p>
+    </div>
 
+    <button
+      type="button"
+      onClick={addTransitQueryCondition}
+      className="rounded-xl border border-[color:var(--border)] bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50"
+    >
+      + Add Condition
+    </button>
+  </div>
+
+  <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
+    <div>
+      <label className="text-xs font-medium uppercase tracking-wide text-slate-400">
+        From Date
+      </label>
+      <input
+        type="date"
+        value={transitQueryFromISO}
+        onChange={(e) => setTransitQueryFromISO(e.target.value)}
+        className="mt-1 w-full rounded-xl border border-[color:var(--border)] bg-white/80 px-3 py-2 text-sm text-slate-900 outline-none focus:border-[color:var(--primary)]"
+      />
+    </div>
+
+    <div>
+      <label className="text-xs font-medium uppercase tracking-wide text-slate-400">
+        To Date
+      </label>
+      <input
+        type="date"
+        value={transitQueryToISO}
+        onChange={(e) => setTransitQueryToISO(e.target.value)}
+        className="mt-1 w-full rounded-xl border border-[color:var(--border)] bg-white/80 px-3 py-2 text-sm text-slate-900 outline-none focus:border-[color:var(--primary)]"
+      />
+    </div>
+  </div>
+<div className="mt-3 flex flex-wrap gap-2">
+  {[
+    { label: "Next 30 days", days: 30 },
+    { label: "3 months", days: 90 },
+    { label: "6 months", days: 180 },
+  ].map((item) => (
+    <button
+      key={item.label}
+      type="button"
+      onClick={() => {
+        const today = new Date().toISOString().slice(0, 10);
+        setTransitQueryFromISO(today);
+        setTransitQueryToISO(addDaysISO(today, item.days));
+      }}
+      className="rounded-full border border-[color:var(--border)] bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+    >
+      {item.label}
+    </button>
+  ))}
+</div>
+  <div className="mt-5 space-y-3">
+    {transitQueryConditions.map((condition, index) => (
+      <div
+        key={condition.id}
+        className="rounded-2xl border border-[color:var(--border)] bg-white p-4 shadow-sm"
+      >
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <div className="text-sm font-semibold text-slate-900">
+            Condition {index + 1}
+          </div>
+<div className="mb-4 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700">
+  {buildTransitConditionSummary(condition)}
+</div>
+          <div className="flex items-center gap-3">
+            <label className="flex items-center gap-2 text-xs text-slate-500">
+              <input
+                type="checkbox"
+                checked={condition.enabled}
+                onChange={(e) =>
+                  updateTransitQueryCondition(condition.id, {
+                    enabled: e.target.checked,
+                  })
+                }
+              />
+              Enabled
+            </label>
+
+            <button
+              type="button"
+              onClick={() => removeTransitQueryCondition(condition.id)}
+              className="text-xs font-semibold text-red-500 hover:text-red-600"
+            >
+              Remove
+            </button>
+          </div>
+        </div>
+<div>
+  <label className="text-xs font-medium uppercase tracking-wide text-slate-400">
+    Type
+  </label>
+  <select
+    value={condition.conditionType}
+    onChange={(e) =>
+      updateTransitQueryCondition(condition.id, {
+        conditionType: e.target.value as TransitQueryCondition["conditionType"],
+      })
+    }
+    className="mt-1 w-full rounded-xl border border-[color:var(--border)] bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-[color:var(--primary)]"
+  >
+    <option value="sign_degree">Sign + Degree</option>
+    <option value="nakshatra">Nakshatra</option>
+    <option value="retrograde">Retrograde</option>
+    <option value="same_sign_as">Same Sign As</option>
+    <option value="conjunct_natal">Transit hits Natal Planet</option>
+  </select>
+</div>
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-6">
+          <div>
+            
+            <label className="text-xs font-medium uppercase tracking-wide text-slate-400">
+              Planet
+            </label>
+            <select
+              value={condition.planet}
+              onChange={(e) =>
+                updateTransitQueryCondition(condition.id, {
+                  planet: e.target.value,
+                })
+              }
+              className="mt-1 w-full rounded-xl border border-[color:var(--border)] bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-[color:var(--primary)]"
+            >
+              {TRANSIT_QUERY_PLANETS.map((planet) => (
+                <option key={planet} value={planet}>
+                  {planet}
+                </option>
+              ))}
+            </select>
+          </div>
+
+         {condition.conditionType === "sign_degree" ? (
+  <>
+    <div>
+      <label className="text-xs font-medium uppercase tracking-wide text-slate-400">
+        Rashi
+      </label>
+      <select
+        value={condition.sign}
+        onChange={(e) =>
+          updateTransitQueryCondition(condition.id, { sign: e.target.value })
+        }
+        className="mt-1 w-full rounded-xl border border-[color:var(--border)] bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-[color:var(--primary)]"
+      >
+        {TRANSIT_QUERY_SIGNS.map((sign) => (
+          <option key={sign} value={sign}>
+            {sign}
+          </option>
+        ))}
+      </select>
+    </div>
+
+    <div>
+      <label className="text-xs font-medium uppercase tracking-wide text-slate-400">
+        Degree
+      </label>
+      <input
+        type="number"
+        min="0"
+        max="29"
+        value={condition.degree}
+        onChange={(e) =>
+          updateTransitQueryCondition(condition.id, { degree: e.target.value })
+        }
+        className="mt-1 w-full rounded-xl border border-[color:var(--border)] bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-[color:var(--primary)]"
+      />
+    </div>
+
+    <div>
+      <label className="text-xs font-medium uppercase tracking-wide text-slate-400">
+        Minute
+      </label>
+      <input
+        type="number"
+        min="0"
+        max="59"
+        value={condition.minute}
+        onChange={(e) =>
+          updateTransitQueryCondition(condition.id, { minute: e.target.value })
+        }
+        className="mt-1 w-full rounded-xl border border-[color:var(--border)] bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-[color:var(--primary)]"
+      />
+    </div>
+
+    <div>
+      <label className="text-xs font-medium uppercase tracking-wide text-slate-400">
+        Orb ±
+      </label>
+      <input
+        type="number"
+        min="0"
+        step="0.1"
+        value={condition.orb}
+        onChange={(e) =>
+          updateTransitQueryCondition(condition.id, { orb: e.target.value })
+        }
+        className="mt-1 w-full rounded-xl border border-[color:var(--border)] bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-[color:var(--primary)]"
+      />
+    </div>
+  </>
+) : null}
+
+{condition.conditionType === "nakshatra" ? (
+  <div>
+    <label className="text-xs font-medium uppercase tracking-wide text-slate-400">
+      Nakshatra
+    </label>
+    <select
+      value={condition.nakshatra}
+      onChange={(e) =>
+        updateTransitQueryCondition(condition.id, { nakshatra: e.target.value })
+      }
+      className="mt-1 w-full rounded-xl border border-[color:var(--border)] bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-[color:var(--primary)]"
+    >
+      {TRANSIT_QUERY_NAKSHATRAS.map((nakshatra) => (
+        <option key={nakshatra} value={nakshatra}>
+          {nakshatra}
+        </option>
+      ))}
+    </select>
+  </div>
+) : null}
+
+{condition.conditionType === "same_sign_as" ? (
+  <div>
+    <label className="text-xs font-medium uppercase tracking-wide text-slate-400">
+      Same Sign As
+    </label>
+    <select
+      value={condition.comparePlanet}
+      onChange={(e) =>
+        updateTransitQueryCondition(condition.id, { comparePlanet: e.target.value })
+      }
+      className="mt-1 w-full rounded-xl border border-[color:var(--border)] bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-[color:var(--primary)]"
+    >
+      {TRANSIT_QUERY_PLANETS.map((planet) => (
+        <option key={planet} value={planet}>
+          {planet}
+        </option>
+      ))}
+    </select>
+  </div>
+) : null}
+
+{condition.conditionType === "conjunct_natal" ? (
+  <>
+    <div>
+      <label className="text-xs font-medium uppercase tracking-wide text-slate-400">
+        Natal Planet
+      </label>
+      <select
+        value={condition.natalPlanet}
+        onChange={(e) =>
+          updateTransitQueryCondition(condition.id, { natalPlanet: e.target.value })
+        }
+        className="mt-1 w-full rounded-xl border border-[color:var(--border)] bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-[color:var(--primary)]"
+      >
+        {TRANSIT_QUERY_PLANETS.map((planet) => (
+          <option key={planet} value={planet}>
+            {planet}
+          </option>
+        ))}
+      </select>
+    </div>
+
+    <div>
+      <label className="text-xs font-medium uppercase tracking-wide text-slate-400">
+        Orb ±
+      </label>
+      <input
+        type="number"
+        min="0"
+        step="0.1"
+        value={condition.orb}
+        onChange={(e) =>
+          updateTransitQueryCondition(condition.id, { orb: e.target.value })
+        }
+        className="mt-1 w-full rounded-xl border border-[color:var(--border)] bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-[color:var(--primary)]"
+      />
+    </div>
+  </>
+) : null}
+        </div>
+      </div>
+    ))}
+  </div>
+
+  <div className="mt-5 flex justify-end">
+    <button
+      type="button"
+      onClick={handleRunTransitQuery}
+      disabled={transitQueryLoading}
+      className={primaryButtonClass}
+    >
+      {transitQueryLoading ? "Searching..." : "Find Matching Dates"}
+    </button>
+  </div>
+
+  {transitQueryError ? (
+    <div className={errorBoxClass}>{transitQueryError}</div>
+  ) : null}
+
+  {transitQueryHasSearched ? (
+  <div className="mt-6 space-y-3">
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+  <h3 className="text-base font-semibold text-slate-900">
+    Matching Dates
+  </h3>
+
+  <div className="flex items-center gap-2">
+    <label className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+      Sort by
+    </label>
+    <select
+      value={transitQuerySortBy}
+      onChange={(e) =>
+        setTransitQuerySortBy(
+          e.target.value as "strongest" | "longest" | "earliest" | "exact"
+        )
+      }
+      className="rounded-xl border border-[color:var(--border)] bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-[color:var(--primary)]"
+    >
+      <option value="strongest">Strongest</option>
+      <option value="longest">Longest window</option>
+      <option value="earliest">Earliest date</option>
+      <option value="exact">Exact matches only</option>
+    </select>
+  </div>
+</div>
+
+      {transitQueryMatches.length ? (
+  transitQueryMatches.map((match, matchIndex) => {
+  const strengthClasses = getTransitStrengthClasses(
+    match.strengthLabel
+  );
+
+  return (
+  <div
+    key={`${match.dateISO}-${match.time ?? "no-time"}-${matchIndex}`}
+          className={`rounded-2xl border p-3 ${strengthClasses.outer}`}
+        >
+        <div className={`flex flex-wrap items-center gap-2 text-sm font-semibold ${strengthClasses.heading}`}>
+  {match.dateISO}
+{match.time ? ` • ${match.time}` : ""}
+{match.endTime && match.endTime !== match.time ? ` – ${match.endTime}` : ""}
+{match.durationHours && match.durationHours > 1
+  ? ` • ${match.durationHours}h window`
+  : ""}
+
+  {match.strengthLabel ? (
+  <span
+    className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${strengthClasses.badge}`}
+  >
+    {match.strengthLabel}
+    {typeof match.strengthScore === "number"
+      ? ` ${match.strengthScore}%`
+      : ""}
+  </span>
+) : null}
+</div>
+
+          <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+            {match.matchedPlanets.map((row) => (
+              <div
+                key={`${match.dateISO}-${match.time ?? "no-time"}-${row.planet}`}
+                className={`rounded-xl border p-2.5 text-sm ${strengthClasses.inner}`}
+              >
+                <div className="font-semibold text-slate-900">
+                  {row.planet} → {row.sign}{" "}
+                  {row.degree !== null ? row.degree.toFixed(2) : "—"}°
+                </div>
+
+                <div className="mt-1 text-xs text-slate-500">
+                  Target {row.targetDegree.toFixed(2)}° ± {row.orb}°
+                  {row.nakshatra ? ` • ${row.nakshatra}` : ""}
+                  {row.pada ? ` Pada ${row.pada}` : ""}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+        );
+})
+) : (
+  <p className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+    No matching windows found. Try widening the orb, increasing the date range, or removing one condition.
+  </p>
+)}
+    </div>
+  ) : !transitQueryLoading && !transitQueryError && transitQueryHasSearched ? (
+  <p className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+    No matching dates found for the selected conditions. Try increasing the date range
+    or widening the match tolerance.
+  </p>
+) : !transitQueryLoading && !transitQueryError ? (
+  <p className="mt-5 text-sm text-slate-500">
+    No matching dates searched yet.
+  </p>
+) : null}
+
+  <p className="mt-4 text-xs leading-relaxed text-slate-400">
+    Phase 1 searches daily transit snapshots. Next phase can refine this to exact
+    hour/minute hits with a backend binary-search engine.
+  </p>
+</div>
     <div className="rounded-3xl border border-[color:var(--border)] bg-white/80 p-6 shadow-sm ring-1 ring-black/5">
       <h2 className="text-xl font-semibold text-slate-900">Hora</h2>
       <p className="mt-1 text-sm text-slate-500">
