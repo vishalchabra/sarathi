@@ -2,6 +2,7 @@
 
 type TabKey =
   | "foundations"
+  | "analysis"
   | "timing"
   | "transits"
   | "forecast"
@@ -19,6 +20,7 @@ type Props = {
 
 const TABS: Array<{ key: TabKey; label: string }> = [
   { key: "foundations", label: "Foundations" },
+  { key: "analysis", label: "Analysis Framework" },
   { key: "timing", label: "Timing" },
   { key: "transits", label: "Transits" },
   { key: "forecast", label: "Forecast" },
