@@ -2462,6 +2462,9 @@ const errorBoxClass =
       triggerEngine={triggerEngine}
       vargas={data?.vargas ?? {}}
       houseJudgement={houseJudgement}
+      natalStrengths={natalStrengths}
+      classicYogas={data?.foundations?.classicYogas ?? data?.classicYogas}
+nabhasaYogas={data?.foundations?.nabhasaYogas ?? data?.nabhasaYogas}
     />
   </div>
 ) : null}
