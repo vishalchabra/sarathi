@@ -1542,31 +1542,34 @@ return {
               Toggle overlays to keep the D1 chart clean while reviewing specific technical layers.
             </p>
           </div>
-<MediumNorthIndianChart
-              title=""
-              ascSign={natalAscSign}
-              planets={d1PlanetsWithBhava}
-              transitPlanets={
-                showTransitOverlay
-  ? normalizeTransitPlanets(overlayTransitPlanets, natalAscSign)
-  : []
-              }
-              arudhas={arudhas}
-              upagrahas={upagrahas}
-              solarShadowPoints={solarShadowPoints}
-              vedicAspects={vedicAspects}
-              showArudhas={showArudhaOverlay}
-              showUpagrahas={showUpagrahaOverlay}
-              showAspects={showAspectOverlay}
-              aspectHouseReferenceHouse={1}
-              layoutVariant="primary"
-              rightPanel={
-              <ActiveDashaPanel
-                currentDasha={currentDasha}
-                dashaTimelines={dashaTimelines}
-              />
-            }
-                    />
+<div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+  <MediumNorthIndianChart
+    title=""
+    ascSign={natalAscSign}
+    planets={d1PlanetsWithBhava}
+    transitPlanets={
+      showTransitOverlay
+        ? normalizeTransitPlanets(overlayTransitPlanets, natalAscSign)
+        : []
+    }
+    arudhas={arudhas}
+    upagrahas={upagrahas}
+    solarShadowPoints={solarShadowPoints}
+    vedicAspects={vedicAspects}
+    showArudhas={showArudhaOverlay}
+    showUpagrahas={showUpagrahaOverlay}
+    showAspects={showAspectOverlay}
+    aspectHouseReferenceHouse={1}
+    layoutVariant="primary"
+  />
+
+  <div className="xl:sticky xl:top-4">
+    <ActiveDashaPanel
+      currentDasha={currentDasha}
+      dashaTimelines={dashaTimelines}
+    />
+  </div>
+</div>
 
           <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-2">
             <NabhasaYogasCard data={nabhasaYogas} />

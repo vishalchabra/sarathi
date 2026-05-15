@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 type ChartPlanet = {
   planet: string;
@@ -666,7 +666,38 @@ highlightPlanets = [],
 }: MediumNorthIndianChartProps) {
   const [selected, setSelected] = useState<ChartPlanet | null>(null);
   const [hovered, setHovered] = useState<ChartPlanet | null>(null);
+  const layout = useMemo(() => getLayoutConfig(title, layoutVariant), [title, layoutVariant]);
+  const chartWrapRef = useRef<HTMLDivElement | null>(null);
+const [chartScale, setChartScale] = useState(1);
 
+useEffect(() => {
+  const el = chartWrapRef.current;
+  if (!el) return;
+
+  const update = () => {
+    const availableWidth = el.clientWidth;
+    const padding = 24;
+const usableWidth = Math.max(320, availableWidth - padding);
+
+const nextScale = Math.min(
+  1,
+  usableWidth / layout.frameWidth
+);
+    setChartScale(Number(nextScale.toFixed(4)));
+  };
+
+  update();
+
+  const observer = new ResizeObserver(update);
+  observer.observe(el);
+
+  window.addEventListener("resize", update);
+
+  return () => {
+    observer.disconnect();
+    window.removeEventListener("resize", update);
+  };
+}, [layout.frameWidth]);
   const planetsByHouse = useMemo(() => getPlanetsByHouse(planets, mode), [planets, mode]);
 const transitPlanetsByHouse = useMemo(
   () => getPlanetsByHouse(transitPlanets, mode),
@@ -681,7 +712,7 @@ const transitPlanetsByHouse = useMemo(
     () => getHouseAspectsByHouse(vedicAspects, aspectHouseReferenceHouse),
     [vedicAspects, aspectHouseReferenceHouse]
   );
-  const layout = useMemo(() => getLayoutConfig(title, layoutVariant), [title, layoutVariant]);
+  
 
   const rectLeft = layout.outerRect.x;
   const rectTop = layout.outerRect.y;
@@ -709,13 +740,27 @@ const transitPlanetsByHouse = useMemo(
         </div>
       </div>
 
-      <div className={rightPanel ? "mt-4 grid grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(0,1fr)_210px]" : "mt-4"}>
+      <div className="mt-4">
         <div className="min-w-0">
-      <div className="mt-4 flex justify-center overflow-visible">
-        <div
-          className="relative mx-auto overflow-visible rounded-2xl bg-white ring-1 ring-slate-200 shadow-sm"
-          style={{ width: layout.frameWidth, height: layout.frameHeight }}
-        >
+      <div
+  ref={chartWrapRef}
+  className="mt-4 w-full overflow-x-auto overflow-y-hidden"
+>
+  <div
+    className="mx-auto"
+    style={{
+      width: layout.frameWidth * chartScale,
+      height: layout.frameHeight * chartScale,
+    }}
+  >
+    <div
+      className="relative origin-top-left overflow-visible rounded-2xl bg-white ring-1 ring-slate-200 shadow-sm"
+      style={{
+        width: layout.frameWidth,
+        height: layout.frameHeight,
+        transform: `scale(${chartScale})`,
+      }}
+    >
           <svg
             viewBox={`0 0 ${layout.frameWidth} ${layout.frameHeight}`}
             className="absolute inset-0 h-full w-full"
@@ -938,11 +983,7 @@ const transitPlanetsByHouse = useMemo(
       </div>
         </div>
 
-        {rightPanel ? (
-          <div className="hidden xl:block xl:pt-8">
-            {rightPanel}
-          </div>
-        ) : null}
+        
       </div>
 
       <div className="mt-3 flex flex-wrap items-center justify-center gap-4 text-[11px] text-slate-700">
@@ -1025,7 +1066,7 @@ const transitPlanetsByHouse = useMemo(
               <div className="mt-1">{hovered?.planet === activePlanet?.planet ? "Hovering" : "Selected"}</div>
             </div>
           </div>
-
+          
         </div>
       ) : null}
 
@@ -1035,7 +1076,7 @@ const transitPlanetsByHouse = useMemo(
           Abbreviations
         </div>
 
-        <div className="grid grid-cols-1 gap-4 text-xs text-slate-700 md:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 text-xs text-slate-700 sm:grid-cols-2 xl:grid-cols-3">
           <div>
             <div className="mb-2 font-semibold text-violet-700">Upagrahas</div>
             <div className="grid grid-cols-2 gap-x-3 gap-y-1">
@@ -1070,7 +1111,7 @@ const transitPlanetsByHouse = useMemo(
         </div>
       </div>
       ) : null}
-
+</div>
     </div>
   );
 }
