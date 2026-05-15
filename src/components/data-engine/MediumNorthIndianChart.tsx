@@ -716,10 +716,9 @@ const transitPlanetsByHouse = useMemo(
   <div
     className="relative mx-auto overflow-visible rounded-2xl bg-white ring-1 ring-slate-200 shadow-sm"
     style={{
-      width: "100%",
-      maxWidth: layout.frameWidth,
-      aspectRatio: `${layout.frameWidth} / ${layout.frameHeight}`,
-      minWidth: 340,
+      width: layout.frameWidth,
+      height: layout.frameHeight,
+      minWidth: layout.frameWidth,
     }}
   >
           <svg
@@ -765,10 +764,11 @@ const transitPlanetsByHouse = useMemo(
               <div
                 key={anchor.house}
                 className="absolute"
-                style={{
-  left: pct(anchor.x - anchor.width / 2, layout.frameWidth),
-  top: pct(anchor.y, layout.frameHeight),
-  width: pct(anchor.width, layout.frameWidth),
+               style={{
+  left: anchor.x - anchor.width / 2,
+  top: anchor.y,
+  width: anchor.width,
+  minHeight: anchor.minHeight ?? 104,
 }}
               >
                 
@@ -922,10 +922,10 @@ const transitPlanetsByHouse = useMemo(
                 key={`outer-aspect-${house}`}
                 className="pointer-events-none absolute z-30 flex flex-wrap justify-center gap-[3px]"
                 style={{
-                  left: pct(aspectAnchor.left, layout.frameWidth),
-top: pct(aspectAnchor.top, layout.frameHeight),
-width: pct(aspectAnchor.width, layout.frameWidth),
-                }}
+  left: aspectAnchor.left,
+  top: aspectAnchor.top,
+  width: aspectAnchor.width,
+}}
               >
                 {rows.map((aspect) => (
   <span
