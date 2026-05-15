@@ -235,16 +235,6 @@ export async function computeDailyMoonNakshatras(
     typeof natalMoonLonSid === "number" ? Math.floor(natalMoonLonSid / 30) : null;
 
   if (process.env.NODE_ENV !== "production") {
-    console.log("[dailyMoon] inputs", {
-      natalDateISO,
-      natalTime,
-      baseDateISO,
-      baseTime,
-      tz: birth.tz,
-      lat: birth.lat,
-      lon: birth.lon,
-      horizon: days,
-    });
     
   }
 

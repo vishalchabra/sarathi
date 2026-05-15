@@ -115,12 +115,6 @@ if (windowHit) {
 if (dateStr) {
   reasons.push(`Peak around ${dateStr}`);
 }
-console.log("DEGREE HITS", degreeHits);
-    return {
-      ...yoga,
-      isActive: reasons.length > 0,
-      activation: reasons,
-      activationLevel,
-    };
+
   });
 }

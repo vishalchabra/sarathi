@@ -146,16 +146,6 @@ export async function POST(req: Request) {
       // ---- DEBUG LOGS ----
       const baseTime = hhmmNowInTz(tz);
 
-console.log("[dailyMoon] input", {
-  birthDateISO: birth.dateISO,
-  birthTime: birth.time,
-  tz,
-  lat: birth.lat,
-  lon: birth.lon,
-  baseDateISO,
-  baseTime,
-  horizon: 14,
-});
 
       // 3a) Next 14 days moon nakshatra series (anchored on today)
       if (sweDaily && typeof sweDaily.computeDailyMoonNakshatras === "function") {

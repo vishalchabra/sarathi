@@ -42,6 +42,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import MediumNorthIndianChart from "@/components/data-engine/MediumNorthIndianChart";
 import ForecastOverviewCard from "@/components/data-engine/ForecastOverviewCard";
 import AnalysisFrameworkCard from "@/components/data-engine/AnalysisFrameworkCard";
+import AskSarathiFloatingBox from "@/components/data-engine/AskSarathiFloatingBox";
 import {
   addClientChart,
   createAstrologerClient,
@@ -1587,7 +1588,10 @@ function loadLinkedChartIntoForm(chartId: string) {
     () => data?.timing?.dasha?.current ?? data?.dasha?.current ?? {},
     [data]
   );
-
+const dashaTimelines = useMemo(
+  () => data?.timing?.dasha?.timelines ?? data?.dasha?.timelines ?? {},
+  [data]
+);
   const dashaContext = useMemo(() => data?.timing?.dashaContext ?? null, [data]);
 
   const transitNow = useMemo(
@@ -2443,9 +2447,27 @@ const errorBoxClass =
           </div>
 
           <div className="rounded-3xl astro-card p-6 shadow-sm ring-1 ring-black/5">
-            <DataEngineTabs activeTab={activeTab} onChange={setActiveTab} />
+  <div className="flex flex-wrap items-center justify-between gap-3">
+    <DataEngineTabs activeTab={activeTab} onChange={setActiveTab} />
 
-            {!data ? (
+    {data ? (
+      <div className="relative z-[80] shrink-0">
+        <AskSarathiFloatingBox
+          natalPlanets={planets}
+          natalAscSign={natal?.ascendant?.sign ?? null}
+          vargaMap={vargaMap}
+          chartGalleryKeys={chartGalleryKeys}
+          currentDasha={currentDasha}
+          dashaTimelines={dashaTimelines}
+          vedicAspects={vedicAspects}
+          houseData={houses}
+          triggerEngine={triggerEngine}
+        />
+      </div>
+    ) : null}
+  </div>
+
+  {!data ? (
               <div className="py-12 text-center text-sm text-slate-900">
                 Generate to see chart data here.
               </div>

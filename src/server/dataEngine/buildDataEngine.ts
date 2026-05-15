@@ -916,12 +916,7 @@ const utilityHoraInfo = {
 if (!asc || typeof asc.lon !== "number") {
   throw new Error("Ascendant calculation failed — invalid result");
 }
-console.log("NODE_COMPARE", {
-  trueRahu: trueNodeLons.rahuLonSid,
-  trueKetu: trueNodeLons.ketuLonSid,
-  rawRahu: rawNodeLonMap.get("Rahu"),
-  rawKetu: rawNodeLonMap.get("Ketu"),
-});
+
 const ascSign = asc.sign;
 const ascLon = asc.lon;
 
@@ -1428,12 +1423,7 @@ const triggerFacts = buildTriggerFacts({
   
 
 const topTriggerAreas = getTopAreas(triggerScores);
-console.log("TRIGGER_DEBUG", {
-  transitPlanets: transitNow?.planets,
-  facts: triggerFacts,
-  scores: triggerScores,
-  topAreas: topTriggerAreas,
-});
+
 const degreeHits = computeDegreeHits({
   transitPlanets: transitNow?.planets ?? [],
   natalPlanets: natalWithStrengths.planets ?? [],
