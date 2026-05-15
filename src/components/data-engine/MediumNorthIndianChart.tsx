@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 
 type ChartPlanet = {
   planet: string;
@@ -667,37 +667,7 @@ highlightPlanets = [],
   const [selected, setSelected] = useState<ChartPlanet | null>(null);
   const [hovered, setHovered] = useState<ChartPlanet | null>(null);
   const layout = useMemo(() => getLayoutConfig(title, layoutVariant), [title, layoutVariant]);
-  const chartWrapRef = useRef<HTMLDivElement | null>(null);
-const [chartScale, setChartScale] = useState(1);
-
-useEffect(() => {
-  const el = chartWrapRef.current;
-  if (!el) return;
-
-  const update = () => {
-    const availableWidth = el.clientWidth;
-    const padding = 24;
-const usableWidth = Math.max(320, availableWidth - padding);
-
-const nextScale = Math.min(
-  1,
-  usableWidth / layout.frameWidth
-);
-    setChartScale(Number(nextScale.toFixed(4)));
-  };
-
-  update();
-
-  const observer = new ResizeObserver(update);
-  observer.observe(el);
-
-  window.addEventListener("resize", update);
-
-  return () => {
-    observer.disconnect();
-    window.removeEventListener("resize", update);
-  };
-}, [layout.frameWidth]);
+  const pct = (value: number, total: number) => `${(value / total) * 100}%`;
   const planetsByHouse = useMemo(() => getPlanetsByHouse(planets, mode), [planets, mode]);
 const transitPlanetsByHouse = useMemo(
   () => getPlanetsByHouse(transitPlanets, mode),
@@ -742,25 +712,16 @@ const transitPlanetsByHouse = useMemo(
 
       <div className="mt-4">
         <div className="min-w-0">
-      <div
-  ref={chartWrapRef}
-  className="mt-4 w-full overflow-x-auto overflow-y-hidden"
->
+      <div className="mt-4 w-full overflow-x-auto overflow-y-hidden">
   <div
-    className="mx-auto"
+    className="relative mx-auto overflow-visible rounded-2xl bg-white ring-1 ring-slate-200 shadow-sm"
     style={{
-      width: layout.frameWidth * chartScale,
-      height: layout.frameHeight * chartScale,
+      width: "100%",
+      maxWidth: layout.frameWidth,
+      aspectRatio: `${layout.frameWidth} / ${layout.frameHeight}`,
+      minWidth: 340,
     }}
   >
-    <div
-      className="relative origin-top-left overflow-visible rounded-2xl bg-white ring-1 ring-slate-200 shadow-sm"
-      style={{
-        width: layout.frameWidth,
-        height: layout.frameHeight,
-        transform: `scale(${chartScale})`,
-      }}
-    >
           <svg
             viewBox={`0 0 ${layout.frameWidth} ${layout.frameHeight}`}
             className="absolute inset-0 h-full w-full"
@@ -805,11 +766,10 @@ const transitPlanetsByHouse = useMemo(
                 key={anchor.house}
                 className="absolute"
                 style={{
-                  left: anchor.x - anchor.width / 2,
-                  top: anchor.y,
-                  width: anchor.width,
-                  minHeight: anchor.minHeight ?? 104,
-                }}
+  left: pct(anchor.x - anchor.width / 2, layout.frameWidth),
+  top: pct(anchor.y, layout.frameHeight),
+  width: pct(anchor.width, layout.frameWidth),
+}}
               >
                 
 
@@ -962,9 +922,9 @@ const transitPlanetsByHouse = useMemo(
                 key={`outer-aspect-${house}`}
                 className="pointer-events-none absolute z-30 flex flex-wrap justify-center gap-[3px]"
                 style={{
-                  left: aspectAnchor.left,
-                  top: aspectAnchor.top,
-                  width: aspectAnchor.width,
+                  left: pct(aspectAnchor.left, layout.frameWidth),
+top: pct(aspectAnchor.top, layout.frameHeight),
+width: pct(aspectAnchor.width, layout.frameWidth),
                 }}
               >
                 {rows.map((aspect) => (
@@ -1112,6 +1072,6 @@ const transitPlanetsByHouse = useMemo(
       </div>
       ) : null}
 </div>
-    </div>
+    
   );
 }
