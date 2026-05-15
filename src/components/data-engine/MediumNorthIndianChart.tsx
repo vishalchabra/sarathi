@@ -712,13 +712,13 @@ const transitPlanetsByHouse = useMemo(
 
       <div className="mt-4">
         <div className="min-w-0">
-      <div className="mt-4 w-full overflow-x-auto overflow-y-hidden">
+      <div className="mt-4 w-full overflow-hidden">
   <div
     className="relative mx-auto overflow-visible rounded-2xl bg-white ring-1 ring-slate-200 shadow-sm"
     style={{
-      width: layout.frameWidth,
-      height: layout.frameHeight,
-      minWidth: layout.frameWidth,
+      width: "100%",
+      maxWidth: layout.frameWidth,
+      aspectRatio: `${layout.frameWidth} / ${layout.frameHeight}`,
     }}
   >
           <svg
