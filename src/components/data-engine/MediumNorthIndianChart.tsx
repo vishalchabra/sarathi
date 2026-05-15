@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 type ChartPlanet = {
   planet: string;
@@ -667,6 +667,26 @@ highlightPlanets = [],
   const [selected, setSelected] = useState<ChartPlanet | null>(null);
   const [hovered, setHovered] = useState<ChartPlanet | null>(null);
   const layout = useMemo(() => getLayoutConfig(title, layoutVariant), [title, layoutVariant]);
+  const chartBoxRef = useRef<HTMLDivElement | null>(null);
+const [chartScale, setChartScale] = useState(1);
+
+useEffect(() => {
+  const el = chartBoxRef.current;
+  if (!el) return;
+
+  const updateScale = () => {
+    const availableWidth = el.clientWidth;
+    const nextScale = Math.min(1, availableWidth / layout.frameWidth);
+    setChartScale(nextScale);
+  };
+
+  updateScale();
+
+  const observer = new ResizeObserver(updateScale);
+  observer.observe(el);
+
+  return () => observer.disconnect();
+}, [layout.frameWidth]);
   const pct = (value: number, total: number) => `${(value / total) * 100}%`;
   const planetsByHouse = useMemo(() => getPlanetsByHouse(planets, mode), [planets, mode]);
 const transitPlanetsByHouse = useMemo(
@@ -712,15 +732,23 @@ const transitPlanetsByHouse = useMemo(
 
       <div className="mt-4">
         <div className="min-w-0">
-      <div className="mt-4 w-full overflow-hidden">
+      <div ref={chartBoxRef} className="mt-4 w-full overflow-hidden">
   <div
-    className="relative mx-auto overflow-visible rounded-2xl bg-white ring-1 ring-slate-200 shadow-sm"
+    className="relative mx-auto rounded-2xl bg-white ring-1 ring-slate-200 shadow-sm"
     style={{
-      width: "100%",
-      maxWidth: layout.frameWidth,
-      aspectRatio: `${layout.frameWidth} / ${layout.frameHeight}`,
+      width: layout.frameWidth * chartScale,
+      height: layout.frameHeight * chartScale,
     }}
   >
+    <div
+      className="absolute left-0 top-0 overflow-visible"
+      style={{
+        width: layout.frameWidth,
+        height: layout.frameHeight,
+        transform: `scale(${chartScale})`,
+        transformOrigin: "top left",
+      }}
+    >
           <svg
             viewBox={`0 0 ${layout.frameWidth} ${layout.frameHeight}`}
             className="absolute inset-0 h-full w-full"
@@ -1072,6 +1100,6 @@ const transitPlanetsByHouse = useMemo(
       </div>
       ) : null}
 </div>
-    
+    </div>
   );
 }
