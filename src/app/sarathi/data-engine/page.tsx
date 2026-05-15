@@ -2236,7 +2236,7 @@ const errorBoxClass =
 
               <div>
                 <label className="text-xs font-medium uppercase tracking-wide text-slate-400">
-                  City
+                  City of Birth
                 </label>
                 <div className="mt-1">
                   <LockingCityAutocomplete
