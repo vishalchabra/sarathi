@@ -2465,6 +2465,13 @@ const errorBoxClass =
           functionalRoles={roles}
           natalStrengths={natalStrengths}
           transitNow={transitNow}
+          birthPanchang={birthPanchang}
+          utilityPanchang={utilityPanchang}
+          utilityHora={utilityHora}
+          selectedDateISO={selectedDateISO}
+          birthMeta={birthMeta}
+          timezone={timezone}
+          selectedPlace={selectedPlace}
         />
       </div>
     ) : null}

@@ -123,6 +123,13 @@ export default function AskSarathiFloatingBox({
   functionalRoles,
   natalStrengths,
   transitNow,
+  birthPanchang,
+  utilityPanchang,
+  utilityHora,
+  selectedDateISO,
+  birthMeta,
+  selectedPlace,
+  timezone,
 }: {
   natalPlanets: any[];
   natalAscSign: string | null;
@@ -136,6 +143,13 @@ export default function AskSarathiFloatingBox({
   functionalRoles?: any;
   natalStrengths?: any[];
   transitNow?: any;
+  birthPanchang?: any;
+  utilityPanchang?: any;
+  utilityHora?: any;
+  selectedDateISO?: string;
+  birthMeta?: any;
+  timezone?: string;
+  selectedPlace?: any;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [question, setQuestion] = useState("");
@@ -256,7 +270,20 @@ const findPlanetStrengthStatus = (planetName: string) => {
 
   return parts.length ? parts : [`No special status found for ${planetName}.`];
 };
+const getCurrentTimeHHMM = () => {
+  const tz =
+    birthMeta?.timezone ??
+    selectedPlace?.timezone ??
+    timezone ??
+    "Asia/Kolkata";
 
+  return new Intl.DateTimeFormat("en-GB", {
+    timeZone: tz,
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(new Date());
+};
 const findPlanetsByStrengthStatus = (status: string) => {
   const rows = Array.isArray(natalStrengths) ? natalStrengths : [];
 
@@ -285,7 +312,74 @@ const findPlanetNakshatra = (planetName: string, chartKey = "d1") => {
     }`,
   ];
 };
+const formatUtilityValue = (value: any) => {
+  if (value === null || value === undefined || value === "") return "—";
 
+  if (typeof value === "object") {
+    const start =
+      value?.start ?? value?.startsAt ?? value?.from ?? value?.fromTime ?? null;
+
+    const end =
+      value?.end ?? value?.endsAt ?? value?.to ?? value?.toTime ?? null;
+
+    if (start || end) {
+      return `${start ?? "—"} – ${end ?? "—"}`;
+    }
+
+    return JSON.stringify(value);
+  }
+
+  return String(value);
+};
+
+const findPanchangRows = () => {
+  const p = utilityPanchang ?? null;
+
+  if (!p) {
+  return [
+    "No current Panchang data found.",
+    "Generate Panchang from Utilities first, or wire Ask Sārathi to fetch Panchang directly like Hora.",
+  ];
+}
+
+  return [
+    `Date: ${formatUtilityValue(selectedDateISO)}`,
+    `Tithi: ${formatUtilityValue(p?.tithi ?? p?.tithiName)}`,
+    `Paksha: ${formatUtilityValue(p?.paksha)}`,
+    `Nakshatra: ${formatUtilityValue(p?.nakshatra ?? p?.nakshatraName)}`,
+    `Yoga: ${formatUtilityValue(p?.yoga ?? p?.yogaName)}`,
+    `Karana: ${formatUtilityValue(p?.karana ?? p?.karanaName)}`,
+    `Sunrise: ${formatUtilityValue(p?.sunrise)}`,
+    `Sunset: ${formatUtilityValue(p?.sunset)}`,
+    `Moonrise: ${formatUtilityValue(p?.moonrise)}`,
+    `Moonset: ${formatUtilityValue(p?.moonset)}`,
+    `Rahu Kaal: ${formatUtilityValue(p?.rahuKaal ?? p?.rahuKala)}`,
+    `Gulika Kaal: ${formatUtilityValue(p?.gulikaKaal ?? p?.gulikaKala)}`,
+    `Abhijit Muhurta: ${formatUtilityValue(p?.abhijitMuhurta)}`,
+  ].filter((line) => !line.endsWith(": —"));
+};
+
+const findHoraRows = () => {
+  const h = utilityHora ?? null;
+
+  if (!h) return ["No Hora data found. Generate Hora first in Utilities."];
+
+  return [
+    `Hora Lord: ${formatUtilityValue(h?.horaLord ?? h?.lord)}`,
+    `Hora Number: ${formatUtilityValue(h?.horaNumber ?? h?.number)}`,
+    `Phase: ${formatUtilityValue(h?.phase)}`,
+    `Starts: ${formatUtilityValue(h?.startsAt ?? h?.start)}`,
+    `Ends: ${formatUtilityValue(h?.endsAt ?? h?.end)}`,
+  ].filter((line) => !line.endsWith(": —"));
+};
+
+const findRequestedHoraTime = (text: string) => {
+  const match =
+    text.match(/\b([01]?\d|2[0-3]):([0-5]\d)\b/) ??
+    text.match(/\b([1-9]|1[0-2])\s*(am|pm)\b/i);
+
+  return match?.[0] ?? null;
+};
 const findPlanetsByPada = (pada: number) => {
   const chart = getChart("d1");
 
@@ -472,7 +566,80 @@ const findNakshatraName = (text: string) => {
 
   return `${chartKey.toUpperCase()} — ${parts.join(" • ")}`;
 };
+const fetchPanchangRows = async () => {
+  const lat = Number(selectedPlace?.lat ?? birthMeta?.lat ?? 0);
+  const lon = Number(selectedPlace?.lon ?? birthMeta?.lon ?? 0);
 
+  if (!lat || !lon) {
+    return ["No place/coordinates found. Generate chart first."];
+  }
+
+  const effectiveTimezone =
+    birthMeta?.timezone ??
+    selectedPlace?.timezone ??
+    timezone ??
+    "Asia/Kolkata";
+
+  const effectiveDateISO =
+    selectedDateISO ??
+    new Date().toISOString().slice(0, 10);
+
+  const res = await fetch("/api/data-engine", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      birth: {
+        name: birthMeta?.name ?? "Panchang Query",
+        city: birthMeta?.city ?? selectedPlace?.name ?? "Selected Place",
+        dateISO: effectiveDateISO,
+        time: getCurrentTimeHHMM(),
+        timezone: effectiveTimezone,
+        lat,
+        lon,
+      },
+      plan: "pro",
+      selectedDateISO: effectiveDateISO,
+      utilityDateISO: effectiveDateISO,
+      utilityPlace: {
+        name: selectedPlace?.name ?? birthMeta?.city ?? "Selected Place",
+        lat,
+        lon,
+        timezone: effectiveTimezone,
+      },
+      compareDateISO: null,
+    }),
+  });
+
+  const json = await res.json();
+
+  const p =
+    json?.timing?.utilities?.panchang ??
+    json?.utilities?.panchang ??
+    json?.foundations?.panchang ??
+    null;
+
+  if (!p) {
+    return ["Panchang data not returned."];
+  }
+
+  return [
+    `Date: ${formatUtilityValue(effectiveDateISO)}`,
+    `Tithi: ${formatUtilityValue(p?.tithi ?? p?.tithiName)}`,
+    `Paksha: ${formatUtilityValue(p?.paksha)}`,
+    `Nakshatra: ${formatUtilityValue(p?.nakshatra ?? p?.nakshatraName)}`,
+    `Yoga: ${formatUtilityValue(p?.yoga ?? p?.yogaName)}`,
+    `Karana: ${formatUtilityValue(p?.karana ?? p?.karanaName)}`,
+    `Sunrise: ${formatUtilityValue(p?.sunrise)}`,
+    `Sunset: ${formatUtilityValue(p?.sunset)}`,
+    `Moonrise: ${formatUtilityValue(p?.moonrise)}`,
+    `Moonset: ${formatUtilityValue(p?.moonset)}`,
+    `Rahu Kaal: ${formatUtilityValue(p?.rahuKaal ?? p?.rahuKala)}`,
+    `Gulika Kaal: ${formatUtilityValue(p?.gulikaKaal ?? p?.gulikaKala)}`,
+    `Abhijit Muhurta: ${formatUtilityValue(p?.abhijitMuhurta)}`,
+  ].filter((line) => !line.endsWith(": —"));
+};
   const findPlanetName = (text: string) => {
     const lower = text.toLowerCase();
     return planetNames.find((p) => lower.includes(p.toLowerCase())) ?? null;
@@ -606,6 +773,76 @@ const findPlanetsInfluencingHouse = (house: number) => {
   });
 
   return rows;
+};
+const fetchHoraRows = async (timeHHMM: string) => {
+  const place =
+    selectedPlace ??
+    birthMeta?.place ??
+    null;
+
+  const lat = Number(selectedPlace?.lat ?? birthMeta?.lat ?? 0);
+  const lon = Number(selectedPlace?.lon ?? birthMeta?.lon ?? 0);
+
+  if (!lat || !lon) {
+    return ["No place/coordinates found. Generate chart first."];
+  }
+
+  const effectiveTimezone =
+    birthMeta?.timezone ??
+    selectedPlace?.timezone ??
+    timezone ??
+    "Asia/Kolkata";
+
+  const effectiveDateISO =
+    selectedDateISO ??
+    new Date().toISOString().slice(0, 10);
+
+  const res = await fetch("/api/data-engine", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      birth: {
+        name: birthMeta?.name ?? "Hora Query",
+        city: birthMeta?.city ?? selectedPlace?.name ?? "Selected Place",
+        dateISO: birthMeta?.dateISO ?? effectiveDateISO,
+        time: birthMeta?.time ?? timeHHMM,
+        timezone: effectiveTimezone,
+        lat,
+        lon,
+      },
+      plan: "pro",
+      selectedDateISO: effectiveDateISO,
+      utilityDateISO: effectiveDateISO,
+      utilityHoraDateISO: effectiveDateISO,
+      utilityTime: timeHHMM,
+      utilityPlace: {
+        name: selectedPlace?.name ?? birthMeta?.city ?? "Selected Place",
+        lat,
+        lon,
+        timezone: effectiveTimezone,
+      },
+      compareDateISO: null,
+    }),
+  });
+
+  const json = await res.json();
+
+  const h =
+    json?.timing?.utilities?.hora ??
+    json?.utilities?.hora ??
+    null;
+
+  if (!h) return ["Hora data not returned."];
+
+  return [
+    `Hora Lord: ${formatUtilityValue(h?.horaLord ?? h?.lord)}`,
+    `Hora Number: ${formatUtilityValue(h?.horaNumber ?? h?.number)}`,
+    `Phase: ${formatUtilityValue(h?.phase)}`,
+    `Starts: ${formatUtilityValue(h?.startsAt ?? h?.start)}`,
+    `Ends: ${formatUtilityValue(h?.endsAt ?? h?.end)}`,
+  ].filter((line) => !line.endsWith(": —"));
 };
 const ordinal = (n: number) => {
   if (n === 1) return "1st";
@@ -930,7 +1167,7 @@ const rememberContext = (patch: AskContext) => {
 
   setAskContext(askContextRef.current);
 };
-  const answerQuestion = () => {
+  const answerQuestion = async () => {
     const q = question.trim();
     const lower = normalizeQuestion(q);
     
@@ -1249,6 +1486,7 @@ if (
 
   return;
 }
+
  if (
   planet &&
   chartKey &&
@@ -1743,7 +1981,53 @@ if (padaMatch && lower.includes("planet")) {
 
   return;
 }
+if (
+  lower.includes("panchang") ||
+  lower.includes("tithi") ||
+  lower.includes("nakshatra today")
+) {
+  setAnswer({
+    title: "Panchang",
+    summary: "Calculating Panchang from utility engine...",
+    rows: ["Fetching current Panchang..."],
+  });
 
+  const rows = await fetchPanchangRows();
+
+  setAnswer({
+    title: "Panchang",
+    summary:
+      "Calculated using birth/chart location. For another place, use Utilities → Panchang.",
+    rows,
+  });
+
+  return;
+}
+if (
+  lower.includes("hora") ||
+  lower.includes("current hora")
+) {
+  const requestedTime = findRequestedHoraTime(q);
+  const effectiveTime = requestedTime ?? getCurrentTimeHHMM();
+
+    setAnswer({
+    title: requestedTime ? `Hora at ${requestedTime}` : "Current Hora",
+    summary: "Calculating Hora from utility engine...",
+    rows: [`Time: ${effectiveTime}`],
+  });
+
+  const rows = await fetchHoraRows(effectiveTime);
+   setAnswer({
+    title: requestedTime ? `Hora at ${requestedTime}` : "Current Hora",
+    summary:
+  "Calculated using birth/chart location. For another place or time, use Utilities → Hora.",
+    rows,
+  });
+
+  return;
+}
+
+  
     setAnswer({
       title: "I can answer factual chart-data questions for now",
       rows: [

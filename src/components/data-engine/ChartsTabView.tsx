@@ -630,7 +630,9 @@ function ClassicYogasCard({
   currentDasha?: any;
 }) {
   const [isOpen, setIsOpen] = useState(false);
-  const rawDetected = Array.isArray(data) ? data : [];
+  const rawDetected = Array.isArray(data)
+  ? data.filter((yoga: any) => yoga && typeof yoga === "object")
+  : [];
   
   const currentDashaPlanets = [
   currentDasha?.md?.planet ?? currentDasha?.md?.lord ?? currentDasha?.md,
@@ -666,9 +668,9 @@ function getActiveYogaReason(yoga: any): string | null {
       }
 
       acc[key].combinations.push({
-        rule: yoga.rule,
-        evidence: yoga.evidence,
-      });
+  rule: yoga?.rule ?? "Rule not available",
+  evidence: yoga?.evidence ?? null,
+});
 
       return acc;
     }, {})
