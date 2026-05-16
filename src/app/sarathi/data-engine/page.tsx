@@ -2462,6 +2462,9 @@ const errorBoxClass =
           vedicAspects={vedicAspects}
           houseData={houses}
           triggerEngine={triggerEngine}
+          functionalRoles={roles}
+          natalStrengths={natalStrengths}
+          transitNow={transitNow}
         />
       </div>
     ) : null}

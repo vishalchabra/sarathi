@@ -120,6 +120,9 @@ export default function AskSarathiFloatingBox({
   vedicAspects,
   houseData,
   triggerEngine,
+  functionalRoles,
+  natalStrengths,
+  transitNow,
 }: {
   natalPlanets: any[];
   natalAscSign: string | null;
@@ -130,6 +133,9 @@ export default function AskSarathiFloatingBox({
   vedicAspects?: any;
   houseData?: any;
   triggerEngine?: any;
+  functionalRoles?: any;
+  natalStrengths?: any[];
+  transitNow?: any;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [question, setQuestion] = useState("");
@@ -148,7 +154,6 @@ export default function AskSarathiFloatingBox({
   const [position, setPosition] = useState({ x: 900, y: 170 });
   const [dragging, setDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
-console.log("ASK SARATHI PROPS", { vedicAspects });
   const planetNames = ["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn", "Rahu", "Ketu"];
 const hasAny = (text: string, words: string[]) => {
   return words.some((word) => text.includes(word));
@@ -230,7 +235,96 @@ const normalizeQuestion = (text: string) => {
 .replace(/\b4l\b/g, "4th lord")
 .replace(/\b9l\b/g, "9th lord")
 };
+const findPlanetStrengthStatus = (planetName: string) => {
+  const rows = Array.isArray(natalStrengths) ? natalStrengths : [];
 
+  const row = rows.find(
+    (x: any) => String(x?.planet ?? "").toLowerCase() === planetName.toLowerCase()
+  );
+
+  if (!row) return [`No strength/status data found for ${planetName}.`];
+
+  const parts = [
+  row?.strengthBand ? `Strength: ${row.strengthBand}` : null,
+  row?.isExalted ? "Exalted" : null,
+  row?.isDebilitated ? "Debilitated" : null,
+  row?.isOwnSign ? "Own sign" : null,
+  row?.isMoolatrikona ? "Moolatrikona" : null,
+  row?.isVargottama ? "Vargottama" : null,
+  row?.combust ? "Combust" : null,
+].filter(Boolean) as string[];
+
+  return parts.length ? parts : [`No special status found for ${planetName}.`];
+};
+
+const findPlanetsByStrengthStatus = (status: string) => {
+  const rows = Array.isArray(natalStrengths) ? natalStrengths : [];
+
+  return rows
+    .filter((row: any) => {
+      if (status === "vargottama") return Boolean(row?.isVargottama);
+      if (status === "exalted") return Boolean(row?.isExalted);
+      if (status === "debilitated") return Boolean(row?.isDebilitated);
+      if (status === "combust") return Boolean(row?.combust);
+      if (status === "strong") return row?.strengthBand === "strong";
+      if (status === "weak") return row?.strengthBand === "weak";
+      return false;
+    })
+    .map((row: any) => `${row?.planet ?? "Unknown"} — ${status}`);
+};
+
+const findPlanetNakshatra = (planetName: string, chartKey = "d1") => {
+  const chart = getChart(chartKey);
+  const row = chart.planets.find((p: any) => p?.planet === planetName);
+
+  if (!row) return [`${planetName} not found in ${chartKey.toUpperCase()}.`];
+
+  return [
+    `${planetName} — ${row.nakshatra ?? "Nakshatra not found"}${
+      row.pada ? ` • Pada ${row.pada}` : ""
+    }`,
+  ];
+};
+
+const findPlanetsByPada = (pada: number) => {
+  const chart = getChart("d1");
+
+  return chart.planets
+    .filter((p: any) => Number(p?.pada) === pada)
+    .map(
+      (p: any) =>
+        `${p.planet} — ${p.nakshatra ?? "—"} • Pada ${p.pada} • ${p.sign ?? "—"}`
+    );
+};
+
+const findTransitPlanet = (planetName: string) => {
+  const rows =
+    Array.isArray(transitNow?.planets)
+      ? transitNow.planets
+      : Array.isArray(transitNow)
+        ? transitNow
+        : [];
+
+  const row = rows.find(
+    (p: any) => String(p?.planet ?? "").toLowerCase() === planetName.toLowerCase()
+  );
+
+  if (!row) return [`Transit ${planetName} not found.`];
+
+  const parts = [
+    row?.sign ?? null,
+    typeof row?.houseFromLagna === "number"
+      ? `H${row.houseFromLagna}`
+      : typeof row?.house === "number"
+        ? `H${row.house}`
+        : null,
+    typeof row?.degree === "number" ? `${row.degree.toFixed(2)}°` : null,
+    row?.nakshatra ? `${row.nakshatra}${row?.pada ? ` Pada ${row.pada}` : ""}` : null,
+    row?.retrograde || row?.isRetrograde ? "Retrograde" : null,
+  ].filter(Boolean);
+
+  return [`Transit ${planetName} — ${parts.join(" • ")}`];
+};
 const NAKSHATRA_ALIASES: Record<string, string> = {
   ashwini: "Ashwini",
   ashvini: "Ashwini",
@@ -258,7 +352,77 @@ const NAKSHATRA_ALIASES: Record<string, string> = {
   shatabhisha: "Shatabhisha",
   revati: "Revati",
 };
+const findRolePlanets = (roleKeyword: string) => {
+  const roleMap: Record<string, string[]> = {
+    maraka: functionalRoles?.maraka ?? [],
+    badhak: functionalRoles?.badhaka ?? [],
+    badhaka: functionalRoles?.badhaka ?? [],
+    yogakaraka: functionalRoles?.yogakaraka ?? [],
+    benefic: functionalRoles?.functionalBenefics ?? [],
+    malefic: functionalRoles?.functionalMalefics ?? [],
+  };
 
+  const planets = roleMap[roleKeyword] ?? [];
+
+  return planets.map((planet) => `${planet} — ${roleKeyword}`);
+};
+const findCurrentDashaActivatedHouses = () => {
+  const md = currentDasha?.mahadasha ?? currentDasha?.md ?? null;
+  const ad = currentDasha?.antardasha ?? currentDasha?.ad ?? null;
+  const pd = currentDasha?.pratyantardasha ?? currentDasha?.pd ?? null;
+
+  const planets = [md, ad, pd].filter(Boolean);
+
+  const chart = getChart("d1");
+
+  const rows = planets.map((planet: string) => {
+    const p = chart.planets.find((x: any) => x?.planet === planet);
+
+    return p
+      ? `${planet} → H${p.house} • ${p.sign}`
+      : `${planet} → placement not found`;
+  });
+
+  return rows;
+};
+const findPlanetRelationship = (
+  fromPlanet: string,
+  toPlanet: string
+) => {
+  const chart = getChart("d1");
+
+  const from = chart.planets.find((p: any) => p?.planet === fromPlanet);
+  const to = chart.planets.find((p: any) => p?.planet === toPlanet);
+
+  if (!from || !to) {
+    return [`Relationship data not found.`];
+  }
+
+  const distance =
+    ((to.house - from.house + 12) % 12) + 1;
+
+  return [
+    `${fromPlanet} → ${toPlanet}`,
+    `${ordinal(distance)} sambandh`,
+    `${fromPlanet}: H${from.house}`,
+    `${toPlanet}: H${to.house}`,
+  ];
+};
+const comparePlanetAcrossCharts = (
+  planetName: string
+) => {
+  return chartGalleryKeys.map((key) => {
+    const chart = getChart(key);
+
+    const p = chart.planets.find(
+      (x: any) => x?.planet === planetName
+    );
+
+    return p
+      ? formatPlanet(key, p)
+      : `${planetName} not found in ${key.toUpperCase()}`;
+  });
+};
 const findNakshatraName = (text: string) => {
   const normalized = normalizeQuestion(text);
 
@@ -443,6 +607,12 @@ const findPlanetsInfluencingHouse = (house: number) => {
 
   return rows;
 };
+const ordinal = (n: number) => {
+  if (n === 1) return "1st";
+  if (n === 2) return "2nd";
+  if (n === 3) return "3rd";
+  return `${n}th`;
+};
 const findAspectsForPlanet = (targetPlanet: string) => {
   const rows: string[] = [];
 
@@ -495,8 +665,7 @@ if (
   rows.push(`${targetPlanet} → ${to} • ${label}`);
 }
   });
-console.log("VEDIC ASPECTS DEBUG", vedicAspects);
-console.log("ASPECT ROW SAMPLE", aspectRows?.[0]);
+
   return rows.length ? rows : [`No aspect data found for ${targetPlanet}.`];
 };
 const findPlanetRelationships = (targetPlanet: string) => {
@@ -554,7 +723,8 @@ const getDashaEnd = (node: any) => {
     null
   );
 };
-
+const capitalizePlanet = (value: string) =>
+  value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
 const getDashaStart = (node: any) => {
   if (!node || typeof node === "string") return null;
 
@@ -1032,7 +1202,53 @@ if (
       });
       return;
     }
+if (
+  planet &&
+  (
+    lower.includes("transit") ||
+    lower.includes("gochar") ||
+    lower.includes("currently")
+  )
+) {
+  const rows = findTransitPlanet(planet);
 
+  setAnswer({
+    title: `Transit ${planet}`,
+    summary: "Current transit snapshot.",
+    rows,
+  });
+
+  rememberContext({
+    lastPlanet: planet,
+    lastTopic: "transit",
+  });
+
+  return;
+}
+if (
+  planet &&
+  (
+    lower.includes("compare") ||
+    lower.includes("across charts") ||
+    lower.includes("across vargas") ||
+    lower.includes("across varga")
+  )
+) {
+  const rows = comparePlanetAcrossCharts(planet);
+
+  setAnswer({
+    title: `${planet} Across Charts`,
+    summary: "Comparison across loaded charts.",
+    rows,
+  });
+
+  rememberContext({
+    lastPlanet: planet,
+    lastTopic: "comparison",
+  });
+
+  return;
+}
  if (
   planet &&
   chartKey &&
@@ -1041,7 +1257,11 @@ if (
   !lower.includes("retrograde") &&
   !lower.includes("combust") &&
   !lower.includes("exalted") &&
-  !lower.includes("debilitated")
+  !lower.includes("debilitated") &&
+  !lower.includes("transit") &&
+  !lower.includes("gochar") &&
+  !lower.includes("current position") &&
+  !lower.includes("currently")
 ) {
   const chart = getChart(chartKey);
   const p = chart.planets.find((x: any) => x?.planet === planet);
@@ -1057,6 +1277,52 @@ if (
     lastPlanet: planet,
     lastChartKey: chartKey,
     lastTopic: "placement",
+  });
+
+  return;
+}
+if (
+  lower.includes("activated houses") ||
+  lower.includes("dasha activation") ||
+  lower.includes("current dasha houses")
+) {
+  const rows = findCurrentDashaActivatedHouses();
+
+  setAnswer({
+    title: "Current Dasha Activated Houses",
+    summary: "Based on MD / AD / PD natal placements.",
+    rows,
+  });
+
+  return;
+}
+const relationshipMatch = lower.match(
+  /(sun|moon|mars|mercury|jupiter|venus|saturn|rahu|ketu).*(sun|moon|mars|mercury|jupiter|venus|saturn|rahu|ketu)/
+);
+
+if (
+  relationshipMatch &&
+  (
+    lower.includes("relationship") ||
+    lower.includes("sambandh") ||
+    lower.includes("relation")
+  )
+) {
+  const fromPlanet =
+    capitalizePlanet(relationshipMatch[1]);
+
+  const toPlanet =
+    capitalizePlanet(relationshipMatch[2]);
+
+  const rows = findPlanetRelationship(
+    fromPlanet,
+    toPlanet
+  );
+
+  setAnswer({
+    title: `${fromPlanet} ↔ ${toPlanet}`,
+    summary: "Planet relationship in D1.",
+    rows,
   });
 
   return;
@@ -1349,6 +1615,7 @@ if (lower.includes("activated") && lower.includes("house")) {
 
   return;
 }
+
 if (
   lower.includes("activation") ||
   lower.includes("activated")
@@ -1363,6 +1630,115 @@ if (
     rows: rows.length
       ? rows
       : ["No activated houses found in loaded trigger data."],
+  });
+
+  return;
+}
+
+const roleType =
+  lower.includes("maraka")
+    ? "maraka"
+    : lower.includes("badhak") || lower.includes("badhaka")
+      ? "badhaka"
+      : lower.includes("yogakaraka") || lower.includes("yog karaka")
+        ? "yogakaraka"
+        : lower.includes("functional benefic")
+          ? "benefic"
+          : lower.includes("functional malefic")
+            ? "malefic"
+            : null;
+
+if (roleType) {
+  const rows = findRolePlanets(roleType);
+
+  setAnswer({
+    title: `${roleType[0].toUpperCase() + roleType.slice(1)} Planets`,
+    summary: rows.length
+      ? `${rows.length} planet(s) found from functional roles.`
+      : "No matching role found.",
+    rows: rows.length ? rows : [`No ${roleType} planet found in loaded role data.`],
+  });
+
+  return;
+}
+const strengthStatus =
+  lower.includes("vargottam") || lower.includes("vargottama")
+    ? "vargottama"
+    : lower.includes("exalted")
+      ? "exalted"
+      : lower.includes("debilitated")
+        ? "debilitated"
+        : lower.includes("combust")
+          ? "combust"
+          : lower.includes("strong")
+            ? "strong"
+            : lower.includes("weak")
+              ? "weak"
+              : null;
+
+if (strengthStatus && !roleType) {
+  if (planet) {
+    const rows = findPlanetStrengthStatus(planet);
+
+    setAnswer({
+      title: `${planet} Status`,
+      summary: "From natal strength/status data.",
+      rows,
+    });
+
+    rememberContext({
+      lastPlanet: planet,
+      lastTopic: "status",
+    });
+
+    return;
+  }
+
+  const rows = findPlanetsByStrengthStatus(strengthStatus);
+
+  setAnswer({
+    title: `${strengthStatus[0].toUpperCase() + strengthStatus.slice(1)} Planets`,
+    summary: rows.length ? `${rows.length} planet(s) found.` : "No matching planets found.",
+    rows: rows.length ? rows : [`No ${strengthStatus} planets found.`],
+  });
+
+  return;
+}
+if (
+  planet &&
+  (
+    lower.includes("nakshatra") ||
+    lower.includes("nak ")
+  )
+) {
+  const key = chartKey ?? "d1";
+  const rows = findPlanetNakshatra(planet, key);
+
+  setAnswer({
+    title: `${planet} Nakshatra`,
+    summary: `${key.toUpperCase()} data.`,
+    rows,
+  });
+
+  rememberContext({
+    lastPlanet: planet,
+    lastChartKey: key,
+    lastTopic: "nakshatra",
+  });
+
+  return;
+}
+
+const padaMatch = lower.match(/\bpada\s*([1-4])\b/);
+
+if (padaMatch && lower.includes("planet")) {
+  const pada = Number(padaMatch[1]);
+  const rows = findPlanetsByPada(pada);
+
+  setAnswer({
+    title: `Planets in Pada ${pada}`,
+    summary: rows.length ? `${rows.length} planet(s) found in D1.` : "No planets found.",
+    rows: rows.length ? rows : [`No planets found in Pada ${pada}.`],
   });
 
   return;
