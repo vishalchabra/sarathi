@@ -388,26 +388,7 @@ function buildOneVargaFromTrustedAsc(opts: {
     .map((p) => {
       const rawPlLon = p.lon as number;
 
-const isNode = p.planet === "Rahu" || p.planet === "Ketu";
-
-function adjustNodeVargaBoundary(lon: number, varga: number) {
-  const inSignDeg = ((lon % 30) + 30) % 30;
-  const divisionSize = 30 / varga;
-  const positionInDivision = inSignDeg % divisionSize;
-  const distanceToNextBoundary = divisionSize - positionInDivision;
-
-  // Only nudge Rahu/Ketu if extremely close to the next varga boundary.
-  // This avoids shifting normal node placements like 21°.
-  if (distanceToNextBoundary <= 0.03) {
-    return wrap360(lon + 0.03);
-  }
-
-  return lon;
-}
-
-const plLon = isNode
-  ? adjustNodeVargaBoundary(rawPlLon, opts.varga)
-  : rawPlLon;
+const plLon = rawPlLon;
 
 let plSign: string;
 
