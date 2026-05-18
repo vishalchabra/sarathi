@@ -630,10 +630,24 @@ function ClassicYogasCard({
   currentDasha?: any;
 }) {
   const [isOpen, setIsOpen] = useState(false);
-  const rawDetected = Array.isArray(data)
-  ? data.filter((yoga: any) => yoga && typeof yoga === "object")
-  : [];
-  
+  const rawDetectedSource = Array.isArray(data)
+  ? data
+  : Array.isArray(data?.detected)
+    ? data.detected
+    : Array.isArray(data?.yogas)
+      ? data.yogas
+      : Array.isArray(data?.classicYogas)
+        ? data.classicYogas
+        : [];
+
+const rawDetected = rawDetectedSource.filter(
+  (yoga: any) => yoga && typeof yoga === "object"
+);
+  console.log("CLASSIC YOGAS DEBUG", {
+  data,
+  rawDetectedSource,
+  rawDetected,
+});
   const currentDashaPlanets = [
   currentDasha?.md?.planet ?? currentDasha?.md?.lord ?? currentDasha?.md,
   currentDasha?.ad?.planet ?? currentDasha?.ad?.lord ?? currentDasha?.ad,

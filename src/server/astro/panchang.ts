@@ -232,13 +232,25 @@ export async function getPanchang(birth: BirthLike) {
   const lat = birth.place?.lat ?? 0;
   const lon = birth.place?.lon ?? 0;
 
-  const { jd, dtUTC } = await jdUTFromLocal(birth.dobISO, birth.tob, tz);
-  const jdUT = jd;
+  const approx = computeSunTimesApprox(birth.dobISO, tz, lat, lon);
+const sunriseStr = approx.sunrise || "06:00";
+const sunsetStr = approx.sunset || "18:00";
 
-  const dtLocal = dtUTC.setZone(tz);
+// Panchang should be calculated for the supplied local time.
+// Birth Panchang = birth time.
+// Utility Panchang = utility/current time.
+const effectiveTime =
+  birth.tob && String(birth.tob).trim()
+    ? String(birth.tob).trim()
+    : "12:00";
 
-  // ✅ Sidereal Sun/Moon from Astro Engine v2
-  const { sun, moon } = await getSiderealPositionsV2(dtUTC.toJSDate());
+const { jd, dtUTC } = await jdUTFromLocal(birth.dobISO, effectiveTime, tz);
+const jdUT = jd;
+
+const dtLocal = dtUTC.setZone(tz);
+
+// ✅ Sidereal Sun/Moon from Astro Engine v2 at supplied time
+const { sun, moon } = await getSiderealPositionsV2(dtUTC.toJSDate());
 
   await ensureNakModule();
 
@@ -256,9 +268,7 @@ export async function getPanchang(birth: BirthLike) {
     index: nakIndex,
   };
 
-  const approx = computeSunTimesApprox(birth.dobISO, tz, lat, lon);
-  const sunriseStr = approx.sunrise || "06:00";
-  const sunsetStr = approx.sunset || "18:00";
+  
 
   const moonriseStr = "—";
   const moonsetStr = "—";

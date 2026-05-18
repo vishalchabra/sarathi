@@ -1192,12 +1192,13 @@ const chandrabalam = getChandrabalam(
   zone: birth.timezone,
 });
 const birthPanchang = await buildPanchangData({
-    dateISO: birth.dateISO,
-    timezone: birth.timezone,
-    lat: birth.lat,
-    lon: birth.lon,
-    transitNow: null,
-  });
+  dateISO: birth.dateISO,
+  time: birth.time,
+  timezone: birth.timezone,
+  lat: birth.lat,
+  lon: birth.lon,
+  transitNow: null,
+});
 const horaInfo = getAccurateHoraLord({
   birthDateISO: birth.dateISO,
   birthTime: birth.time,
@@ -1487,13 +1488,18 @@ const microTriggerDays = buildMicroTriggerDays({
     houses,
     vargas,
   });
-const classicYogas = buildYogaActivation({
+const classicYogaActivations = buildYogaActivation({
   yogas: classicYogasRaw.detected ?? [],
   dasha,
   transitPlanets: transitNow?.planets ?? [],
   degreeHits,
   degreeHitWindows,
 });
+
+const classicYogas = {
+  ...classicYogasRaw,
+  activations: classicYogaActivations,
+};
   return {
     meta: {
       generatedAtISO: new Date().toISOString(),

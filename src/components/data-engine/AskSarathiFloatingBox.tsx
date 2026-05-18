@@ -1194,9 +1194,8 @@ const planet =
 
 const chartKey =
   explicitChartKey ??
-  (lower.includes("in d") || lower.match(/\bd\s*[1-9]/)
-    ? null
-    : askContext.lastChartKey ?? null);
+  askContext.lastChartKey ??
+  null;
 
 const houseNumber =
   explicitHouseNumber ??
@@ -1205,6 +1204,29 @@ const houseNumber =
     : null);
     if (!q) return;
 setQuestion("");
+const chartPlanetsMatch =
+  lower.match(/\b(planets|placements)\s+in\s+d\s*([1-9][0-9]?)\b/) ??
+  lower.match(/\b(show|list|all)\s+planets\s+in\s+d\s*([1-9][0-9]?)\b/);
+
+if (chartPlanetsMatch) {
+  const matchedD = chartPlanetsMatch[2] ?? chartPlanetsMatch[1];
+  const key = `d${matchedD}`;
+
+  const rows = findAllPlanetsInChart(key);
+
+  setAnswer({
+    title: `All planets in ${key.toUpperCase()}`,
+    summary: rows.length ? `${rows.length} planet(s) found.` : "No planets found.",
+    rows: rows.length ? rows : [`No planet data found for ${key.toUpperCase()}.`],
+  });
+
+  rememberContext({
+    lastChartKey: key,
+    lastTopic: "chart_planets",
+  });
+
+  return;
+}
     const definitionKey = Object.keys(DEFINITIONS).find((key) =>
       lower.includes(`what is ${key}`) || lower.includes(`meaning of ${key}`)
     );
@@ -1486,7 +1508,30 @@ if (
 
   return;
 }
+if (
+  chartKey &&
+  !planet &&
+  (
+    lower.includes("planets in") ||
+    lower.includes("all planets") ||
+    lower.includes("show planets")
+  )
+) {
+  const rows = findAllPlanetsInChart(chartKey);
 
+  setAnswer({
+    title: `All planets in ${chartKey.toUpperCase()}`,
+    summary: `${rows.length} planet(s) found.`,
+    rows,
+  });
+
+  rememberContext({
+    lastChartKey: chartKey,
+    lastTopic: "chart_planets",
+  });
+
+  return;
+}
  if (
   planet &&
   chartKey &&

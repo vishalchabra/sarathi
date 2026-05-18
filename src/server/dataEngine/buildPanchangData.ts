@@ -901,6 +901,7 @@ async function findNextMoonSign(params: {
 }
 export async function buildPanchangData(params: {
   dateISO: string;
+  time?: string;
   timezone: string;
   lat: number;
   lon: number;
@@ -940,11 +941,20 @@ export async function buildPanchangData(params: {
       ? solarTimes.nextSunriseDT
       : null;
 
-  const panchangMoment = sunriseDT
-  ? sunriseDT.toFormat("yyyy-MM-dd'T'HH:mm:ss")
-  : DateTime.fromISO(`${params.dateISO}T06:00:00`, {
+  const effectiveTime =
+  params.time && String(params.time).trim()
+    ? String(params.time).trim()
+    : null;
+
+const panchangMoment = effectiveTime
+  ? DateTime.fromISO(`${params.dateISO}T${effectiveTime}`, {
       zone: params.timezone,
-    }).toFormat("yyyy-MM-dd'T'HH:mm:ss");
+    }).toFormat("yyyy-MM-dd'T'HH:mm:ss")
+  : sunriseDT
+    ? sunriseDT.toFormat("yyyy-MM-dd'T'HH:mm:ss")
+    : DateTime.fromISO(`${params.dateISO}T06:00:00`, {
+        zone: params.timezone,
+      }).toFormat("yyyy-MM-dd'T'HH:mm:ss");
 
 const transit = await getPlanetPositions({
   dateISO: panchangMoment,
