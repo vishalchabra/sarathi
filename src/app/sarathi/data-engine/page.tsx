@@ -11,7 +11,6 @@ import HouseLordTable from "@/components/data-engine/HouseLordTable";
 import FunctionalRolesCard from "@/components/data-engine/FunctionalRolesCard";
 import DashaBlock from "@/components/data-engine/DashaBlock";
 import TransitTable from "@/components/data-engine/TransitTable";
-import VargaCard from "@/components/data-engine/VargaCard";
 import UpcomingTransitsCard from "@/components/data-engine/UpcomingTransitsCard";
 import TransitWindowsCard from "@/components/data-engine/TransitWindowsCard";
 import MajorTransitTimelineCard from "@/components/data-engine/MajorTransitTimelineCard";
@@ -3245,41 +3244,78 @@ nabhasaYogas={data?.foundations?.nabhasaYogas ?? data?.nabhasaYogas}
 ) : null}
 
             {data && activeTab === "vargas" ? (
-              <div className="mt-6 space-y-6">
-                {vargaEntries.length ? (
-                  <div className="flex items-center gap-3">
-                    <label className="text-xs font-medium uppercase tracking-wide text-slate-400">
-                      Select varga
-                    </label>
-                    <select
-                      value={selectedVarga}
-                      onChange={(e) => setSelectedVarga(e.target.value)}
-                      className="rounded-xl border border-[color:var(--border)] bg-white px-3 py-2 text-sm font-medium text-slate-800 shadow-sm outline-none focus:border-[color:var(--primary)]"
-                    >
-                      {vargaEntries.map(([key]) => (
-                        <option key={key} value={key} className="bg-white text-slate-800">
-                          {VARGA_LABELS[key] ?? key.toUpperCase()}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                ) : null}
+  <div className="mt-6 space-y-6">
+    <div>
+      <h2 className="text-lg font-semibold text-slate-900">
+        Divisional Charts
+      </h2>
+      <p className="text-sm text-slate-600">
+        Medium chart view for all available Vargas.
+      </p>
+    </div>
 
-                {!vargaEntries.length ? (
-                  <div className="rounded-xl astro-card px-4 py-3 text-sm text-slate-800">
-                    No varga data available.
-                  </div>
-                ) : null}
+    {!vargaEntries.length ? (
+      <div className="rounded-xl astro-card px-4 py-3 text-sm text-slate-800">
+        No varga data available.
+      </div>
+    ) : (
+      <div className="space-y-5">
+  <div className="flex items-center gap-3">
+    <label className="text-xs font-medium uppercase tracking-wide text-slate-400">
+      Select varga
+    </label>
 
-                {selectedVargaValue ? (
-                  <VargaCard
-                    title={VARGA_LABELS[selectedVarga] ?? selectedVarga.toUpperCase()}
-                    value={selectedVargaValue}
-                  />
-                ) : null}
-              </div>
-            ) : null}
+    <select
+      value={selectedVarga}
+      onChange={(e) => setSelectedVarga(e.target.value)}
+      className="rounded-xl border border-[color:var(--border)] bg-white px-3 py-2 text-sm font-medium text-slate-800 shadow-sm outline-none focus:border-[color:var(--primary)]"
+    >
+      {vargaEntries.map(([key]) => (
+        <option key={key} value={key}>
+          {VARGA_LABELS[key] ?? key.toUpperCase()}
+        </option>
+      ))}
+    </select>
+  </div>
 
+  {selectedVargaValue ? (() => {
+    const ascSign = selectedVargaValue?.ascSign ?? null;
+
+    const planets = Array.isArray(selectedVargaValue?.planets)
+      ? selectedVargaValue.planets.map((p: any) => ({
+          ...p,
+          planet: p?.planet ?? p?.name ?? null,
+          sign: p?.sign ?? p?.rashi ?? null,
+          house: typeof p?.house === "number" ? p.house : null,
+          degree:
+            typeof p?.degree === "number"
+              ? p.degree
+              : typeof p?.deg === "number"
+              ? p.deg
+              : null,
+          nakshatra: p?.nakshatra ?? p?.nakName ?? null,
+          pada: p?.pada ?? null,
+          retrograde:
+            typeof p?.retrograde === "boolean" ? p.retrograde : false,
+        }))
+      : [];
+
+    return (
+      <MediumNorthIndianChart
+        title={VARGA_LABELS[selectedVarga] ?? selectedVarga.toUpperCase()}
+        ascSign={ascSign}
+        planets={planets}
+        layoutVariant="primary"
+        showPlanetDetails={false}
+      />
+    );
+  })() : null}
+</div>
+    )}
+  </div>
+) : null}
+
+               
                     {data && activeTab === "strength" ? (
               <div className="mt-6 space-y-6">
                 <section className="space-y-4">

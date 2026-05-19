@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import MiniNorthIndianChart from "@/components/data-engine/MiniNorthIndianChart";
 import MediumNorthIndianChart from "@/components/data-engine/MediumNorthIndianChart";
 
 type SimpleChartData = {
@@ -535,6 +534,45 @@ function filterRowsWithinParent(rows: any[], parentRow: any) {
 
     return start >= parentStart && end <= parentEnd;
   });
+}
+const NAKSHATRA_LORDS: Record<string, string> = {
+  Ashwini: "Ke",
+  Bharani: "Ve",
+  Krittika: "Su",
+  Rohini: "Mo",
+  Mrigashira: "Ma",
+  Ardra: "Ra",
+  Punarvasu: "Ju",
+  Pushya: "Sa",
+  Ashlesha: "Me",
+  Magha: "Ke",
+  "Purva Phalguni": "Ve",
+  "Uttara Phalguni": "Su",
+  Hasta: "Mo",
+  Chitra: "Ma",
+  Swati: "Ra",
+  Vishakha: "Ju",
+  Anuradha: "Sa",
+  Jyeshtha: "Me",
+  Mula: "Ke",
+  "Purva Ashadha": "Ve",
+  "Uttara Ashadha": "Su",
+  Shravana: "Mo",
+  Dhanishta: "Ma",
+  Shatabhisha: "Ra",
+  "Purva Bhadrapada": "Ju",
+  "Uttara Bhadrapada": "Sa",
+  Revati: "Me",
+};
+
+function formatNakshatraWithLord(nakshatra?: string | null) {
+  if (!nakshatra) return "—";
+
+  const lord = NAKSHATRA_LORDS[nakshatra];
+
+  return lord
+    ? `${nakshatra} (${lord})`
+    : nakshatra;
 }
 function NabhasaYogasCard({ data }: { data?: any }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -1073,7 +1111,51 @@ const pd = findDashaRowByDate(pdRowsForAd, lookupDate) ??
     </aside>
   );
 }
+function PlanetNakshatraSnapshot({
+  planets,
+}: {
+  planets: any[];
+}) {
+  const rows = normalizeChartPlanets(planets);
 
+  return (
+    <aside className="mt-4 rounded-2xl border border-[color:var(--border)] bg-white/90 p-4 shadow-sm">
+      <div>
+        <h4 className="text-sm font-semibold text-slate-900">
+          Planet Nakshatras
+        </h4>
+        <p className="mt-1 text-xs text-slate-500">
+          Natal planet degree and nakshatra lord.
+        </p>
+      </div>
+
+      <div className="mt-3 space-y-2">
+        {rows.map((p) => (
+          <div
+            key={p.planet}
+            className="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 px-3 py-2 text-xs"
+          >
+            <div className="font-semibold text-slate-900">
+              {p.planet}
+            </div>
+
+            <div className="text-right text-slate-600">
+              <div>
+                {typeof p.degree === "number"
+                  ? `${p.degree.toFixed(2)}°`
+                  : "—"}
+              </div>
+              <div className="text-[11px]">
+                {p.nakshatra ? formatNakshatraWithLord(p.nakshatra) : "—"}
+                {p.pada ? ` • P${p.pada}` : ""}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </aside>
+  );
+}
 
 export default function ChartsTabView({
   selectedDateISO,
@@ -1580,11 +1662,13 @@ return {
   />
 
   <div className="xl:sticky xl:top-4">
-    <ActiveDashaPanel
-      currentDasha={currentDasha}
-      dashaTimelines={dashaTimelines}
-    />
-  </div>
+  <ActiveDashaPanel
+    currentDasha={currentDasha}
+    dashaTimelines={dashaTimelines}
+  />
+
+  <PlanetNakshatraSnapshot planets={natalPlanets} />
+</div>
 </div>
 
           <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-2">
@@ -1916,59 +2000,6 @@ return {
           )}
         </ChartCard>
       </div>
-
-      <ChartCard
-        title="Divisional Chart Gallery"
-        subtitle="Click any chart to open a larger view."
-      >
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {chartGalleryKeys.length ? (
-            chartGalleryKeys.map((key) => {
-              const chart = getVargaChart(key);
-
-              return (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() =>
-                    setExpandedChart({
-                      key,
-                      title: `${key.toUpperCase()} Chart`,
-                      ascSign: chart.ascSign,
-                      planets: chart.planets,
-                    })
-                  }
-                  className="rounded-2xl border border-[color:var(--border)] bg-white/80 p-3 text-left transition-transform duration-200 hover:scale-[1.02] hover:border-[color:var(--border)]"
-                >
-                  <div className="mb-2 flex items-center justify-between">
-                    <div className="text-xs font-semibold uppercase tracking-wide text-slate-900">
-                      {key.toUpperCase()}
-                    </div>
-                    <div className="text-[10px] text-slate-900">Click to expand</div>
-                  </div>
-
-                  {chart.ascSign && chart.planets?.length ? (
-                    <MiniNorthIndianChart
-                      ascSign={chart.ascSign}
-                      planets={chart.planets}
-                    />
-                  ) : (
-                    <PlaceholderChart
-                      label={`${key.toUpperCase()} Chart unavailable`}
-                      height="h-32"
-                    />
-                  )}
-                </button>
-              );
-            })
-          ) : (
-            <div className="rounded-2xl border border-dashed border-[color:var(--border)] bg-white/80 p-6 text-sm text-slate-900">
-              No divisional charts available.
-            </div>
-          )}
-        </div>
-      </ChartCard>
-
       {expandedChartModal}
     </div>
   );
