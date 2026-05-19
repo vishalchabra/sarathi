@@ -982,6 +982,91 @@ const topActiveYoga =
     </aside>
   );
 }
+function FunctionalPlanetSnapshot({ roles }: { roles?: any }) {
+  const yogakaraka =
+    roles?.yogakaraka ??
+    roles?.yogaKaraka ??
+    roles?.yogaKarakaPlanets ??
+    roles?.yogakarakaPlanets ??
+    [];
+
+  const vargottama =
+    roles?.vargottama ??
+    roles?.vargottam ??
+    roles?.vargottamaPlanets ??
+    roles?.vargottamPlanets ??
+    [];
+
+  const maraka =
+    roles?.maraka ??
+    roles?.marakaPlanets ??
+    [];
+
+  const badhaka =
+    roles?.badhaka ??
+    roles?.badhakaPlanets ??
+    [];
+
+  const benefic =
+    roles?.functionalBenefics ??
+    roles?.benefics ??
+    roles?.functionalBeneficPlanets ??
+    [];
+
+  const malefic =
+    roles?.functionalMalefics ??
+    roles?.malefics ??
+    roles?.functionalMaleficPlanets ??
+    [];
+
+  function list(value: any) {
+    if (Array.isArray(value)) {
+      return value.length ? value.map((x) => x?.planet ?? x?.name ?? x).join(", ") : "—";
+    }
+
+    if (typeof value === "string") return value || "—";
+
+    return "—";
+  }
+
+  const rows = [
+    { label: "Yogakaraka", value: list(yogakaraka) },
+    { label: "Vargottama", value: list(vargottama) },
+    { label: "Maraka", value: list(maraka) },
+    { label: "Badhaka", value: list(badhaka) },
+    { label: "Functional Benefic", value: list(benefic) },
+    { label: "Functional Malefic", value: list(malefic) },
+  ];
+
+  return (
+    <div className="mt-4 rounded-2xl border border-[color:var(--border)] bg-white/90 p-4 shadow-sm">
+      <div className="mb-3">
+        <h4 className="text-sm font-semibold text-slate-900">
+          Functional Planet Snapshot
+        </h4>
+        <p className="mt-1 text-xs text-slate-500">
+          Key functional roles from the Foundations tab.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+        {rows.map((row) => (
+          <div
+            key={row.label}
+            className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-3"
+          >
+            <div className="text-[10px] font-bold uppercase tracking-wide text-slate-400">
+              {row.label}
+            </div>
+            <div className="mt-1 text-sm font-semibold text-slate-900">
+              {row.value}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 function ActiveDashaPanel({
   currentDasha,
   dashaTimelines,
@@ -1181,6 +1266,7 @@ export default function ChartsTabView({
   vedicAspects,
   nabhasaYogas,
   classicYogas,
+  roles,
 }: {
   selectedDateISO: string;
   setSelectedDateISO: (value: string) => void;
@@ -1205,6 +1291,7 @@ export default function ChartsTabView({
   vedicAspects?: any;
   nabhasaYogas?: any;
   classicYogas?: any;
+  roles?: any;
 }) {
 const [overlayTransitPlanets, setOverlayTransitPlanets] = useState<any[]>([]);
 const [transitChartPlanets, setTransitChartPlanets] = useState<any[]>([]);
@@ -1641,34 +1728,38 @@ return {
             </p>
           </div>
 <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
-  <MediumNorthIndianChart
-    title=""
-    ascSign={natalAscSign}
-    planets={d1PlanetsWithBhava}
-    transitPlanets={
-      showTransitOverlay
-        ? normalizeTransitPlanets(overlayTransitPlanets, natalAscSign)
-        : []
-    }
-    arudhas={arudhas}
-    upagrahas={upagrahas}
-    solarShadowPoints={solarShadowPoints}
-    vedicAspects={vedicAspects}
-    showArudhas={showArudhaOverlay}
-    showUpagrahas={showUpagrahaOverlay}
-    showAspects={showAspectOverlay}
-    aspectHouseReferenceHouse={1}
-    layoutVariant="primary"
-  />
+  <div>
+    <MediumNorthIndianChart
+      title=""
+      ascSign={natalAscSign}
+      planets={d1PlanetsWithBhava}
+      transitPlanets={
+        showTransitOverlay
+          ? normalizeTransitPlanets(overlayTransitPlanets, natalAscSign)
+          : []
+      }
+      arudhas={arudhas}
+      upagrahas={upagrahas}
+      solarShadowPoints={solarShadowPoints}
+      vedicAspects={vedicAspects}
+      showArudhas={showArudhaOverlay}
+      showUpagrahas={showUpagrahaOverlay}
+      showAspects={showAspectOverlay}
+      aspectHouseReferenceHouse={1}
+      layoutVariant="primary"
+    />
+
+    <FunctionalPlanetSnapshot roles={roles} />
+  </div>
 
   <div className="xl:sticky xl:top-4">
-  <ActiveDashaPanel
-    currentDasha={currentDasha}
-    dashaTimelines={dashaTimelines}
-  />
+    <ActiveDashaPanel
+      currentDasha={currentDasha}
+      dashaTimelines={dashaTimelines}
+    />
 
-  <PlanetNakshatraSnapshot planets={natalPlanets} />
-</div>
+    <PlanetNakshatraSnapshot planets={natalPlanets} />
+  </div>
 </div>
 
           <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-2">

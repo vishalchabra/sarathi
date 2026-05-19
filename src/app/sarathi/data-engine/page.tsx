@@ -3378,6 +3378,7 @@ dashaTimelines={data?.timing?.dasha?.timelines ?? data?.dasha?.timelines ?? null
   vedicAspects={vedicAspects}
   nabhasaYogas={data?.foundations?.nabhasaYogas ?? data?.nabhasaYogas ?? null}
   classicYogas={data?.foundations?.classicYogas ?? data?.classicYogas ?? null}
+  roles={data?.foundations?.roles ?? data?.roles}
 />
             ) : null}
             {data && activeTab === "compare" ? (
