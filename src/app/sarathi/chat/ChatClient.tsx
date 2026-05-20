@@ -277,7 +277,7 @@ function AssistantProse({ data }: { data: QAResponse }) {
   const [showLong, setShowLong] = useState(false);
 
   return (
-    <div className="rounded-[24px] border border-[color:var(--border)] bg-slate-950/35 p-5 md:p-6 text-sm leading-6 text-slate-100 shadow-[0_8px_30px_rgba(0,0,0,0.18)]">
+    <div className="rounded-[24px] border border-[color:var(--border)] bg-white/70 p-5 md:p-6 text-sm leading-6 text-slate-100 shadow-[0_8px_30px_rgba(0,0,0,0.18)]">
       {c.answer ? <p className="mb-3 whitespace-pre-wrap">{c.answer}</p> : null}
 
       {c.long ? (
@@ -290,7 +290,7 @@ function AssistantProse({ data }: { data: QAResponse }) {
             {showLong ? "Hide full explanation" : "Show full explanation"}
           </button>
           {showLong ? (
-            <div className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-100/90">
+            <div className="mt-2 whitespace-pre-wrap text-sm leading-6 astro-text-soft">
               {c.long}
             </div>
           ) : null}
@@ -300,14 +300,14 @@ function AssistantProse({ data }: { data: QAResponse }) {
       {c.how ? (
         <div className="mt-3">
           <div className="font-semibold mb-1 text-slate-100">How to use this</div>
-          <pre className="whitespace-pre-wrap text-sm leading-6 text-slate-100/90">{c.how}</pre>
+          <pre className="whitespace-pre-wrap text-sm leading-6 astro-text-soft">{c.how}</pre>
         </div>
       ) : null}
 
       {hasQuarters ? (
         <div className="mt-4">
           <div className="font-semibold mb-1 text-slate-100">Quarterly plan</div>
-          <ul className="list-disc pl-5 space-y-1 text-slate-100/90">
+          <ul className="list-disc pl-5 space-y-1 astro-text-soft">
             {c.quarters!.map((q, i) => (
               <li key={i}>{q}</li>
             ))}
@@ -318,13 +318,13 @@ function AssistantProse({ data }: { data: QAResponse }) {
       {hasMicro ? (
         <div className="mt-4">
           <div className="font-semibold mb-1 text-slate-100">Action windows</div>
-          <ul className="list-disc pl-5 space-y-1 text-slate-100/90">
+          <ul className="list-disc pl-5 space-y-1 astro-text-soft">
             {c.micro!.slice(0, 6).map((m, i) => (
               <li key={i}>
                 <span className="font-medium text-slate-100">
                   {m.fromISO} → {m.toISO}
                 </span>
-                : <em className="text-slate-200/80">{m.action}</em>
+                : <em className="astro-text-soft">{m.action}</em>
                 {m.why?.length ? ` — ${m.why[0]}` : ""}
               </li>
             ))}
@@ -1109,14 +1109,15 @@ const stripEvidenceMarker = (s?: string) => {
   }
 
   return (
-    <main className="mx-auto max-w-5xl p-4 h-[100dvh] flex flex-col gap-3 text-slate-100 bg-gradient-to-b from-slate-950 via-indigo-950/30 to-slate-950">
+    <main className="astro-bg min-h-screen px-4 py-8 text-foreground">
+  <div className="mx-auto flex max-w-5xl flex-col gap-3">
       {/* Header */}
-      <header className="rounded-2xl border border-[color:var(--border)] bg-slate-950/30 backdrop-blur-sm p-4">
+      <header className="rounded-2xl border border-[color:var(--border)] bg-white/70 backdrop-blur-sm p-4">
         <div className="flex items-center gap-3 flex-wrap">
-          <h1 className="text-lg md:text-xl font-semibold tracking-tight">
+          <h1 className="text-lg font-semibold tracking-tight text-foreground md:text-xl">
             Sārathi · Chat{" "}
             {profile?.name ? (
-              <span className="text-slate-300/70 text-sm font-normal">— {profile.name}</span>
+              <span className="astro-text-muted text-sm font-normal">— {profile.name}</span>
             ) : null}
           </h1>
 
@@ -1135,8 +1136,8 @@ const stripEvidenceMarker = (s?: string) => {
             className={
               "rounded-full px-3 py-1 border " +
               (hasProfile
-                ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-200"
-                : "border-amber-400/30 bg-amber-500/10 text-amber-200")
+                ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+: "border-amber-200 bg-amber-50 text-amber-700")
             }
           >
             {hasProfile
@@ -1167,7 +1168,7 @@ const stripEvidenceMarker = (s?: string) => {
                 localStorage.removeItem("sarathi-chat");
               } catch {}
             }}
-            className="ml-auto rounded-full astro-card px-3 py-1 hover:bg-white/80 hover:shadow-md text-slate-100"
+            className="ml-auto rounded-full border border-[color:var(--border)] bg-white px-3 py-1 text-sm text-foreground hover:bg-[color:var(--secondary)] hover:shadow-md"
             title="Clear chat history"
           >
             Clear
@@ -1176,7 +1177,7 @@ const stripEvidenceMarker = (s?: string) => {
       </header>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto rounded-2xl border border-[color:var(--border)] bg-indigo-950/35 backdrop-blur-sm p-4 space-y-6">
+      <div className="min-h-[520px] overflow-y-auto rounded-2xl border border-[color:var(--border)] bg-white/50 p-4 space-y-6">
         {messages.map((msg, idx) => {
           const hasWindows = !!(msg.data && Array.isArray(msg.data.windows) && msg.data.windows.length);
           const hasNarrative = !!(msg.data && msg.data.copy && msg.data.copy.answer);
@@ -1354,7 +1355,7 @@ console.log("[chat] keys:", {
 } else if (msg.role === "assistant" && msg.content) {
   // keep plain assistant text messages as a simple bubble
   content = (
-    <div className="rounded-2xl border border-[color:var(--border)] bg-slate-950/35 px-4 py-3 text-sm text-slate-100">
+    <div className="rounded-2xl border border-[color:var(--border)] bg-white/70 px-4 py-3 text-sm text-slate-100">
       {msg.content}
     </div>
   );
@@ -1374,8 +1375,8 @@ console.log("[chat] keys:", {
                     className={
                       "rounded-2xl px-4 py-2.5 text-sm " +
                       (msg.role === "user"
-                        ? "bg-[color:var(--primary)]/20 border border-indigo-300/20 text-slate-100"
-                        : "bg-slate-950/35 border border-[color:var(--border)] text-slate-100")
+  ? "bg-[color:var(--primary)] text-primary-foreground"
+  : "border border-[color:var(--border)] bg-white/70 text-foreground")
                     }
                   >
                     {msg.content}
@@ -1391,14 +1392,14 @@ console.log("[chat] keys:", {
           );
         })}
 
-        {loading && <div className="text-sm text-slate-300/70">Thinking…</div>}
+        {loading && <div className="text-sm astro-text-muted">Thinking…</div>}
         <div ref={bottomRef} />
       </div>
 
       {/* Input */}
       <div className="flex gap-2">
         <input
-          className="h-11 flex-1 rounded-xl border border-[color:var(--border)] bg-slate-950/40 px-4 text-sm text-slate-100 placeholder:text-slate-300/60 outline-none focus:border-indigo-300/40"
+          className="h-11 flex-1 rounded-xl border border-[color:var(--border)] bg-white/80 px-4 text-sm text-slate-900 placeholder:text-slate-300/60 outline-none focus:border-indigo-300/40"
           placeholder="Ask about career, money, relationships, health…"
           value={input}
           onChange={(e) => setInput(e.target.value)}
@@ -1409,11 +1410,12 @@ console.log("[chat] keys:", {
         <button
           onClick={() => send()}
           disabled={!canSend}
-          className="inline-flex items-center justify-center h-11 rounded-xl px-4 text-sm font-semibold border border-[color:var(--border)] bg-white/80/10 hover:bg-white/80/15 disabled:opacity-50 text-slate-100"
+          className="inline-flex items-center justify-center h-11 rounded-xl px-4 text-sm font-semibold border border-[color:var(--border)] bg-[color:var(--primary)] hover:opacity-90 disabled:opacity-50 text-slate-100"
         >
           Send
         </button>
       </div>
+        </div>
     </main>
   );
 }

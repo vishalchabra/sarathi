@@ -8,7 +8,7 @@
 /* ======================================================
    PRINT HELPERS
 ====================================================== */
-@media print {P
+@media print {
   .print\:page-break-inside-avoid {
     page-break-inside: avoid;
   }
@@ -198,16 +198,30 @@ body {
       radial-gradient(circle at 82% 65%, rgba(156, 39, 176, 0.08), transparent 22%),
       linear-gradient(180deg, #fcf8f1 0%, #f7efe4 100%);
   }
+.astro-surface {
+  background: rgba(255, 252, 247, 0.94);
+  border: 1px solid rgba(88, 63, 122, 0.10);
+  box-shadow: 0 10px 30px rgba(88, 63, 122, 0.06);
+}
 
+.astro-input {
+  background: rgba(255, 255, 255, 0.82);
+  color: var(--foreground);
+  border: 1px solid var(--border);
+}
+
+.astro-input::placeholder {
+  color: rgba(61, 42, 86, 0.45);
+}
   /* glass cards */
   .astro-card {
-    background: rgba(255,248,240,0.88);
-    backdrop-filter: blur(12px);
-    border: 1px solid rgba(88, 63, 122, 0.10);
-    box-shadow:
-      0 10px 30px rgba(88, 63, 122, 0.06),
-      inset 0 1px 0 rgba(255,255,255,0.65);
-  }
+  background: rgba(255, 252, 247, 0.94);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(88, 63, 122, 0.10);
+  box-shadow:
+    0 14px 38px rgba(88, 63, 122, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.75);
+}
 
   /* chip */
   .astro-chip {

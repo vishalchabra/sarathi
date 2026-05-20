@@ -381,10 +381,11 @@ export default function AstroChatPage() {
   }
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-8 md:py-12">
+    <main className="astro-bg min-h-screen px-4 py-8 text-foreground md:py-12">
+  <div className="mx-auto max-w-3xl">
       <LANBanner />
 
-      <Card className="mb-4 rounded-2xl shadow-xl">
+      <Card className="mb-4 rounded-3xl astro-card">
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-xl font-semibold">Sārathi Chat</CardTitle>
           <div className="flex items-center gap-2">
@@ -411,7 +412,7 @@ export default function AstroChatPage() {
         </CardHeader>
 
         <CardContent className="space-y-4">
-          <div className="rounded-xl border p-3 bg-muted/40">
+          <div className="rounded-xl border border-[color:var(--border)] bg-white/60 p-3">
             <div className="text-xs text-muted-foreground">
               Tip: Open your Life Report first so the chat can read your current{" "}
               <strong>Mahadasha/Antardasha/PD</strong> and transit windows.
@@ -424,7 +425,9 @@ export default function AstroChatPage() {
                 <div
                   className={
                     "inline-block max-w-[85%] rounded-2xl px-3 py-2 text-sm leading-relaxed " +
-                    (m.role === "user" ? "bg-foreground text-background" : "bg-muted")
+                    (m.role === "user"
+  ? "bg-[color:var(--primary)] text-primary-foreground"
+  : "border border-[color:var(--border)] bg-white/70 text-foreground")
                   }
                 >
                   {m.text}
@@ -434,7 +437,7 @@ export default function AstroChatPage() {
           </div>
 <Button
   variant="outline"
-  className="rounded-xl"
+  className="rounded-xl border-[color:var(--border)] bg-white/70 text-foreground hover:bg-white"
   onClick={() => {
     localStorage.removeItem("sarathi.birthProfile.v1");
     router.replace("/onboarding");
@@ -449,14 +452,15 @@ export default function AstroChatPage() {
               onChange={(e) => setQ(e.target.value)}
               onKeyDown={onEnter}
               placeholder="Ask about career, money, relationships, health…"
-              className="rounded-xl"
+              className="rounded-xl border-[color:var(--border)] bg-white/80 text-foreground placeholder:astro-text-muted"
             />
-            <Button onClick={send} disabled={!canSend} className="rounded-xl">
+            <Button onClick={send} disabled={!canSend} className="rounded-xl bg-[color:var(--primary)] text-primary-foreground hover:opacity-90">
               {loading ? "Thinking…" : "Ask"}
             </Button>
           </div>
         </CardContent>
       </Card>
+        </div>
     </main>
   );
 }
