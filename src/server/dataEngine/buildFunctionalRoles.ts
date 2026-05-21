@@ -50,15 +50,18 @@ export async function buildFunctionalRoles(
   const lord7 = findHouseLord(houses, 7);
   const lordBadhaka = findHouseLord(houses, getBadhakaHouse(ascendant.signNum));
 
-  // This is intentionally simple for V1.
-  // Later you can refine yogakaraka / benefic / malefic logic.
+  // Strict V1 functional role logic.
+// Yogakaraka is only assigned when a planet owns both a Kendra and the 5th/9th.
   const kendraLords = [1, 4, 7, 10]
     .map((h) => findHouseLord(houses, h))
     .filter(Boolean) as string[];
 
-  const trikonaLords = [1, 5, 9]
-    .map((h) => findHouseLord(houses, h))
-    .filter(Boolean) as string[];
+  // Strict classical Yogakaraka:
+// one planet must own a Kendra house and either the 5th or 9th house.
+// We exclude the 1st house here to avoid loosely tagging Lagna lord combinations.
+const trikonaLords = [5, 9]
+  .map((h) => findHouseLord(houses, h))
+  .filter(Boolean) as string[];
 
   const dusthanaLords = [6, 8, 12]
     .map((h) => findHouseLord(houses, h))

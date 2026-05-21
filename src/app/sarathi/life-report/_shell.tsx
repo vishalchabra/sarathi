@@ -622,7 +622,7 @@ function LockingCityAutocomplete({
     render() {
       if (!this.state.hasError) return this.props.children;
       return (
-        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+        <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-200">
           <div className="font-semibold">{this.props.label} crashed</div>
           <div className="mt-1 text-xs text-red-600">{this.state.msg}</div>
           <div className="mt-2 text-xs text-red-500">
@@ -4575,7 +4575,7 @@ function strengthenEventLine(text: string) {
     },
   };
   const ACC_CARD =
-    "rounded-2xl border border-[color:var(--border)] astro-card  shadow-lg shadow-[0_0_40px_rgba(99,102,241,0.10)]";
+    "rounded-2xl border border-[color:var(--border)] astro-card  shadow-lg shadow-[0_0_40px_color-mix(in_srgb,var(--primary)_14%,transparent)]";
 
   const ACC_TEXT = "text-foreground";
   const ACC_MUTED = "astro-text-soft";
@@ -4741,8 +4741,8 @@ function strengthenEventLine(text: string) {
             key={`h${k++}`}
             className={
               level === 2
-                ? "text-base font-semibold text-indigo-100 mt-4"
-                : "text-sm font-semibold text-indigo-100 mt-3"
+                ? "text-base font-semibold text-foreground mt-4"
+                : "text-sm font-semibold text-foreground mt-3"
             }
           >
             {title}
@@ -6033,13 +6033,13 @@ const np: any = (report as any)?.nowPlan ?? (report as any)?.nowNearFuture ?? nu
   Personalized from your natal Moon + current transits.
 </div>
 
-<div className="text-xs text-foreground0 mt-1">
+<div className="text-xs astro-text-soft mt-1">
   Next few days view shaped by your dasha, Moon movement, and strongest active transits.
 </div>
 {!dailyLoadingProp && !dailyErrorProp && visible.length > 0 && weeklyPattern && (
   <>
     <div className="mt-3 rounded-xl border border-indigo-400/20 bg-[color:var(--primary)]/10 px-3 py-2">
-      <div className="text-[11px] uppercase tracking-wide text-indigo-200 font-semibold">
+      <div className="text-[11px] uppercase tracking-wide text-[color:var(--primary)] font-semibold">
         {weeklyPattern.title}
       </div>
       <div className="mt-1 text-xs text-foreground/75">
@@ -6049,7 +6049,7 @@ const np: any = (report as any)?.nowPlan ?? (report as any)?.nowNearFuture ?? nu
 
     <div className="grid gap-2 md:grid-cols-2">
       <div className="rounded-xl astro-card px-3 py-2">
-        <div className="text-[11px] uppercase tracking-wide text-foreground0 font-semibold">
+        <div className="text-[11px] uppercase tracking-wide astro-text-soft font-semibold">
           Where momentum is strongest
         </div>
         <div className="mt-1 text-xs text-foreground/75">
@@ -6058,7 +6058,7 @@ const np: any = (report as any)?.nowPlan ?? (report as any)?.nowNearFuture ?? nu
       </div>
 
       <div className="rounded-xl astro-card px-3 py-2">
-        <div className="text-[11px] uppercase tracking-wide text-foreground0 font-semibold">
+        <div className="text-[11px] uppercase tracking-wide astro-text-soft font-semibold">
           Where friction may appear
         </div>
         <div className="mt-1 text-xs text-foreground/75">
@@ -6069,7 +6069,7 @@ const np: any = (report as any)?.nowPlan ?? (report as any)?.nowNearFuture ?? nu
 
     {decisionWindows.length > 0 && (
       <div className="mt-3 rounded-xl astro-card px-3 py-3">
-        <div className="text-[11px] uppercase tracking-wide text-foreground0 font-semibold">
+        <div className="text-[11px] uppercase tracking-wide astro-text-soft font-semibold">
           Decision windows
         </div>
 
@@ -6079,7 +6079,7 @@ const np: any = (report as any)?.nowPlan ?? (report as any)?.nowNearFuture ?? nu
               w.kind === "push"
                 ? "border-emerald-400/20 bg-emerald-500/10 text-emerald-200"
                 : w.kind === "review"
-                ? "border-indigo-400/20 bg-[color:var(--primary)]/10 text-indigo-200"
+                ? "border-indigo-400/20 bg-[color:var(--primary)]/10 text-[color:var(--primary)]"
                 : "border-amber-400/20 bg-amber-500/10 text-amber-200";
 
             const label =
@@ -6133,7 +6133,7 @@ const np: any = (report as any)?.nowPlan ?? (report as any)?.nowNearFuture ?? nu
   <>
     {Array.isArray(np?.now3Days?.likelyScenarios) && np.now3Days.likelyScenarios.length > 0 ? (
       <div className="space-y-3">
-        <div className="text-[11px] uppercase tracking-wide text-foreground0 font-semibold">
+        <div className="text-[11px] uppercase tracking-wide astro-text-soft font-semibold">
           Active now
         </div>
 
@@ -6185,7 +6185,7 @@ const np: any = (report as any)?.nowPlan ?? (report as any)?.nowNearFuture ?? nu
       className="rounded-2xl astro-card p-4"
     >
       <div className="flex items-center justify-between gap-3">
-        <div className="text-[11px] uppercase tracking-wide text-indigo-200 font-semibold">
+        <div className="text-[11px] uppercase tracking-wide text-[color:var(--primary)] font-semibold">
           {triggerLabel}
         </div>
         <div className="text-[11px] text-foreground">
@@ -6215,7 +6215,7 @@ const np: any = (report as any)?.nowPlan ?? (report as any)?.nowNearFuture ?? nu
 )}
 
       {actionText && (
-        <div className="mt-2 text-xs text-indigo-200">
+        <div className="mt-2 text-xs text-[color:var(--primary)]">
           {actionText}
         </div>
       )}
@@ -6235,7 +6235,7 @@ const np: any = (report as any)?.nowPlan ?? (report as any)?.nowNearFuture ?? nu
 
     {Array.isArray(np?.next14Days?.timing) && np.next14Days.timing.length > 0 && (
   <div className="space-y-3 pt-2">
-    <div className="text-[11px] uppercase tracking-wide text-foreground0 font-semibold">
+    <div className="text-[11px] uppercase tracking-wide astro-text-soft font-semibold">
       Coming up next
     </div>
 
@@ -6292,7 +6292,7 @@ const np: any = (report as any)?.nowPlan ?? (report as any)?.nowNearFuture ?? nu
           className="rounded-2xl astro-card p-4"
         >
           <div className="flex items-center justify-between gap-3">
-            <div className="text-[11px] uppercase tracking-wide text-indigo-200 font-semibold">
+            <div className="text-[11px] uppercase tracking-wide text-[color:var(--primary)] font-semibold">
               {triggerLabel}
             </div>
             <div className="text-[11px] text-foreground">{dateLabel}</div>
@@ -6310,7 +6310,7 @@ const np: any = (report as any)?.nowPlan ?? (report as any)?.nowNearFuture ?? nu
             <span className="astro-text-muted">How you may feel:</span> {emotionText}
           </div>
 
-          <div className="mt-2 text-xs text-indigo-200">
+          <div className="mt-2 text-xs text-[color:var(--primary)]">
             {actionLine.label}: {actionLine.value}
           </div>
         </div>
@@ -6321,7 +6321,7 @@ const np: any = (report as any)?.nowPlan ?? (report as any)?.nowNearFuture ?? nu
 
     {Array.isArray(np?.next30Days?.timing) && np.next30Days.timing.length > 0 && (
       <div className="space-y-3 pt-2">
-        <div className="text-[11px] uppercase tracking-wide text-foreground0 font-semibold">
+        <div className="text-[11px] uppercase tracking-wide astro-text-soft font-semibold">
           Next 30 days
         </div>
 
@@ -6590,7 +6590,7 @@ const confClass =
     ? "border-emerald-400/25 bg-emerald-500/10 text-emerald-200"
     : conf === "low"
     ? "border-amber-400/25 bg-amber-500/10 text-amber-200"
-    : "border-indigo-400/25 bg-[color:var(--primary)]/10 text-indigo-200";
+    : "border-indigo-400/25 bg-[color:var(--primary)]/10 text-[color:var(--primary)]";
                     return (
                      <div
   key={`${dateISO || "day"}-${idx}`}
@@ -6604,7 +6604,7 @@ const confClass =
   }
 >
                          {/* Trigger label */}
-    <div className="mb-2 inline-flex rounded-full border border-indigo-400/30 bg-[color:var(--primary)]/10 px-2 py-1 text-[10px] font-medium uppercase tracking-wide text-indigo-200">
+    <div className="mb-2 inline-flex rounded-full border border-indigo-400/30 bg-[color:var(--primary)]/10 px-2 py-1 text-[10px] font-medium uppercase tracking-wide text-[color:var(--primary)]">
       {triggerLabel}
     </div>
                         {/* Header */}
@@ -6626,7 +6626,7 @@ const confClass =
                           
                         </div>
 {(safeText((d as any)?.focus ?? "") || houseNum) && (
-  <div className="mt-2 inline-flex rounded-full border border-indigo-300/20 bg-[color:var(--primary)]/10 px-2 py-1 text-[10px] font-medium uppercase tracking-wide text-indigo-200">
+  <div className="mt-2 inline-flex rounded-full border border-indigo-300/20 bg-[color:var(--primary)]/10 px-2 py-1 text-[10px] font-medium uppercase tracking-wide text-[color:var(--primary)]">
     {adjustedFocus}
   </div>
 )}
@@ -6663,7 +6663,7 @@ const confClass =
   if (banned.some((x) => natalLine.toLowerCase().includes(x))) return null;
 
   return (
-    <div className="mt-2 text-[12px] text-indigo-200/80">
+    <div className="mt-2 text-[12px] text-[color:var(--primary)]/80">
       {natalLine}
     </div>
   );
@@ -6673,7 +6673,7 @@ const confClass =
     {evidenceLine}
   </div>
 )}
-<div className="mt-2 text-[11px] text-indigo-100/70">
+<div className="mt-2 text-[11px] text-foreground/70">
   {actionBias}
 </div>
                         {/* Do / Avoid */}
@@ -7052,7 +7052,7 @@ const confClass =
 
         {/* Snapshot */}
         <div className="rounded-2xl border border-[color:var(--border)] astro-card p-4">
-          <div className="text-xs font-semibold uppercase tracking-wide text-foreground0">
+          <div className="text-xs font-semibold uppercase tracking-wide astro-text-soft">
             Sarathi Snapshot  {todayLabel}
           </div>
           <div className="mt-1 text-lg font-semibold text-foreground">
@@ -7160,7 +7160,7 @@ const confClass =
 
         {/* Money */}
         <div className="rounded-2xl border border-[color:var(--border)] bg-background p-4">
-          <div className="text-xs font-semibold uppercase tracking-wide text-foreground0">
+          <div className="text-xs font-semibold uppercase tracking-wide astro-text-soft">
             Money
           </div>
 
@@ -7189,7 +7189,7 @@ const confClass =
 
         {/* Loading */}
         {dailyLoading && (
-          <div className="text-sm text-foreground0">Loading next few days</div>
+          <div className="text-sm astro-text-soft">Loading next few days</div>
         )}
       </div>
     );
@@ -8912,7 +8912,7 @@ if (winSunSun) {
       return (
         <div className="space-y-6">
           <div className="rounded-2xl border border-[color:var(--border)] bg-background p-4">
-            <div className="text-xs font-semibold uppercase tracking-wide text-foreground0">
+            <div className="text-xs font-semibold uppercase tracking-wide astro-text-soft">
               Advanced - Your deeper map
             </div>
             <div className="mt-1 text-sm text-foreground">
@@ -8925,7 +8925,7 @@ if (winSunSun) {
           </div>
 
           <div className="rounded-2xl border border-[color:var(--border)] astro-card p-5  ">
-            <div className="text-xs font-semibold uppercase tracking-wide text-foreground0">
+            <div className="text-xs font-semibold uppercase tracking-wide astro-text-soft">
               What youll get here
             </div>
             <div className="mt-2 text-sm text-foreground/80 leading-relaxed">
@@ -8941,7 +8941,7 @@ if (winSunSun) {
     </div>
   ) : nextUpcoming.length > 0 ? (
     <div className="mt-3">
-      <div className="text-xs text-foreground0 mb-2">No strong transits active today. Next up:</div>
+      <div className="text-xs astro-text-soft mb-2">No strong transits active today. Next up:</div>
       <div className="flex flex-wrap gap-2">
         {nextUpcoming.map((t: any, i: number) => (
           <span key={(t?.id ?? i) as any} className="rounded-full border border-[color:var(--border)] bg-background px-3 py-1 text-[11px] text-foreground/80">
@@ -8951,7 +8951,7 @@ if (winSunSun) {
       </div>
     </div>
   ) : (
-    <div className="mt-3 text-xs text-foreground0">
+    <div className="mt-3 text-xs astro-text-soft">
       No transit windows available (backend returned none).
     </div>
   )}
@@ -8972,7 +8972,7 @@ if (winSunSun) {
               ))}
             </div>
 
-            <div className="mt-4 text-xs text-foreground0">
+            <div className="mt-4 text-xs astro-text-soft">
               Tip: If you see old data, change any input slightly (time/place) and regenerate.
             </div>
           </div>
@@ -9049,7 +9049,7 @@ if (winSunSun) {
     children,
   }) => (
     <div className="overflow-hidden rounded-2xl border border-[color:var(--border)] astro-card p-4  ">
-      <div className="text-xs font-semibold uppercase tracking-wide text-foreground0">
+      <div className="text-xs font-semibold uppercase tracking-wide astro-text-soft">
         {title}
       </div>
       <div className="mt-3">{children}</div>
@@ -9271,29 +9271,29 @@ const ScenarioCard: React.FC<{ s: any }> = ({ s }) => (
   <div className="rounded-2xl border border-[color:var(--border)] bg-background p-4">
     <div className="flex items-start justify-between gap-3">
       <div>
-        <div className="text-xs font-semibold uppercase tracking-wide text-foreground0">
+        <div className="text-xs font-semibold uppercase tracking-wide astro-text-soft">
           {String(s?.domain ?? "").toUpperCase()} • {s?.fromISO} → {s?.toISO}
         </div>
         <div className="mt-1 text-sm font-semibold text-foreground">
           {s?.headline ?? "Window"}
         </div>
         {Array.isArray(s?.why) && s.why.length ? (
-          <div className="mt-2 text-xs text-foreground0">
+          <div className="mt-2 text-xs astro-text-soft">
             {s.why.slice(0, 3).join(" • ")}
           </div>
         ) : null}
       </div>
 
       <div className="text-right">
-        <div className="text-xs text-foreground0">Confidence</div>
+        <div className="text-xs astro-text-soft">Confidence</div>
         <div className="text-lg font-semibold text-foreground">{pctLabel(s?.score)}</div>
-        <div className="text-xs text-foreground0">{s?.confidence ?? ""}</div>
+        <div className="text-xs astro-text-soft">{s?.confidence ?? ""}</div>
       </div>
     </div>
 
     {Array.isArray(s?.mostLikelySign) && s.mostLikelySign.length ? (
       <div className="mt-3 rounded-xl astro-card p-3">
-        <div className="text-xs font-semibold uppercase tracking-wide text-foreground0">
+        <div className="text-xs font-semibold uppercase tracking-wide astro-text-soft">
           Most likely sign
         </div>
         <ul className="mt-2 list-disc pl-5 text-sm text-foreground/90 space-y-1">
@@ -9332,13 +9332,13 @@ const ScenarioCard: React.FC<{ s: any }> = ({ s }) => (
       <div className="mt-3 text-sm text-foreground/80">
         {s?.outcomeIfDone ? (
           <div>
-            <span className="text-foreground0 font-semibold">Handled well:</span>{" "}
+            <span className="astro-text-soft font-semibold">Handled well:</span>{" "}
             {s.outcomeIfDone}
           </div>
         ) : null}
         {s?.outcomeIfIgnored ? (
           <div className="mt-1">
-            <span className="text-foreground0 font-semibold">Ignored:</span>{" "}
+            <span className="astro-text-soft font-semibold">Ignored:</span>{" "}
             {s.outcomeIfIgnored}
           </div>
         ) : null}
@@ -9351,7 +9351,7 @@ const HorizonBlock: React.FC<{ title: string; items: any[] }> = ({ title, items 
   <details className="rounded-2xl border border-[color:var(--border)] bg-background p-4" open>
     <summary className="cursor-pointer list-none">
       <div className="text-sm font-semibold text-foreground">{title}</div>
-      <div className="mt-1 text-xs text-foreground0">
+      <div className="mt-1 text-xs astro-text-soft">
         Trigger windows — what you’ll notice, what to do, what to avoid.
       </div>
     </summary>
@@ -9372,7 +9372,7 @@ const FullGuidanceV2UI: React.FC<{ fg: any }> = ({ fg }) => {
     <div className="space-y-6">
       {/* Reality Check */}
       <div className="rounded-2xl border border-[color:var(--border)] bg-background p-4">
-        <div className="text-xs font-semibold uppercase tracking-wide text-foreground0">
+        <div className="text-xs font-semibold uppercase tracking-wide astro-text-soft">
           Full Guidance — 90 days
         </div>
         <div className="mt-1 text-lg font-semibold text-foreground">
@@ -9380,7 +9380,7 @@ const FullGuidanceV2UI: React.FC<{ fg: any }> = ({ fg }) => {
         </div>
 
         <div className="mt-2 text-sm text-foreground/80">
-          <span className="text-foreground0 font-semibold">Phase:</span>{" "}
+          <span className="astro-text-soft font-semibold">Phase:</span>{" "}
           {rc?.currentPhase ?? "—"}
         </div>
 
@@ -9413,13 +9413,13 @@ const FullGuidanceV2UI: React.FC<{ fg: any }> = ({ fg }) => {
             .slice(0, 4)
             .map((d: any) => (
               <div key={d.domain} className="rounded-2xl border border-[color:var(--border)] bg-background p-4">
-                <div className="text-xs font-semibold uppercase tracking-wide text-foreground0">
+                <div className="text-xs font-semibold uppercase tracking-wide astro-text-soft">
                   {d.domain}
                 </div>
                 <div className="mt-2 text-2xl font-semibold text-foreground">
                   {pctLabel(d.score)}
                 </div>
-                <div className="text-xs text-foreground0">{d.confidence}</div>
+                <div className="text-xs astro-text-soft">{d.confidence}</div>
                 <div className="mt-2 text-sm text-foreground/85 leading-relaxed">
                   {d.headline}
                 </div>
@@ -9437,13 +9437,13 @@ const FullGuidanceV2UI: React.FC<{ fg: any }> = ({ fg }) => {
       {/* Advisor Memo */}
       <div className="rounded-2xl border border-[color:var(--border)] bg-background p-4">
         <div className="text-sm font-semibold text-foreground">Advisor Memo</div>
-        <div className="mt-1 text-xs text-foreground0">
+        <div className="mt-1 text-xs astro-text-soft">
           What to push, what to refuse, what to enforce.
         </div>
 
         <div className="mt-4 grid gap-3 md:grid-cols-2">
           <div className="rounded-xl astro-card p-3">
-            <div className="text-xs font-semibold uppercase tracking-wide text-foreground0">
+            <div className="text-xs font-semibold uppercase tracking-wide astro-text-soft">
               Opportunity
             </div>
             <ul className="mt-2 list-disc pl-5 text-sm text-foreground/90 space-y-1">
@@ -9454,7 +9454,7 @@ const FullGuidanceV2UI: React.FC<{ fg: any }> = ({ fg }) => {
           </div>
 
           <div className="rounded-xl astro-card p-3">
-            <div className="text-xs font-semibold uppercase tracking-wide text-foreground0">
+            <div className="text-xs font-semibold uppercase tracking-wide astro-text-soft">
               Risks
             </div>
             <ul className="mt-2 list-disc pl-5 text-sm text-foreground/90 space-y-1">
@@ -9465,7 +9465,7 @@ const FullGuidanceV2UI: React.FC<{ fg: any }> = ({ fg }) => {
           </div>
 
           <div className="rounded-xl astro-card p-3">
-            <div className="text-xs font-semibold uppercase tracking-wide text-foreground0">
+            <div className="text-xs font-semibold uppercase tracking-wide astro-text-soft">
               Control levers
             </div>
             <ul className="mt-2 list-disc pl-5 text-sm text-foreground/90 space-y-1">
@@ -9476,7 +9476,7 @@ const FullGuidanceV2UI: React.FC<{ fg: any }> = ({ fg }) => {
           </div>
 
           <div className="rounded-xl astro-card p-3">
-            <div className="text-xs font-semibold uppercase tracking-wide text-foreground0">
+            <div className="text-xs font-semibold uppercase tracking-wide astro-text-soft">
               Non-negotiables
             </div>
             <ul className="mt-2 list-disc pl-5 text-sm text-foreground/90 space-y-1">
@@ -12424,7 +12424,7 @@ const sunSign = sun?.sign ?? report.sunSign ?? "-";
                                           {status}
                                         </span>
 
-                                        <div className="text-xs text-foreground0">
+                                        <div className="text-xs astro-text-soft">
                                           House {house}
                                         </div>
                                       </div>
@@ -12500,8 +12500,8 @@ const TabPersonality: React.FC<TabPersonalityProps> = memo(({ report }) => {
             </CardTitle>
           </CardHeader>
 
-          <CardContent className="space-y-2 text-indigo-50/90">
-            <p className="font-semibold text-indigo-200">
+          <CardContent className="space-y-2 text-foreground/80">
+            <p className="font-semibold text-[color:var(--primary)]">
               {(report as any).coreLifePattern.title}
             </p>
 
@@ -12534,7 +12534,7 @@ const TabPersonality: React.FC<TabPersonalityProps> = memo(({ report }) => {
 
             <CardContent className="text-sm leading-relaxed space-y-3 text-foreground/90">
               {visibleLines.map((paragraph: string, i: number) => (
-                <p key={i} className="text-indigo-50/90">
+                <p key={i} className="text-foreground/80">
                   {paragraph}
                 </p>
               ))}
@@ -12543,7 +12543,7 @@ const TabPersonality: React.FC<TabPersonalityProps> = memo(({ report }) => {
                 <div className="relative overflow-hidden rounded-xl border border-[color:var(--border)] bg-background p-4">
                   <div className="space-y-3 blur-[4px] select-none pointer-events-none opacity-80">
                     {hiddenLines.map((paragraph: string, i: number) => (
-                      <p key={`blur-${i}`} className="text-indigo-50/90">
+                      <p key={`blur-${i}`} className="text-foreground/80">
                         {paragraph}
                       </p>
                     ))}
@@ -12555,13 +12555,13 @@ const TabPersonality: React.FC<TabPersonalityProps> = memo(({ report }) => {
                     ) : null}
 
                     {(report as any)?.lifePressureZone ? (
-                      <p className="text-indigo-50/90">
+                      <p className="text-foreground/80">
                         {(report as any).lifePressureZone}
                       </p>
                     ) : null}
 
                     {(report as any)?.naturalStrength ? (
-                      <p className="text-emerald-50/90">
+                      <p className="text-foreground/80">
                         {(report as any).naturalStrength}
                       </p>
                     ) : null}
@@ -12764,7 +12764,7 @@ const currentChapterBody = (() => {
 
       <div className="space-y-2">
         {currentPhaseLine ? (
-          <div className="text-sm font-medium text-indigo-100">
+          <div className="text-sm font-medium text-foreground">
             {currentPhaseLine}
           </div>
         ) : null}
@@ -12815,7 +12815,7 @@ const currentChapterBody = (() => {
 
   <CardContent className="space-y-4 text-sm leading-relaxed text-foreground">
     <div>
-      <div className="text-sm font-medium text-indigo-100">
+      <div className="text-sm font-medium text-foreground">
         {currentChapterTitle}
       </div>
       <p className="mt-1 text-sm leading-relaxed text-foreground/90">
@@ -12825,7 +12825,7 @@ const currentChapterBody = (() => {
 
     {Array.isArray(currentChapterBody.brings) && currentChapterBody.brings.length > 0 ? (
       <div>
-        <div className="text-xs font-semibold uppercase tracking-wide text-foreground0">
+        <div className="text-xs font-semibold uppercase tracking-wide astro-text-soft">
           What this phase tends to bring
         </div>
         <div className="mt-2 space-y-1.5">
@@ -12840,7 +12840,7 @@ const currentChapterBody = (() => {
 
     {currentChapterBody.lesson ? (
       <div>
-        <div className="text-xs font-semibold uppercase tracking-wide text-foreground0">
+        <div className="text-xs font-semibold uppercase tracking-wide astro-text-soft">
           Core lesson
         </div>
         <p className="mt-1 text-sm leading-relaxed text-foreground/90">
@@ -12938,7 +12938,7 @@ const currentChapterBody = (() => {
                               }
                             >
                               <div className="space-y-0.5">
-                                <div className="text-[11px] font-semibold uppercase tracking-wide text-foreground0">
+                                <div className="text-[11px] font-semibold uppercase tracking-wide astro-text-soft">
                                   {row.planet} Mahadasha
                                 </div>
                                 <div className="text-[13px] text-foreground">
@@ -12947,7 +12947,7 @@ const currentChapterBody = (() => {
                               </div>
 
                               {isActive && (
-                                <span className="text-[11px] font-semibold text-indigo-200">
+                                <span className="text-[11px] font-semibold text-[color:var(--primary)]">
                                   Active Now
                                 </span>
                               )}
@@ -13110,7 +13110,7 @@ const currentChapterBody = (() => {
                   {label}
                 </div>
                 {(when || strength !== null) ? (
-                  <div className="mt-1 text-xs text-foreground0">
+                  <div className="mt-1 text-xs astro-text-soft">
                     {when ? <span>{when}</span> : null}
                     {when && strength !== null ? <span>{" - "}</span> : null}
                     {strength !== null ? (
@@ -13870,7 +13870,7 @@ const text = uniqueTextParts
               type="button"
               variant="outline"
               size="sm"
-              className="w-full md:w-auto text-foreground hover:text-foreground border-white/20 hover:bg-background hover:shadow-md"
+              className="w-full md:w-auto text-foreground hover:text-foreground border-[color:var(--border)] hover:bg-background hover:shadow-md"
 
 
             >
@@ -13968,7 +13968,7 @@ function TabFullPlan({
   if (!hasReport) {
     return (
       <div className="rounded-2xl border border-[color:var(--border)] bg-background p-5">
-        <div className="text-xs font-semibold uppercase tracking-wide text-foreground0">
+        <div className="text-xs font-semibold uppercase tracking-wide astro-text-soft">
           Full Guidance
         </div>
         <div className="mt-1 text-lg font-semibold text-foreground">
@@ -14046,7 +14046,7 @@ const turningPointsTitle =
     <div className="space-y-6">
       {/* Header */}
       <div className="rounded-2xl border border-[color:var(--border)] bg-background p-5">
-        <div className="text-xs font-semibold uppercase tracking-wide text-foreground0">
+        <div className="text-xs font-semibold uppercase tracking-wide astro-text-soft">
           Your Current Phase
         </div>
         <div className="mt-1 text-lg font-semibold text-foreground">
@@ -14068,31 +14068,31 @@ const turningPointsTitle =
 
       {/* Current Life Chapter */}
       <div className="rounded-2xl border border-[color:var(--border)] bg-background p-5">
-        <div className="text-xs font-semibold uppercase tracking-wide text-foreground0">
+        <div className="text-xs font-semibold uppercase tracking-wide astro-text-soft">
           Current Life Chapter
         </div>
        {lifeSummary ? (
   <div className="mt-2 text-sm text-foreground/80 leading-relaxed">
-    <span className="text-foreground0 font-semibold">Life summary:</span>{" "}
+    <span className="astro-text-soft font-semibold">Life summary:</span>{" "}
     {lifeSummary}
   </div>
 ) : null}
         {mindState ? (
           <div className="mt-3 text-sm text-foreground/80 leading-relaxed">
-            <span className="text-foreground0 font-semibold">What this feels like inside:</span>{" "}
+            <span className="astro-text-soft font-semibold">What this feels like inside:</span>{" "}
             {mindState}
           </div>
         ) : null}
        {phaseTruth ? (
   <div className="mt-3 text-sm text-foreground/80 leading-relaxed">
-    <span className="text-foreground0 font-semibold">Truth of this phase:</span>{" "}
+    <span className="astro-text-soft font-semibold">Truth of this phase:</span>{" "}
     {phaseTruth}
   </div>
 ) : null}
 
 {oneDecision ? (
   <div className="mt-3 rounded-xl astro-card p-3">
-    <div className="text-xs font-semibold uppercase tracking-wide text-foreground0">
+    <div className="text-xs font-semibold uppercase tracking-wide astro-text-soft">
       The one decision that changes this phase
     </div>
     <div className="mt-1 text-sm text-foreground/80 leading-relaxed">
@@ -14102,7 +14102,7 @@ const turningPointsTitle =
 ) : null}
 {biggestMistake ? (
   <div className="mt-3 rounded-xl astro-card p-3">
-    <div className="text-xs font-semibold uppercase tracking-wide text-foreground0">
+    <div className="text-xs font-semibold uppercase tracking-wide astro-text-soft">
       The mistake that will cost you the most in this phase
     </div>
     <div className="mt-1 text-sm text-foreground/80 leading-relaxed">
@@ -14134,14 +14134,14 @@ const turningPointsTitle =
 
                   {feel ? (
                     <div className="mt-2 text-xs text-foreground">
-                      <span className="text-foreground0 font-semibold">How it feels:</span>{" "}
+                      <span className="astro-text-soft font-semibold">How it feels:</span>{" "}
                       {feel}
                     </div>
                   ) : null}
 
                   {events.length ? (
                     <div className="mt-3">
-                      <div className="text-xs font-semibold uppercase tracking-wide text-foreground0">
+                      <div className="text-xs font-semibold uppercase tracking-wide astro-text-soft">
                         Likely events
                       </div>
                       <ul className="mt-2 space-y-1 text-xs text-foreground">
@@ -14159,7 +14159,7 @@ const turningPointsTitle =
 
         {whyNow.length ? (
           <div className="mt-5">
-            <div className="text-xs font-semibold uppercase tracking-wide text-foreground0">
+            <div className="text-xs font-semibold uppercase tracking-wide astro-text-soft">
               Why this phase is active
             </div>
             <ul className="mt-2 space-y-1 text-sm text-foreground/80">
@@ -14172,7 +14172,7 @@ const turningPointsTitle =
 
         {whatToDoNow.length ? (
           <div className="mt-5">
-            <div className="text-xs font-semibold uppercase tracking-wide text-foreground0">
+            <div className="text-xs font-semibold uppercase tracking-wide astro-text-soft">
               What this phase is asking from you
             </div>
             <ul className="mt-2 space-y-1 text-sm text-foreground/80">
@@ -14185,7 +14185,7 @@ const turningPointsTitle =
       </div>
 {probabilities.length ? (
   <div className="rounded-2xl border border-[color:var(--border)] bg-background p-5">
-    <div className="text-xs font-semibold uppercase tracking-wide text-foreground0">
+    <div className="text-xs font-semibold uppercase tracking-wide astro-text-soft">
       Probability of Major Themes (Next 90 Days)
     </div>
 
@@ -14205,11 +14205,11 @@ const turningPointsTitle =
       {nextShift ? (
         <div className="rounded-2xl border border-[color:var(--border)] bg-background p-5">
           <div className="flex items-center justify-between gap-3">
-            <div className="text-xs font-semibold uppercase tracking-wide text-foreground0">
+            <div className="text-xs font-semibold uppercase tracking-wide astro-text-soft">
               The Next Turn
             </div>
             {nextShift?.whenISO ? (
-              <div className="text-xs text-foreground0">
+              <div className="text-xs astro-text-soft">
                 {String(nextShift.whenISO).slice(0, 10)}
               </div>
             ) : null}
@@ -14223,7 +14223,7 @@ const turningPointsTitle =
 
           {Array.isArray(nextShift?.watchFor) && nextShift.watchFor.length ? (
             <div className="mt-4">
-              <div className="text-xs font-semibold uppercase tracking-wide text-foreground0">
+              <div className="text-xs font-semibold uppercase tracking-wide astro-text-soft">
                 What you will notice
               </div>
               <ul className="mt-2 space-y-1 text-sm text-foreground/80">
@@ -14235,7 +14235,7 @@ const turningPointsTitle =
           ) : null}
           {Array.isArray(nextShift?.realLifeScenarios) && nextShift.realLifeScenarios.length ? (
   <div className="mt-4">
-    <div className="text-xs font-semibold uppercase tracking-wide text-foreground0">
+    <div className="text-xs font-semibold uppercase tracking-wide astro-text-soft">
       What this may look like in real life
     </div>
     <ul className="mt-2 space-y-1 text-sm text-foreground/80">
@@ -14248,7 +14248,7 @@ const turningPointsTitle =
 
           {Array.isArray(nextShift?.do) && nextShift.do.length ? (
             <div className="mt-4">
-              <div className="text-xs font-semibold uppercase tracking-wide text-foreground0">
+              <div className="text-xs font-semibold uppercase tracking-wide astro-text-soft">
                 What to do
               </div>
               <ul className="mt-2 space-y-1 text-sm text-foreground/80">
@@ -14263,11 +14263,11 @@ const turningPointsTitle =
       {mostLikelyNextEvent ? (
   <div className="rounded-2xl border border-[color:var(--border)] bg-background p-5">
     <div className="flex items-center justify-between gap-3">
-      <div className="text-xs font-semibold uppercase tracking-wide text-foreground0">
+      <div className="text-xs font-semibold uppercase tracking-wide astro-text-soft">
         {String(mostLikelyNextEvent.title ?? "The event most likely to happen next")}
       </div>
       {mostLikelyNextEvent?.whenISO ? (
-        <div className="text-xs text-foreground0">
+        <div className="text-xs astro-text-soft">
           {String(mostLikelyNextEvent.whenISO).slice(0, 10)}
         </div>
       ) : null}
@@ -14281,14 +14281,14 @@ const turningPointsTitle =
 
     {mostLikelyNextEvent?.whyLikely ? (
       <div className="mt-3 text-sm text-foreground leading-relaxed">
-        <span className="text-foreground0 font-semibold">Why this is likely:</span>{" "}
+        <span className="astro-text-soft font-semibold">Why this is likely:</span>{" "}
         {String(mostLikelyNextEvent.whyLikely)}
       </div>
     ) : null}
 
     {Array.isArray(mostLikelyNextEvent?.signs) && mostLikelyNextEvent.signs.length ? (
       <div className="mt-4">
-        <div className="text-xs font-semibold uppercase tracking-wide text-foreground0">
+        <div className="text-xs font-semibold uppercase tracking-wide astro-text-soft">
           Signs it has started
         </div>
         <ul className="mt-2 space-y-1 text-sm text-foreground/80">
@@ -14301,7 +14301,7 @@ const turningPointsTitle =
 
     {mostLikelyNextEvent?.bestResponse ? (
       <div className="mt-4 text-sm text-foreground/80 leading-relaxed">
-        <span className="text-foreground0 font-semibold">Best response:</span>{" "}
+        <span className="astro-text-soft font-semibold">Best response:</span>{" "}
         {String(mostLikelyNextEvent.bestResponse)}
       </div>
     ) : null}
@@ -14309,7 +14309,7 @@ const turningPointsTitle =
 ) : null}
 {strategicFocus ? (
   <div className="rounded-2xl border border-[color:var(--border)] bg-background p-5">
-    <div className="text-xs font-semibold uppercase tracking-wide text-foreground0">
+    <div className="text-xs font-semibold uppercase tracking-wide astro-text-soft">
       {String(strategicFocus.title ?? "Your Strategic Focus for the Next 90 Days")}
     </div>
 
@@ -14331,7 +14331,7 @@ const turningPointsTitle =
       {/* Your Next 4 Weeks */}
       {weekly.length ? (
         <div className="rounded-2xl border border-[color:var(--border)] bg-background p-5">
-          <div className="text-xs font-semibold uppercase tracking-wide text-foreground0">
+          <div className="text-xs font-semibold uppercase tracking-wide astro-text-soft">
             Your Next 4 Weeks
           </div>
           <div className="mt-2 text-sm text-foreground">
@@ -14345,7 +14345,7 @@ const turningPointsTitle =
                   <div className="text-sm font-semibold text-foreground">
                     Week {w.week}
                   </div>
-                  <div className="text-xs text-foreground0">{w.range}</div>
+                  <div className="text-xs astro-text-soft">{w.range}</div>
                 </div>
 
                 <div className="mt-2 text-sm text-foreground/80 leading-relaxed">
@@ -14353,11 +14353,11 @@ const turningPointsTitle =
                 </div>
 
                 <div className="mt-2 text-xs text-foreground">
-                  <span className="text-foreground0 font-semibold">Do:</span>{" "}
+                  <span className="astro-text-soft font-semibold">Do:</span>{" "}
                   {w.action}
                 </div>
                 <div className="mt-1 text-xs text-foreground">
-                  <span className="text-foreground0 font-semibold">Avoid:</span>{" "}
+                  <span className="astro-text-soft font-semibold">Avoid:</span>{" "}
                   {w.avoid}
                 </div>
               </div>
@@ -14369,7 +14369,7 @@ const turningPointsTitle =
       {/* Remedies */}
       {remedies ? (
         <div className="rounded-2xl border border-[color:var(--border)] bg-background p-5">
-          <div className="text-xs font-semibold uppercase tracking-wide text-foreground0">
+          <div className="text-xs font-semibold uppercase tracking-wide astro-text-soft">
             Remedies for This Phase
           </div>
           <div className="mt-2 text-sm text-foreground">
@@ -14425,7 +14425,7 @@ const turningPointsTitle =
       {/* Ask Sarathi */}
       {chatPrompts.length ? (
         <div className="rounded-2xl border border-[color:var(--border)] bg-background p-5">
-          <div className="text-xs font-semibold uppercase tracking-wide text-foreground0">
+          <div className="text-xs font-semibold uppercase tracking-wide astro-text-soft">
             Ask Sārathi
           </div>
           <div className="mt-2 text-sm text-foreground">
