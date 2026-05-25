@@ -982,7 +982,13 @@ const topActiveYoga =
     </aside>
   );
 }
-function FunctionalPlanetSnapshot({ roles }: { roles?: any }) {
+function FunctionalPlanetSnapshot({
+  roles,
+  natalStrengths = [],
+}: {
+  roles?: any;
+  natalStrengths?: any[];
+}) {
   const yogakaraka =
     roles?.yogakaraka ??
     roles?.yogaKaraka ??
@@ -990,12 +996,10 @@ function FunctionalPlanetSnapshot({ roles }: { roles?: any }) {
     roles?.yogakarakaPlanets ??
     [];
 
-  const vargottama =
-    roles?.vargottama ??
-    roles?.vargottam ??
-    roles?.vargottamaPlanets ??
-    roles?.vargottamPlanets ??
-    [];
+  const vargottama = natalStrengths
+  .filter((p: any) => p?.isVargottama)
+  .map((p: any) => p?.planet)
+  .filter(Boolean);
 
   const maraka =
     roles?.maraka ??
@@ -1248,6 +1252,7 @@ export default function ChartsTabView({
   selectedDateChartLabel,
   natalAscSign,
   natalPlanets,
+  natalStrengths,
   vargaMap,
   chartGalleryKeys,
   bhavaChalit,
@@ -1273,6 +1278,7 @@ export default function ChartsTabView({
   selectedDateChartLabel?: string;
   natalAscSign: string | null;
   natalPlanets: any[];
+  natalStrengths?: any[];
   vargaMap: Record<string, any>;
   chartGalleryKeys: string[];
   bhavaChalit: any;
@@ -1749,7 +1755,10 @@ return {
       layoutVariant="primary"
     />
 
-    <FunctionalPlanetSnapshot roles={roles} />
+    <FunctionalPlanetSnapshot
+  roles={roles}
+  natalStrengths={natalStrengths}
+/>
   </div>
 
   <div className="xl:sticky xl:top-4">

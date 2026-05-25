@@ -3350,6 +3350,7 @@ nabhasaYogas={data?.foundations?.nabhasaYogas ?? data?.nabhasaYogas}
   selectedDateChartLabel={`Showing chart date: ${selectedDateISO}`}
   natalAscSign={natal?.ascendant?.sign ?? null}
   natalPlanets={planets}
+  natalStrengths={natalStrengths}
   vargaMap={vargaMap}
   chartGalleryKeys={chartGalleryKeys}
   bhavaChalit={bhavaChalit}

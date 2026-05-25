@@ -13,6 +13,7 @@ type PlanetStrengthRow = {
   planet: string;
   sign: string;
   dignity: string;
+  isVargottama: boolean;
   relationshipToSignLord: "friend" | "enemy" | "neutral" | "self" | "n/a";
   signLord: string | null;
   isOwnSign: boolean;
@@ -243,10 +244,14 @@ function getIsVargottama(
 ): boolean {
   if (!Array.isArray(d9Planets)) return false;
 
-  const d9 = d9Planets.find((p) => p?.name === planet);
-  if (!d9 || !d9.sign) return false;
+  const d9 = d9Planets.find(
+    (p) =>
+      String(p?.planet ?? p?.name ?? "") === String(planet)
+  );
 
-  return d9.sign === d1Sign;
+  if (!d9?.sign) return false;
+
+  return String(d9.sign) === String(d1Sign);
 }
 export function buildPlanetStrength(params: {
   natalPlanets: NatalPlanet[];
