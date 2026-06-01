@@ -298,7 +298,11 @@ type ExpandedChartState = {
   ascSign: string | null;
   planets: any[];
 } | null;
-
+type ChartInfoDrawerState = {
+  title: string;
+  ascSign: string | null;
+  planets: any[];
+} | null;
 const HOUSE_REFERENCE_OPTIONS: HouseReferenceOption[] = [
   { house: 1, key: "self", label: "1st House — Self", shortLabel: "Self" },
   { house: 2, key: "money", label: "2nd House — Wealth & Family", shortLabel: "Wealth & Family" },
@@ -1245,7 +1249,321 @@ function PlanetNakshatraSnapshot({
     </aside>
   );
 }
+const SIGN_META: Record<string, { element: string; mode: string }> = {
+  Aries: { element: "Fire", mode: "Movable" },
+  Taurus: { element: "Earth", mode: "Fixed" },
+  Gemini: { element: "Air", mode: "Dual" },
+  Cancer: { element: "Water", mode: "Movable" },
+  Leo: { element: "Fire", mode: "Fixed" },
+  Virgo: { element: "Earth", mode: "Dual" },
+  Libra: { element: "Air", mode: "Movable" },
+  Scorpio: { element: "Water", mode: "Fixed" },
+  Sagittarius: { element: "Fire", mode: "Dual" },
+  Capricorn: { element: "Earth", mode: "Movable" },
+  Aquarius: { element: "Air", mode: "Fixed" },
+  Pisces: { element: "Water", mode: "Dual" },
+};
+const VEDIC_RECKONER_PLANETS = new Set([
+  "Sun",
+  "Moon",
+  "Mars",
+  "Mercury",
+  "Jupiter",
+  "Venus",
+  "Saturn",
+  "Rahu",
+  "Ketu",
+]);
+function buildChartReadyReckoner(planets: any[]) {
+  const rows = normalizeChartPlanets(planets).filter((p) =>
+  VEDIC_RECKONER_PLANETS.has(p.planet)
+);
 
+  const elements: Record<string, string[]> = {
+    Fire: [],
+    Earth: [],
+    Air: [],
+    Water: [],
+  };
+
+  const modes: Record<string, string[]> = {
+    Movable: [],
+    Fixed: [],
+    Dual: [],
+  };
+
+  const houseGroups: Record<string, number[]> = {
+    Kendra: [1, 4, 7, 10],
+    Trikona: [1, 5, 9],
+    Upachaya: [3, 6, 10, 11],
+    Dusthana: [6, 8, 12],
+    Maraka: [2, 7],
+  };
+
+  const purposeGroups: Record<string, number[]> = {
+    Dharma: [1, 5, 9],
+    Artha: [2, 6, 10],
+    Kama: [3, 7, 11],
+    Moksha: [4, 8, 12],
+  };
+  
+  const signOccupancy: Record<string, string[]> = {};
+  const houseOccupancy: Record<number, string[]> = {};
+  const occupiedHouseList = Object.entries(houseOccupancy)
+  .map(([house, planets]) => ({
+    house: Number(house),
+    planets,
+    count: planets.length,
+  }))
+  .filter((item) => item.count > 0)
+  .sort((a, b) => b.count - a.count);
+
+const mostOccupiedHouse = occupiedHouseList[0] ?? null;
+  SIGN_ORDER.forEach((sign) => {
+    signOccupancy[sign] = [];
+  });
+
+  for (let h = 1; h <= 12; h++) {
+    houseOccupancy[h] = [];
+  }
+
+  rows.forEach((p) => {
+    const planet = p.planet;
+    const sign = p.sign;
+    const house = p.house;
+
+    if (sign && SIGN_META[sign]) {
+      elements[SIGN_META[sign].element].push(planet);
+      modes[SIGN_META[sign].mode].push(planet);
+      signOccupancy[sign].push(planet);
+    }
+
+    if (typeof house === "number" && house >= 1 && house <= 12) {
+      houseOccupancy[house].push(planet);
+    }
+  });
+
+  function groupCounts(groups: Record<string, number[]>) {
+    return Object.entries(groups).map(([label, houses]) => ({
+      label,
+      planets: rows
+        .filter((p) => typeof p.house === "number" && houses.includes(p.house))
+        .map((p) => p.planet),
+    }));
+  }
+
+  function dominantFromMap(map: Record<string, string[]>) {
+    return Object.entries(map).sort((a, b) => b[1].length - a[1].length)[0];
+  }
+
+  function weakestFromMap(map: Record<string, string[]>) {
+    return Object.entries(map).sort((a, b) => a[1].length - b[1].length)[0];
+  }
+
+  const emptyHouses = Object.entries(houseOccupancy)
+    .filter(([, value]) => !value.length)
+    .map(([house]) => Number(house));
+
+  const crowdedHouses = Object.entries(houseOccupancy)
+    .filter(([, value]) => value.length >= 2)
+    .map(([house, value]) => ({
+      house: Number(house),
+      planets: value,
+    }));
+
+  return {
+    rows,
+    elements,
+    modes,
+    houseGroups: groupCounts(houseGroups),
+    purposeGroups: groupCounts(purposeGroups),
+    signOccupancy,
+    houseOccupancy,
+    dominantElement: dominantFromMap(elements),
+    weakestElement: weakestFromMap(elements),
+    dominantMode: dominantFromMap(modes),
+    weakestMode: weakestFromMap(modes),
+    emptyHouses,
+    crowdedHouses,
+  };
+}
+
+function ChartInfoDrawer({
+  chart,
+  onClose,
+}: {
+  chart: ChartInfoDrawerState;
+  onClose: () => void;
+}) {
+  if (!chart) return null;
+
+  const info = buildChartReadyReckoner(chart.planets);
+
+  return (
+    <div className="fixed inset-0 z-[110] pointer-events-none">
+  <aside
+    className="pointer-events-auto fixed right-5 top-24 max-h-[78vh] w-[420px] overflow-y-auto rounded-3xl border border-slate-200 bg-white p-5 shadow-2xl"
+    onClick={(event) => event.stopPropagation()}
+  >
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h3 className="text-lg font-semibold text-slate-950">
+              Chart Ready Reckoner
+            </h3>
+            <p className="mt-1 text-sm text-slate-500">{chart.title}</p>
+          </div>
+
+          <button
+  type="button"
+  onClick={onClose}
+  className="rounded-full border border-slate-200 bg-white px-3 py-1 text-sm text-slate-600 hover:bg-slate-50"
+>
+  Close
+</button>
+        </div>
+
+        <div className="mt-5 grid grid-cols-2 gap-3">
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+            <div className="text-[10px] font-bold uppercase tracking-wide text-slate-400">
+              Dominant Element
+            </div>
+            <div className="mt-1 text-sm font-semibold text-slate-950">
+              {info.dominantElement?.[0] ?? "—"} ({info.dominantElement?.[1]?.length ?? 0})
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+            <div className="text-[10px] font-bold uppercase tracking-wide text-slate-400">
+              Dominant Mode
+            </div>
+            <div className="mt-1 text-sm font-semibold text-slate-950">
+              {info.dominantMode?.[0] ?? "—"} ({info.dominantMode?.[1]?.length ?? 0})
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+            <div className="text-[10px] font-bold uppercase tracking-wide text-slate-400">
+              Weakest Element
+            </div>
+            <div className="mt-1 text-sm font-semibold text-slate-950">
+              {info.weakestElement?.[0] ?? "—"} ({info.weakestElement?.[1]?.length ?? 0})
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+            <div className="text-[10px] font-bold uppercase tracking-wide text-slate-400">
+              Weakest Mode
+            </div>
+            <div className="mt-1 text-sm font-semibold text-slate-950">
+              {info.weakestMode?.[0] ?? "—"} ({info.weakestMode?.[1]?.length ?? 0})
+            </div>
+          </div>
+        </div>
+
+        <InfoBlock title="Element Balance" data={info.elements} />
+        <InfoBlock title="Modality Balance" data={info.modes} />
+
+        <InfoRows
+  title="House Groups"
+  rows={info.houseGroups.map((r) => ({
+    label: r.label,
+    value: r.planets.length
+      ? `${r.planets.length} planet${r.planets.length > 1 ? "s" : ""}: ${r.planets.join(", ")}`
+      : "None",
+  }))}
+/>
+
+       <InfoRows
+  title="Dharma / Artha / Kama / Moksha"
+  rows={info.purposeGroups.map((r) => ({
+    label: r.label,
+    value: r.planets.length
+      ? `${r.planets.length} planet${r.planets.length > 1 ? "s" : ""}: ${r.planets.join(", ")}`
+      : "None",
+  }))}
+/>
+
+       
+        <InfoRows
+  title="Chart Statistics"
+  rows={[
+    {
+      label: "Empty Houses",
+      value: info.emptyHouses.length
+        ? info.emptyHouses.join(", ")
+        : "None",
+    },
+    {
+      label: "Crowded Houses",
+      value: info.crowdedHouses.length
+        ? info.crowdedHouses
+            .sort((a, b) => b.planets.length - a.planets.length)
+            .map(
+              (h) =>
+                `H${h.house} • ${h.planets.length} planets: ${h.planets.join(", ")}`
+            )
+            .join(" | ")
+        : "None",
+    },
+  ]}
+/>
+      </aside>
+    </div>
+  );
+}
+
+function InfoBlock({
+  title,
+  data,
+}: {
+  title: string;
+  data: Record<string, string[]>;
+}) {
+  return (
+    <div className="mt-5 rounded-2xl border border-slate-200 bg-white p-4">
+      <h4 className="text-sm font-semibold text-slate-950">{title}</h4>
+
+      <div className="mt-3 space-y-2">
+        {Object.entries(data).map(([label, planets]) => (
+          <div key={label} className="flex items-start justify-between gap-4 text-sm">
+            <span className="font-medium text-slate-700">{label}</span>
+            <span className="text-right text-slate-600">
+              {planets.length ? `${planets.length}: ${planets.join(", ")}` : "—"}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function InfoRows({
+  title,
+  rows,
+}: {
+  title: string;
+  rows: Array<{ label: string; value: string }>;
+}) {
+  return (
+    <div className="mt-5 rounded-2xl border border-slate-200 bg-white p-4">
+      <h4 className="text-sm font-semibold text-slate-950">{title}</h4>
+
+      <div className="mt-3 divide-y divide-slate-100">
+        {rows.map((row) => (
+          <div
+            key={row.label}
+            className="flex items-start justify-between gap-4 py-2 text-sm"
+          >
+            <span className="font-medium text-slate-700">{row.label}</span>
+            <span className="max-w-[65%] text-right text-slate-600">
+              {row.value}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 export default function ChartsTabView({
   selectedDateISO,
   setSelectedDateISO,
@@ -1325,6 +1643,8 @@ const [transitLoading, setTransitLoading] = useState(false);
   const [showUpagrahaOverlay, setShowUpagrahaOverlay] = useState(false);
   const [showAspectOverlay, setShowAspectOverlay] = useState(false);
   const [expandedChart, setExpandedChart] = useState<ExpandedChartState>(null);
+  const [chartInfoDrawer, setChartInfoDrawer] =
+  useState<ChartInfoDrawerState>(null);
   const [referenceMenuOpen, setReferenceMenuOpen] = useState(false);
   const [selectedHouseReference, setSelectedHouseReference] = useState<number>(1);
   const [houseReferenceMenuOpen, setHouseReferenceMenuOpen] = useState(false);
@@ -1683,9 +2003,34 @@ return {
     <div className="mt-6 space-y-6">
       <div className="space-y-6">
         <ChartCard
-          title="Natal Lagna Chart"
-          subtitle="Primary natal D1 chart."
-        >
+  title="Natal Lagna Chart"
+  subtitle="Primary natal D1 chart."
+>
+  <div className="mb-4 flex items-center justify-between rounded-2xl border border-indigo-100 bg-indigo-50/60 px-3 py-3">
+    <div>
+      <div className="text-sm font-semibold text-slate-900">
+        Natal Lagna Chart
+      </div>
+      <div className="mt-1 text-xs text-slate-500">
+        Primary D1 chart with astrologer ready reckoner.
+      </div>
+    </div>
+
+    <button
+      type="button"
+      onClick={() =>
+        setChartInfoDrawer({
+          title: "Natal Lagna Chart",
+          ascSign: natalAscSign,
+          planets: normalizeChartPlanets(natalPlanets),
+        })
+      }
+      className="flex h-9 w-9 items-center justify-center rounded-full border border-indigo-200 bg-white text-sm font-bold text-indigo-700 shadow-sm hover:bg-indigo-50"
+      title="Open chart ready reckoner"
+    >
+      i
+    </button>
+  </div>
           <div className="mb-4 rounded-2xl border border-[color:var(--border)] bg-slate-50/70 p-3">
             <div className="flex flex-wrap items-center gap-3 text-sm font-medium text-slate-800">
               <label className="inline-flex items-center gap-2">
@@ -2100,7 +2445,12 @@ return {
           )}
         </ChartCard>
       </div>
-      {expandedChartModal}
+      <ChartInfoDrawer
+  chart={chartInfoDrawer}
+  onClose={() => setChartInfoDrawer(null)}
+/>
+
+{expandedChartModal}
     </div>
   );
 }
