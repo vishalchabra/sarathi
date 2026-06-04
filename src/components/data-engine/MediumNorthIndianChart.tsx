@@ -641,6 +641,33 @@ function getAspectPlanetLabel(row: any) {
 
   return PLANET_SHORT[planet] ?? String(planet).slice(0, 2);
 }
+function getTransitSambandh(
+  natalPlanet: ChartPlanet,
+  transitPlanets: ChartPlanet[]
+) {
+  const transitMatch = transitPlanets.find(
+    (p) => p.planet === natalPlanet.planet
+  );
+
+  if (!transitMatch) return null;
+
+  const natalHouse =
+    natalPlanet.rashiHouse ?? natalPlanet.house ?? null;
+
+  const transitHouse =
+    transitMatch.rashiHouse ?? transitMatch.house ?? null;
+
+  if (!natalHouse || !transitHouse) return null;
+
+  const sambandh =
+    ((transitHouse - natalHouse + 12) % 12) + 1;
+
+  return {
+    natalHouse,
+    transitHouse,
+    sambandh,
+  };
+}
 export default function MediumNorthIndianChart({
   title = "North Indian Chart",
   ascSign,
@@ -716,6 +743,10 @@ const transitPlanetsByHouse = useMemo(
       ? PRIMARY_ASPECT_ANCHORS
       : SECONDARY_ASPECT_ANCHORS;
   const activePlanet = hovered || selected;
+  const transitSambandh =
+  activePlanet && !activePlanet.isTransit
+    ? getTransitSambandh(activePlanet, transitPlanets)
+    : null;
   const highlightSet = new Set(highlightPlanets.map(String));
   return (
     <div className="rounded-2xl border border-[color:var(--border)] bg-white p-4 shadow-sm backdrop-blur-sm">
@@ -1004,11 +1035,13 @@ const transitPlanetsByHouse = useMemo(
 
             <div>
   <div className="text-[10px] uppercase tracking-wide text-slate-900">
-    Bhava House
+    Transit Sambandh
   </div>
 
   <div className="mt-1">
-    {activePlanet?.house ?? "—"}
+    {transitSambandh
+      ? `${transitSambandh.sambandh}th (H${transitSambandh.natalHouse} → H${transitSambandh.transitHouse})`
+      : "—"}
   </div>
 </div>
 
