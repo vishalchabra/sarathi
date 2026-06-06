@@ -185,6 +185,7 @@ triggerEngine: {
   facts: any[];
   scores: any[];
   degreeHits: any[];
+  degreeHitWindows: any[];
   microTriggerDays: any[];
 };
    strength: {
@@ -992,16 +993,32 @@ const classicalReportPlanets = (Array.isArray(rawPlacements) ? rawPlacements : [
       ? ((signNum - ascSignNum + 12) % 12) + 1
       : null;
 
-  return {
-    ...p,
-    signNum,
-    house,
-    nakshatra: p.nakshatra ?? nakInfo.nakshatra,
-    pada: p.pada ?? nakInfo.pada,
-    retrograde: false,
-    combust: false,
-    lordships: [],
-  };
+const speed =
+  typeof p.speed === "number"
+    ? p.speed
+    : typeof p.speedLon === "number"
+    ? p.speedLon
+    : typeof p.longitudeSpeed === "number"
+    ? p.longitudeSpeed
+    : null;
+
+return {
+  ...p,
+  signNum,
+  house,
+  nakshatra: p.nakshatra ?? nakInfo.nakshatra,
+  pada: p.pada ?? nakInfo.pada,
+  speed,
+  speedLon: speed,
+  retrograde:
+    p.planet === "Sun" || p.planet === "Moon"
+      ? false
+      : typeof speed === "number"
+      ? speed < 0
+      : Boolean(p.retrograde),
+  combust: false,
+  lordships: [],
+};
 });
 
 const OUTER_PLANET_CODES = [
@@ -1409,6 +1426,20 @@ const classicYogasRaw = buildClassicYogas({
       ? upcomingTransits.planetaryTransits
       : []
   );
+  console.log("[DATA ENGINE TRANSITS]", {
+  planetaryTransitsCount: Array.isArray(upcomingTransits?.planetaryTransits)
+    ? upcomingTransits.planetaryTransits.length
+    : 0,
+  planetaryTransitsSample: Array.isArray(upcomingTransits?.planetaryTransits)
+    ? upcomingTransits.planetaryTransits.slice(0, 3)
+    : [],
+  transitWindowsCount: Array.isArray(transitWindows)
+    ? transitWindows.length
+    : 0,
+  transitWindowsSample: Array.isArray(transitWindows)
+    ? transitWindows.slice(0, 3)
+    : [],
+});
 const triggerFacts = buildTriggerFacts({
   transitPlanets: transitNow?.planets ?? [],
   natal: {
@@ -1439,6 +1470,22 @@ const degreeHitWindows = await computeDegreeHitWindows({
     house: 1,
   },
   startDateISO: selectedDateISO,
+});
+console.log("[DATA ENGINE DEGREE HITS]", {
+  transitNowPlanetsCount: Array.isArray(transitNow?.planets)
+    ? transitNow.planets.length
+    : 0,
+  natalPlanetsCount: Array.isArray(natalWithStrengths?.planets)
+    ? natalWithStrengths.planets.length
+    : 0,
+  degreeHitsCount: Array.isArray(degreeHits) ? degreeHits.length : 0,
+  degreeHitsSample: Array.isArray(degreeHits) ? degreeHits.slice(0, 3) : [],
+  degreeHitWindowsCount: Array.isArray(degreeHitWindows)
+    ? degreeHitWindows.length
+    : 0,
+  degreeHitWindowsSample: Array.isArray(degreeHitWindows)
+    ? degreeHitWindows.slice(0, 3)
+    : [],
 });
 const microTriggerDays = buildMicroTriggerDays({
   moonTransits: upcomingTransits?.moonTransits ?? [],
@@ -1561,14 +1608,17 @@ const classicYogas = {
       transitContacts,
       transitInteractions,
       upcomingEvents: upcomingTransits,
-      transitWindows,
+      transitWindows: transitWindows.length
+  ? transitWindows
+  : upcomingTransits?.planetaryTransits ?? [],
       compare,
     },
- triggerEngine: {
+triggerEngine: {
   topAreas: topTriggerAreas,
   scores: triggerScores,
   facts: triggerFacts,
   degreeHits,
+  degreeHitWindows,
   microTriggerDays,
 },
     strength: {
@@ -1601,7 +1651,9 @@ const classicYogas = {
     transitContacts,
     transitInteractions,
     upcomingTransits,
-    transitWindows,
+    transitWindows: transitWindows.length
+  ? transitWindows
+  : upcomingTransits?.planetaryTransits ?? [],
     bhavaChalit,
     classicChalit,
     nabhasaYogas,
