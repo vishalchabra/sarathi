@@ -97,10 +97,16 @@ function getInsightTone(tone: ShadbalaInsight["tone"]) {
   return "border-amber-200 bg-amber-50 text-amber-800";
 }
 
-function fmt(value: any) {
-  return typeof value === "number" && Number.isFinite(value)
-    ? value.toFixed(2)
-    : "—";
+function fmt(value: any, label?: string) {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return "—";
+  }
+
+  if (label === "Relative Rank") {
+    return String(Math.round(value));
+  }
+
+  return value.toFixed(2);
 }
 
 function formatRelationship(value: string) {
@@ -373,7 +379,7 @@ const normalizedUsageNote =
                       key={`${item.label}-${row.planet}`}
                       className="py-3 pr-4 text-slate-900/80"
                     >
-                      {fmt(item.getValue(row))}
+                      {fmt(item.getValue(row), item.label)}
                     </td>
                   ))}
                 </tr>

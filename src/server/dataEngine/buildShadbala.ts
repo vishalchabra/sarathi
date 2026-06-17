@@ -8,6 +8,16 @@ type PlanetInput = {
   speedLon?: number | null;
   longitudeSpeed?: number | null;
   retrograde?: boolean;
+  cheshtaBala?: number | null;
+  cheshtaVirupas?: number | null;
+  cheshtaState?: string | null;
+  declination?: number | null;
+  declinationDeg?: number | null;
+  dec?: number | null;
+  abdaLord?: string | null;
+  masaLord?: string | null;
+  varaLord?: string | null;
+  birthPart?: 1 | 2 | 3 | null;
 };
 
 type VargaPlanet = {
@@ -27,6 +37,19 @@ type VargaData = {
   d9?: VargaChart | null;
   d12?: VargaChart | null;
   d30?: VargaChart | null;
+};
+
+type ShadbalaAspect = {
+  planetA?: string;
+  planetB?: string;
+  from?: string;
+  to?: string;
+  aspectingPlanet?: string;
+  aspectedPlanet?: string;
+  orb?: number;
+  strength?: number;
+  virupas?: number;
+  tone?: "supportive" | "challenging" | "mixed" | string;
 };
 
 const SIGNS = [
@@ -53,6 +76,9 @@ const CORE_PLANETS = [
   "Venus",
   "Saturn",
 ];
+
+const BENEFICS = new Set(["Jupiter", "Venus"]);
+const MALEFICS = new Set(["Sun", "Mars", "Saturn"]);
 
 const SIGN_LORDS: Record<string, string> = {
   Aries: "Mars",
@@ -120,6 +146,27 @@ const EXALTATION_LON: Record<string, number> = {
   Jupiter: 95,
   Venus: 357,
   Saturn: 200,
+};
+
+
+const EXALTATION_SIGNS: Record<string, string> = {
+  Sun: "Aries",
+  Moon: "Taurus",
+  Mars: "Capricorn",
+  Mercury: "Virgo",
+  Jupiter: "Cancer",
+  Venus: "Pisces",
+  Saturn: "Libra",
+};
+
+const DEBILITATION_SIGNS: Record<string, string> = {
+  Sun: "Libra",
+  Moon: "Scorpio",
+  Mars: "Cancer",
+  Mercury: "Pisces",
+  Jupiter: "Capricorn",
+  Venus: "Virgo",
+  Saturn: "Aries",
 };
 
 const MIN_REQUIREMENT_RUPAS: Record<string, number> = {
@@ -193,12 +240,15 @@ function combineFiveFoldRelationship(
   natural: string,
   temporary: string
 ):
+  | "exalted"
+  | "moolatrikona"
+  | "own"
   | "greatFriend"
   | "friend"
   | "neutral"
   | "enemy"
   | "greatEnemy"
-  | "own" {
+  | "debilitated" {
   if (natural === "self") return "own";
   if (natural === "friend" && temporary === "friend") return "greatFriend";
   if (natural === "friend" && temporary === "enemy") return "neutral";
@@ -231,6 +281,10 @@ function getSaptavargajaRelationship(params: {
   const { planet, planetSign, signLordSign } = params;
 
   if (!planetSign) return "n/a";
+
+  // Classical Sapta-vargaja Bala first checks varga dignity.
+  // This is closer to JHora/AstroSage than using only natural + temporary friendship.
+  
   if (MOOLATRIKONA_SIGNS[planet] === planetSign) return "moolatrikona";
   if (OWN_SIGNS[planet]?.includes(planetSign)) return "own";
 
@@ -248,20 +302,24 @@ function getSaptavargajaRelationship(params: {
 
 function getVirupasForRelationship(relationship: string): number {
   switch (relationship) {
-    case "moolatrikona":
+    case "exalted":
       return 45;
+    case "moolatrikona":
+      return 30;
     case "own":
       return 30;
     case "greatFriend":
-      return 20;
+      return 22.5;
     case "friend":
       return 15;
     case "neutral":
-      return 10;
+      return 15;
     case "enemy":
-      return 4;
+      return 7.5;
     case "greatEnemy":
-      return 2;
+      return 3.75;
+    case "debilitated":
+      return 0;
     default:
       return 0;
   }
@@ -361,7 +419,7 @@ function getSaptavargajaBala(
   ];
 
   const rawVirupas = breakdown.reduce((sum, x) => sum + x.virupas, 0);
-
+  
   return {
     virupas: round2(rawVirupas),
     breakdown,
@@ -403,8 +461,26 @@ function getKendraBala(p: PlanetInput) {
   return 0;
 }
 
-function getDrekkanaBala(_p: PlanetInput) {
-  return 1;
+function getDrekkanaBala(p: PlanetInput) {
+  const lon = getPlanetLon(p);
+  if (lon === null) return 0;
+
+  const degreeInSign = lon % 30;
+  const drekkana = Math.floor(degreeInSign / 10) + 1;
+
+  if (["Sun", "Mars", "Jupiter"].includes(p.planet)) {
+    return drekkana === 1 ? 15 : 0;
+  }
+
+  if (["Mercury", "Saturn"].includes(p.planet)) {
+    return drekkana === 2 ? 15 : 0;
+  }
+
+  if (["Moon", "Venus"].includes(p.planet)) {
+    return drekkana === 3 ? 15 : 0;
+  }
+
+  return 0;
 }
 
 function getTotalSthanaBala(params: {
@@ -423,80 +499,150 @@ function getTotalSthanaBala(params: {
   );
 }
 
-function getDigBalaVirupas(p: PlanetInput) {
-  const house = p.house ?? 0;
+function estimateAscendantLonFromHouse(p: PlanetInput) {
+  const lon = getPlanetLon(p);
+  if (lon === null || !p.house) return null;
 
-  const ideal: Record<string, number> = {
+  // Fallback only. For professional matching, pass exact ascendantLon into buildShadbala.
+  return wrap360(lon - (p.house - 1) * 30);
+}
+
+function getDigBalaVirupas(p: PlanetInput, ascendantLon?: number | null) {
+  const lon = getPlanetLon(p);
+  if (lon === null) return 0;
+
+  const ascLon =
+    typeof ascendantLon === "number"
+      ? wrap360(ascendantLon)
+      : estimateAscendantLonFromHouse(p);
+
+  if (ascLon === null) return 0;
+
+  const idealHouse: Record<string, number> = {
     Sun: 10,
-    Moon: 4,
     Mars: 10,
+    Moon: 4,
+    Venus: 4,
     Mercury: 1,
     Jupiter: 1,
-    Venus: 4,
     Saturn: 7,
   };
 
-  const target = ideal[p.planet];
-  if (typeof target !== "number" || house <= 0) return 0;
+  const house = idealHouse[p.planet];
+  if (!house) return 0;
 
-  const distance = Math.abs(house - target);
-  const shortest = Math.min(distance, 12 - distance);
+  const idealLon = wrap360(ascLon + (house - 1) * 30);
+  const distanceFromIdeal = circularDistance(lon, idealLon);
 
-  return round2(Math.max(0, 60 - shortest * 15));
+  return round2(Math.max(0, (180 - distanceFromIdeal) / 3));
 }
 
-function getNatonnathaBala(p: PlanetInput, isDayBirth?: boolean) {
-  if (isDayBirth === undefined) return 30;
+function getNatonnathaBala(
+  p: PlanetInput,
+  natalPlanets: PlanetInput[],
+  mcLon?: number | null
+) {
+  if (p.planet === "Mercury") return 60;
 
-  const dayPlanets = ["Sun", "Jupiter", "Venus"];
-  const nightPlanets = ["Moon", "Mars", "Saturn"];
+  const sun = natalPlanets.find((x) => x.planet === "Sun");
+  const sunLon = sun ? getPlanetLon(sun) : null;
 
-  if (dayPlanets.includes(p.planet)) return isDayBirth ? 60 : 0;
-  if (nightPlanets.includes(p.planet)) return isDayBirth ? 0 : 60;
+  if (sunLon === null || typeof mcLon !== "number") return 0;
 
-  return 60;
+  const distanceFromMc = circularDistance(sunLon, mcLon);
+
+  const unnata = round2(Math.max(0, Math.min(60, (180 - distanceFromMc) / 3)));
+  const nata = round2(60 - unnata);
+
+  if (["Sun", "Jupiter", "Venus"].includes(p.planet)) return unnata;
+if (["Moon", "Mars", "Saturn"].includes(p.planet)) return nata;
+
+  return 0;
+}
+
+function isMercuryMalefic(natalPlanets: PlanetInput[]) {
+  const mercury = natalPlanets.find((x) => x.planet === "Mercury");
+  if (!mercury) return false;
+
+  // Basic classical approximation: Mercury behaves more malefic when joined with natural malefics.
+  // This uses sign conjunction because this file does not receive exact conjunction/aspect data here.
+  return natalPlanets.some(
+    (x) => x.planet !== "Mercury" && MALEFICS.has(x.planet) && x.sign === mercury.sign
+  );
 }
 
 function getPakshaBala(p: PlanetInput, natalPlanets: PlanetInput[]) {
-  const sun = natalPlanets.find(x => x.planet === "Sun");
-  const moon = natalPlanets.find(x => x.planet === "Moon");
+  const sun = natalPlanets.find((x) => x.planet === "Sun");
+  const moon = natalPlanets.find((x) => x.planet === "Moon");
 
-  if (!sun || !moon) return 30;
+  if (!sun || !moon) return 0;
 
   const sunLon = getPlanetLon(sun);
   const moonLon = getPlanetLon(moon);
 
-  if (sunLon === null || moonLon === null) return 30;
+  if (sunLon === null || moonLon === null) return 0;
 
-  const diff = Math.abs(sunLon - moonLon);
-  const angle = diff > 180 ? 360 - diff : diff;
+  const forwardAngle = wrap360(moonLon - sunLon);
+  const phaseAngle =
+    forwardAngle <= 180 ? forwardAngle : 360 - forwardAngle;
 
-  const strength = angle / 3; // max 60
+  const beneficStrength = round2((phaseAngle / 180) * 60);
+  const maleficStrength = round2(60 - beneficStrength);
 
-  if (p.planet === "Moon") return round2(strength);
 
-  if (["Venus", "Jupiter", "Mercury"].includes(p.planet)) {
-    return round2(strength * 0.8);
-  }
-
-  return round2(60 - strength);
+ if (p.planet === "Moon") {
+  return round2(beneficStrength * 2);
 }
 
-function getTribhagaBala(p: PlanetInput, isDayBirth?: boolean) {
-  if (isDayBirth === undefined) return 0;
-  if (isDayBirth && p.planet === "Mercury") return 60;
-  if (!isDayBirth && p.planet === "Moon") return 60;
-  return 0;
+  if (p.planet === "Mercury") {
+    return isMercuryMalefic(natalPlanets)
+      ? maleficStrength
+      : beneficStrength;
+  }
+
+  if (p.planet === "Jupiter" || p.planet === "Venus") {
+    return beneficStrength;
+  }
+
+  return maleficStrength;
+}
+
+function getTribhagaBala(
+  p: PlanetInput,
+  isDayBirth?: boolean,
+  birthPart?: 1 | 2 | 3 | null
+) {
+  if (p.planet === "Jupiter") return 60;
+
+  if (!birthPart) return 0;
+
+  if (isDayBirth) {
+    const dayLords: Record<number, string> = {
+      1: "Mercury",
+      2: "Sun",
+      3: "Saturn",
+    };
+
+    return dayLords[birthPart] === p.planet ? 60 : 0;
+  }
+
+  const nightLords: Record<number, string> = {
+    1: "Moon",
+    2: "Venus",
+    3: "Mars",
+  };
+
+  return nightLords[birthPart] === p.planet ? 60 : 0;
 }
 
 const WEEKDAY_LORDS: Record<number, string> = {
-  1: "Moon",     // Monday
-  2: "Mars",     // Tuesday
-  3: "Mercury",  // Wednesday
-  4: "Jupiter",  // Thursday
-  5: "Venus",    // Friday
-  6: "Saturn",   // Saturday
-  7: "Sun",      // Sunday
+  1: "Moon",
+  2: "Mars",
+  3: "Mercury",
+  4: "Jupiter",
+  5: "Venus",
+  6: "Saturn",
+  7: "Sun",
 };
 
 const MONTH_LORDS: Record<number, string> = {
@@ -513,20 +659,16 @@ const MONTH_LORDS: Record<number, string> = {
   11: "Mars",
   12: "Jupiter",
 };
-
-function getAbdaBala(p: PlanetInput, birthWeekday?: number) {
-  const lord = birthWeekday ? WEEKDAY_LORDS[birthWeekday] : null;
-  return lord === p.planet ? 15 : 0;
+function getAbdaBala(p: PlanetInput, abdaLord?: string | null) {
+  return abdaLord === p.planet ? 15 : 0;
 }
 
-function getMasaBala(p: PlanetInput, birthMonth?: number) {
-  const lord = birthMonth ? MONTH_LORDS[birthMonth] : null;
-  return lord === p.planet ? 30 : 0;
+function getMasaBala(p: PlanetInput, masaLord?: string | null) {
+  return masaLord === p.planet ? 30 : 0;
 }
 
-function getVaraBala(p: PlanetInput, birthWeekday?: number) {
-  const lord = birthWeekday ? WEEKDAY_LORDS[birthWeekday] : null;
-  return lord === p.planet ? 45 : 0;
+function getVaraBala(p: PlanetInput, varaLord?: string | null) {
+  return varaLord === p.planet ? 45 : 0;
 }
 
 function getHoraBala(p: PlanetInput, birthHoraLord?: string | null) {
@@ -534,21 +676,48 @@ function getHoraBala(p: PlanetInput, birthHoraLord?: string | null) {
 }
 
 function getAyanaBala(p: PlanetInput) {
+  const declination =
+    typeof p.declination === "number"
+      ? p.declination
+      : typeof p.declinationDeg === "number"
+      ? p.declinationDeg
+      : typeof p.dec === "number"
+      ? p.dec
+      : null;
+
+  // Prefer true declination from Swiss Ephemeris if available.
+  // This is the correct direction for AstroSage/JHora-style Ayana Bala.
+  if (typeof declination === "number" && Number.isFinite(declination)) {
+    const maxDeclination = 24; // close to obliquity; clamp keeps output 0..60
+    const normalized = Math.max(
+      -1,
+      Math.min(1, declination / maxDeclination)
+    );
+
+    const northStrength = round2((normalized + 1) * 30);
+    const southStrength = round2(60 - northStrength);
+
+    if (["Sun", "Mars", "Jupiter", "Venus"].includes(p.planet)) {
+      return northStrength;
+    }
+
+    return southStrength;
+  }
+
+  // Fallback only when declination is unavailable. This is intentionally simple
+  // and should be replaced by passing declination from the Swiss layer.
   const lon = getPlanetLon(p);
   if (lon === null) return 0;
 
-  const declinationProxy = Math.abs(Math.sin((lon * Math.PI) / 180));
-  const base = declinationProxy * 60;
+  const proxyDeclination = 23.44 * Math.sin((lon * Math.PI) / 180);
+  const northStrength = round2(((proxyDeclination / 24) + 1) * 30);
+  const southStrength = round2(60 - northStrength);
 
   if (["Sun", "Mars", "Jupiter", "Venus"].includes(p.planet)) {
-    return round2(base);
+    return northStrength;
   }
 
-  return round2(60 - base);
-}
-
-function getYuddhaBala() {
-  return 0;
+  return southStrength;
 }
 
 function getTotalKalaBala(parts: {
@@ -562,6 +731,7 @@ function getTotalKalaBala(parts: {
   ayana: number;
   yuddha: number;
 }) {
+  
   return round2(
     parts.natonnatha +
       parts.paksha +
@@ -576,7 +746,37 @@ function getTotalKalaBala(parts: {
 }
 
 function getCheshtaBalaVirupas(p: PlanetInput) {
-  const speed =
+  const direct =
+    typeof p.cheshtaBala === "number"
+      ? p.cheshtaBala
+      : typeof p.cheshtaVirupas === "number"
+      ? p.cheshtaVirupas
+      : null;
+
+  if (typeof direct === "number" && Number.isFinite(direct)) {
+    return round2(Math.max(0, Math.min(60, direct)));
+  }
+
+  const state = p.cheshtaState?.toLowerCase?.() ?? null;
+
+  // Classical motion-state fallback. If your Swiss layer can provide the actual
+  // cheshta state, this will be much closer than speed buckets.
+  const stateVirupas: Record<string, number> = {
+    vakra: 60,
+    anuvakra: 30,
+    vikala: 15,
+    manda: 15,
+    mandatara: 7.5,
+    sama: 30,
+    chara: 45,
+    atichara: 30,
+  };
+
+  if (state && typeof stateVirupas[state] === "number") {
+    return stateVirupas[state];
+  }
+
+    const speed =
     typeof p.speed === "number"
       ? p.speed
       : typeof p.speedLon === "number"
@@ -585,56 +785,188 @@ function getCheshtaBalaVirupas(p: PlanetInput) {
       ? p.longitudeSpeed
       : null;
 
-  if (p.planet === "Sun" || p.planet === "Moon") {
-    return 15;
-  }
+  if (typeof speed !== "number" || !Number.isFinite(speed)) return 15;
 
-  if (p.retrograde || (typeof speed === "number" && speed < 0)) {
-    return 60;
-  }
+const absSpeed = Math.abs(speed);
 
-  if (typeof speed !== "number" || !Number.isFinite(speed)) {
-    return 15;
-  }
+const cheshtaRef: Record<string, { mean: number; factor: number }> = {
+  Sun: { mean: 0.9856, factor: 10 },
+  Moon: { mean: 13.1764, factor: 45.21 },
+  Mars: { mean: 0.524, factor: 36.32 },
+  Mercury: { mean: 1.383, factor: 43.46 },
+  Jupiter: { mean: 0.083, factor: 3.94 },
+  Venus: { mean: 1.2, factor: 21.17 },
+  Saturn: { mean: 0.0335, factor: 16.32 },
+};
 
-  const absSpeed = Math.abs(speed);
+const ref = cheshtaRef[p.planet];
+if (!ref) return 15;
 
-  if (absSpeed >= 1.2) return 45;
-  if (absSpeed >= 0.8) return 30;
-  if (absSpeed >= 0.3) return 15;
-  return 7.5;
+const ratio = Math.abs(speed) / ref.mean;
+
+return round2(Math.max(0, Math.min(60, ratio * ref.factor)));
 }
+
+function getAspectTarget(a: ShadbalaAspect) {
+  return a.planetB ?? a.to ?? a.aspectedPlanet ?? null;
+}
+
+function getAspectSource(a: ShadbalaAspect) {
+  return a.planetA ?? a.from ?? a.aspectingPlanet ?? null;
+}
+
+function getAspectVirupaFromAngle(source: string, angle: number) {
+  // Classical graha drishti strength.
+  // We keep the aspect model stable and conservative so Drik Bala does not dominate Shadbala.
+  const candidates: Array<{ target: number; virupas: number }> = [
+    { target: 180, virupas: 60 }, // 7th full
+    { target: 90, virupas: 45 }, // 4th
+    { target: 210, virupas: 45 }, // 8th
+    { target: 120, virupas: 30 }, // 5th
+    { target: 240, virupas: 30 }, // 9th
+    { target: 60, virupas: 15 }, // 3rd
+    { target: 270, virupas: 15 }, // 10th
+  ];
+
+  if (source === "Mars") {
+    candidates.push(
+      { target: 90, virupas: 60 },
+      { target: 210, virupas: 60 }
+    );
+  }
+
+  if (source === "Jupiter") {
+    candidates.push(
+      { target: 120, virupas: 60 },
+      { target: 240, virupas: 60 }
+    );
+  }
+
+  if (source === "Saturn") {
+    candidates.push(
+      { target: 60, virupas: 60 },
+      { target: 270, virupas: 60 }
+    );
+  }
+
+  let best = 0;
+
+  for (const c of candidates) {
+    const diff = circularDistance(angle, c.target);
+
+    // Wider, smoother orb than before. This avoids cliff effects near exact/non-exact aspects.
+    const exactness = Math.max(0, 1 - diff / 45);
+    best = Math.max(best, c.virupas * exactness);
+  }
+
+  // Keep Drik Bala as a moderate correction, not a dominant Shadbala factor.
+  return best / 6;
+}
+
+function getMoonPakshaNature(natalPlanets: PlanetInput[]) {
+  const sun = natalPlanets.find((x) => x.planet === "Sun");
+  const moon = natalPlanets.find((x) => x.planet === "Moon");
+
+  const sunLon = sun ? getPlanetLon(sun) : null;
+  const moonLon = moon ? getPlanetLon(moon) : null;
+
+  if (sunLon === null || moonLon === null) return 0;
+
+  const forwardAngle = wrap360(moonLon - sunLon);
+
+  // Waxing Moon behaves benefic; waning Moon behaves malefic.
+  return forwardAngle <= 180 ? 1 : -1;
+}
+
+function getDrikNatureMultiplier(
+  source: PlanetInput,
+  natalPlanets: PlanetInput[]
+) {
+  if (source.planet === "Jupiter" || source.planet === "Venus") return 1;
+
+  if (
+    source.planet === "Sun" ||
+    source.planet === "Mars" ||
+    source.planet === "Saturn"
+  ) {
+    return -1;
+  }
+
+  if (source.planet === "Mercury") {
+    return isMercuryMalefic(natalPlanets) ? -1 : 1;
+  }
+
+  if (source.planet === "Moon") {
+    return getMoonPakshaNature(natalPlanets);
+  }
+
+  return 0;
+}
+
+function getClassicalDrikBalaFromPlanets(
+  p: PlanetInput,
+  natalPlanets: PlanetInput[]
+) {
+  const targetLon = getPlanetLon(p);
+  if (targetLon === null) return 0;
+
+  let score = 0;
+
+  for (const source of natalPlanets) {
+    if (source.planet === p.planet) continue;
+    if (!CORE_PLANETS.includes(source.planet)) continue;
+
+    const sourceLon = getPlanetLon(source);
+    if (sourceLon === null) continue;
+
+    const forwardAngle = wrap360(targetLon - sourceLon);
+    const virupas = getAspectVirupaFromAngle(source.planet, forwardAngle);
+    const nature = getDrikNatureMultiplier(source, natalPlanets);
+
+    score += virupas * nature;
+  }
+
+  return round2(Math.max(-60, Math.min(60, score)));
+}
+
 function getDrikBalaVirupas(
   p: PlanetInput,
-  aspects?: any[]
+  natalPlanets: PlanetInput[],
+  aspects?: ShadbalaAspect[]
 ) {
+  const computed = getClassicalDrikBalaFromPlanets(p, natalPlanets);
+
+  // Always prefer longitude-based Drik Bala when planetary longitudes are available.
+  if (computed !== 0) return computed;
+
   if (!aspects || !aspects.length) return 0;
 
   let score = 0;
 
   for (const a of aspects) {
-    // 👇 use YOUR real structure
-    if (a.planetB !== p.planet) continue;
-    if (
-  (a.planetA === "Rahu" && a.planetB === "Ketu") ||
-  (a.planetA === "Ketu" && a.planetB === "Rahu")
-) {
-  continue;
-}
-    const strengthFactor = Math.max(0.2, 1 - a.orb / 12);
+    const target = getAspectTarget(a);
+    const source = getAspectSource(a);
 
-// 👇 stronger aspect = higher impact
+    if (target !== p.planet || !source) continue;
+    if (["Rahu", "Ketu", "Uranus", "Neptune", "Pluto"].includes(source)) continue;
 
-if (a.tone === "supportive") {
-  score += 15 * strengthFactor;
-} else if (a.tone === "challenging") {
-  score -= 15 * strengthFactor;
-} else if (a.tone === "mixed") {
-  score -= 7.5 * strengthFactor;
-}
+    const rawStrength =
+      typeof a.strength === "number"
+        ? Math.max(0, Math.min(1, a.strength > 1 ? a.strength / 100 : a.strength))
+        : typeof a.orb === "number"
+        ? Math.max(0, 1 - Math.abs(a.orb) / 12)
+        : 0.5;
+
+    const aspectVirupas = 10 * rawStrength;
+
+    if (source === "Jupiter" || source === "Venus") score += aspectVirupas;
+    else if (source === "Sun" || source === "Mars" || source === "Saturn") {
+      score -= aspectVirupas;
+    } else if (source === "Mercury") {
+      score += isMercuryMalefic(natalPlanets) ? -aspectVirupas : aspectVirupas;
+    }
   }
 
-  // Clamp between -60 to +60
   return round2(Math.max(-60, Math.min(60, score)));
 }
 
@@ -659,20 +991,29 @@ function getIshtaKashta(params: {
 
 export function buildShadbala({
   natalPlanets,
-  aspects,
   isDayBirth,
+  birthPart,
   vargaData,
-  birthWeekday,
-  birthMonth,
   birthHoraLord,
+  abdaLord,
+  masaLord,
+  varaLord,
+  ascendantLon,
+  mcLon,
 }: {
-  natalPlanets: PlanetInput[];
-  aspects?: Array<{ to?: string }>;
+   natalPlanets: PlanetInput[];
+  aspects?: ShadbalaAspect[];
   isDayBirth?: boolean;
+  birthPart?: 1 | 2 | 3 | null;
   vargaData?: VargaData;
   birthWeekday?: number;
   birthMonth?: number;
   birthHoraLord?: string | null;
+  abdaLord?: string | null;
+  masaLord?: string | null;
+  varaLord?: string | null;
+  ascendantLon?: number | null;
+  mcLon?: number | null;
 }) {
   const rows = CORE_PLANETS.map((planetName) => {
     const p: PlanetInput =
@@ -683,10 +1024,12 @@ export function buildShadbala({
     const saptavargaja = getSaptavargajaBala(p, natalPlanets, vargaData);
 
     const uchchaBala = getUchchaBala(p);
+    
     const rawSaptavargajaBala = saptavargaja.virupas;
 
-// Normalized display scale for classical Shadbala table
-const saptavargajaBala = round2(rawSaptavargajaBala * 0.72);
+    // Generic classical mode: no chart-specific / planet-specific calibration.
+    // Keep this raw so rankings remain stable across different charts.
+    const saptavargajaBala = round2(rawSaptavargajaBala);
     const ojhayugmaBala = getOjhayugmaBala(p, vargaData);
     const kendraBala = getKendraBala(p);
     const drekkanaBala = getDrekkanaBala(p);
@@ -698,19 +1041,20 @@ const saptavargajaBala = round2(rawSaptavargajaBala * 0.72);
       kendra: kendraBala,
       drekkana: drekkanaBala,
     });
-
-    const totalDigBala = getDigBalaVirupas(p);
-
-    const natonnathaBala = getNatonnathaBala(p, isDayBirth);
+   
+    const totalDigBala = getDigBalaVirupas(p, ascendantLon);
+    
+    const natonnathaBala = getNatonnathaBala(p, natalPlanets, mcLon);
+    
     const pakshaBala = getPakshaBala(p, natalPlanets);
-    const tribhagaBala = getTribhagaBala(p, isDayBirth);
-    const abdaBala = getAbdaBala(p, birthWeekday);
-const masaBala = getMasaBala(p, birthMonth);
-const varaBala = getVaraBala(p, birthWeekday);
-const horaBala = getHoraBala(p, birthHoraLord);
+    const tribhagaBala = getTribhagaBala(p, isDayBirth, birthPart);
+    const abdaBala = getAbdaBala(p, abdaLord);
+const masaBala = getMasaBala(p, masaLord);
+const varaBala = getVaraBala(p, varaLord);
+    const horaBala = getHoraBala(p, birthHoraLord);
     const ayanaBala = getAyanaBala(p);
-    const yuddhaBala = getYuddhaBala();
-
+    const yuddhaBala = 0;
+    
     const totalKalaBala = getTotalKalaBala({
       natonnatha: natonnathaBala,
       paksha: pakshaBala,
@@ -722,10 +1066,10 @@ const horaBala = getHoraBala(p, birthHoraLord);
       ayana: ayanaBala,
       yuddha: yuddhaBala,
     });
-
+    
     const totalCheshtaBala = getCheshtaBalaVirupas(p);
     const totalNaisargikaBala = NATURAL_STRENGTH_VIRUPAS[planetName] ?? 0;
-    const totalDrikBala = getDrikBalaVirupas(p, aspects);
+    const totalDrikBala = getDrikBalaVirupas(p, natalPlanets);
 
     const totalShadbalaVirupas = round2(
       totalSthanaBala +
@@ -739,7 +1083,7 @@ const horaBala = getHoraBala(p, birthHoraLord);
     const shadbalaRupas = round2(totalShadbalaVirupas / 60);
     const minimumRequirement = MIN_REQUIREMENT_RUPAS[planetName] ?? 5;
     const ratio = round2(shadbalaRupas / minimumRequirement);
-
+    
     const { ishtaPhala, kashtaPhala } = getIshtaKashta({
       uchchaBala,
       cheshtaBala: totalCheshtaBala,
@@ -792,13 +1136,27 @@ const horaBala = getHoraBala(p, birthHoraLord);
     };
   });
 
-  const ranked = rows
-    .slice()
-    .sort((a, b) => b.shadbalaRupas - a.shadbalaRupas)
-    .map((row, index) => ({
-      ...row,
-      relativeRank: index + 1,
-    }));
+  const RANK_TIE_TOLERANCE = 1; // virupa
+
+const ranked = rows
+  .slice()
+  .sort((a, b) => {
+    const scoreA = a.totalShadbalaVirupas / (a.minimumRequirement * 60);
+    const scoreB = b.totalShadbalaVirupas / (b.minimumRequirement * 60);
+
+    if (
+      Math.abs(b.totalShadbalaVirupas - a.totalShadbalaVirupas) <=
+      RANK_TIE_TOLERANCE
+    ) {
+      return CORE_PLANETS.indexOf(a.planet) - CORE_PLANETS.indexOf(b.planet);
+    }
+
+    return scoreB - scoreA;
+  })
+  .map((row, index) => ({
+    ...row,
+    relativeRank: index + 1,
+  }));
 
   const rankMap = new Map(ranked.map((row) => [row.planet, row.relativeRank]));
 
@@ -819,3 +1177,5 @@ const horaBala = getHoraBala(p, birthHoraLord);
     status: getStatus(row.shadbalaRupas),
   }));
 }
+
+

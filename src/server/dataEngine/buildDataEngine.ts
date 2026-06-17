@@ -546,10 +546,10 @@ function getAccurateHoraLord(params: {
     const horaNumber = Math.min(12, Math.floor(elapsed / horaLength) + 1);
     const sequenceIndex = (startIndex + (horaNumber - 1)) % 7;
     const horaLord = HORA_SEQUENCE[sequenceIndex];
-
+    
     const startsAt = sunriseDT.plus({ minutes: (horaNumber - 1) * horaLength });
     const endsAt = sunriseDT.plus({ minutes: horaNumber * horaLength });
-
+   
     return {
       horaLord,
       horaNumber,
@@ -613,6 +613,7 @@ function getAccurateHoraLord(params: {
     const sequenceIndex = (nightStartIndex + (horaNumber - 1)) % 7;
     const horaLord = HORA_SEQUENCE[sequenceIndex];
 
+
     const startsAt = previousSunsetDT.plus({ minutes: (horaNumber - 1) * horaLength });
     const endsAt = previousSunsetDT.plus({ minutes: horaNumber * horaLength });
 
@@ -633,6 +634,7 @@ function getAccurateHoraLord(params: {
     endsAt: null,
   };
 }
+
 function normalizeBirthTimezone(birth: BirthInput): BirthInput {
   try {
     const derivedTimezone = tzLookup(birth.lat, birth.lon);
@@ -645,6 +647,7 @@ function normalizeBirthTimezone(birth: BirthInput): BirthInput {
     return birth;
   }
 }
+
 async function getTrueNodeSiderealLongitudes(birth: BirthInput) {
   const d = DateTime.fromISO(`${birth.dateISO}T${birth.time}`, {
     zone: birth.timezone,
@@ -829,6 +832,106 @@ function getChandrabalam(natalMoonSign: string | null, transitMoonSign: string |
     favorable,
   };
 }
+const SWE_PLANET_CODES: Record<string, number> = {
+  Sun: 0,
+  Moon: 1,
+  Mercury: 2,
+  Venus: 3,
+  Mars: 4,
+  Jupiter: 5,
+  Saturn: 6,
+};
+
+async function getPlanetDeclinationMap(birth: BirthInput) {
+  const dt = DateTime.fromISO(`${birth.dateISO}T${birth.time}`, {
+    zone: birth.timezone,
+  }).toUTC();
+
+  const hour = dt.hour + dt.minute / 60 + dt.second / 3600;
+
+  const jdUt = await sweWasmJulday(
+    dt.year,
+    dt.month,
+    dt.day,
+    hour,
+    1
+  );
+
+  const entries = await Promise.all(
+    Object.entries(SWE_PLANET_CODES).map(async ([planet, code]) => {
+      const r: any = await sweWasmCalcUt(jdUt, code, 2048);
+
+      
+
+      const declination =
+  Array.isArray(r) && typeof r[1] === "number"
+    ? r[1]
+    : null;
+
+      return [planet, declination] as const;
+    })
+  );
+
+  return new Map(entries);
+}
+function getWeekdayLordFromLuxon(dt: any) {
+  return WEEKDAY_LORDS[dt.weekday % 7] ?? null;
+}
+
+async function getSiderealSunSignAt(dt: any) {
+  const utc = dt.toUTC();
+  const hour = utc.hour + utc.minute / 60 + utc.second / 3600;
+
+  const jdUt = await sweWasmJulday(
+    utc.year,
+    utc.month,
+    utc.day,
+    hour,
+    1
+  );
+
+  const r: any = await sweWasmCalcUt(jdUt, 0, 0);
+  const ayanamsa = await sweWasmGetAyanamsaUt(jdUt);
+
+  const tropicalLon = Array.isArray(r) ? r[0] : r?.longitude;
+  if (typeof tropicalLon !== "number") return null;
+
+  const siderealLon = ((tropicalLon - ayanamsa) % 360 + 360) % 360;
+  return Math.floor(siderealLon / 30);
+}
+
+async function getMasaLordFromSolarIngress(birthDT: any) {
+  const birthSunSign = await getSiderealSunSignAt(birthDT);
+  if (birthSunSign === null) return null;
+
+  let previous = birthDT.minus({ days: 1 });
+
+  for (let i = 0; i < 45; i++) {
+    const testSign = await getSiderealSunSignAt(previous);
+
+    if (testSign !== birthSunSign) {
+      const ingressApprox = previous.plus({ days: 1 });
+      return getWeekdayLordFromLuxon(ingressApprox);
+    }
+
+    previous = previous.minus({ days: 1 });
+  }
+
+  return null;
+}
+async function getAbdaLordFromMeshaSankranti(birthDT: any) {
+  let approx = DateTime.fromObject(
+    { year: birthDT.year, month: 4, day: 14, hour: 12 },
+    { zone: birthDT.zoneName }
+  );
+
+  if (approx > birthDT) {
+    approx = approx.minus({ years: 1 });
+  }
+
+  const meshaLord = await getMasaLordFromSolarIngress(approx.plus({ days: 2 }));
+  return meshaLord;
+}
 export async function buildDataEngine(
   params: BuildDataEngineParams
 ): Promise<DataEngineOutput> {
@@ -908,7 +1011,7 @@ const utilityHoraInfo = {
     lat: birth.lat,
     lon: birth.lon,
   });
-
+const declinationMap = await getPlanetDeclinationMap(birth);
   const rawNodeLonMap = new Map(
     (Array.isArray(rawPlacements) ? rawPlacements : [])
       .filter((p: any) => p?.planet === "Rahu" || p?.planet === "Ketu")
@@ -926,64 +1029,74 @@ if (asc.lon < 0 || asc.lon > 360) {
 }
 
 const ascSignNum = SIGN_TO_NUM[ascSign] ?? 0;
-
+const signNames = [
+  "Aries",
+  "Taurus",
+  "Gemini",
+  "Cancer",
+  "Leo",
+  "Virgo",
+  "Libra",
+  "Scorpio",
+  "Sagittarius",
+  "Capricorn",
+  "Aquarius",
+  "Pisces",
+];
 const classicalReportPlanets = (Array.isArray(rawPlacements) ? rawPlacements : []).map((p: any) => {
 
   if (p.planet === "Rahu") {
-    const lon = trueNodeLons.rahuLonSid;
+  const lon = trueNodeLons.rahuLonSid;
+  const signNum = Math.floor(lon / 30) + 1;
+  const sign = signNames[signNum - 1] ?? p.sign;
+  const nakInfo = getNakshatraAndPadaFromLon(lon);
 
-    const nakInfo = getNakshatraAndPadaFromLon(lon);
-    const signNum = SIGN_TO_NUM[p.sign] ?? 0;
-    const house =
-      signNum && ascSignNum
-        ? ((signNum - ascSignNum + 12) % 12) + 1
-        : null;
+  const house =
+    signNum && ascSignNum
+      ? ((signNum - ascSignNum + 12) % 12) + 1
+      : null;
 
   return {
-  ...p,
-  lon,
-  longitude: lon,
-  degree: Number((lon % 30).toFixed(2)),
-  signNum,
-  house,
-  nakshatra: p.nakshatra ?? nakInfo.nakshatra,
-  pada: p.pada ?? nakInfo.pada,
-  speed:
-    typeof p.speed === "number"
-      ? p.speed
-      : typeof p.speedLon === "number"
-      ? p.speedLon
-      : typeof p.longitudeSpeed === "number"
-      ? p.longitudeSpeed
-      : null,
-  retrograde: true,
-  combust: false,
-  lordships: [],
-};
-  }
+    ...p,
+    lon,
+    longitude: lon,
+    sign,
+    signNum,
+    degree: Number((lon % 30).toFixed(2)),
+    house,
+    nakshatra: p.nakshatra ?? nakInfo.nakshatra,
+    pada: p.pada ?? nakInfo.pada,
+    retrograde: true,
+    combust: false,
+    lordships: [],
+  };
+}
 
   if (p.planet === "Ketu") {
     const lon = trueNodeLons.ketuLonSid;
 
     const nakInfo = getNakshatraAndPadaFromLon(lon);
-    const signNum = SIGN_TO_NUM[p.sign] ?? 0;
+    const signNum = Math.floor(lon / 30) + 1;
+const sign = signNames[signNum - 1] ?? p.sign;
     const house =
       signNum && ascSignNum
         ? ((signNum - ascSignNum + 12) % 12) + 1
         : null;
 
     return {
-      ...p,
-      lon,
-      degree: Number((lon % 30).toFixed(2)),
-      signNum,
-      house,
-      nakshatra: p.nakshatra ?? nakInfo.nakshatra,
-      pada: p.pada ?? nakInfo.pada,
-      retrograde: true,
-      combust: false,
-      lordships: [],
-    };
+  ...p,
+  lon,
+  longitude: lon,
+  degree: Number((lon % 30).toFixed(2)),
+  sign,
+  signNum,
+  house,
+  nakshatra: p.nakshatra ?? nakInfo.nakshatra,
+  pada: p.pada ?? nakInfo.pada,
+  retrograde: true,
+  combust: false,
+  lordships: [],
+};
   }
 
   const nakInfo = getNakshatraAndPadaFromLon(p.lon);
@@ -1007,6 +1120,7 @@ return {
   signNum,
   house,
   nakshatra: p.nakshatra ?? nakInfo.nakshatra,
+  declination: declinationMap.get(p.planet) ?? null,
   pada: p.pada ?? nakInfo.pada,
   speed,
   speedLon: speed,
@@ -1046,20 +1160,7 @@ const outerJdUt = await sweWasmJulday(
 
 const outerAyanamsa = await sweWasmGetAyanamsaUt(outerJdUt);
 
-const signNames = [
-  "Aries",
-  "Taurus",
-  "Gemini",
-  "Cancer",
-  "Leo",
-  "Virgo",
-  "Libra",
-  "Scorpio",
-  "Sagittarius",
-  "Capricorn",
-  "Aquarius",
-  "Pisces",
-];
+
 
 const outerPlanets = await Promise.all(
   OUTER_PLANET_CODES.map(async ({ planet, code }) => {
@@ -1195,7 +1296,11 @@ const utilityTransitMoonNakshatra =
 
 const utilityTransitMoonSign =
   utilityPanchang?.moonSign ?? null;
-
+  const houseCusps = await buildHouseCusps({
+    birth,
+    ascLon: natalWithStrengths.ascendant?.lon ?? 0,
+    coreHouses: [],
+  });
 const tarabalam = getTarabalam(
   natalMoonNakshatra,
   utilityTransitMoonNakshatra
@@ -1225,14 +1330,47 @@ const horaInfo = getAccurateHoraLord({
   previousSunset: birthPanchang?._previousSunsetDT ?? null,
   nextSunrise: birthPanchang?._nextSunriseDT ?? null,
 });
+const isDayBirth =
+  birthDateTime >= birthPanchang?._sunriseDT &&
+  birthDateTime < birthPanchang?._sunsetDT;
+
+const dayOrNightStart = isDayBirth
+  ? birthPanchang?._sunriseDT
+  : birthPanchang?._previousSunsetDT;
+
+const dayOrNightEnd = isDayBirth
+  ? birthPanchang?._sunsetDT
+  : birthPanchang?._sunriseDT;
+
+const birthPart =
+  dayOrNightStart && dayOrNightEnd
+    ? Math.min(
+        3,
+        Math.floor(
+          birthDateTime.diff(dayOrNightStart, "minutes").minutes /
+            (dayOrNightEnd.diff(dayOrNightStart, "minutes").minutes / 3)
+        ) + 1
+      )
+    : null;
+  
+
+const varaLord = WEEKDAY_LORDS[birthDateTime.weekday % 7] ?? null;
+const masaLord = await getMasaLordFromSolarIngress(birthDateTime);
+const abdaLord = await getAbdaLordFromMeshaSankranti(birthDateTime);
 const shadbala = buildShadbala({
   natalPlanets: natalWithStrengths.planets,
   aspects: (natalWithStrengths.aspects ?? []) as any[],
-  isDayBirth: true,
+  isDayBirth,
+  birthPart: birthPart as 1 | 2 | 3 | null,
   vargaData: vargas,
   birthWeekday: birthDateTime.weekday,
   birthMonth: birthDateTime.month,
   birthHoraLord: horaInfo?.horaLord ?? null,
+  varaLord,
+  masaLord,
+  abdaLord,
+  ascendantLon: natalWithStrengths.ascendant?.lon ?? null,
+  mcLon: houseCusps?.mcLon ?? null,
 });
   const vedicAspects = buildVedicAspects({
     natalPlanets: natalWithStrengths.planets,
@@ -1255,11 +1393,7 @@ const shadbalaInsights = buildShadbalaInsights(shadbala, afflictions);
 
   const prasthara = buildPrasthara();
 
-  const houseCusps = await buildHouseCusps({
-    birth,
-    ascLon: natalWithStrengths.ascendant?.lon ?? 0,
-    coreHouses: [],
-  });
+
 
   const bhavMadhya = buildBhavMadhya({
     cusps: houseCusps.cusps ?? [],
@@ -1426,20 +1560,6 @@ const classicYogasRaw = buildClassicYogas({
       ? upcomingTransits.planetaryTransits
       : []
   );
-  console.log("[DATA ENGINE TRANSITS]", {
-  planetaryTransitsCount: Array.isArray(upcomingTransits?.planetaryTransits)
-    ? upcomingTransits.planetaryTransits.length
-    : 0,
-  planetaryTransitsSample: Array.isArray(upcomingTransits?.planetaryTransits)
-    ? upcomingTransits.planetaryTransits.slice(0, 3)
-    : [],
-  transitWindowsCount: Array.isArray(transitWindows)
-    ? transitWindows.length
-    : 0,
-  transitWindowsSample: Array.isArray(transitWindows)
-    ? transitWindows.slice(0, 3)
-    : [],
-});
 const triggerFacts = buildTriggerFacts({
   transitPlanets: transitNow?.planets ?? [],
   natal: {
@@ -1471,22 +1591,7 @@ const degreeHitWindows = await computeDegreeHitWindows({
   },
   startDateISO: selectedDateISO,
 });
-console.log("[DATA ENGINE DEGREE HITS]", {
-  transitNowPlanetsCount: Array.isArray(transitNow?.planets)
-    ? transitNow.planets.length
-    : 0,
-  natalPlanetsCount: Array.isArray(natalWithStrengths?.planets)
-    ? natalWithStrengths.planets.length
-    : 0,
-  degreeHitsCount: Array.isArray(degreeHits) ? degreeHits.length : 0,
-  degreeHitsSample: Array.isArray(degreeHits) ? degreeHits.slice(0, 3) : [],
-  degreeHitWindowsCount: Array.isArray(degreeHitWindows)
-    ? degreeHitWindows.length
-    : 0,
-  degreeHitWindowsSample: Array.isArray(degreeHitWindows)
-    ? degreeHitWindows.slice(0, 3)
-    : [],
-});
+
 const microTriggerDays = buildMicroTriggerDays({
   moonTransits: upcomingTransits?.moonTransits ?? [],
   area: "career",
