@@ -285,8 +285,10 @@ function getSaptavargajaRelationship(params: {
   // Classical Sapta-vargaja Bala first checks varga dignity.
   // This is closer to JHora/AstroSage than using only natural + temporary friendship.
   
-  if (MOOLATRIKONA_SIGNS[planet] === planetSign) return "moolatrikona";
-  if (OWN_SIGNS[planet]?.includes(planetSign)) return "own";
+  if (EXALTATION_SIGNS[planet] === planetSign) return "exalted";
+if (DEBILITATION_SIGNS[planet] === planetSign) return "debilitated";
+if (MOOLATRIKONA_SIGNS[planet] === planetSign) return "moolatrikona";
+if (OWN_SIGNS[planet]?.includes(planetSign)) return "own";
 
   const signLord = SIGN_LORDS[planetSign];
   if (!signLord) return "neutral";
@@ -302,22 +304,22 @@ function getSaptavargajaRelationship(params: {
 
 function getVirupasForRelationship(relationship: string): number {
   switch (relationship) {
-    case "exalted":
-      return 45;
     case "moolatrikona":
-      return 30;
+      return 45;
     case "own":
       return 30;
     case "greatFriend":
-      return 22.5;
+      return 20;
     case "friend":
       return 15;
     case "neutral":
-      return 15;
+      return 10;
     case "enemy":
-      return 7.5;
+      return 4;
     case "greatEnemy":
-      return 3.75;
+      return 2;
+    case "exalted":
+      return 45;
     case "debilitated":
       return 0;
     default:
@@ -425,7 +427,31 @@ function getSaptavargajaBala(
     breakdown,
   };
 }
+function getVargaConsistencyBala(
+  p: PlanetInput,
+  vargaData?: VargaData
+) {
+  const signs = [
+    p.sign ?? null,
+    getPlanetSignInVarga(vargaData?.d2, p.planet),
+    getPlanetSignInVarga(vargaData?.d3, p.planet),
+    getPlanetSignInVarga(vargaData?.d7, p.planet),
+    getPlanetSignInVarga(vargaData?.d9, p.planet),
+    getPlanetSignInVarga(vargaData?.d12, p.planet),
+    getPlanetSignInVarga(vargaData?.d30, p.planet),
+  ].filter(Boolean) as string[];
 
+  const counts = new Map<string, number>();
+
+  for (const sign of signs) {
+    counts.set(sign, (counts.get(sign) ?? 0) + 1);
+  }
+
+  const maxRepeat = Math.max(...counts.values(), 1);
+
+  // Reward repeated varga reinforcement, but keep it moderate.
+  return round2(Math.min(40, Math.max(0, (maxRepeat - 1) * 10)));
+}
 function getUchchaBala(p: PlanetInput) {
   const lon = getPlanetLon(p);
   const exaltLon = EXALTATION_LON[p.planet];
@@ -591,7 +617,7 @@ function getPakshaBala(p: PlanetInput, natalPlanets: PlanetInput[]) {
 
 
  if (p.planet === "Moon") {
-  return round2(beneficStrength * 2);
+   return beneficStrength; // not * 2 for ranking
 }
 
   if (p.planet === "Mercury") {
@@ -1022,7 +1048,14 @@ export function buildShadbala({
       };
 
     const saptavargaja = getSaptavargajaBala(p, natalPlanets, vargaData);
-
+    const vargaConsistencyBala = getVargaConsistencyBala(p, vargaData);
+    if (["Venus", "Jupiter"].includes(planetName)) {
+  console.log("SHADBALA SAPTAVARGA DEBUG", {
+    planet: planetName,
+    totalSaptavargaja: saptavargaja.virupas,
+    breakdown: saptavargaja.breakdown,
+  });
+}
     const uchchaBala = getUchchaBala(p);
     
     const rawSaptavargajaBala = saptavargaja.virupas;
@@ -1083,7 +1116,14 @@ const varaBala = getVaraBala(p, varaLord);
     const shadbalaRupas = round2(totalShadbalaVirupas / 60);
     const minimumRequirement = MIN_REQUIREMENT_RUPAS[planetName] ?? 5;
     const ratio = round2(shadbalaRupas / minimumRequirement);
-    
+    const interpretiveStrength = round2(
+  uchchaBala * 0.15 +
+    saptavargajaBala * 0.20 +
+    kendraBala * 0.20 +
+    totalDigBala * 0.15 +
+    totalDrikBala * 0.15 +
+    vargaConsistencyBala * 0.15
+);
     const { ishtaPhala, kashtaPhala } = getIshtaKashta({
       uchchaBala,
       cheshtaBala: totalCheshtaBala,
@@ -1120,6 +1160,8 @@ const varaBala = getVaraBala(p, varaLord);
       shadbalaRupas,
       minimumRequirement,
       ratio,
+      interpretiveStrength,
+      vargaConsistencyBala,
       relativeRank: 0,
       ishtaPhala,
       kashtaPhala,
@@ -1141,8 +1183,8 @@ const varaBala = getVaraBala(p, varaLord);
 const ranked = rows
   .slice()
   .sort((a, b) => {
-    const scoreA = a.totalShadbalaVirupas / (a.minimumRequirement * 60);
-    const scoreB = b.totalShadbalaVirupas / (b.minimumRequirement * 60);
+    const scoreA = a.interpretiveStrength;
+const scoreB = b.interpretiveStrength;
 
     if (
       Math.abs(b.totalShadbalaVirupas - a.totalShadbalaVirupas) <=

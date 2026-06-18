@@ -102,7 +102,7 @@ function fmt(value: any, label?: string) {
     return "—";
   }
 
-  if (label === "Relative Rank") {
+  if (label === "Planet Strength Rank") {
     return String(Math.round(value));
   }
 
@@ -187,7 +187,7 @@ export default function ShadbalaCard({
       getValue: (r: ShadbalaRow) => r.minimumRequirement,
     },
     { label: "Ratio", getValue: (r: ShadbalaRow) => r.ratio },
-    { label: "Relative Rank", getValue: (r: ShadbalaRow) => r.relativeRank },
+    { label: "Planet Strength Rank", getValue: (r: ShadbalaRow) => r.relativeRank },
     { label: "Ishta Phala", getValue: (r: ShadbalaRow) => r.ishtaPhala },
     { label: "Kashta Phala", getValue: (r: ShadbalaRow) => r.kashtaPhala },
   ];
