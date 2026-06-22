@@ -70,7 +70,28 @@ function MediumChartCard({
     </ChartCard>
   );
 }
+function normalizeRetrograde(p: any): boolean {
+  const value =
+    p?.retrograde ??
+    p?.isRetrograde ??
+    p?.retro ??
+    p?.isRetro ??
+    p?.motion;
 
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") return value < 0 || value === 1;
+
+  if (typeof value === "string") {
+    const v = value.trim().toLowerCase();
+    return ["r", "retro", "retrograde", "true", "yes", "y", "1"].includes(v);
+  }
+
+  if (typeof p?.speed === "number") return p.speed < 0;
+  if (typeof p?.speedLon === "number") return p.speedLon < 0;
+  if (typeof p?.longitudeSpeed === "number") return p.longitudeSpeed < 0;
+
+  return false;
+}
 function normalizeChartPlanets(rows: any[]): any[] {
   return (Array.isArray(rows) ? rows : [])
     .map((p) => ({
@@ -91,10 +112,7 @@ function normalizeChartPlanets(rows: any[]): any[] {
           : typeof p?.deg === "number"
           ? p.deg
           : null,
-      retrograde:
-        typeof p?.retrograde === "boolean"
-          ? p.retrograde
-          : false,
+      retrograde: normalizeRetrograde(p),
       nakshatra: p?.nakshatra ?? p?.nakName ?? null,
       pada: p?.pada ?? null,
       combust:
@@ -145,10 +163,7 @@ function normalizeTransitPlanets(planets: any[], natalAscSign: string | null): a
             : typeof p?.lon === "number"
             ? Number((((p.lon % 30) + 30) % 30).toFixed(2))
             : null,
-        retrograde:
-          typeof p?.retrograde === "boolean"
-            ? p.retrograde
-            : false,
+        retrograde: normalizeRetrograde(p),
         nakshatra: p?.nakshatra ?? p?.nakName ?? null,
         pada: p?.pada ?? null,
       };
@@ -1075,17 +1090,64 @@ function FunctionalPlanetSnapshot({
     </div>
   );
 }
+function DashaDrillRow({
+  node,
+  level,
+  open,
+  onClick,
+}: {
+  node: any;
+  level: "MD" | "AD" | "PD";
+  open?: boolean;
+  onClick?: () => void;
+}) {
+  const hasChildren = Array.isArray(node?.children) && node.children.length > 0;
+
+  return (
+    <button
+      type="button"
+      onClick={hasChildren ? onClick : undefined}
+      className="w-full border-b border-slate-100 px-3 py-2.5 text-left last:border-b-0 hover:bg-slate-50"
+    >
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-indigo-700">
+              {level}
+            </span>
+            <span className="text-sm font-semibold text-slate-900">
+              {node?.label ?? node?.lord ?? "—"}
+            </span>
+          </div>
+
+          <div className="mt-1 text-[11px] text-slate-500">
+            {formatDashaCompactDate(node?.startISO)} → {formatDashaCompactDate(node?.endISO)}
+          </div>
+        </div>
+
+        {hasChildren ? (
+          <span className="text-xs font-semibold text-slate-400">
+            {open ? "▲" : "▼"}
+          </span>
+        ) : null}
+      </div>
+    </button>
+  );
+}
 function ActiveDashaPanel({
   currentDasha,
   dashaTimelines,
 }: {
   currentDasha?: any;
   dashaTimelines?: any;
+  dashaTree?: any[];
 }) {
   const [lookupDate, setLookupDate] = useState(() =>
     new Date().toISOString().slice(0, 10)
   );
-
+  const [openMdIndex, setOpenMdIndex] = useState<number | null>(null);
+const [openAdKey, setOpenAdKey] = useState<string | null>(null);
+  const [dashaBoxMode, setDashaBoxMode] = useState<"lookup" | "timeline">("lookup");
   const rawMd = getDashaNode(currentDasha, ["md", "mahadasha", "mahaDasha"]);
   const rawAd = getDashaNode(currentDasha, ["ad", "antardasha", "antarDasha"]);
   const rawPd = getDashaNode(currentDasha, [
@@ -1143,66 +1205,189 @@ const pd = findDashaRowByDate(pdRowsForAd, lookupDate) ??
     .filter((planet) => planet && planet !== "—")
     .join(" / ");
 
-  return (
-    <aside className="h-full rounded-2xl border border-[color:var(--border)] bg-white/90 p-4 shadow-sm">
-      <div>
-        <h4 className="text-sm font-semibold text-slate-900">Dasha Lookup</h4>
-        <p className="mt-1 text-xs text-slate-500">
+ return (
+  <aside className="h-full rounded-2xl border border-[color:var(--border)] bg-white/90 p-4 shadow-sm">
+    <div className="grid grid-cols-2 rounded-xl bg-slate-100 p-1">
+      <button
+        type="button"
+        onClick={() => setDashaBoxMode("lookup")}
+        className={
+          "rounded-lg px-3 py-2 text-xs font-semibold transition " +
+          (dashaBoxMode === "lookup"
+            ? "bg-white text-slate-900 shadow-sm"
+            : "text-slate-500")
+        }
+      >
+        Dasha Lookup
+      </button>
+
+      <button
+        type="button"
+        onClick={() => setDashaBoxMode("timeline")}
+        className={
+          "rounded-lg px-3 py-2 text-xs font-semibold transition " +
+          (dashaBoxMode === "timeline"
+            ? "bg-white text-slate-900 shadow-sm"
+            : "text-slate-500")
+        }
+      >
+        Dasha Timeline
+      </button>
+    </div>
+
+    {dashaBoxMode === "lookup" ? (
+      <>
+        <p className="mt-3 text-xs text-slate-500">
           Check the Vimshottari chain for any date.
         </p>
-      </div>
 
-      <div className="mt-3">
-        <label className="text-[10px] font-bold uppercase tracking-wide text-slate-400">
-          Date
-        </label>
-        <input
-          type="date"
-          value={lookupDate}
-          onChange={(e) => setLookupDate(e.target.value)}
-          className="mt-1 w-full rounded-xl border border-[color:var(--border)] bg-white px-3 py-2 text-xs font-medium text-slate-900 shadow-sm outline-none focus:border-[color:var(--primary)]"
+        <div className="mt-3">
+          <label className="text-[10px] font-bold uppercase tracking-wide text-slate-400">
+            Date
+          </label>
+          <input
+            type="date"
+            value={lookupDate}
+            onChange={(e) => setLookupDate(e.target.value)}
+            className="mt-1 w-full rounded-xl border border-[color:var(--border)] bg-white px-3 py-2 text-xs font-medium text-slate-900 shadow-sm outline-none focus:border-[color:var(--primary)]"
+          />
+        </div>
+
+        <div className="mt-4 rounded-2xl border border-indigo-100 bg-indigo-50/60 px-3 py-3">
+          <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-indigo-400">
+            Running Chain
+          </div>
+          <div className="mt-1 text-base font-semibold leading-snug text-slate-950">
+            {chain || "—"}
+          </div>
+          <div className="mt-1 text-[11px] text-slate-500">MD / AD / PD</div>
+        </div>
+
+        <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-white">
+          {rows.map((row) => {
+            const planet = getDashaPlanet(row.node);
+            const start = getTimelineStart(row.node) ?? getDashaStart(row.node);
+            const end = getTimelineEnd(row.node) ?? getDashaEnd(row.node);
+
+            return (
+              <div
+                key={row.label}
+                className="border-b border-slate-100 px-3 py-2.5 last:border-b-0"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-[11px] font-bold text-indigo-700">
+                    {row.label}
+                  </span>
+                  <span className="text-sm font-semibold text-slate-900">
+                    {planet}
+                  </span>
+                </div>
+
+                <div className="mt-1 text-[11px] leading-relaxed text-slate-500">
+                  {formatDashaCompactDate(start)} → {formatDashaCompactDate(end)}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </>
+    ) : (
+      <>
+        <p className="mt-3 text-xs text-slate-500">
+          Mahadasha sequence from birth.
+        </p>
+
+        <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-white">
+          {mdRows.length ? (
+  mdRows.map((mdRow: any, mdIndex: number) => {
+    const planet = getTimelinePlanet(mdRow);
+    const mdOpen = openMdIndex === mdIndex;
+    const mdAdRows = filterRowsWithinParent(adRows, mdRow);
+
+    return (
+      <div key={`${planet}-${mdIndex}`}>
+        <DashaDrillRow
+          node={{
+            label: planet,
+            startISO: getTimelineStart(mdRow),
+            endISO: getTimelineEnd(mdRow),
+            children: mdAdRows,
+          }}
+          level="MD"
+          open={mdOpen}
+          onClick={() => {
+            setOpenMdIndex(mdOpen ? null : mdIndex);
+            setOpenAdKey(null);
+          }}
         />
-      </div>
 
-      <div className="mt-4 rounded-2xl border border-indigo-100 bg-indigo-50/60 px-3 py-3">
-        <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-indigo-400">
-          Running Chain
-        </div>
-        <div className="mt-1 text-base font-semibold leading-snug text-slate-950">
-          {chain || "—"}
-        </div>
-        <div className="mt-1 text-[11px] text-slate-500">MD / AD / PD</div>
-      </div>
+        {mdOpen ? (
+          <div className="bg-slate-50/70 pl-3">
+            {mdAdRows.length ? (
+              mdAdRows.map((adRow: any, adIndex: number) => {
+                const adPlanet = getTimelinePlanet(adRow);
+                const adKey = `${mdIndex}-${adIndex}`;
+                const adOpen = openAdKey === adKey;
+                const adPdRows = filterRowsWithinParent(pdRows, adRow);
 
-      <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-white">
-        {rows.map((row) => {
-          const planet = getDashaPlanet(row.node);
-          const start = getTimelineStart(row.node) ?? getDashaStart(row.node);
-          const end = getTimelineEnd(row.node) ?? getDashaEnd(row.node);
+                return (
+                  <div key={`${adPlanet}-${adIndex}`}>
+                    <DashaDrillRow
+                      node={{
+                        label: adPlanet,
+                        startISO: getTimelineStart(adRow),
+                        endISO: getTimelineEnd(adRow),
+                        children: adPdRows,
+                      }}
+                      level="AD"
+                      open={adOpen}
+                      onClick={() => setOpenAdKey(adOpen ? null : adKey)}
+                    />
 
-          return (
-            <div
-              key={row.label}
-              className="border-b border-slate-100 px-3 py-2.5 last:border-b-0"
-            >
-              <div className="flex items-center gap-2">
-                <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-[11px] font-bold text-indigo-700">
-                  {row.label}
-                </span>
-                <span className="text-sm font-semibold text-slate-900">
-                  {planet}
-                </span>
+                    {adOpen ? (
+                      <div className="bg-white pl-3">
+                        {adPdRows.length ? (
+                          adPdRows.map((pdRow: any, pdIndex: number) => (
+                            <DashaDrillRow
+                              key={`${getTimelinePlanet(pdRow)}-${pdIndex}`}
+                              node={{
+                                label: getTimelinePlanet(pdRow),
+                                startISO: getTimelineStart(pdRow),
+                                endISO: getTimelineEnd(pdRow),
+                              }}
+                              level="PD"
+                            />
+                          ))
+                        ) : (
+                          <div className="px-3 py-2 text-xs text-slate-500">
+                            No PD breakup available.
+                          </div>
+                        )}
+                      </div>
+                    ) : null}
+                  </div>
+                );
+              })
+            ) : (
+              <div className="px-3 py-2 text-xs text-slate-500">
+                No AD breakup available.
               </div>
-
-              <div className="mt-1 text-[11px] leading-relaxed text-slate-500">
-                {formatDashaCompactDate(start)} → {formatDashaCompactDate(end)}
-              </div>
-            </div>
-          );
-        })}
+            )}
+          </div>
+        ) : null}
       </div>
-    </aside>
-  );
+    );
+  })
+) : (
+  <div className="px-3 py-3 text-xs text-slate-500">
+    No Mahadasha timeline available.
+  </div>
+)}
+        </div>
+      </>
+    )}
+  </aside>
+);
 }
 function PlanetNakshatraSnapshot({
   planets,
@@ -1582,6 +1767,7 @@ export default function ChartsTabView({
   currentAdPlanet,
   currentDasha,
   dashaTimelines,
+  dashaTree,
   sarvaAshtakvarga,
   arudhas,
   upagrahas,
@@ -1608,6 +1794,7 @@ export default function ChartsTabView({
   currentAdPlanet: string | null;
   currentDasha?: any;
   dashaTimelines?: any;
+  dashaTree?: any[];
   sarvaAshtakvarga?: number[];
   arudhas?: Record<string, { sign: string }>;
   upagrahas?: any;
@@ -2108,9 +2295,9 @@ return {
 
   <div className="xl:sticky xl:top-4">
     <ActiveDashaPanel
-      currentDasha={currentDasha}
-      dashaTimelines={dashaTimelines}
-    />
+  currentDasha={currentDasha}
+  dashaTimelines={dashaTimelines}
+/>
 
     <PlanetNakshatraSnapshot planets={natalPlanets} />
   </div>
