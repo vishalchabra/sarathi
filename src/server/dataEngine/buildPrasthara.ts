@@ -113,7 +113,11 @@ export function buildPrasthara({
   natalPlanets,
   lagnaSign,
 }: {
-  natalPlanets: PlanetInput[];
+  natalPlanets: Array<{
+    planet: string;
+    signNum?: number | null;
+    house?: number | null;
+  }>;
   lagnaSign?: number | null;
 }) {
   const contributorSignMap: Partial<Record<Contributor, number>> = {};
