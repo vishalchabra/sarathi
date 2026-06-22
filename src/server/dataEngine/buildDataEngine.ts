@@ -28,7 +28,7 @@ import buildVedicAspects from "@/server/dataEngine/buildVedicAspects";
 import buildHouseJudgement from "@/server/dataEngine/buildHouseJudgement";
 import { buildBhavaChalitData } from "./buildBhavaChalitData";
 import { buildHouseCusps } from "./buildHouseCusps";
-import { buildClassicChalit } from "./buildClassicChalit";
+// import { buildClassicChalit } from "./buildClassicChalit";
 import { buildShadbala } from "./buildShadbala";
 import { buildAshtakvarga } from "./buildAshtakvarga";
 import { buildPrasthara } from "./buildPrasthara";
@@ -710,7 +710,7 @@ const NAKSHATRA_NAMES = [
   "Purva Ashadha",
   "Uttara Ashadha",
   "Shravana",
-  "Dhanishtha",
+  "Dhanishta",
   "Shatabhisha",
   "Purva Bhadrapada",
   "Uttara Bhadrapada",
@@ -771,7 +771,7 @@ function getTarabalam(natalNakshatra: string | null, transitNakshatra: string | 
     "Purva Ashadha",
     "Uttara Ashadha",
     "Shravana",
-    "Dhanishtha",
+    "Dhanishta",
     "Shatabhisha",
     "Purva Bhadrapada",
     "Uttara Bhadrapada",
@@ -1388,10 +1388,14 @@ const afflictions = natalWithStrengths.planets.map((p: any) =>
 const shadbalaInsights = buildShadbalaInsights(shadbala, afflictions);
 
   const ashtakvarga = buildAshtakvarga({
-    natalPlanets: natalWithStrengths.planets,
-  });
+  natalPlanets: natalWithStrengths.planets,
+  lagnaSign: natalWithStrengths.ascendant?.signNum,
+});
 
-  const prasthara = buildPrasthara();
+  const prasthara = buildPrasthara({
+  natalPlanets: natalWithStrengths.planets,
+  lagnaSign: natalWithStrengths.ascendant?.signNum,
+});
 
 
 
@@ -1434,13 +1438,7 @@ const kpPlanetOnCusp = buildKpPlanetOnCusp({
     system: houseCusps.system,
   });
 
-  const classicChalit = await buildClassicChalit({
-    ascendant: {
-      sign: natalWithStrengths.ascendant?.sign ?? "—",
-      signNum: natalWithStrengths.ascendant?.signNum ?? 0,
-    },
-    natalPlanets: natalWithStrengths.planets,
-  });
+  const classicChalit = null;
   const nabhasaYogas = buildNabhasaYogas({
     natalPlanets: natalWithStrengths.planets,
   });
