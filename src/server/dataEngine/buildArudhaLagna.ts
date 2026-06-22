@@ -49,9 +49,9 @@ export function buildArudhas({
     let resultIdx = (lIdx + distance) % 12;
 
     // Exception rule
-    if (resultIdx === hIdx || resultIdx === (hIdx + 6) % 12) {
-      resultIdx = (hIdx + 9) % 12;
-    }
+  if (resultIdx === hIdx || resultIdx === (hIdx + 6) % 12) {
+  resultIdx = (lIdx + 9) % 12;
+}
 
     return getSignFromIndex(resultIdx);
   }

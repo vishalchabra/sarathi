@@ -42,7 +42,7 @@ function isDateInRange(
   endISO?: string | null
 ) {
   if (!startISO || !endISO) return false;
-  return dateISO >= startISO && dateISO <= endISO;
+  return dateISO >= startISO && dateISO < endISO;
 }
 
 function mapMdRows(mahaList: Array<any>) {
@@ -256,7 +256,7 @@ export async function buildDashaData(params: BuildDashaDataParams) {
 
   const birthUTC = new Date(birthUTCISO);
   const when = new Date(`${selectedDateISO}T12:00:00.000Z`);
-  const jdBirth = 0;
+  const jdBirth = 0; // currently unused by getMahadashaTimeline()
 
   const mahaList = getMahadashaTimeline(
     birthUTC,

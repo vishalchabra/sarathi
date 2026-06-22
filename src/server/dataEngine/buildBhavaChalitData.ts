@@ -56,21 +56,13 @@ export async function buildBhavaChalitData(params: Params) {
 
   const planets = (Array.isArray(natalPlanets) ? natalPlanets : []).map((p) => {
     const lon =
-      typeof p.siderealLongitude === "number"
-        ? p.siderealLongitude
-        : typeof p.lon === "number"
-        ? p.lon
-        : (p.signNum - 1) * 30 + p.degree;
+  typeof p.siderealLongitude === "number"
+    ? p.siderealLongitude
+    : typeof p.lon === "number"
+    ? p.lon
+    : (p.signNum - 1) * 30 + p.degree;
 
-   const isNode = p.planet === "Rahu" || p.planet === "Ketu";
-const degreeInSign = ((lon % 30) + 30) % 30;
-
-const adjustedLon =
-  isNode && degreeInSign >= 29
-    ? wrap360(lon - 1)
-    : lon;
-
-const chalitHouse = getHouseFromCusps(adjustedLon, cusps);
+const chalitHouse = getHouseFromCusps(lon, cusps);
 
     return {
       planet: p.planet,

@@ -87,7 +87,7 @@ function toBirthUTCISO(birth: BirthInput): string {
     .toISO({ suppressMilliseconds: false })!;
 }
 
-function getLordshipsForVirgoStyleWholeSign(
+function getWholeSignLordships(
   ascSignNum: number,
   planet: string
 ): number[] {
@@ -143,7 +143,10 @@ export async function buildNatalData(params: BuildNatalDataParams) {
       sign: p.sign,
       signNum,
       degree: Number(Number(p.degree).toFixed(2)),
-      house: typeof p.house === "number" ? p.house : null,
+      house:
+  signNum && ascSignNum
+    ? ((signNum - ascSignNum + 12) % 12) + 1
+    : null,
       nakshatra: nk.nakshatra,
       pada: nk.pada,
       retrograde: p.planet === "Rahu" || p.planet === "Ketu",
@@ -151,7 +154,7 @@ export async function buildNatalData(params: BuildNatalDataParams) {
       lon,
       lordships:
         ascSignNum > 0
-          ? getLordshipsForVirgoStyleWholeSign(ascSignNum, p.planet)
+          ? getWholeSignLordships(ascSignNum, p.planet)
           : [],
     };
   });

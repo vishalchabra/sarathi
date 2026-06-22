@@ -56,17 +56,7 @@ export async function buildCompareData(params: BuildCompareDataParams) {
     natalPlanets,
     plan,
   });
-console.log("COMPARE DEBUG — NATAL PLANETS:",
-  (natalPlanets || []).map((p: any) => p.planet)
-);
-
-console.log("COMPARE DEBUG — SNAP A PLANETS:",
-  (snapA.planets || []).map((p: any) => p.planet)
-);
-
-console.log("COMPARE DEBUG — SNAP B PLANETS:",
-  (snapB.planets || []).map((p: any) => p.planet)
-);
+// Debug logs removed for production.
   const dashaA = await buildDashaData({
     birth,
     selectedDateISO: dateAISO,
@@ -85,8 +75,8 @@ console.log("COMPARE DEBUG — SNAP B PLANETS:",
   planet: string;
   fromSign: string;
   toSign: string;
-  fromHouse: number;
-  toHouse: number;
+  fromHouse: number | null;
+toHouse: number | null;
   changed: boolean;
 }> = [];
 
@@ -100,34 +90,35 @@ const natalRows: Array<{
   dateBHouse: number | null;
 }> = [];
 
-for (const natalRow of natalPlanets || []) {
-  const natalName = normalizePlanetName(natalRow.planet);
+for (const rowA of snapA.planets || []) {
+  const planetName = rowA.planet;
+const normalizedName = normalizePlanetName(planetName);
 
-  const rowA = (snapA.planets || []).find(
-    (x: any) => normalizePlanetName(x.planet) === natalName
-  );
+const rowB = (snapB.planets || []).find(
+  (x: any) => normalizePlanetName(x.planet) === normalizedName
+);
 
-  const rowB = (snapB.planets || []).find(
-    (x: any) => normalizePlanetName(x.planet) === natalName
-  );
+const natalRow = (natalPlanets || []).find(
+  (x: any) => normalizePlanetName(x.planet) === normalizedName
+);
 
-  if (!rowA || !rowB) continue;
+if (!rowB) continue;
 
   changes.push({
-    planet: natalRow.planet,
+    planet: planetName,
     fromSign: rowA.sign,
     toSign: rowB.sign,
-    fromHouse: rowA.houseFromLagna,
-    toHouse: rowB.houseFromLagna,
+    fromHouse: rowA.houseFromLagna ?? null,
+toHouse: rowB.houseFromLagna ?? null,
     changed:
       rowA.sign !== rowB.sign ||
       rowA.houseFromLagna !== rowB.houseFromLagna,
   });
 
   natalRows.push({
-    planet: natalRow.planet,
-    natalSign: natalRow.sign,
-    natalHouse: natalRow.house ?? null,
+    planet: planetName,
+natalSign: natalRow?.sign ?? "—",
+natalHouse: natalRow?.house ?? null,
     dateASign: rowA.sign,
     dateAHouse: rowA.houseFromLagna ?? null,
     dateBSign: rowB.sign,

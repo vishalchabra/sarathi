@@ -10,6 +10,7 @@ type PlanetName =
 type PlanetInput = {
   planet: string;
   sign?: string | null;
+  signNum?: number | null;
   house?: number | null;
 };
 
@@ -128,7 +129,7 @@ export function buildFiveFoldFriendship({
         const toRow = corePlanets.find((p) => p.planet === toPlanet);
 
         const natural = getNaturalRelation(fromPlanet, toPlanet);
-        const temporary = getTemporaryRelation(fromRow?.house, toRow?.house);
+        const temporary = getTemporaryRelation(fromRow?.signNum, toRow?.signNum);
         const final = combineRelations(natural, temporary);
 
         return {

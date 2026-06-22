@@ -157,7 +157,8 @@ export function buildTransitContacts(params: {
       const rawDiff = norm360(n.lon - t.lon);
       const orb = angleDiff(rawDiff, exactAngle);
 
-      if (orb > 6) continue;
+      // Keep all valid rashi-based Vedic aspects.
+// Orb is retained as metadata for intensity/ranking.
 
       const tone = getAspectTone(t.name);
 

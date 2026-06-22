@@ -42,11 +42,25 @@ const NAKSHATRA_META: Record<
   UttaraBhadrapada: { gana: "Manushya", yoni: "Cow", nadi: "Madhya", varna: "Kshatriya" },
   Revati: { gana: "Deva", yoni: "Elephant", nadi: "Antya", varna: "Shudra" },
 };
+const NAKSHATRA_ALIASES: Record<string, string> = {
+  Dhanishta: "Dhanishta",
+  Jyeshta: "Jyeshtha",
+  Moola: "Mula",
+  PoorvaPhalguni: "PurvaPhalguni",
+  PoorvaAshadha: "PurvaAshadha",
+  PoorvaBhadrapada: "PurvaBhadrapada",
+  UttaraBhadra: "UttaraBhadrapada",
+  PoorvaBhadra: "PurvaBhadrapada",
+};
 function normalizeNakshatraKey(value?: string | null) {
-  return String(value ?? "")
+  const v = String(value ?? "")
     .replace(/\s+/g, "")
     .replace(/[\u2013\u2014-]/g, "")
     .trim();
+
+  if (v === "Dhanishtha") return "Dhanishta";
+
+  return v;
 }
 export function buildAvakhada({
   natalPlanets,
@@ -60,7 +74,9 @@ export function buildAvakhada({
 const nak = moon.nakshatra ?? "—";
 const nakKey = normalizeNakshatraKey(nak);
 
-const meta = NAKSHATRA_META[nakKey] ?? {
+const resolvedNakKey = NAKSHATRA_ALIASES[nakKey] ?? nakKey;
+
+const meta = NAKSHATRA_META[resolvedNakKey] ?? {
   gana: "—",
   yoni: "—",
   nadi: "—",

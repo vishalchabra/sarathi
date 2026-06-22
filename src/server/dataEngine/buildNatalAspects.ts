@@ -164,19 +164,11 @@ export function buildNatalAspects(params: {
       const rulesB = getVedicAspectRules(B.planet);
 
       if (rulesA.includes(hDistAB)) {
-  const row = buildAspectRow(A, B, hDistAB);
-
- if (row.orb <= 12) {
-  aspects.push(row);
-}
+  aspects.push(buildAspectRow(A, B, hDistAB));
 }
 
-     if (rulesB.includes(hDistBA)) {
-  const row = buildAspectRow(B, A, hDistBA);
-
-  if (row.orb <= 6) {
-    aspects.push(row);
-  }
+if (rulesB.includes(hDistBA)) {
+  aspects.push(buildAspectRow(B, A, hDistBA));
 }
     }
   }

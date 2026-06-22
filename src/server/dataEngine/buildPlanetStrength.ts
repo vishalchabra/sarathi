@@ -78,14 +78,17 @@ const DEBILITATION_SIGNS: Record<string, string | null> = {
   Ketu: null,
 };
 
-const MOOLATRIKONA_SIGNS: Record<string, string | null> = {
-  Sun: "Leo",
-  Moon: "Taurus",
-  Mars: "Aries",
-  Mercury: "Virgo",
-  Jupiter: "Sagittarius",
-  Venus: "Libra",
-  Saturn: "Aquarius",
+const MOOLATRIKONA_RANGES: Record<
+  string,
+  { sign: string; minDeg: number; maxDeg: number } | null
+> = {
+  Sun: { sign: "Leo", minDeg: 0, maxDeg: 20 },
+  Moon: { sign: "Taurus", minDeg: 4, maxDeg: 30 },
+  Mars: { sign: "Aries", minDeg: 0, maxDeg: 12 },
+  Mercury: { sign: "Virgo", minDeg: 16, maxDeg: 20 },
+  Jupiter: { sign: "Sagittarius", minDeg: 0, maxDeg: 10 },
+  Venus: { sign: "Libra", minDeg: 0, maxDeg: 15 },
+  Saturn: { sign: "Aquarius", minDeg: 0, maxDeg: 20 },
   Rahu: null,
   Ketu: null,
 };
@@ -268,13 +271,25 @@ export function buildPlanetStrength(params: {
       const ownSigns = OWN_SIGNS[p.planet] ?? [];
       const exaltationSign = EXALTATION_SIGNS[p.planet] ?? null;
       const debilitationSign = DEBILITATION_SIGNS[p.planet] ?? null;
-      const moolatrikonaSign = MOOLATRIKONA_SIGNS[p.planet] ?? null;
+      const moolatrikonaRange = MOOLATRIKONA_RANGES[p.planet] ?? null;
       const signLord = SIGN_LORDS[p.sign] ?? null;
 
       const isOwnSign = ownSigns.includes(p.sign);
       const isExalted = exaltationSign === p.sign;
       const isDebilitated = debilitationSign === p.sign;
-      const isMoolatrikona = moolatrikonaSign === p.sign;
+      const planetDegree =
+  typeof p.degree === "number"
+    ? p.degree
+    : typeof p.lon === "number"
+    ? wrap360(p.lon) % 30
+    : null;
+
+const isMoolatrikona =
+  !!moolatrikonaRange &&
+  moolatrikonaRange.sign === p.sign &&
+  typeof planetDegree === "number" &&
+  planetDegree >= moolatrikonaRange.minDeg &&
+  planetDegree < moolatrikonaRange.maxDeg;
       const isVargottama = getIsVargottama(
   p.planet,
   p.sign,
@@ -325,7 +340,7 @@ export function buildPlanetStrength(params: {
         isMoolatrikona,
         isVargottama,
         retrograde: Boolean(p.retrograde),
-        combust: Boolean(p.combust),
+        combust: isCombustSevere,
         combustDistanceDeg,
         isCombustSevere,
         strengthBand,

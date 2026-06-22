@@ -104,7 +104,12 @@ export function buildTransitNatalInteractions(params: {
     const natalScore = bandToScore(natalBand);
     const toneScore = toneToScore(c?.tone);
 
-    const interactionScore = transitScore + natalScore + toneScore;
+    const effectiveTransitScore =
+  c?.tone === "challenging"
+    ? -Math.abs(transitScore)
+    : transitScore;
+
+const interactionScore = effectiveTransitScore + natalScore + toneScore;
 
     rows.push({
       transitPlanet,

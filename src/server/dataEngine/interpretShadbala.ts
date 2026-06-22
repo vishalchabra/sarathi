@@ -16,9 +16,15 @@ export function getPlanetShadbalaInsight(
 let strength: "strong" | "medium" | "weak" = "medium";
 let tone: "support" | "mixed" | "pressure" = "mixed";
 
-// Keep insights aligned with the Shadbala table.
-// Source of truth = Shadbala in Rupas.
-if (total >= 6) {
+const status = String(row?.status ?? "").toLowerCase();
+
+if (status === "strong") {
+  strength = "strong";
+  tone = "support";
+} else if (status === "weak") {
+  strength = "weak";
+  tone = "pressure";
+} else if (total >= 6) {
   strength = "strong";
   tone = "support";
 } else if (total < 5) {

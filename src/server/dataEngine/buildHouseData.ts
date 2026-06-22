@@ -73,7 +73,10 @@ export async function buildHouseData(params: BuildHouseDataParams) {
     const sign = SIGN_NAMES[signNum];
     const lord = SIGN_LORDS[signNum];
 
-    const lordPlanet = natalPlanets.find((p) => p.planet === lord) || null;
+    const lordPlanet =
+  natalPlanets.find(
+    (p) => String(p.planet).toLowerCase() === lord.toLowerCase()
+  ) ?? null;
 
     out.push({
       house,

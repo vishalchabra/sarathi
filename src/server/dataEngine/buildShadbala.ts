@@ -107,7 +107,7 @@ const OWN_SIGNS: Record<string, string[]> = {
 
 const MOOLATRIKONA_SIGNS: Record<string, string> = {
   Sun: "Leo",
-  Moon: "Taurus",
+  Moon: "Cancer",
   Mars: "Aries",
   Mercury: "Virgo",
   Jupiter: "Sagittarius",
@@ -128,6 +128,24 @@ const NATURAL_RELATIONSHIPS: Record<
   Saturn: { friends: ["Mercury", "Venus"], enemies: ["Sun", "Moon", "Mars"] },
 };
 
+function getNaturalRelationship(
+  planet: string,
+  otherPlanet: string
+): "friend" | "enemy" | "neutral" {
+  const rel = NATURAL_RELATIONSHIPS[planet];
+
+  if (!rel) return "neutral";
+
+  if (rel.friends.includes(otherPlanet)) {
+    return "friend";
+  }
+
+  if (rel.enemies.includes(otherPlanet)) {
+    return "enemy";
+  }
+
+  return "neutral";
+}
 const NATURAL_STRENGTH_VIRUPAS: Record<string, number> = {
   Sun: 60,
   Moon: 51.42,
@@ -206,33 +224,33 @@ function circularDistance(a: number, b: number) {
   return d > 180 ? 360 - d : d;
 }
 
-function getDistanceFromPlanetSign(planetSign?: string, lordSign?: string) {
+function getHouseDistanceBetweenPlanets(
+  planetSign?: string | null,
+  otherPlanetSign?: string | null
+) {
   const pIndex = getSignIndex(planetSign);
-  const lIndex = getSignIndex(lordSign);
+  const oIndex = getSignIndex(otherPlanetSign);
 
-  if (pIndex < 0 || lIndex < 0) return null;
+  if (pIndex < 0 || oIndex < 0) return null;
 
-  return ((lIndex - pIndex + 12) % 12) + 1;
+  return ((oIndex - pIndex + 12) % 12) + 1;
 }
 
-function getNaturalRelationship(planet: string, otherPlanet: string) {
-  if (planet === otherPlanet) return "self";
-
-  const rel = NATURAL_RELATIONSHIPS[planet];
-  if (!rel) return "neutral";
-
-  if (rel.friends.includes(otherPlanet)) return "friend";
-  if (rel.enemies.includes(otherPlanet)) return "enemy";
-
-  return "neutral";
-}
-
-function getTemporaryRelationship(planetSign?: string, lordSign?: string) {
-  const distance = getDistanceFromPlanetSign(planetSign, lordSign);
+function getTemporaryRelationship(
+  planetSign?: string | null,
+  otherPlanetSign?: string | null
+) {
+  const distance = getHouseDistanceBetweenPlanets(
+    planetSign,
+    otherPlanetSign
+  );
 
   if (!distance) return "neutral";
 
-  if ([2, 3, 4, 10, 11, 12].includes(distance)) return "friend";
+  if ([2, 3, 4, 10, 11, 12].includes(distance)) {
+    return "friend";
+  }
+
   return "enemy";
 }
 
@@ -295,9 +313,9 @@ if (OWN_SIGNS[planet]?.includes(planetSign)) return "own";
 
   const natural = getNaturalRelationship(planet, signLord);
   const temporary = getTemporaryRelationship(
-    planetSign,
-    signLordSign ?? undefined
-  );
+  planetSign,
+  signLordSign
+);
 
   return combineFiveFoldRelationship(natural, temporary);
 }
@@ -537,10 +555,11 @@ function getDigBalaVirupas(p: PlanetInput, ascendantLon?: number | null) {
   const lon = getPlanetLon(p);
   if (lon === null) return 0;
 
-  const ascLon =
-    typeof ascendantLon === "number"
-      ? wrap360(ascendantLon)
-      : estimateAscendantLonFromHouse(p);
+  if (typeof ascendantLon !== "number") {
+  return 0;
+}
+
+const ascLon = wrap360(ascendantLon);
 
   if (ascLon === null) return 0;
 
@@ -1186,14 +1205,14 @@ const ranked = rows
     const scoreA = a.interpretiveStrength;
 const scoreB = b.interpretiveStrength;
 
-    if (
-      Math.abs(b.totalShadbalaVirupas - a.totalShadbalaVirupas) <=
-      RANK_TIE_TOLERANCE
-    ) {
-      return CORE_PLANETS.indexOf(a.planet) - CORE_PLANETS.indexOf(b.planet);
-    }
+   if (
+  Math.abs(scoreB - scoreA) <=
+  RANK_TIE_TOLERANCE
+) {
+  return CORE_PLANETS.indexOf(a.planet) - CORE_PLANETS.indexOf(b.planet);
+}
 
-    return scoreB - scoreA;
+return scoreB - scoreA;
   })
   .map((row, index) => ({
     ...row,

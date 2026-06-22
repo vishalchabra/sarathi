@@ -43,8 +43,7 @@ function getSignFromLon(lon: number) {
 }
 
 function getDegreeInSign(lon: number) {
-  const normalized = normalize360(lon);
-  return normalized % 30;
+  return normalize360(lon) % 30;
 }
 
 function formatLonParts(lon: number) {
@@ -55,37 +54,44 @@ function formatLonParts(lon: number) {
   };
 }
 
+function midpointForward(fromLon: number, toLon: number) {
+  const from = normalize360(fromLon);
+  const to = normalize360(toLon);
+
+  const distance = normalize360(to - from);
+  return normalize360(from + distance / 2);
+}
+
 export function buildBhavMadhya({
   cusps,
 }: {
   cusps: number[];
 }): BhavMadhyaRow[] {
-  const normalizedCusps = Array.isArray(cusps) ? cusps : [];
+  const normalizedCusps = Array.isArray(cusps)
+    ? cusps.filter((c) => typeof c === "number" && Number.isFinite(c))
+    : [];
+
+  if (normalizedCusps.length !== 12) {
+    return [];
+  }
 
   return normalizedCusps.map((cuspLon, index) => {
     const house = index + 1;
 
-    const prevIndex = (index - 1 + normalizedCusps.length) % normalizedCusps.length;
-    const nextIndex = (index + 1) % normalizedCusps.length;
+    const prevIndex = (index - 1 + 12) % 12;
+    const nextIndex = (index + 1) % 12;
 
     const prevCusp = normalizedCusps[prevIndex];
     const nextCusp = normalizedCusps[nextIndex];
 
-    const startLon =
-      typeof prevCusp === "number"
-        ? normalize360((prevCusp + cuspLon) / 2)
-        : null;
-
-    const endLon =
-      typeof nextCusp === "number"
-        ? normalize360((cuspLon + nextCusp) / 2)
-        : null;
+    const startLon = midpointForward(prevCusp, cuspLon);
+    const endLon = midpointForward(cuspLon, nextCusp);
 
     return {
       house,
-      cusp: typeof cuspLon === "number" ? formatLonParts(cuspLon) : null,
-      start: typeof startLon === "number" ? formatLonParts(startLon) : null,
-      end: typeof endLon === "number" ? formatLonParts(endLon) : null,
+      cusp: formatLonParts(cuspLon),
+      start: formatLonParts(startLon),
+      end: formatLonParts(endLon),
     };
   });
 }

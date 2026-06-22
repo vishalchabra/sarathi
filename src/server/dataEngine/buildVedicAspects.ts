@@ -139,21 +139,21 @@ function getAspectRules(planet: string): Array<{ offset: number; aspectType: str
     case "Mars":
       return [
         { offset: 4, aspectType: "special 4th" },
-        { offset: 7, aspectType: "7th" },
+        { offset: 7, aspectType: "full 7th" },
         { offset: 8, aspectType: "special 8th" },
       ];
 
     case "Jupiter":
       return [
         { offset: 5, aspectType: "special 5th" },
-        { offset: 7, aspectType: "7th" },
+        { offset: 7, aspectType: "full 7th" },
         { offset: 9, aspectType: "special 9th" },
       ];
 
     case "Saturn":
       return [
         { offset: 3, aspectType: "special 3rd" },
-        { offset: 7, aspectType: "7th" },
+        { offset: 7, aspectType: "full 7th" },
         { offset: 10, aspectType: "special 10th" },
       ];
 
@@ -161,12 +161,12 @@ function getAspectRules(planet: string): Array<{ offset: number; aspectType: str
     case "Ketu":
       return [
         { offset: 5, aspectType: "node 5th" },
-        { offset: 7, aspectType: "7th" },
+        { offset: 7, aspectType: "full 7th" },
         { offset: 9, aspectType: "node 9th" },
       ];
 
     default:
-      return [{ offset: 7, aspectType: "7th" }];
+      return [{ offset: 7, aspectType: "full 7th" }];
   }
 }
 

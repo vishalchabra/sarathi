@@ -46,12 +46,15 @@ function isTransitHit(
 export function buildTransitWindows(rows: PlanetaryTransitEvent[]): TransitWindow[] {
   if (!Array.isArray(rows) || !rows.length) return [];
 
-  const normalized = rows
-    .map((r) => ({
-      ...r,
-      natalPlanet: r?.natalPlanet ?? r?.natalTarget ?? undefined,
-    }))
-    .filter(isTransitHit);
+  const MAX_WINDOW_ORB = 12;
+
+const normalized = rows
+  .map((r) => ({
+    ...r,
+    natalPlanet: r?.natalPlanet ?? r?.natalTarget ?? undefined,
+  }))
+  .filter(isTransitHit)
+  .filter((r) => r.orb <= MAX_WINDOW_ORB);;
 
   if (!normalized.length) return [];
 

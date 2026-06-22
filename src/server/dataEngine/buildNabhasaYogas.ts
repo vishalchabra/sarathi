@@ -115,14 +115,14 @@ export function buildNabhasaYogas(input: { natalPlanets: PlanetRow[] }) {
 
   // Core Akriti / Dala-style patterns
   if (sameSetOnly(houses, [1, 4, 7, 10])) {
-    push({
-      id: "kamala_maala",
-      name: "Kamala / Maala Yoga",
-      group: "Akriti",
-      rule: "All classical planets are placed only in kendras: 1, 4, 7, 10.",
-      theme: "Status, balance, comfort, recognition.",
-    });
-  }
+  push({
+    id: "kamala",
+    name: "Kamala Yoga",
+    group: "Akriti",
+    rule: "All classical planets are placed only in kendras: 1, 4, 7, 10.",
+    theme: "Status, balance, comfort, recognition.",
+  });
+}
 
   if (sameSetOnly(houses, [2, 5, 8, 11])) {
     push({
@@ -154,15 +154,8 @@ export function buildNabhasaYogas(input: { natalPlanets: PlanetRow[] }) {
     });
   }
 
-  if (sameSetOnly(houses, [5, 9])) {
-    push({
-      id: "hala",
-      name: "Hala Yoga",
-      group: "Akriti",
-      rule: "All classical planets are placed only in 5th and 9th houses.",
-      theme: "Hard work, effort, karma, struggle.",
-    });
-  }
+  // Hala Yoga needs a more specific classical pattern.
+// Removed to avoid false positives.
 
   if (sameSetOnly(houses, [1, 7])) {
     push({
@@ -267,15 +260,21 @@ export function buildNabhasaYogas(input: { natalPlanets: PlanetRow[] }) {
     7: "Veena / Vallaki Yoga",
   };
 
-  if (sankhyaMap[occupiedHouses.length]) {
-    push({
-      id: `sankhya_${occupiedHouses.length}`,
-      name: sankhyaMap[occupiedHouses.length],
-      group: "Sankhya",
-      rule: `The 7 classical planets occupy ${occupiedHouses.length} house(s).`,
-      theme: sankhyaMeaning[occupiedHouses.length] || "Numerical distribution pattern of planets.",
-    });
-  }
+  const hasHigherOrderNabhasa = detected.some((y) =>
+  ["Ashraya", "Dala", "Akriti"].includes(y.group)
+);
+
+if (!hasHigherOrderNabhasa && sankhyaMap[occupiedHouses.length]) {
+  push({
+    id: `sankhya_${occupiedHouses.length}`,
+    name: sankhyaMap[occupiedHouses.length],
+    group: "Sankhya",
+    rule: `The 7 classical planets occupy ${occupiedHouses.length} house(s).`,
+    theme:
+      sankhyaMeaning[occupiedHouses.length] ||
+      "Numerical distribution pattern of planets.",
+  });
+}
 
   return {
     detected,

@@ -61,9 +61,7 @@ if (degreeHit?.date) {
     month: "short",
   });
 }
-    const upcomingHit = degreeHits.find((hit: any) =>
-  involved.includes(hit?.natalPlanet)
-);
+    const upcomingHit = degreeHit;
 const windowHit = degreeHitWindows.find((w: any) =>
   involved.includes(w.natalPlanet)
 );
@@ -112,9 +110,23 @@ if (windowHit) {
   ? new Date(upcomingHit.date).toLocaleDateString()
   : null;
 
-if (dateStr) {
+if (dateStr && !windowHit) {
   reasons.push(`Peak around ${dateStr}`);
 }
 
+    return {
+      ...yoga,
+      activation: {
+        level: activationLevel,
+        strength,
+        active: strength > 0,
+        dashaHit: dashaHit ?? null,
+        transitHit: transitHit?.planet ?? null,
+        degreeHit: degreeHit ?? null,
+        windowHit: windowHit ?? null,
+        peakDate,
+        reasons,
+      },
+    };
   });
 }

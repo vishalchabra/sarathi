@@ -22,6 +22,7 @@ export type NatalPlanetRow = {
   signNum: number;
   degree: number;
   house: number;
+  lon?: number;
   nakshatra?: string;
   pada?: number;
   retrograde?: boolean;
@@ -49,6 +50,7 @@ export type FunctionalRoles = {
 export type TransitPlanetRow = {
   planet: string;
   sign: string;
+  lon?: number;
   signNum: number;
   degree: number;
   houseFromLagna: number;
