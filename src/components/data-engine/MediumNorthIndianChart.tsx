@@ -631,6 +631,16 @@ function getAspectTitle(house: number, marker: HouseAspectMarker) {
     .filter(Boolean)
     .join(" • ");
 }
+function ordinal(n: number) {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+
+  if (mod10 === 1 && mod100 !== 11) return `${n}st`;
+  if (mod10 === 2 && mod100 !== 12) return `${n}nd`;
+  if (mod10 === 3 && mod100 !== 13) return `${n}rd`;
+
+  return `${n}th`;
+}
 function getAspectPlanetLabel(row: any) {
   const planet =
     row?.fromPlanet ??
@@ -1040,7 +1050,7 @@ const transitPlanetsByHouse = useMemo(
 
   <div className="mt-1">
     {transitSambandh
-      ? `${transitSambandh.sambandh}th (H${transitSambandh.natalHouse} → H${transitSambandh.transitHouse})`
+      ? `${ordinal(transitSambandh.sambandh)} (H${transitSambandh.natalHouse} → H${transitSambandh.transitHouse})`
       : "—"}
   </div>
 </div>

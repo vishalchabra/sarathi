@@ -259,7 +259,7 @@ export default function ClientsPage() {
   const [statusFilter, setStatusFilter] = useState<"all" | ClientStatus | "vip">("all");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
@@ -510,27 +510,50 @@ async function handleMarkDone(clientId: string) {
       setGenerating(false);
     }
   }
+const inputClass = (field: string) =>
+  [
+    "mt-1 w-full rounded-xl border bg-white px-3 py-2.5 text-sm outline-none focus:border-[color:var(--primary)]",
+    fieldErrors[field]
+      ? "border-red-300 bg-red-50"
+      : "border-[color:var(--border)]",
+  ].join(" ");
 
+const fieldError = (field: string) =>
+  fieldErrors[field] ? (
+    <p className="mt-1 text-xs font-medium text-red-600">
+      {fieldErrors[field]}
+    </p>
+  ) : null;
   async function handleCreateClientWithChart() {
-    if (!name.trim()) {
-      setError("Please enter client name.");
-      return;
-    }
+    const nextErrors: Record<string, string> = {};
 
-    if (!birthPlace) {
-      setError("Please select birth city.");
-      return;
-    }
+if (!name.trim()) {
+  nextErrors.name = "Client name is required.";
+}
 
-    if (!birthDateISO.trim() || !birthTime.trim()) {
-      setError("Please enter birth date and time.");
-      return;
-    }
+if (!birthPlace) {
+  nextErrors.birthPlace = "Birth city is required.";
+}
 
-    if (clientStatus === "follow_up" && !nextFollowUpDate.trim()) {
-      setError("Please select next follow-up date.");
-      return;
-    }
+if (!birthDateISO.trim()) {
+  nextErrors.birthDateISO = "Birth date is required.";
+}
+
+if (!birthTime.trim()) {
+  nextErrors.birthTime = "Birth time is required.";
+}
+
+if (clientStatus === "follow_up" && !nextFollowUpDate.trim()) {
+  nextErrors.nextFollowUpDate = "Follow-up date is required.";
+}
+
+if (Object.keys(nextErrors).length) {
+  setFieldErrors(nextErrors);
+  setError("Please fill the highlighted required fields.");
+  return;
+}
+
+setFieldErrors({});
 
     try {
       setSaving(true);
@@ -549,7 +572,11 @@ async function handleMarkDone(clientId: string) {
         nextAction,
         nextFollowUpDate: clientStatus === "follow_up" ? nextFollowUpDate : "",
       });
+const selectedBirthPlace = birthPlace;
 
+if (!selectedBirthPlace) {
+  return;
+}
       await addClientChart({
   clientId: client.id,
   chartName: `${name.trim()} Birth Chart`,
@@ -783,7 +810,7 @@ return;
                   </div>
                 </div>
 
-                <div className="mt-5 overflow-hidden rounded-2xl border border-[color:var(--border)] bg-white">
+                <div className="mt-5 rounded-2xl border border-[color:var(--border)] bg-white">
                   {loading ? (
                     <div className="p-6 text-sm text-slate-500">Loading clients...</div>
                   ) : null}
@@ -933,12 +960,14 @@ return;
                     <label className="text-xs font-medium uppercase tracking-wide text-slate-400">
                       Client Name
                     </label>
-                    <input
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      className="mt-1 w-full rounded-xl border border-[color:var(--border)] bg-white px-3 py-2.5 text-sm outline-none focus:border-[color:var(--primary)]"
-                      placeholder="e.g. Priya Sharma"
-                    />
+                   <input
+  value={name}
+  onChange={(e) => setName(e.target.value)}
+  className={inputClass("name")}
+  placeholder="e.g. Priya Sharma"
+/>
+
+{fieldError("name")}
                   </div>
 
                   <div>
@@ -947,10 +976,12 @@ return;
                     </label>
                     <div className="mt-1">
                       <LockingCityAutocomplete
-                        value={birthPlace}
-                        onSelect={setBirthPlace}
-                        placeholder="Start typing birth city"
-                      />
+  value={birthPlace}
+  onSelect={setBirthPlace}
+  placeholder="Start typing birth city"
+/>
+
+{fieldError("birthPlace")}
                     </div>
                   </div>
 
@@ -959,11 +990,14 @@ return;
                       Birth Date
                     </label>
                     <input
-                      type="date"
-                      value={birthDateISO}
-                      onChange={(e) => setBirthDateISO(e.target.value)}
-                      className="mt-1 w-full rounded-xl border border-[color:var(--border)] bg-white px-3 py-2.5 text-sm outline-none focus:border-[color:var(--primary)]"
-                    />
+  type="text"
+  value={birthDateISO}
+  onChange={(e) => setBirthDateISO(e.target.value)}
+  className={inputClass("birthDateISO")}
+placeholder="YYYY-MM-DD"
+/>
+
+{fieldError("birthDateISO")}
                   </div>
 
                   <div>
@@ -971,11 +1005,13 @@ return;
                       Birth Time
                     </label>
                     <input
-                      type="time"
-                      value={birthTime}
-                      onChange={(e) => setBirthTime(e.target.value)}
-                      className="mt-1 w-full rounded-xl border border-[color:var(--border)] bg-white px-3 py-2.5 text-sm outline-none focus:border-[color:var(--primary)]"
-                    />
+  type="time"
+  value={birthTime}
+  onChange={(e) => setBirthTime(e.target.value)}
+  className={inputClass("birthTime")}
+/>
+
+{fieldError("birthTime")}
                   </div>
 
                   <div>
@@ -1061,11 +1097,14 @@ return;
                         Next Follow-up Date
                       </label>
                       <input
-                        type="date"
-                        value={nextFollowUpDate}
-                        onChange={(e) => setNextFollowUpDate(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-[color:var(--border)] bg-white px-3 py-2.5 text-sm outline-none focus:border-[color:var(--primary)]"
-                      />
+  type="text"
+  value={nextFollowUpDate}
+  onChange={(e) => setNextFollowUpDate(e.target.value)}
+  className={inputClass("nextFollowUpDate")}
+placeholder="YYYY-MM-DD"
+/>
+
+{fieldError("nextFollowUpDate")}
                     </div>
                   ) : null}
 

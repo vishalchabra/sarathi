@@ -2115,22 +2115,6 @@ const errorBoxClass =
               </div>
             </div>
           </Link>
-
-          <nav className="hidden items-center gap-6 text-sm text-slate-600 md:flex">
-            <Link className="hover:text-slate-900" href="/sarathi">
-              Home
-            </Link>
-            <Link className="hover:text-slate-900" href="/sarathi/chat">
-              Ask Sārathi
-            </Link>
-            <Link className="hover:text-slate-900" href="/sarathi/life-report">
-              Life Report
-            </Link>
-            <Link className="hover:text-slate-900" href="/sarathi/data-engine">
-              Data Engine
-            </Link>
-          </nav>
-
           <div className="flex items-center gap-3">
             <span className="hidden rounded-full border border-amber-300/40 bg-amber-100 px-3 py-1 text-xs text-amber-800 md:inline-flex">
               Pro astrologer view
