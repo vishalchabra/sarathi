@@ -2407,17 +2407,47 @@ return {
           />
 
           <ChartCard
-            title="Bhava Chalit Chart"
-            subtitle={`Classic Bhava Chalit${classicChalit?.system ? ` (${classicChalit.system})` : ""}.`}
-          >
-            {classicChalit?.ascendant?.sign &&
-            Array.isArray(classicChalit?.planets) &&
-            classicChalit.planets.length ? (
+  title="Bhava Chalit Chart"
+  subtitle={`Classic Bhava Chalit${bhavaChalit?.system ? ` (${bhavaChalit.system})` : ""}.`}
+>
+  {bhavaChalit?.ascendant?.sign &&
+  Array.isArray(bhavaChalit?.planets) &&
+  bhavaChalit.planets.length ? (
               <>
                 <MediumNorthIndianChart
                   title=""
-                  ascSign={classicChalit?.ascendant?.sign ?? null}
-                  planets={classicChalit?.planets ?? []}
+                  ascSign={bhavaChalit?.ascendant?.sign ?? null}
+planets={(bhavaChalit?.planets ?? []).map((p: any) => {
+  const signs = [
+    "",
+    "Aries",
+    "Taurus",
+    "Gemini",
+    "Cancer",
+    "Leo",
+    "Virgo",
+    "Libra",
+    "Scorpio",
+    "Sagittarius",
+    "Capricorn",
+    "Aquarius",
+    "Pisces",
+  ];
+
+  const ascSignNum = bhavaChalit?.ascendant?.signNum ?? 1;
+  const chalitHouse = p.house ?? p.rashiHouse ?? 1;
+  const chalitSignNum = ((ascSignNum + chalitHouse - 2) % 12) + 1;
+
+  return {
+    ...p,
+    rashiSign: p.sign,
+    rashiHouse: p.rashiHouse,
+    chalitHouse,
+    house: chalitHouse,
+    signNum: chalitSignNum,
+    sign: signs[chalitSignNum],
+  };
+})}
                   mode="chalit"
                   layoutVariant="secondary"
                 />
@@ -2428,7 +2458,7 @@ return {
                   </div>
 
                   <div className="space-y-1">
-                    {getPlanetShifts(classicChalit?.planets ?? []).map((s) => (
+                    {getPlanetShifts(bhavaChalit?.planets ?? []).map((s) => (
                       <div key={s.planet} className="flex justify-between text-sm">
                         <span>{s.planet}</span>
                         <span

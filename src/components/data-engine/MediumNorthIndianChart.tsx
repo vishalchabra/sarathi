@@ -152,7 +152,6 @@ const NAKSHATRA_LORD_SHORT: Record<string, string> = {
   "Uttara Ashadha": "Su",
   Shravana: "Mo",
   Dhanishta: "Ma",
-  Dhanishtha: "Ma",
   Shatabhisha: "Ra",
   "Purva Bhadrapada": "Ju",
   "Uttara Bhadrapada": "Sa",
@@ -404,14 +403,16 @@ function getPlanetsByHouse(
   const map = new Map<number, ChartPlanet[]>();
 
   for (const p of planets) {
-  const house =
-  typeof p.displayHouse === "number"
-    ? p.displayHouse
-    : typeof p.rashiHouse === "number"
-      ? p.rashiHouse
-      : typeof p.house === "number"
-        ? p.house
-        : null;
+    const house =
+      typeof p.displayHouse === "number"
+        ? p.displayHouse
+        : mode === "chalit" && typeof p.house === "number"
+          ? p.house
+          : typeof p.rashiHouse === "number"
+            ? p.rashiHouse
+            : typeof p.house === "number"
+              ? p.house
+              : null;
 
     if (typeof house !== "number") continue;
 

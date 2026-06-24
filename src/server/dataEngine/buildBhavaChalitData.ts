@@ -20,6 +20,7 @@ type Params = {
     signNum: number;
     degree: number;
     house: number;
+    lon?: number | null;
   };
   natalPlanets: Planet[];
   cusps: number[];
@@ -54,7 +55,21 @@ function getHouseFromCusps(lon: number, cusps: number[]) {
 export async function buildBhavaChalitData(params: Params) {
   const { ascendant, natalPlanets, cusps, system = "equal" } = params;
 
-  const planets = (Array.isArray(natalPlanets) ? natalPlanets : []).map((p) => {
+  const ALLOWED_PLANETS = new Set([
+  "Sun",
+  "Moon",
+  "Mercury",
+  "Venus",
+  "Mars",
+  "Jupiter",
+  "Saturn",
+  "Rahu",
+  "Ketu",
+]);
+
+const planets = (Array.isArray(natalPlanets) ? natalPlanets : [])
+  .filter((p) => ALLOWED_PLANETS.has(p.planet))
+  .map((p) => {
     const lon =
   typeof p.siderealLongitude === "number"
     ? p.siderealLongitude
@@ -62,7 +77,7 @@ export async function buildBhavaChalitData(params: Params) {
     ? p.lon
     : (p.signNum - 1) * 30 + p.degree;
 
-const chalitHouse = getHouseFromCusps(lon, cusps);
+const chalitHouse = getHouseFromCusps(lon, cusps) ?? p.house;
 
     return {
       planet: p.planet,
@@ -79,7 +94,7 @@ const chalitHouse = getHouseFromCusps(lon, cusps);
       rashiHouse: p.house ?? null,
     };
   });
-
+  
   return {
     ascendant: {
       ...ascendant,
