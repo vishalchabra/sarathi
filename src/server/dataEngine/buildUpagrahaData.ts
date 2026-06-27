@@ -83,7 +83,7 @@ const NAKSHATRA_NAMES = [
   "Purva Ashadha",
   "Uttara Ashadha",
   "Shravana",
-  "Dhanishtha",
+  "Dhanishta",
   "Shatabhisha",
   "Purva Bhadrapada",
   "Uttara Bhadrapada",
@@ -1080,6 +1080,7 @@ export async function buildUpagrahaData(params: {
   birth: BirthInput;
   natalAscendant: NatalAscendantInput;
 }) {
+    const includeDebug = process.env.NODE_ENV !== "production";
   const { birth, natalAscendant } = params;
 
   const birthDT = DateTime.fromISO(`${birth.dateISO}T${birth.time}`, {
@@ -1162,8 +1163,8 @@ export async function buildUpagrahaData(params: {
     return emptyResponse;
   }
 
-  const dayDebugSegments =
-    sunriseDT && sunsetDT
+    const dayDebugSegments =
+    includeDebug && sunriseDT && sunsetDT
       ? await buildSegmentDebugTable({
           birth,
           natalAscendant,
@@ -1173,7 +1174,7 @@ export async function buildUpagrahaData(params: {
       : [];
 
   const previousNightDebugSegments =
-    previousSunsetDT && sunriseDT
+    includeDebug && previousSunsetDT && sunriseDT
       ? await buildSegmentDebugTable({
           birth,
           natalAscendant,
@@ -1183,7 +1184,7 @@ export async function buildUpagrahaData(params: {
       : [];
 
   const nextNightDebugSegments =
-    sunsetDT && nextSunriseDT
+    includeDebug && sunsetDT && nextSunriseDT
       ? await buildSegmentDebugTable({
           birth,
           natalAscendant,
@@ -1192,12 +1193,14 @@ export async function buildUpagrahaData(params: {
         })
       : [];
 
-  const debugSegments = await buildSegmentDebugTable({
-    birth,
-    natalAscendant,
-    spanStartDT: activeSpanStartDT,
-    spanEndDT: activeSpanEndDT,
-  });
+  const debugSegments = includeDebug
+    ? await buildSegmentDebugTable({
+        birth,
+        natalAscendant,
+        spanStartDT: activeSpanStartDT,
+        spanEndDT: activeSpanEndDT,
+      })
+    : [];
 
   const previousNightPack =
     previousSunsetDT && sunriseDT

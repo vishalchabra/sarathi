@@ -42,14 +42,14 @@ function PageShell({
               FAQs
             </Link>
             <Link
-              href="/sarathi/chat"
+              href="/sarathi/login?next=/sarathi/chat"
               className="hidden text-sm text-slate-900 hover:text-slate-900 md:inline"
             >
               Ask Sārathi
             </Link>
             <Link
-              href="/sarathi/life-report"
-              className="rounded-full bg-[color:var(--primary)] px-4 py-2 text-sm font-semibold text-slate-900 hover:opacity-90"
+              href="/sarathi/login?next=/sarathi/life-report"
+              className="rounded-full bg-[#6E4BC6] px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#5F3FB0]"
             >
               Get your Life Report
             </Link>
@@ -207,19 +207,13 @@ export default function AboutPage() {
   </p>
   <div className="mt-5 flex flex-wrap gap-3">
     <Link
-      href="/sarathi/life-report"
-      className="rounded-full bg-[color:var(--primary)] px-4 py-2 text-sm font-semibold text-slate-900 hover:opacity-90"
+      href="/sarathi/login?next=/sarathi/life-report"
+      className="rounded-full bg-[#6E4BC6] px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#5F3FB0]"
     >
       Start with your Life Report
     </Link>
-     <Link
-      href="/sarathi/focused-reports"
-       className="rounded-full astro-card px-4 py-2 text-sm font-semibold text-slate-900/90 hover:bg-white/80 hover:shadow-md"
-    >
-      Focused reports 
-    </Link>
     <Link
-      href="/sarathi/chat"
+      href="/sarathi/login?next=/sarathi/chat"
       className="rounded-full astro-card px-4 py-2 text-sm font-semibold text-slate-900/90 hover:bg-white/80 hover:shadow-md"
     >
       Ask Sārathi

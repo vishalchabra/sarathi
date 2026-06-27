@@ -51,15 +51,7 @@ export async function buildHouseCusps(params: Params): Promise<HouseCuspsResult>
     sidereal: true,
   });
 
-  console.log("SWISS HOUSE DEBUG", {
-    system: "placidus",
-    asc: houseData.ascendant,
-    mc: houseData.mc,
-    c1: houseData.cusps?.[0],
-    c2: houseData.cusps?.[1],
-    c3: houseData.cusps?.[2],
-    c4: houseData.cusps?.[3],
-  });
+  
 
   return {
     system: "placidus",

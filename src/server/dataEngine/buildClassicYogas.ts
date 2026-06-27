@@ -29,7 +29,25 @@ const DEBILITATION_SIGNS: Record<string, string> = {
   Venus: "Virgo",
   Saturn: "Aries",
 };
+const SIGN_LORDS: Record<string, string> = {
+  Aries: "Mars",
+  Taurus: "Venus",
+  Gemini: "Mercury",
+  Cancer: "Moon",
+  Leo: "Sun",
+  Virgo: "Mercury",
+  Libra: "Venus",
+  Scorpio: "Mars",
+  Sagittarius: "Jupiter",
+  Capricorn: "Saturn",
+  Aquarius: "Saturn",
+  Pisces: "Jupiter",
+};
 
+function getSignLord(sign?: string | null) {
+  if (!sign) return null;
+  return SIGN_LORDS[sign] ?? null;
+}
 function planetName(p: PlanetRow) {
   return String(p.planet ?? p.name ?? "");
 }
@@ -78,7 +96,7 @@ function getAssociationType(planets: PlanetRow[], a: string, b: string) {
 }
 
 function areAssociated(planets: PlanetRow[], a: string, b: string) {
-  return getAssociationType(planets, a, b) === "conjunction";
+  return getAssociationType(planets, a, b) !== null;
 }
 
 function getAssociationHouse(planets: PlanetRow[], a: string, b: string) {
@@ -487,10 +505,7 @@ export function buildClassicYogas(input: {
     const p = getPlanet(planets, planetNameKey);
     if (!p || p.sign !== DEBILITATION_SIGNS[planetNameKey]) continue;
 
-    const signLord = getHouseLord(
-      houses,
-      getPlanetHouse(planets, planetNameKey) || 0
-    );
+    const signLord = getSignLord(p.sign);
 
     if (signLord && areAssociated(planets, planetNameKey, signLord)) {
       const associationHouse = getAssociationHouse(planets, planetNameKey, signLord);
@@ -587,8 +602,8 @@ export function buildClassicYogas(input: {
 
       if (!p1House || !p2House) continue;
 
-      const p1SignLord = getHouseLord(houses, p1House);
-      const p2SignLord = getHouseLord(houses, p2House);
+      const p1SignLord = getSignLord(p1.sign);
+const p2SignLord = getSignLord(p2.sign);
 
       if (p1SignLord === p2Name && p2SignLord === p1Name) {
         seenParivartanaPairs.add(pairKey);

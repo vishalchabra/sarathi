@@ -14,7 +14,7 @@
   import type { TransitHit, DailyMoonRow } from "@/app/api/transits/route";
   import { buildFullGuidanceV2 } from "@/server/fullGuidance/buildFullGuidanceV2";
   import { buildPaidOutput } from "@/server/fullGuidance/buildPaidOutput";
-
+  import { buildDataEngine } from "@/server/dataEngine/buildDataEngine";
   import {
     buildOverviewSummary,
     buildCoreLifePattern,
@@ -261,13 +261,25 @@ function applyProgressionTone(text: string, dayIndex: number): string {
 
   return out;
 }
+function pickFromSeed(arr: string[], seed: string, salt = 0) {
+  if (!arr.length) return "";
+
+  let hash = salt;
+
+  for (let i = 0; i < seed.length; i++) {
+    hash = (hash << 5) - hash + seed.charCodeAt(i);
+    hash |= 0;
+  }
+
+  return arr[Math.abs(hash) % arr.length];
+}
 function polishFocusLabel(label: string): string {
   const t = String(label || "").trim().toLowerCase();
 
   if (!t) return "Current focus";
 
   if (/emotional steadiness.*communication|communication.*emotional/.test(t)) {
-    return "Pending conversation";
+    return "A delayed answer returns";
   }
   if (/money management|expense tracking|financial caution|financial management/.test(t)) {
     return "Payment follow-up";
@@ -279,16 +291,34 @@ function polishFocusLabel(label: string): string {
     return "Home responsibility";
   }
   if (/relationship|partner|agreement|expectation/.test(t)) {
-    return "Role clarification";
+    return "Different expectations become visible";
   }
   if (/work|routine|task|workflow|schedule/.test(t)) {
-    return "Work backlog";
+    return pickFromSeed(
+  [
+    "Unfinished pressure resurfaces",
+    "A loose end needs ownership",
+    "Delayed responsibility returns",
+    "An old task asks for closure",
+  ],
+  t,
+  501
+);
   }
-  if (/communication|message|reply|document|paperwork/.test(t)) {
-    return "Pending conversation";
-  }
+if (/communication|message|reply|document|paperwork/.test(t)) {
+  return pickFromSeed(
+  [
+    "A delayed answer returns",
+    "A reply can no longer wait",
+    "An unfinished exchange resurfaces",
+    "A missing update becomes visible",
+  ],
+  t,
+  502
+);
+}
   if (/money|budget|expense|payment|resource/.test(t)) {
-    return "Payment follow-up";
+    return "Money pressure becomes visible";
   }
 
   return label;
@@ -468,37 +498,16 @@ function formatDriverLine(text: string): string {
     .replace(/\.$/, "")
     .trim();
 }
-function buildPlanetTriggerLabel(driver: string, area?: string, text?: string): string {
-  const d = String(driver || "").toLowerCase();
-  const src = `${area || ""} ${text || ""}`.toLowerCase();
+function buildPlanetTriggerLabel(
+  driver: string,
+  area?: string,
+  text?: string
+) {
+  const areaText = String(area || "").trim();
 
-  if (d.includes("mercury")) return "Mercury Communication Trigger";
-  if (d.includes("venus")) return "Venus Relationship Trigger";
-  if (d.includes("mars")) return "Mars Action Trigger";
-  if (d.includes("jupiter")) return "Jupiter Growth Trigger";
-  if (d.includes("saturn")) return "Saturn Responsibility Trigger";
-  if (d.includes("sun")) return "Sun Visibility Trigger";
-  if (d.includes("moon")) return "Moon Emotional Trigger";
-  if (d.includes("rahu")) return "Rahu Pressure Trigger";
-  if (d.includes("ketu")) return "Ketu Reset Trigger";
+  if (areaText) return areaText;
 
-  if (/partner|relationship|agreement|shared|role/.test(src)) {
-    return "Partnership Focus Trigger";
-  }
-  if (/payment|expense|budget|money|reimbursement/.test(src)) {
-    return "Money Clarity Trigger";
-  }
-  if (/message|reply|conversation|communication|document/.test(src)) {
-    return "Pending Task Trigger";
-  }
-  if (/home|family|household|repair/.test(src)) {
-    return "Family Coordination Trigger";
-  }
-  if (/work|task|deadline|backlog|schedule|coordination/.test(src)) {
-    return "Workload Trigger";
-  }
-
-  return "Current Focus Trigger";
+  return "Current focus";
 }
 function fillNow3PremiumFields(cleaned: any) {
   if (!cleaned?.now3Days) return cleaned;
@@ -730,94 +739,16 @@ function postProcessNowPlan(nowPlan: any, dailyMoon: any[], todayISO?: string) {
       houseNum,
     };
   }
-  function detectTriggerFromEvidence(evidence: string[], focus?: string) {
-    const text = evidence.join(" ").toLowerCase();
-    const focusText = String(focus ?? "").toLowerCase();
+ function detectTriggerFromEvidence(
+  evidence: string[],
+  focus?: string
+) {
+  const focusText = String(focus ?? "").trim();
 
-    // strongest combined patterns first
-    if (text.includes("jupiter") && text.includes("saturn")) {
-      return "Growth with Responsibility Trigger";
-    }
+  if (focusText) return focusText;
 
-    if (text.includes("square") && text.includes("saturn") && text.includes("mercury")) {
-      return "Misunderstanding Trigger";
-    }
-
-    if (text.includes("mars") && text.includes("rahu")) {
-      return "Priority Clash Trigger";
-    }
-
-    if (text.includes("mars") && text.includes("saturn")) {
-      return "Responsibility Pressure Trigger";
-    }
-
-    if (text.includes("sun") && text.includes("h7")) {
-      return "Partnership Focus Trigger";
-    }
-
-    if (text.includes("mercury") && text.includes("h6")) {
-      return "Pending Task Trigger";
-    }
-
-    // single-planet / simpler transit labels
-    if (text.includes("jupiter")) return "Jupiter Opportunity Trigger";
-    if (text.includes("saturn")) return "Saturn Responsibility Trigger";
-    if (text.includes("rahu")) return "Rahu Shift Trigger";
-    if (text.includes("ketu")) return "Ketu Release Trigger";
-    if (text.includes("mars")) return "Mars Action Trigger";
-    if (text.includes("venus")) return "Venus Relationship Trigger";
-    if (text.includes("mercury")) return "Mercury Communication Trigger";
-    if (text.includes("moon")) return "Moon Emotional Shift";
-    if (text.includes("sun")) return "Sun Visibility Trigger";
-
-    // focus-based fallback
-    if (
-      focusText.includes("relationship") ||
-      focusText.includes("partner") ||
-      focusText.includes("agreement") ||
-      focusText.includes("shared")
-    ) {
-      return "Partnership Focus Trigger";
-    }
-
-    if (
-      focusText.includes("work") ||
-      focusText.includes("routine") ||
-      focusText.includes("task") ||
-      focusText.includes("service")
-    ) {
-      return "Workload Trigger";
-    }
-
-    if (
-      focusText.includes("money") ||
-      focusText.includes("finance") ||
-      focusText.includes("budget") ||
-      focusText.includes("resource")
-    ) {
-      return "Money Decision Trigger";
-    }
-
-    if (
-      focusText.includes("communication") ||
-      focusText.includes("message") ||
-      focusText.includes("document") ||
-      focusText.includes("paperwork")
-    ) {
-      return "Communication Trigger";
-    }
-
-    if (
-      focusText.includes("career") ||
-      focusText.includes("recognition") ||
-      focusText.includes("reputation") ||
-      focusText.includes("leadership")
-    ) {
-      return "Career Development Trigger";
-    }
-
-    return "Transit Activation";
-  }
+  return "Current focus";
+}
   function cleanNowTabGuidance(text: string) {
     const raw = String(text || "").trim();
     if (!raw) return raw;
@@ -889,7 +820,7 @@ function postProcessNowPlan(nowPlan: any, dailyMoon: any[], todayISO?: string) {
     if (
       /^(focus on|this is a good day|themes include|energy|this day|use the day)/i.test(out)
     ) {
-      out = `A practical matter may need your attention. ${out}`;
+      out = `Something that seemed manageable may now need clearer handling. ${out}`;
     }
 
     return out;
@@ -1059,7 +990,7 @@ function postProcessNowPlan(nowPlan: any, dailyMoon: any[], todayISO?: string) {
         nextTiming[idx]?.note ??
         nextSteering[idx] ??
         areaObj?.why ??
-        "A practical conversation, adjustment, or responsibility may need your attention."
+        "Something left unresolved may now ask for a clearer response, boundary, or decision."
     ).trim()
   );
 
@@ -1613,15 +1544,15 @@ if (!transitNowFacts.length && Array.isArray(topTransits) && topTransits.length 
 
 - Focus area labels must sound like real life, not astrology summaries.
 - Good focus labels:
-  "Pending conversation"
-  "Payment follow-up"
-  "Home responsibility"
-  "Role clarification"
-  "Delayed response"
-  "Shared task"
-  "Work backlog"
-  "Scheduling issue"
-  "Family coordination"
+  "A delayed answer returns"
+"Money pressure becomes visible"
+"Home responsibility asks for attention"
+"Different expectations become visible"
+"An old delay needs closure"
+"Shared responsibility becomes clearer"
+"Unfinished pressure resurfaces"
+"Timing needs adjustment"
+"Family expectations need coordination"
 
 - For now3Days.focusAreas[].area:
   - Use 2 to 5 words only.
@@ -1918,6 +1849,42 @@ report.timeline =
 
 const enriched = enrichWithActivePeriods(report);
 
+const dataEngine = await buildDataEngine({
+  birth: {
+    name: body.name ?? body.placeName ?? "User",
+    dateISO: body.birthDateISO,
+    time: body.birthTime,
+    timezone: body.birthTz,
+    lat,
+    lon,
+  },
+  plan: "pro",
+});
+
+console.log("[life-report route] dataEngine check", {
+  vargaKeys: Object.keys(dataEngine?.vargas ?? {}),
+  hasD10: !!dataEngine?.vargas?.d10,
+  hasD16: !!dataEngine?.vargas?.d16,
+
+  transitWindowsCount: Array.isArray(dataEngine?.transitWindows)
+    ? dataEngine.transitWindows.length
+    : 0,
+
+  transitsTransitWindowsCount: Array.isArray(dataEngine?.transits?.transitWindows)
+    ? dataEngine.transits.transitWindows.length
+    : 0,
+
+  triggerEngineKeys: Object.keys(dataEngine?.triggerEngine ?? {}),
+
+  degreeHitsCount: Array.isArray(dataEngine?.triggerEngine?.degreeHits)
+    ? dataEngine.triggerEngine.degreeHits.length
+    : 0,
+
+  degreeHitsSample: Array.isArray(dataEngine?.triggerEngine?.degreeHits)
+    ? dataEngine.triggerEngine.degreeHits.slice(0, 2)
+    : [],
+});
+
 const lagnaSign =
   (enriched as any)?.core?.ascSign ?? (enriched as any)?.ascSign ?? undefined;
 
@@ -1950,6 +1917,43 @@ if (!overviewSection) {
 // 6) FREE USER: return only overview
 // ----------------------------
 if (!isPaid) {
+  console.log("[life-report route] outgoing timing fields", {
+  dashaTimelineCount: Array.isArray((report as any)?.dashaTimeline)
+    ? (report as any).dashaTimeline.length
+    : 0,
+  eventTimelineCount: Array.isArray((report as any)?.eventTimeline)
+    ? (report as any).eventTimeline.length
+    : 0,
+  eventMonthTimelineCount: Array.isArray((report as any)?.eventMonthTimeline)
+    ? (report as any).eventMonthTimeline.length
+    : 0,
+  transitWindowsCount: Array.isArray((report as any)?.transitWindows)
+    ? (report as any).transitWindows.length
+    : 0,
+});
+console.log("[life-report route] FREE structure check", {
+  hasVargas: !!enriched?.vargas || !!report?.vargas,
+  vargaKeys: Object.keys(enriched?.vargas ?? report?.vargas ?? {}),
+  hasDivisionalCharts: !!enriched?.divisionalCharts || !!report?.divisionalCharts,
+  divisionalKeys: Object.keys(enriched?.divisionalCharts ?? report?.divisionalCharts ?? {}),
+  hasHouses: !!enriched?.houses || !!report?.houses,
+  housesType: Array.isArray(enriched?.houses ?? report?.houses) ? "array" : typeof (enriched?.houses ?? report?.houses),
+  hasHouseLords: !!enriched?.houseLords || !!report?.houseLords,
+  houseLordKeys: Object.keys(enriched?.houseLords ?? report?.houseLords ?? {}),
+});
+console.log("[life-report route] ALL CHART KEYS", {
+  enrichedKeys: Object.keys(enriched ?? {}),
+  reportKeys: Object.keys(report ?? {}),
+});
+console.log("[life-report route] POSSIBLE VARGA CONTAINERS", {
+  enrichedCharts: Object.keys(enriched?.charts ?? {}),
+  enrichedVargas: Object.keys(enriched?.vargas ?? {}),
+  enrichedDivisionalCharts: Object.keys(enriched?.divisionalCharts ?? {}),
+
+  reportCharts: Object.keys(report?.charts ?? {}),
+  reportVargas: Object.keys(report?.vargas ?? {}),
+  reportDivisionalCharts: Object.keys(report?.divisionalCharts ?? {}),
+});
   return NextResponse.json(
     deepCleanStrings({
       ok: true,
@@ -1976,9 +1980,33 @@ if (!isPaid) {
   sunSign: enriched?.sunSign ?? enriched?.core?.sunSign ?? null,
   panchang: enriched?.panchang ?? null,
 
-  planets: Array.isArray(enriched?.planets) ? enriched.planets : [],
+   planets: Array.isArray(enriched?.planets) ? enriched.planets : [],
   placements: Array.isArray(enriched?.placements) ? enriched.placements : [],
   aspects: Array.isArray(enriched?.aspects) ? enriched.aspects : [],
+  houseLords: enriched?.houseLords ?? report?.houseLords ?? {},
+houses: dataEngine?.houses ?? enriched?.houses ?? report?.houses ?? {},
+vargas: dataEngine?.vargas ?? enriched?.vargas ?? report?.vargas ?? {},
+divisionalCharts: dataEngine?.vargas ?? enriched?.divisionalCharts ?? report?.divisionalCharts ?? {},
+transitWindows: dataEngine?.transitWindows ?? enriched?.transitWindows ?? report?.transitWindows ?? [],
+topTransits: dataEngine?.transits?.transitWindows ?? [],
+degreeHits:
+  dataEngine?.triggerEngine?.degreeHitWindows ??
+  dataEngine?.triggerEngine?.degreeHits ??
+  [],
+triggerEngine: dataEngine?.triggerEngine ?? null,
+
+  // Timing fields needed by Sārathi Chat
+  activePeriods: enriched?.activePeriods ?? null,
+  dashaTimeline: Array.isArray(enriched?.dashaTimeline)
+    ? enriched.dashaTimeline
+    : Array.isArray(report?.dashaTimeline)
+    ? report.dashaTimeline
+    : [],
+  timeline: Array.isArray(enriched?.timeline)
+    ? enriched.timeline
+    : Array.isArray(report?.timeline)
+    ? report.timeline
+    : [],
 
   overviewSummary: overviewSection?.overviewSummary ?? null,
   coreLifePattern: overviewSection?.coreLifePattern ?? null,
@@ -2348,26 +2376,7 @@ if (fullGuidanceV2) {
 }
 
 payload.fullGuidanceV2 = fullGuidanceV2;
-     console.log("[life-report] career payload check", {
-  hasHouseLords: !!payload?.houseLords,
-  houseLordKeys: Object.keys(payload?.houseLords ?? {}),
-  hasDivisionalCharts: !!payload?.divisionalCharts,
-  divisionalKeys: Object.keys(payload?.divisionalCharts ?? {}),
-  hasD10: !!(payload?.divisionalCharts?.D10 ?? payload?.divisionalCharts?.d10),
-});
 
-console.log("[life-report] payload timeline check", {
-  dashaTimelineCount: Array.isArray(payload?.dashaTimeline) ? payload.dashaTimeline.length : 0,
-  timelineCount: Array.isArray(payload?.timeline) ? payload.timeline.length : 0,
-  firstDashaRow: Array.isArray(payload?.dashaTimeline) ? payload.dashaTimeline[0] : null,
-});
-console.log("[life-report] final payload check", {
-  payloadKeys: Object.keys(payload ?? {}),
-  dashaTimelineCount: Array.isArray(payload?.dashaTimeline) ? payload.dashaTimeline.length : 0,
-  timelineCount: Array.isArray(payload?.timeline) ? payload.timeline.length : 0,
-  firstDashaRow: Array.isArray(payload?.dashaTimeline) ? payload.dashaTimeline[0] : null,
-  firstTimelineRow: Array.isArray(payload?.timeline) ? payload.timeline[0] : null,
-});
       return NextResponse.json(
   deepCleanStrings({
     ok: true,

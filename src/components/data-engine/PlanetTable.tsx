@@ -43,7 +43,7 @@ const NAKSHATRA_LORD_MAP: Record<string, string> = {
   "Purva Ashadha": "Venus",
   "Uttara Ashadha": "Sun",
   Shravana: "Moon",
-  Dhanishtha: "Mars",
+  Dhanishta: "Mars",
   Shatabhisha: "Rahu",
   "Purva Bhadrapada": "Jupiter",
   "Uttara Bhadrapada": "Saturn",

@@ -539,7 +539,7 @@ const NAKSHATRA_NAMES = [
   "Purva Ashadha",
   "Uttara Ashadha",
   "Shravana",
-  "Dhanishtha",
+  "Dhanishta",
   "Shatabhisha",
   "Purva Bhadrapada",
   "Uttara Bhadrapada",

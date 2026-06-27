@@ -1902,14 +1902,18 @@ const evidenceStack = [
   (s: any) => String(s?.planet ?? "") === planet
 );
                   const flags = [
-  p?.isVargottama || strengthRow?.isVargottama ? "Vargottama" : null,
-  p?.combust || strengthRow?.combust ? "Combust" : null,
-  p?.retrograde || strengthRow?.retrograde ? "Retrograde" : null,
-  p?.isExalted || strengthRow?.isExalted ? "Exalted" : null,
-  p?.isDebilitated || strengthRow?.isDebilitated ? "Debilitated" : null,
-  p?.isOwnSign || strengthRow?.isOwnSign ? "Own Sign" : null,
-  strengthRow?.strengthBand ? `Strength: ${strengthRow.strengthBand}` : null,
-  strengthRow?.dignity ? `Dignity: ${strengthRow.dignity}` : null,
+  strengthRow?.isVargottama ? "Vargottama" : null,
+  strengthRow?.combust ? "Combust" : null,
+  strengthRow?.retrograde ? "Retrograde" : null,
+  strengthRow?.isExalted ? "Exalted" : null,
+  strengthRow?.isDebilitated ? "Debilitated" : null,
+  strengthRow?.isOwnSign ? "Own Sign" : null,
+  strengthRow?.strengthBand
+    ? `Strength: ${strengthRow.strengthBand}`
+    : null,
+  strengthRow?.dignity
+    ? `Dignity: ${strengthRow.dignity}`
+    : null,
 ].filter(Boolean);
 
                   return (

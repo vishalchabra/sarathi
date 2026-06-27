@@ -40,7 +40,7 @@ export default function AboutPage() {
 
 
           <Link href="/sarathi/life-report">
-            <Button className="rounded-xl bg-[color:var(--primary)] px-4 text-xs font-medium text-primary-foreground shadow-sm hover:opacity-90">
+            <Button className="rounded-xl bg-[#6E4BC6] px-4 text-xs font-medium text-white shadow-sm transition-colors hover:bg-[#5F3FB0]">
               Get your Life Report
             </Button>
           </Link>
@@ -169,15 +169,15 @@ export default function AboutPage() {
 
               <div className="mt-6 flex flex-wrap items-center gap-3">
                 <Link href="/sarathi/life-report">
-                  <Button className="rounded-xl bg-[color:var(--primary)] px-5 text-sm font-medium shadow-sm hover:opacity-90">
+                  <Button className="rounded-xl bg-[#6E4BC6] px-5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-[#5F3FB0]">
                     Start with my Life Report
                   </Button>
                 </Link>
                 <Link href="/sarathi/chat">
                   <Button
-                    variant="outline"
-                    className="rounded-xl border-slate-700 astro-card/60 text-xs text-foreground hover:bg-white/80"
-                  >
+  variant="outline"
+  className="rounded-xl border border-[color:var(--border)] bg-white/60 text-xs text-foreground hover:bg-white/80"
+>
                     Ask Sārathi in chat
                   </Button>
                 </Link>

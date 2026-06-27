@@ -494,23 +494,33 @@ async function computeTransitPlanetsForDay(
     const lonDeg = wrap360(Number(lonRaw));
     const lonSid = toSiderealLon(lonDeg, ayanDeg);
 
-    let speedLon =
-      Array.isArray(res?.xx) && typeof res.xx[3] === "number"
-        ? res.xx[3]
-        : undefined;
+   let speedLon =
+  Array.isArray(res?.xx) && typeof res.xx[3] === "number"
+    ? res.xx[3]
+    : Array.isArray(res?.data) && typeof res.data[3] === "number"
+    ? res.data[3]
+    : typeof res?.speedLon === "number"
+    ? res.speedLon
+    : typeof res?.speedLongitude === "number"
+    ? res.speedLongitude
+    : typeof res?.longitudeSpeed === "number"
+    ? res.longitudeSpeed
+    : typeof res?.speed === "number"
+    ? res.speed
+    : undefined;
 
     if (typeof speedLon !== "number" || !isFinite(speedLon)) {
       speedLon = await estimateSiderealMotionDegPerHour(jdUt, p.code, flags);
     }
 
     const retrograde =
-      p.name === "Rahu"
-        ? true
-        : p.name === "Sun" || p.name === "Moon"
-        ? false
-        : typeof speedLon === "number"
-        ? speedLon < 0
-        : false;
+  p.name === "Rahu"
+    ? true
+    : p.name === "Sun" || p.name === "Moon"
+    ? false
+    : typeof speedLon === "number" && Number.isFinite(speedLon)
+    ? speedLon < 0
+    : false;
 
     out.push({
       name: p.name,

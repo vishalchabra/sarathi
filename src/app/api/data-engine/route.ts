@@ -29,7 +29,13 @@ export async function POST(req: NextRequest) {
 });
 
     return NextResponse.json(result);
-  } catch (err: any) {
+    } catch (err: any) {
+    console.error("DATA_ENGINE_ERROR", {
+      message: err?.message,
+      stack: err?.stack,
+      error: err,
+    });
+
     return NextResponse.json(
       {
         ok: false,

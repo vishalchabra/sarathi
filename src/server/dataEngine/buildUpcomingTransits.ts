@@ -207,8 +207,12 @@ export async function buildUpcomingTransits(params: {
   const ascSign = String(params.natalAscendant?.sign ?? "").trim();
 
   if (!ascSign) {
- 
-  }
+  return {
+    moonTransits: [],
+    planetaryTransits: [],
+    allEvents: [],
+  };
+}
   const ascSignNum = SIGN_TO_NUM[ascSign] ?? 0;
 
   const natalMoon = Array.isArray(params.natalPlanets)

@@ -78,7 +78,11 @@ export async function siderealLon(
 }
 
 /** Minimal natal shape used by life report / engine */
-export type Natal = { planets: Partial<Record<number, number>> };
+export type Natal = {
+  planets: Partial<Record<number, number>>;
+  retrograde: Partial<Record<number, boolean>>;
+  speeds: Partial<Record<number, number>>;
+};
 
 /**
  * Compute D1 planet longitudes for the standard set
@@ -89,7 +93,13 @@ export type Natal = { planets: Partial<Record<number, number>> };
  * real numbers instead of an empty map.
  */
 export async function getNatal(birth?: BirthInput): Promise<Natal> {
-  if (!birth) return { planets: {} };
+  if (!birth) {
+  return {
+    planets: {},
+    retrograde: {},
+    speeds: {},
+  };
+}
 
   const constants = await getSweConstants();
 
@@ -120,11 +130,15 @@ const PLANETS = [
   constants.SE_TRUE_NODE,
 ];
 
-  const out: Natal = { planets: {} };
+  const out: Natal = { planets: {}, retrograde: {}, speeds: {} };
 
   for (const code of PLANETS) {
     try {
-      const r: any = await sweCall("swe_calc_ut", jd, code);
+      const flags =
+  (constants.SEFLG_SWIEPH ?? 2) |
+  (constants.SEFLG_SPEED ?? 256);
+
+const r: any = await sweCall("swe_calc_ut", jd, code, flags);
       let lon: number | undefined = r?.longitude;
 
       if (lon == null && Array.isArray(r?.x) && typeof r.x[0] === "number") {
@@ -132,10 +146,35 @@ const PLANETS = [
       } else if (lon == null && Array.isArray(r) && typeof r[0] === "number") {
         lon = r[0];
       }
-
+      let speedLon: number | undefined =
+  Array.isArray(r?.xx) && typeof r.xx[3] === "number"
+    ? r.xx[3]
+    : Array.isArray(r?.x) && typeof r.x[3] === "number"
+    ? r.x[3]
+    : Array.isArray(r?.data) && typeof r.data[3] === "number"
+    ? r.data[3]
+    : typeof r?.speedLon === "number"
+    ? r.speedLon
+    : typeof r?.speedLongitude === "number"
+    ? r.speedLongitude
+    : typeof r?.longitudeSpeed === "number"
+    ? r.longitudeSpeed
+    : typeof r?.speed === "number"
+    ? r.speed
+    : undefined;
       if (typeof lon === "number" && Number.isFinite(lon)) {
-        out.planets[code] = norm360(lon);
-      }
+  out.planets[code] = norm360(lon);
+
+  if (typeof speedLon === "number" && Number.isFinite(speedLon)) {
+    out.speeds[code] = speedLon;
+    out.retrograde[code] =
+      code === constants.SE_SUN || code === constants.SE_MOON
+        ? false
+        : speedLon < 0;
+  } else {
+    out.retrograde[code] = false;
+  }
+}
     } catch (err) {
       // If one planet fails, skip it and continue
       console.error("[getNatal] swe_calc_ut failed for code", code, err);
@@ -145,8 +184,10 @@ const PLANETS = [
   // Synthetic Ketu (opposite Rahu / True Node), use key -1
   const rahuCode = constants.SE_TRUE_NODE;
   if (out.planets[rahuCode] != null) {
-    out.planets[-1] = norm360((out.planets[rahuCode] as number) + 180);
-  }
+  out.planets[-1] = norm360((out.planets[rahuCode] as number) + 180);
+  out.retrograde[-1] = true;
+  out.speeds[-1] = out.speeds[rahuCode];
+}
 
   return out;
 }

@@ -74,12 +74,36 @@ function looksTruncated(text?: string | null): boolean {
 
   // cut-off sentence patterns
   if (
-    /\b(and|but|because|with|which|that|so|then|around|during|especially|showing)\s*$/i.test(t)
-  ) {
-    return true;
-  }
+  /\b(and|but|because|with|which|that|so|then|around|during|especially|showing)\s*$/i.test(t)
+) {
+  return true;
+}
 
-  return false;
+if (/what(?:'|’)s actually happening is\s*$/i.test(t)) return true;
+
+if (/\bright now,?\s*$/i.test(t)) return true;
+if (
+  /\b(the main blocker.*is that|the main reason.*is that|this is because|right now,?)\s*$/i.test(t)
+) {
+  return true;
+}
+if (
+  /\b(this means|which means|meaning that|therefore|so that)\s*$/i.test(t)
+) {
+  return true;
+}
+if (
+  /\b(in real life,?\s*this means|practically,?\s*this means|this can show up as|which means)\s*$/i.test(t)
+) {
+  return true;
+}
+
+if (
+  /\b(in real life,?\s*this means|practically,?\s*this means)\s+[a-z]{0,20}$/i.test(t)
+) {
+  return true;
+}
+return false;
 }
 
 function fmtDateShort(iso?: string | null) {
@@ -118,7 +142,7 @@ function buildVoiceBrief(body: any): string {
   const moodHint = safeStr(body?.moodHint);
   const depth = safeStr(body?.depth || "standard").toLowerCase();
   const confidenceLevel = safeStr(body?.confidenceLevel || body?.confidence).toLowerCase();
-
+  const interactionIntent = safeStr(body?.interactionIntent).toLowerCase();
   const toneLine =
     tone === "strategist"
       ? "Voice: calm, sharp, perceptive, and timing-aware."
@@ -132,18 +156,28 @@ function buildVoiceBrief(body: any): string {
       ? "Voice: direct, natural, emotionally intelligent, and slightly crisp."
       : "Voice: natural, intelligent, calm, and personal.";
 
-  const questionLine =
-    questionType === "diagnosis"
-      ? "Answer by naming what is happening, then why it feels this way, then what it means."
-      : questionType === "decision"
-      ? "Answer clearly first, then explain the reasoning, then give the practical next step."
-      : questionType === "timing"
-      ? "Lead with the timing truth first. State whether the window is active, building, mixed, or delayed. Mention the broader phase before any shorter trigger inside it."
-      : questionType === "emotional_support"
-      ? "Acknowledge the feeling briefly, then interpret it, then ground the user."
-      : questionType === "daily_outlook"
-      ? "Keep it immediate, practical, and grounded in the next step."
-      : "Answer like a real conversation, not like a report.";
+ const questionLine =
+  interactionIntent === "day_briefing"
+    ? "Answer like a personal morning briefing: what the day feels like, what to use it for, and what to avoid."
+    : interactionIntent === "decision_support"
+    ? "Answer the practical decision first, then explain the astrology behind it."
+    : interactionIntent === "timing_request"
+    ? "Lead with the timing truth first. Keep it clean and avoid raw timing dumps."
+    : interactionIntent === "root_cause"
+    ? "Answer by naming the real cause first, then explain why it is happening."
+    : interactionIntent === "comparison"
+    ? "Compare the options directly first, then explain the astrology."
+    : questionType === "diagnosis"
+    ? "Answer by naming what is happening, then why it feels this way, then what it means."
+    : questionType === "decision"
+    ? "Answer clearly first, then explain the reasoning, then give the practical next step."
+    : questionType === "timing"
+    ? "Lead with the timing truth first. State whether the window is active, building, mixed, or delayed. Mention the broader phase before any shorter trigger inside it."
+    : questionType === "emotional_support"
+    ? "Acknowledge the feeling briefly, then interpret it, then ground the user."
+    : questionType === "daily_outlook"
+    ? "Keep it immediate, practical, and grounded in the next step."
+    : "Answer like a real conversation, not like a report.";
 
   const topicLine =
     topic === "career"
@@ -162,12 +196,16 @@ function buildVoiceBrief(body: any): string {
     ? "The user sounds emotionally loaded. Use one line of reassurance, but do not become melodramatic."
     : "Do not overdo empathy.";
 
-  const depthLine =
-    depth === "micro"
-      ? "Keep it short and punchy. Usually 60-100 words."
-      : depth === "deep" || depth === "premium"
-      ? "Go deeper, but stay tight. Usually 140-220 words."
-      : "Keep it concise but complete. Usually 100-170 words.";
+  const insightAnswerMode = safeStr(body?.astroFacts?.insightProfile?.answerMode).toUpperCase();
+
+const depthLine =
+  insightAnswerMode === "DIAGNOSTIC_FIRST"
+    ? "For diagnostic answers, write 120-180 words. Do not give a one-line answer. Include: what is blocking it, why it is happening, what the user may notice in real life, best use, and watch for."
+    : depth === "micro"
+    ? "Keep it short and punchy. Usually 60-100 words."
+    : depth === "deep" || depth === "premium"
+    ? "Go deeper, but stay tight. Usually 140-220 words."
+    : "Keep it concise but complete. Usually 100-170 words.";
 
   const confidenceLine =
     confidenceLevel === "high"
@@ -197,13 +235,13 @@ function buildVoiceBrief(body: any): string {
     "Write like a highly perceptive astrology guide.",
     "Do not sound like a template, dashboard, report, or bot.",
     "Insight first, astrology second.",
-    "Use astrology only to support the insight, not to dominate the wording.",
+    "Use astrology clearly enough that the user understands exactly why the answer was given. Do not hide the chart logic behind generic wording.",
     "Avoid labels like Verdict, Confidence, Timing read, Summary, or Why Sārathi said this.",
     "Avoid therapy-speak, motivational fluff, and generic life-coach phrasing.",
-    "Use natural connectors like: 'What’s actually happening is…', 'This looks more like…', 'That’s why this feels…'.",
+    "Use natural connectors sparingly, such as: 'This looks more like…', 'That’s why this feels…', or 'In real life, this can show up as…'.",
     "Keep it tight and non-repetitive.",
     "Do not explain the same point twice.",
-    "Do not structure the answer in sections.",
+    "For diagnostic answers, you may use short natural paragraphs. Do not collapse the answer into one line.",
     "Do not use bullet points or numbered lists unless FORMAT_RULES explicitly require them.",
     "Blend practical guidance naturally into the answer instead of listing it.",
     "Land the point and stop.",
@@ -363,11 +401,23 @@ if (topic === "health" && divisionalBreakdown.length) {
     out.push(`Divisional charts: ${divisionalCharts.join(", ")}`);
   }
 
-  const dashaLine = [currentDasha?.md, currentDasha?.ad, currentDasha?.pd]
-    .filter(Boolean)
-    .join(" • ");
-  if (dashaLine) out.push(`Current dasha: ${dashaLine}`);
-  if (answerSummary) out.push(`Synthesis: ${answerSummary}`);
+  const dashaParts = [
+  currentDasha?.md,
+  currentDasha?.ad,
+  currentDasha?.pd,
+].filter(Boolean);
+
+const dashaLine = dashaParts.join("–");
+
+if (dashaLine) {
+  out.push(`Current dasha chain: ${dashaLine}`);
+  out.push(
+    `When explaining timing, refer to this as the user's ${dashaLine} dasha, not as generic active dasha.`
+  );
+}
+  if (answerSummary && !astroFacts?.insightProfile) {
+  out.push(`Synthesis: ${answerSummary}`);
+}
 
   const promiseLayer = astroFacts?.promiseLayer;
   if (promiseLayer?.summary) {
@@ -443,29 +493,124 @@ if (topic === "health" && divisionalBreakdown.length) {
 }
 
 function buildTimingWindowsSummary(astroFacts: any): string[] {
-  const rows = Array.isArray(astroFacts?.timingWindows) ? astroFacts.timingWindows : [];
+  const rows =
+    Array.isArray(astroFacts?.rankedTimingWindows) &&
+    astroFacts.rankedTimingWindows.length
+      ? astroFacts.rankedTimingWindows
+      : Array.isArray(astroFacts?.timingWindows)
+      ? astroFacts.timingWindows
+      : [];
+
   return rows.slice(0, 3).map((row: any) => {
     const label = safeStr(row?.label);
     const start = row?.start ? String(row.start) : "";
     const end = row?.end ? String(row.end) : "";
     const peak = row?.peak ? String(row.peak) : "";
     const why = Array.isArray(row?.why) ? row.why.join("; ") : "";
+    const confidence = safeStr(row?.confidence);
+    const windowClass = safeStr(row?.windowClass);
+    const practicalMeaning = safeStr(row?.practicalMeaning);
 
-    const prettyPeak = peak && /^\d{4}-\d{2}$/.test(peak) ? formatMonthLabel(peak) : peak;
-    const prettyStart = start && /^\d{4}-\d{2}$/.test(start) ? formatMonthLabel(start) : start;
-    const prettyEnd = end && /^\d{4}-\d{2}$/.test(end) ? formatMonthLabel(end) : end;
+    const prettyPeak =
+      peak && /^\d{4}-\d{2}$/.test(peak) ? formatMonthLabel(peak) : peak;
+    const prettyStart =
+      start && /^\d{4}-\d{2}$/.test(start) ? formatMonthLabel(start) : start;
+    const prettyEnd =
+      end && /^\d{4}-\d{2}$/.test(end) ? formatMonthLabel(end) : end;
 
     return [
       label ? `Window: ${label}` : "",
-      prettyStart || prettyEnd ? `Range: ${prettyStart || "—"} to ${prettyEnd || "—"}` : "",
+      prettyStart || prettyEnd
+        ? `Range: ${prettyStart || "—"} to ${prettyEnd || "—"}`
+        : "",
       prettyPeak ? `Peak: ${prettyPeak}` : "",
+      confidence ? `Confidence: ${confidence}` : "",
+      windowClass ? `Class: ${windowClass}` : "",
+      practicalMeaning ? `Meaning: ${practicalMeaning}` : "",
       why ? `Why: ${why}` : "",
     ]
       .filter(Boolean)
       .join(" • ");
   });
 }
+function buildMajorTriggerTimingSummary(astroFacts: any): string[] {
+  const majorWindows = Array.isArray(astroFacts?.majorWindows)
+    ? astroFacts.majorWindows
+    : [];
 
+  const triggerWindows = Array.isArray(astroFacts?.triggerWindows)
+    ? astroFacts.triggerWindows
+    : [];
+
+  const out: string[] = [];
+
+  if (majorWindows.length) {
+    out.push(
+      `Primary structural windows: ${majorWindows
+        .slice(0, 3)
+        .map((w: any) => `${w.label} (${w.confidence}, score ${w.score ?? "—"}): ${w.reason}`)
+        .join(" | ")}`
+    );
+  }
+
+  if (triggerWindows.length) {
+    out.push(
+      `Near-term activation windows: ${triggerWindows
+        .slice(0, 5)
+        .map((w: any) => `${w.label} (${w.confidence}, score ${w.score ?? "—"}): ${w.reason}`)
+        .join(" | ")}`
+    );
+  }
+
+  return out;
+}
+function removeStaleTimingText(value: any): any {
+  const staleTimingPattern =
+    /major structural|structural .*window|appears around|timing shift|timing engine says|upcoming dasha or sub-period/i;
+
+  if (typeof value === "string") {
+    return staleTimingPattern.test(value) ? "" : value;
+  }
+
+  if (Array.isArray(value)) {
+    return value
+      .map(removeStaleTimingText)
+      .filter((x) => x !== "" && x !== null && x !== undefined);
+  }
+
+  if (value && typeof value === "object") {
+  if (
+    staleTimingPattern.test(String(value?.factor ?? "")) ||
+    staleTimingPattern.test(String(value?.role ?? ""))
+  ) {
+    return null;
+  }
+
+  const cleaned: any = {};
+
+  for (const [key, val] of Object.entries(value)) {
+    if (
+      [
+        "majorWindows",
+        "nearTermWindows",
+        "timingWindows",
+        "astroTimeline",
+        "nearestWindow",
+        "strongestWindow",
+      ].includes(key)
+    ) {
+      cleaned[key] = [];
+      continue;
+    }
+
+    cleaned[key] = removeStaleTimingText(val);
+  }
+
+  return cleaned;
+}
+
+  return value;
+}
 function buildStructuredPrompt(body: any): string {
   const userQuestion = safeStr(body?.userQuestion);
   const topic = safeStr(body?.topic);
@@ -473,35 +618,144 @@ function buildStructuredPrompt(body: any): string {
   const questionType = safeStr(body?.questionType);
   const tone = safeStr(body?.tone);
   const depth = safeStr(body?.depth);
+  const interactionIntent = safeStr(body?.interactionIntent);
   const distressed = Boolean(body?.distressed);
   const moodHint = safeStr(body?.moodHint);
   const confidenceLevel = safeStr(body?.confidenceLevel || body?.confidence);
   const voiceBrief = buildVoiceBrief(body);
   const signatureBrief = buildSarathiSignature(body);
+
   const astroFacts = body?.astroFacts ?? {};
-  const evidenceBullets = Array.isArray(body?.evidenceBullets) ? body.evidenceBullets : [];
+  const lines: string[] = [];
+  const staleTimingPattern =
+  /major structural|structural .*window|appears around|timing shift|timing engine says|upcoming dasha or sub-period/i;
+  const astroJudgement =
+    body?.astroJudgement ??
+    astroFacts?.astroJudgement ??
+    null;
+
+ const rawEvidenceBullets = Array.isArray(body?.evidenceBullets)
+  ? body.evidenceBullets
+  : [];
+
+const evidenceBullets =
+  body?.selectedTimingWindow || body?.astroFacts?.selectedTimingWindow
+    ? rawEvidenceBullets.filter(
+        (x: any) =>
+          !/major windows|major structural|structural .*window|appears around|timing shift|upcoming dasha or sub-period/i.test(
+            String(x)
+          )
+      )
+    : rawEvidenceBullets;
+
+  const conversationPsychology = body?.conversationPsychology ?? null;
   const styleGuide = body?.styleGuide ?? null;
+
   const timeDirection = safeStr(astroFacts?.timeDirection || body?.timeDirection);
   const eventScale = safeStr(astroFacts?.eventScale || body?.eventScale);
   const formatTier = safeStr(body?.formatTier);
+  const simpleGuidanceMode = Boolean(body?.simpleGuidanceMode);
   const formatRules = safeStr(body?.formatRules ?? body?.rules ?? body?.premiumFormatRules);
   const careerEventType = safeStr(astroFacts?.careerEventType || body?.careerEventType);
+
   const finalDecisionLine = safeStr(body?.finalDecisionLine);
   const finalDecisionVerdict = safeStr(body?.finalDecisionVerdict);
 
-  const lines: string[] = [];
+  const verdict = safeStr(body?.verdict);
+  const humanReason = safeStr(body?.humanReason);
+  const astroReason = safeStr(body?.astroReason);
+
+  const astroInterpretationPacket =
+    astroFacts?.astroInterpretationPacket ?? null;
+
+  const evidenceNarrative = astroFacts?.evidenceNarrative ?? null;
+  const dailyAstroContext =
+    body?.dailyAstroContext ??
+    astroFacts?.dailyAstroContext ??
+    null;
+
+  const conversationContinuationSummary =
+    body?.conversationContinuationSummary ?? null;
+
+  const selectedTimingWindow =
+    body?.selectedTimingWindow ?? astroFacts?.selectedTimingWindow ?? null;
+
+  const nearestWindow =
+    body?.nearestWindow ?? astroFacts?.nearestWindow ?? null;
+
+  const strongestWindow =
+    body?.strongestWindow ?? astroFacts?.strongestWindow ?? null;
+
+  const bestAvailableWindow =
+    body?.bestAvailableWindow ?? astroFacts?.bestAvailableWindow ?? null;
+
+  const bestEventTrigger =
+    body?.bestEventTrigger ?? astroFacts?.bestEventTrigger ?? null;
+
+  const eventTriggers = Array.isArray(astroFacts?.eventTriggers)
+    ? astroFacts.eventTriggers
+    : [];
+
+  const winningEvidence =
+    body?.winningEvidence ?? astroFacts?.winningEvidence ?? null;
+
+  const whyNotNow = Array.isArray(body?.whyNotNow)
+    ? body.whyNotNow
+    : Array.isArray(astroFacts?.whyNotNow)
+    ? astroFacts.whyNotNow
+    : [];
+
+  const conversionDiagnosisV2 =
+    body?.conversionDiagnosisV2 ??
+    astroFacts?.conversionDiagnosisV2 ??
+    null;
+
+  const promotionConversionEngine =
+    body?.promotionConversionEngine ??
+    astroFacts?.promotionConversionEngine ??
+    null;
+
+  const strongestSupport =
+    safeStr(body?.strongestSupport ?? astroFacts?.strongestSupport);
+
+  const strongestBlocker =
+    safeStr(body?.strongestBlocker ?? astroFacts?.strongestBlocker);
+
+  const chartRealityProfile = astroFacts?.chartRealityProfile ?? null;
+  const pastActivationProfile = astroFacts?.pastActivationProfile ?? null;
+  const insightProfile = astroFacts?.insightProfile ?? null;
+  const astroReasonMap = astroFacts?.astroReasonMap ?? null;
+  const conversionDiagnosis =
+  !selectedTimingWindow && !bestAvailableWindow
+    ? astroInterpretationPacket?.conversionDiagnosis ?? null
+    : null;
+
+  const whyChain = astroInterpretationPacket?.whyChain ?? null;
 
   if (userQuestion) lines.push(`USER_QUESTION:\n${userQuestion}`);
   if (topic) lines.push(`\nTOPIC:\n${topic}`);
   if (questionType) lines.push(`\nQUESTION_TYPE:\n${questionType}`);
+  if (careerEventType) lines.push(`\nCAREER_EVENT_TYPE:\n${careerEventType}`);
   if (timeDirection) lines.push(`\nTIME_DIRECTION:\n${timeDirection}`);
   if (eventScale) lines.push(`\nEVENT_SCALE:\n${eventScale}`);
 
-  if (finalDecisionVerdict) {
-    lines.push(`\nFINAL_DECISION_VERDICT:\n${finalDecisionVerdict}`);
+  if (interactionIntent) {
+    lines.push(`\nINTERACTION_INTENT:\n${interactionIntent}`);
   }
-  if (finalDecisionLine) {
-    lines.push(`\nFINAL_DECISION_LINE:\n${finalDecisionLine}`);
+
+  if (conversationPsychology) {
+    lines.push(
+      `\nCONVERSATION_PSYCHOLOGY:\n${JSON.stringify(
+        conversationPsychology,
+        null,
+        2
+      )}`
+    );
+  }
+
+  if (history) lines.push(`\nHISTORY:\n${history}`);
+  if (conversationContinuationSummary) {
+    lines.push(`\nPREVIOUS_REASONING:\n${conversationContinuationSummary}`);
   }
 
   if (tone) lines.push(`\nTONE:\n${tone}`);
@@ -509,186 +763,537 @@ function buildStructuredPrompt(body: any): string {
   if (confidenceLevel) lines.push(`\nCONFIDENCE_LEVEL:\n${confidenceLevel}`);
   lines.push(`\nDISTRESSED:\n${distressed ? "yes" : "no"}`);
   if (moodHint) lines.push(`\nMOOD_HINT:\n${moodHint}`);
-  if (history) lines.push(`\nHISTORY:\n${history}`);
   if (formatTier) lines.push(`\nFORMAT_TIER:\n${formatTier}`);
+
+  if (simpleGuidanceMode) {
+    lines.push("\nSIMPLE_GUIDANCE_MODE:\ntrue");
+    body.formatTier = "micro";
+  }
+
   if (formatRules) lines.push(`\nFORMAT_RULES:\n${formatRules}`);
   if (voiceBrief) lines.push(`\nVOICE_BRIEF:\n${voiceBrief}`);
   if (signatureBrief) lines.push(`\nSIGNATURE_BRIEF:\n${signatureBrief}`);
-  if (careerEventType) lines.push(`\nCAREER_EVENT_TYPE:\n${careerEventType}`);
 
-  const astroSummary = buildGenericAstroFactsSummary(astroFacts);
-  if (astroSummary.length) {
-    lines.push(`\nASTRO_SUMMARY_BULLETS:\n${JSON.stringify(astroSummary, null, 2)}`);
+  if (finalDecisionVerdict) {
+    lines.push(`\nFINAL_DECISION_VERDICT:\n${finalDecisionVerdict}`);
   }
 
-  const timingSummary = buildTimingWindowsSummary(astroFacts);
-  if (timingSummary.length) {
-    lines.push(`\nTIMING_WINDOWS_BULLETS:\n${JSON.stringify(timingSummary, null, 2)}`);
+  if (finalDecisionLine) {
+    lines.push(`\nFINAL_DECISION_LINE:\n${finalDecisionLine}`);
   }
 
-  lines.push(`\nASTRO_FACTS_JSON:\n${JSON.stringify(astroFacts ?? {}, null, 2)}`);
-  lines.push(`\nEVIDENCE_BULLETS_JSON:\n${JSON.stringify(evidenceBullets ?? [], null, 2)}`);
+  if (dailyAstroContext) {
+    lines.push(
+      `\nDAILY_ASTRO_CONTEXT:\n${JSON.stringify(dailyAstroContext, null, 2)}`
+    );
+  }
+
+  if (evidenceBullets.length) {
+    lines.push(
+      `\nMANDATORY_CHART_EVIDENCE:\n${JSON.stringify(evidenceBullets, null, 2)}`
+    );
+  }
+
+  /*
+    Timing priority:
+    1. BEST_EVENT_TRIGGER
+    2. SELECTED_TIMING_WINDOW
+    3. BEST_AVAILABLE_WINDOW
+    4. nearest/strongest only if no selected window exists
+  */
+
+  if (bestEventTrigger && bestEventTrigger.confidence !== "low") {
+    lines.push(
+      `\nBEST_EVENT_TRIGGER:\n${JSON.stringify(bestEventTrigger, null, 2)}`
+    );
+  }
+
+  if (selectedTimingWindow) {
+    lines.push(
+      `\nSELECTED_TIMING_WINDOW:\n${JSON.stringify(
+        selectedTimingWindow,
+        null,
+        2
+      )}`
+    );
+  } else if (bestAvailableWindow) {
+    lines.push(
+      `\nBEST_AVAILABLE_WINDOW:\n${JSON.stringify(
+        bestAvailableWindow,
+        null,
+        2
+      )}`
+    );
+  }
+
+  if (!selectedTimingWindow && !bestAvailableWindow) {
+    if (strongestWindow) {
+      lines.push(
+        `\nSTRONGEST_WINDOW:\n${JSON.stringify(strongestWindow, null, 2)}`
+      );
+    }
+
+    if (nearestWindow) {
+      lines.push(
+        `\nNEAREST_WINDOW:\n${JSON.stringify(nearestWindow, null, 2)}`
+      );
+    }
+  }
+
+  if (winningEvidence) {
+    lines.push(
+      `\nWINNING_EVIDENCE:\n${JSON.stringify(winningEvidence, null, 2)}`
+    );
+  }
+
+  if (strongestSupport) {
+    lines.push(`\nSTRONGEST_SUPPORT:\n${strongestSupport}`);
+  }
+
+  if (strongestBlocker) {
+    lines.push(`\nSTRONGEST_BLOCKER:\n${strongestBlocker}`);
+  }
+
+  if (whyNotNow.length) {
+    lines.push(`\nWHY_NOT_NOW:\n${JSON.stringify(whyNotNow, null, 2)}`);
+  }
+
+  if (conversionDiagnosisV2) {
+    lines.push(
+      `\nCONVERSION_DIAGNOSIS_V2:\n${JSON.stringify(
+        conversionDiagnosisV2,
+        null,
+        2
+      )}`
+    );
+  }
+
+  if (promotionConversionEngine) {
+    lines.push(
+      `\nPROMOTION_CONVERSION_ENGINE:\n${JSON.stringify(
+        promotionConversionEngine,
+        null,
+        2
+      )}`
+    );
+  }
+
+  if (evidenceNarrative) {
+    lines.push(
+      `\nEVIDENCE_NARRATIVE:\n${JSON.stringify(evidenceNarrative, null, 2)}`
+    );
+  }
+
+const astroJudgementForPrompt =
+  astroJudgement && (selectedTimingWindow || bestAvailableWindow)
+    ? {
+        ...astroJudgement,
+        verdict:
+          astroJudgement.verdict &&
+          /major structural|structural .*window|appears around|timing shift/i.test(
+            String(astroJudgement.verdict)
+          )
+            ? ""
+            : astroJudgement.verdict,
+        strongestReason:
+          astroJudgement.strongestReason &&
+          /major structural|structural .*window|appears around|timing shift/i.test(
+            String(astroJudgement.strongestReason)
+          )
+            ? ""
+            : astroJudgement.strongestReason,
+        why: Array.isArray(astroJudgement.why)
+          ? astroJudgement.why.filter(
+              (x: any) =>
+                !/major structural|structural .*window|appears around|timing shift/i.test(
+                  String(x)
+                )
+            )
+          : astroJudgement.why,
+      }
+    : astroJudgement;
+
+if (astroJudgementForPrompt) {
+  lines.push(
+    `\nASTRO_JUDGEMENT:\n${JSON.stringify(
+      astroJudgementForPrompt,
+      null,
+      2
+    )}`
+  );
+}
+
+ 
+const astroInterpretationPacketForPrompt =
+  astroInterpretationPacket && (selectedTimingWindow || bestAvailableWindow)
+    ? {
+        ...astroInterpretationPacket,
+
+        promise: {
+          ...astroInterpretationPacket.promise,
+          reasons: Array.isArray(astroInterpretationPacket.promise?.reasons)
+            ? astroInterpretationPacket.promise.reasons.filter(
+                (x: any) => !staleTimingPattern.test(String(x))
+              )
+            : astroInterpretationPacket.promise?.reasons,
+        },
+
+        timing: {
+          ...astroInterpretationPacket.timing,
+          nearTermWindows: [],
+          majorWindows: [],
+          nearTermScore: undefined,
+          majorScore: undefined,
+          timingNote:
+            "Use SELECTED_TIMING_WINDOW as the primary timing answer. Ignore old structural or major window timing summaries.",
+        },
+      }
+    : astroInterpretationPacket;
+if (
+  JSON.stringify(astroInterpretationPacketForPrompt).includes(
+    "major structural"
+  )
+) {
+  console.log(
+    "[PACKET STILL CONTAINS MAJOR STRUCTURAL]",
+    JSON.stringify(astroInterpretationPacketForPrompt, null, 2)
+  );
+}
+if (astroInterpretationPacketForPrompt) {
+  lines.push(
+    `\nASTRO_INTERPRETATION_PACKET:\n${JSON.stringify(
+      removeStaleTimingText(astroInterpretationPacketForPrompt),
+      null,
+      2
+    )}`
+  );
+}
+
+  if (whyChain) {
+    lines.push(`\nWHY_CHAIN:\n${JSON.stringify(whyChain, null, 2)}`);
+  }
+
+  if (insightProfile) {
+    lines.push(
+      `\nINSIGHT_PROFILE_JSON:\n${JSON.stringify(insightProfile, null, 2)}`
+    );
+  }
+
+  const astroReasonMapForPrompt =
+  selectedTimingWindow || bestAvailableWindow
+    ? removeStaleTimingText(astroReasonMap)
+    : astroReasonMap;
+
+if (astroReasonMapForPrompt) {
+  lines.push(
+    `\nASTRO_REASON_MAP:\n${JSON.stringify(
+      astroReasonMapForPrompt,
+      null,
+      2
+    )}`
+  );
+}
+
+  if (conversionDiagnosis) {
+    lines.push(
+      `\nCONVERSION_DIAGNOSIS:\n${JSON.stringify(
+        conversionDiagnosis,
+        null,
+        2
+      )}`
+    );
+  }
+
+  if (chartRealityProfile) {
+    lines.push(
+      `\nCHART_REALITY_PROFILE:\n${JSON.stringify(
+        chartRealityProfile,
+        null,
+        2
+      )}`
+    );
+  }
+
+  if (chartRealityProfile?.lifeEvidenceReasons) {
+    lines.push(
+      `\nLIFE_EVIDENCE_REASONS:\n${JSON.stringify(
+        chartRealityProfile.lifeEvidenceReasons,
+        null,
+        2
+      )}`
+    );
+  }
+
+  if (chartRealityProfile?.contradictions?.length) {
+    lines.push(
+      `\nIMPORTANT_REALITY_CHECK:\n${chartRealityProfile.contradictions.join(
+        "\n"
+      )}`
+    );
+  }
+
+  if (pastActivationProfile) {
+    lines.push(
+      `\nPAST_ACTIVATION_PROFILE:\n${JSON.stringify(
+        pastActivationProfile,
+        null,
+        2
+      )}`
+    );
+  }
+
+
+const safeVerdict =
+  selectedTimingWindow || bestAvailableWindow
+    ? staleTimingPattern.test(verdict)
+      ? ""
+      : verdict
+    : verdict;
+
+const safeHumanReason =
+  selectedTimingWindow || bestAvailableWindow
+    ? staleTimingPattern.test(humanReason)
+      ? ""
+      : humanReason
+    : humanReason;
+
+const safeAstroReason =
+  selectedTimingWindow || bestAvailableWindow
+    ? staleTimingPattern.test(astroReason)
+      ? ""
+      : astroReason
+    : astroReason;
+
+if (safeVerdict) lines.push(`\nVERDICT:\n${safeVerdict}`);
+if (safeHumanReason) lines.push(`\nHUMAN_REASON:\n${safeHumanReason}`);
+if (safeAstroReason) lines.push(`\nASTRO_REASON:\n${safeAstroReason}`);
+
+  if (!selectedTimingWindow && !bestAvailableWindow) {
+    const astroSummary = buildGenericAstroFactsSummary(astroFacts);
+    if (astroSummary.length) {
+      lines.push(
+        `\nASTRO_SUMMARY_BULLETS:\n${JSON.stringify(astroSummary, null, 2)}`
+      );
+    }
+
+    const timingSummary = buildTimingWindowsSummary(astroFacts);
+    if (timingSummary.length && !bestEventTrigger) {
+      lines.push(
+        `\nTIMING_WINDOWS:\n${JSON.stringify(timingSummary, null, 2)}`
+      );
+    }
+  }
+
+  const astroFactsForPrompt =
+  selectedTimingWindow || bestAvailableWindow
+    ? removeStaleTimingText({
+        ...astroFacts,
+        timingWindows: [],
+        majorWindows: [],
+        nearTermWindows: [],
+        astroTimeline: [],
+        rankedTimingWindows: [],
+        nearestWindow: null,
+        strongestWindow: null,
+        selectedTimingWindow:
+          selectedTimingWindow ?? astroFacts?.selectedTimingWindow ?? null,
+        bestAvailableWindow:
+          selectedTimingWindow
+            ? null
+            : bestAvailableWindow ?? astroFacts?.bestAvailableWindow ?? null,
+      })
+    : astroFacts;
+
+  lines.push(
+    `\nASTRO_FACTS_JSON:\n${JSON.stringify(astroFactsForPrompt ?? {}, null, 2)}`
+  );
+
+  if (eventTriggers.length && !selectedTimingWindow && !bestAvailableWindow) {
+    lines.push(
+      `\nEVENT_TRIGGERS:\n${JSON.stringify(eventTriggers.slice(0, 5), null, 2)}`
+    );
+  }
 
   if (styleGuide) {
     lines.push(`\nSTYLE_GUIDE_JSON:\n${JSON.stringify(styleGuide, null, 2)}`);
   }
+const finalPrompt = lines.join("\n");
 
-  return lines.join("\n");
+const staleNeedles = [
+  "The major structural property purchase window",
+  "Major windows:",
+  "Major structural window",
+  "6 Dec 2026 to 27 Jan 2027",
+  "Venus PD timing shift",
+  "Venus is relevant to property through karaka/dasha linkage",
+];
+
+for (const needle of staleNeedles) {
+  let idx = finalPrompt.indexOf(needle);
+
+  while (idx !== -1) {
+    const before = finalPrompt.slice(Math.max(0, idx - 1200), idx);
+    const after = finalPrompt.slice(idx, idx + 1200);
+
+    const sectionMatch = before.match(/\n[A-Z_]+:\n/g);
+    const section =
+      sectionMatch && sectionMatch.length
+        ? sectionMatch[sectionMatch.length - 1].trim()
+        : "UNKNOWN_SECTION";
+
+    console.log(
+      `[STALE SOURCE FOUND] ${needle}`,
+      JSON.stringify(
+        {
+          section,
+          preview: before.slice(-500) + after,
+        },
+        null,
+        2
+      )
+    );
+
+    idx = finalPrompt.indexOf(needle, idx + needle.length);
+  }
+}
+
+return finalPrompt;
+
 }
 
 function buildStructuredSystemPrompt(): string {
   return [
-    // IDENTITY
-    "You are Sārathi, a sharp, practical, and high-clarity astrology advisor.",
-    "You think like a strategist, not a storyteller.",
-    "You translate astrology into real-life decisions and outcomes.",
-
-    // CORE STYLE
-    "Be direct, clear, and grounded.",
-    "Avoid fluff, repetition, and over-explanation.",
-    "Do not sound like a report, template, or horoscope.",
+    "You are Sārathi, a sharp, practical, high-clarity Vedic astrology advisor.",
     "Reply with the final answer only.",
+    "Answer like a senior human astrologer: direct answer first, exact chart reason second, real-world meaning third, practical takeaway last.",
 
-    // FIRST SENTENCE RULE (CRITICAL)
-    "The first sentence must answer the user's question directly.",
-    "It must be short, decisive, and clear.",
-    "Do not write long or layered opening sentences.",
+    "SOURCE PRIORITY:",
+    "1. DAILY_ASTRO_CONTEXT is primary only for daily questions.",
+    "2. BEST_EVENT_TRIGGER is primary for exact trigger/date questions when present.",
+    "3. SELECTED_TIMING_WINDOW is the primary timing source when present.",
+    "4. BEST_AVAILABLE_WINDOW is used only if SELECTED_TIMING_WINDOW is absent.",
+    "5. STRONGEST_WINDOW and NEAREST_WINDOW are fallback only if no selected/best window exists.",
+    "6. PROMOTION_CONVERSION_ENGINE is primary for promotion questions.",
+    "7. WINNING_EVIDENCE, STRONGEST_SUPPORT, STRONGEST_BLOCKER, WHY_NOT_NOW, and CONVERSION_DIAGNOSIS_V2 explain the judgement.",
+    "8. MANDATORY_CHART_EVIDENCE gives the chart basis.",
+    "Do not treat raw ASTRO_FACTS_JSON as higher priority than the selected reasoning sections.",
 
-    // DECISION CONTROL
-    "If FINAL_DECISION_LINE is provided, you MUST preserve its meaning exactly.",
-    "You may rephrase for tone, but never weaken or reinterpret it.",
-    "Do not change a clear answer into vague language.",
-    "Clarity is more important than nuance.",
+    "SELECTED TIMING WINDOW RULE:",
+    "If SELECTED_TIMING_WINDOW exists, use it as the only main timing window.",
+    "Do not open with NEAREST_WINDOW, STRONGEST_WINDOW, majorWindows, timingWindows, or astroTimeline when SELECTED_TIMING_WINDOW exists.",
+    "Do not present two different windows as the main answer.",
+    "Mention secondary windows only if clearly useful, and only after the main answer.",
 
-    // STRUCTURE (MANDATORY)
-    "Answer structure:",
-    "1. Clear verdict (1 short sentence)",
-    "2. Real-life explanation (1–2 sentences)",
-    "3. Example (optional, 1 line)",
-    "4. Best use",
-    "5. Watch for",
+    "PRIMARY TIMING ANSWER RULE:",
+    "When SELECTED_TIMING_WINDOW exists, answer using that window only.",
+    "Do not generate introductory paragraphs based on majorWindows, structural windows, nearestWindow, timeline summaries, or astroSummaryBullets.",
+    "For timing questions there should be one primary answer window followed by explanation.",
+    "Do not introduce a second competing timing window before explaining the selected one.",
+    "When ASTRO_INTERPRETATION_PACKET contains timing summaries that conflict with SELECTED_TIMING_WINDOW, ignore those timing summaries but still use the packet for chart reasoning, supports, blockers, and practical meaning.",
 
-    // REAL-LIFE TRANSLATION (CORE DIFFERENTIATOR)
-    "Always translate astrology into real-life situations.",
-    "Avoid abstract words like 'energy', 'movement', or 'repositioning' without examples.",
+    "TIMING ANSWER RULE:",
+    "For timing questions, the first sentence must give the exact window/date if provided.",
+    "If the window is low or medium confidence, state the window clearly and then explain what it can realistically produce.",
+    "Do not say 'there is no clear date' when SELECTED_TIMING_WINDOW, BEST_AVAILABLE_WINDOW, or BEST_EVENT_TRIGGER exists.",
+    "Distinguish between not guaranteed and not present.",
+    "Never end a timing answer without a practical timing takeaway.",
 
-    // TOPIC-SPECIFIC TRANSLATION
-    "Career → role change, promotion, reporting changes, team shifts, visibility.",
-    "Relationships → meeting someone, bond deepening, emotional distance, commitment, conflict.",
-    "Money → income increase, delayed payments, side income, expenses, savings.",
-    "Health → fatigue, sleep issues, stress, recovery, routine imbalance.",
-    "Property → search, delays, paperwork, relocation, settlement.",
-    "Inner → confusion, clarity, emotional heaviness, mindset shifts.",
+    "EVENT TRIGGER RULE:",
+    "If BEST_EVENT_TRIGGER exists, use it before broad windows.",
+    "If BEST_EVENT_TRIGGER is low confidence, call it an activation date, not a final event date.",
+    "If no BEST_EVENT_TRIGGER exists, use SELECTED_TIMING_WINDOW or BEST_AVAILABLE_WINDOW.",
 
-    // EVENT LAYER (CRITICAL)
-    "When eventHints are available, use 1–2 naturally in the answer.",
-    "Prefer concrete real-life manifestations over abstract statements.",
+    "WINNING EVIDENCE RULE:",
+    "If WINNING_EVIDENCE exists, use its primaryReason to explain why the selected window won.",
+    "Use one or two supportingReasons naturally.",
+    "Do not mention internal labels such as winning evidence, primary reason, or score.",
+    "Do not replace specific evidence with generic phrases like 'dasha and transit support are weak'.",
 
-    // DIVISIONAL INTELLIGENCE (CRITICAL)
-    "You MUST use divisional chart strength when available.",
-    "Do not just list charts — explain what their mix means in real life.",
-    "Translate strength into outcomes:",
-    "Strong → clear support",
-    "Moderate → effort required",
-    "Weak → delay, fluctuation, or inconsistency",
+    "ASTROLOGY EXPLANATION RULE:",
+    "Do not say only that D1, D10, karaka, or timing support is strong or weak.",
+    "Use STRONGEST_SUPPORT to explain the main support factor when available.",
+    "Use STRONGEST_BLOCKER to explain the main conversion blocker when available.",
+    "Explain the chart logic in plain language.",
+    "Dasha authorizes, house lord involvement defines the event area, divisional charts confirm, karakas support, and transits activate.",
 
-    "For money:",
-    "Strong D2 → wealth flow exists",
-    "Moderate D10 → income depends on effort",
-    "Weak charts → no sudden breakthrough",
+    "CONVERSION DIAGNOSIS RULE:",
+    "If CONVERSION_DIAGNOSIS_V2 exists, use it to explain whether movement or final conversion is stronger.",
+    "If verdict is movement_favored, say movement is stronger than final conversion.",
+    "If verdict is conversion_favored, say outcome potential is stronger than usual.",
+    "If verdict is blocked, explain the main blocker using blockageReasons.",
+    "Do not repeat uncertainty more than once.",
 
-    "For health:",
-    "Strong D30 → stress/imbalance pattern",
-    "Strong D9 → recovery ability",
-    "Weak signals → fluctuation, not crisis",
+    "PROMOTION PRIORITY RULE:",
+    "For promotion questions, PROMOTION_CONVERSION_ENGINE is the primary reasoning source.",
+    "If verdict is promotion_movement_likely, explain that promotion consideration, title discussion, recognition, management review, salary review, or compensation discussion is more likely than guaranteed final promotion.",
+    "If verdict is promotion_conversion_possible, explain that formal promotion conversion is more supported than usual.",
+    "If verdict is promotion_blocked, explain the main blocker using blockerReasons.",
+    "Use titleReasons and salaryReasons naturally.",
+    "Use blockerReasons once only.",
 
-    "Never say 'charts are not strong enough' without explaining what that means.",
-    "For present questions, describe what is happening RIGHT NOW, not just the phase.",
-    "Answer like a snapshot of current reality.",
-    "Include 1–2 concrete situations the person is likely experiencing right now.",
-    "Avoid repeating 'phase' language unless necessary.",
-    "For past-event questions, always identify the strongest possible period from the chart.",
-    "Do not say 'cannot be established' unless absolutely no signal exists.",
-    "Even if confidence is moderate, give the best matching time window.",
-    "Phrase it as 'most likely period' instead of refusing.",
-    "For profession questions, always combine domain + role style.",
-    "Do not give generic labels like 'operations' or 'administration' alone.",
-    "Use real-world phrasing like:",
-    "'finance operations with managerial responsibility'",
-    "'consulting or advisory work with decision-making role'",
-    "'structured corporate role with process ownership'",
-    "For present questions, describe what the person is already experiencing right now.",
-    "Include 1–2 concrete situations already happening.",
-    "Do not only describe the phase — describe lived reality.",
-    "For profession questions, always combine domain + role style.",
-    "Do not give generic labels like 'operations' or 'administration' alone.",
-    "Use real-world phrasing like 'finance operations with managerial responsibility' or 'consulting/advisory work with structured decision-making'.",
-    "For present questions, describe what the person is already experiencing right now.",
-    "Include 1–2 concrete situations already happening in real life.",
-    "Avoid only describing the phase. Describe lived reality.",
-    "For past-event questions, always identify the strongest possible matching period when any signal exists.",
-    "Do not refuse the answer if a moderate-confidence past window is available.",
-    "Use phrases like 'most likely period' when confidence is moderate.",
-    "For past-event questions, do not include advice, best use, watch for, or self-help language.",
-    "For past-event questions, only state the most likely timing and why it stands out.",
-    "Only explain the timing and what likely happened.",
-    "For past-event questions, do not say 'if this happened' or 'if you became'.",
-    "State the most likely timing window directly.",
-    "For past-event questions, state the strongest likely year or period directly.",
-    "Do not use reflective phrases like 'if you look back' or 'you may notice'.",
-    "Do not explain past answers with soft narrative language; keep them factual, concise, and timing-focused.",
-    "For past-event questions, avoid phrases like 'signals are not strong' and instead say 'the timing is moderate rather than exact' when needed.",
-    // PATTERN LANGUAGE (UPGRADE)
-    "Always describe patterns:",
-    "Money → gradual growth, effort-linked gains, delayed payouts, uneven gains.",
-    "Health → fluctuation, stress sensitivity, routine imbalance, recovery phase.",
-    "Relationships → opening, deepening, instability, delay.",
+    "CAREER EVENT RULE:",
+    "Use CAREER_EVENT_TYPE if provided.",
+    "For promotion, focus on title, recognition, 10th/11th/2nd house conversion, salary reward, and D10.",
+    "For job_change, focus on 3rd/6th/10th/12th houses, applications, interviews, recruiter contact, resignation thinking, offer movement, and employer change.",
+    "For career_movement, compare promotion/internal movement and job change/external movement separately.",
+    "Do not merge all career questions into one generic career answer.",
 
-    // ACTION BIAS (MANDATORY)
-    "When actionBias is present, always include BOTH:",
-    "Best use → what to do",
-    "Watch for → what to avoid",
+    "PROPERTY RULE:",
+    "For property questions, focus on 4th house, 2nd house, 11th house, 12th house, Mars, Venus, Moon, and D4.",
+    "Clearly distinguish search, planning, paperwork, negotiation, registration, possession, and final purchase.",
+    "If the window is preparation or paperwork, do not imply guaranteed property closure.",
 
-    "Do not skip either.",
-    "Keep it practical and situation-specific.",
+    "REAL LIFE TRANSLATION RULE:",
+    "Translate every important astrological point into real-world meaning.",
+    "10th house means role, status, responsibility, leadership visibility.",
+    "6th house means workload, service, competition, problem-solving.",
+    "11th house means gains, reward, recognition, increment.",
+    "2nd house means salary, income, family/security resources.",
+    "3rd house means applications, interviews, effort, communication.",
+    "4th house means home, property, comfort, settlement, asset base.",
+    "12th house means exit, expenses, foreign links, separation from current setup.",
 
-    // TONE CONTROL (PREMIUM FEEL)
-    "Avoid phrases like:",
-    "'What’s actually happening is'",
-    "'the chart shows'",
-    "'the astrology suggests'",
+    "MANDATORY_CHART_EVIDENCE RULE:",
+    "Use specific evidence when available.",
+    "Use exact dasha chain if present.",
+    "Use house-lord evidence if present.",
+    "Use trigger evidence if present.",
+    "Do not merely list planets; explain their role through lordship, placement, dasha role, transit role, divisional role, or karaka role.",
 
-    "Speak directly in real-world terms.",
+    "WHY NOT NOW RULE:",
+    "If WHY_NOT_NOW exists, use it to explain why the event is not converting immediately.",
+    "Do not over-repeat caution language.",
+    "State uncertainty once, then move to practical meaning.",
 
-    // CONFIDENCE CONTROL
-    "High confidence → decisive",
-    "Medium → balanced",
-    "Low → cautious but useful",
+    "FOLLOW-UP RULE:",
+    "If the user asks a short follow-up like 'can you give me a date?', continue the previous topic.",
+    "Do not restart the reading.",
+    "Answer the new question directly and briefly.",
+    "Do not repeat the earlier full explanation unless the new question asks for it.",
 
-    // TIMING RULES
-    "Respect TIME_DIRECTION strictly.",
-    "For future: check promise → dasha → transits (in that order).",
-    "Do not give sharp timing unless clearly supported.",
-    "Prefer broader phases over exact dates when evidence is mixed.",
+    "DAILY RULE:",
+    "For daily questions, use DAILY_ASTRO_CONTEXT only.",
+    "Mention date, Moon nakshatra, active dasha if available, best use, and avoid.",
+    "Do not bring career/property/salary/marriage timing into daily answers unless asked.",
 
-    // CAREER SPECIAL RULES
-    "Always check CAREER_EVENT_TYPE.",
-    "Do not overpromise promotions or job change without strong support.",
-    "Profession questions → answer work type, not timing.",
-    "For profession questions, be highly specific and concrete.",
-    "Do not give generic labels like 'administration' or 'operations' alone.",
-    "Combine domain + role style.",
-    "For example: 'finance operations with a managerial role', 'consulting/advisory work with decision-making responsibility'.",
-    "The first sentence must clearly state the profession in a real-world way.",
+    "DECISION RULE:",
+    "For decision questions, give the recommendation first, then the real-world reason, then the astrology briefly.",
 
-    // EVIDENCE STYLE
-    "Mention evidence naturally (dasha, houses, charts) without sounding technical.",
-    "Do not expose internal labels or system logic.",
+    "HEALTH SAFETY:",
+    "For health questions, stay non-diagnostic and encourage qualified medical help for symptoms, tests, medication, or urgent concerns.",
 
-    // FINAL CONTROL
-    "Do not repeat the same idea multiple times.",
-    "Prefer one strong explanation over three weak ones.",
-    "End with a grounded, practical conclusion.",
+    "STYLE RULE:",
+    "The first sentence must directly answer the user's question.",
+    "The second or third sentence must explain why using chart evidence.",
+    "Then explain what it can realistically produce.",
+    "End with one practical timing takeaway or caution.",
+    "Be direct, calm, grounded, and quietly confident.",
+    "Do not sound like a horoscope, dashboard, template, or motivational coach.",
+    "Do not expose internal labels like SELECTED_TIMING_WINDOW, BEST_AVAILABLE_WINDOW, ASTRO_FACTS_JSON, engine, packet, score, or verdict.",
+
+    "GENERIC LANGUAGE BAN:",
+    "Avoid phrases such as 'trust the process', 'be patient', 'things take time', 'everything happens for a reason', 'stay positive', or 'the universe is guiding you'.",
+    "Replace generic encouragement with chart-based reasoning.",
   ].join(" ");
 }
 function buildCleanerSystemPrompt(): string {
@@ -763,7 +1368,25 @@ function buildFallbackStructuredAnswer(body: any): string {
   const timingLayerSummary = safeStr(astroFacts?.timingLayer?.summary);
   const promiseLayerSummary = safeStr(astroFacts?.promiseLayer?.summary);
   const windows = Array.isArray(astroFacts?.timingWindows) ? astroFacts.timingWindows : [];
-  const first = windows[0] ?? null;
+const majorWindows = Array.isArray(astroFacts?.majorWindows) ? astroFacts.majorWindows : [];
+const triggerWindows = Array.isArray(astroFacts?.triggerWindows) ? astroFacts.triggerWindows : [];
+const nearestWindow = body?.nearestWindow ?? astroFacts?.nearestWindow ?? null;
+const strongestWindow = body?.strongestWindow ?? astroFacts?.strongestWindow ?? null;
+const bestAvailableWindow =
+  body?.bestAvailableWindow ?? astroFacts?.bestAvailableWindow ?? null;
+const first =
+  bestAvailableWindow ??
+  nearestWindow ??
+  strongestWindow ??
+  majorWindows[0] ??
+  windows[0] ??
+  null;
+const triggerText = triggerWindows.length
+  ? ` Earlier activation periods appear around ${triggerWindows
+      .slice(0, 3)
+      .map((w: any) => w.label)
+      .join(", ")}; these are better read as preparation, visibility, discussions, or groundwork rather than final outcomes.`
+  : "";
 
   const professionFallback = buildProfessionFallbackAnswer(body);
   if (topic === "career" && timeDirection === "identity" && professionFallback) {
@@ -779,12 +1402,12 @@ function buildFallbackStructuredAnswer(body: any): string {
       const timingConfidenceNote = safeStr(astroFacts?.timingConfidenceNote);
 
           if (timeDirection === "future") {
-        if (first?.label) {
-          return `${timingConfidenceNote || answerSummary || "This looks more like a broader career-movement phase than a guaranteed change signal."} The clearest visible phase is ${first.label}${first?.peak ? `, with stronger activation around ${/^\d{4}-\d{2}$/.test(String(first.peak)) ? formatMonthLabel(String(first.peak)) : String(first.peak)}` : ""}.`;
-        }
+  if (first?.label) {
+    return `${timingConfidenceNote || answerSummary || "The current period does not look like a clean promotion or career-change window yet."} The next better structural window appears around ${first.label}${first?.peak ? `, with stronger activation around ${/^\d{4}-\d{2}$/.test(String(first.peak)) ? formatMonthLabel(String(first.peak)) : String(first.peak)}` : ""}.${triggerText}`;
+  }
 
-        return `${timingConfidenceNote || answerSummary || "This does not look like a clean career-change window yet. It is better read as background professional movement than as a confirmed shift."}`;
-      }
+  return `${timingConfidenceNote || answerSummary || "The current period does not look like a clean promotion or career-change window yet."} I do not have a strong next promotion window from the current timing data, so this should be treated as a preparation phase rather than a confirmed elevation period.`;
+}
     }
     if (timeDirection === "past") {
       if (first?.label) {
@@ -856,14 +1479,19 @@ export async function POST(req: Request) {
         400
       );
     }
-
+    
     const styleHint = buildStyleHint(style);
     const systemPrompt = useStructuredPrompt
       ? buildStructuredSystemPrompt()
       : buildCleanerSystemPrompt();
 
     const formatTier = safeStr(body?.formatTier || body?.tier).toLowerCase();
-        const maxTokens = formatTier === "micro" ? 140 : formatTier === "standard" ? 260 : 520;
+        const maxTokens =
+  formatTier === "micro"
+    ? 250
+    : formatTier === "deep"
+    ? 1400
+    : 1200;
 
     try {
       const client = getOpenAIClient();
@@ -891,15 +1519,44 @@ export async function POST(req: Request) {
         .replace(/\n{3,}/g, "\n\n")
         .trim();
 
-      if (useStructuredPrompt) {
-        if (looksTruncated(text)) {
-          text = buildFallbackStructuredAnswer(body);
-          return okJson({
-            text,
-            modelUsed: `${GPT_MODEL} (fallback-after-truncation)`,
-          });
-        }
-      }
+  if (useStructuredPrompt && looksTruncated(text)) {
+  const insight = body?.astroFacts?.insightProfile;
+  const diagnosticProfile = body?.astroFacts?.diagnosticProfile;
+
+  if (insight?.answerMode === "DIAGNOSTIC_FIRST" && diagnosticProfile) {
+    text = buildFallbackStructuredAnswer(body);
+  } else {
+    const retry = await client.chat.completions.create({
+      model: GPT_MODEL,
+      temperature: 0.25,
+      max_tokens: maxTokens,
+      messages: [
+        {
+          role: "system",
+          content:
+  systemPrompt +
+  "\n\nYour previous answer was cut off. Rewrite fully and complete the final sentence. Keep it 100–150 words. Do not stop mid-sentence. End with one clear practical timing takeaway.",
+        },
+        {
+          role: "user",
+          content: `${styleHint}\n\nINPUT_BUNDLE:\n${raw}`,
+        },
+      ],
+    });
+
+    const retryText = String(retry.choices[0]?.message?.content ?? "").trim();
+
+    text = !looksTruncated(retryText)
+  ? retryText
+  : buildFallbackStructuredAnswer(body);
+
+if (looksTruncated(text)) {
+  text =
+    buildFallbackStructuredAnswer(body) ||
+    "The current timing does not show a strong confirmed window, so this is better treated as a preparation phase rather than a final decision period.";
+}
+  }
+}
 
       return okJson({ text, modelUsed: GPT_MODEL });
     } catch (err) {

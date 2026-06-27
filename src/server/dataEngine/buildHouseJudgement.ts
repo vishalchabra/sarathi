@@ -216,7 +216,24 @@ function getStrengthBand(natal: AnyObj | null, planet: string | null): "strong" 
 
   return "medium";
 }
+function isWaxingMoon(moonLon: number | null, sunLon: number | null) {
+  if (typeof moonLon !== "number" || typeof sunLon !== "number") {
+    return null;
+  }
 
+  const diff = ((moonLon - sunLon + 360) % 360);
+  return diff > 0 && diff < 180;
+}
+
+function isMercuryBenefic(natal: AnyObj | null) {
+  const conjunctions = getConjunctions(natal, "Mercury");
+
+  const hasMaleficAssociation = conjunctions.some((p) =>
+    ["Sun", "Mars", "Saturn", "Rahu", "Ketu"].includes(p)
+  );
+
+  return !hasMaleficAssociation;
+}
 function isBenefic(planet: string | null, natal: AnyObj | null): boolean {
   if (!planet) return false;
 
@@ -225,20 +242,48 @@ function isBenefic(planet: string | null, natal: AnyObj | null): boolean {
     return false;
   }
 
-  if (planet === "Moon") {
-    return true;
-  }
+if (planet === "Moon") {
+  const moon = getPlanetRow(natal, "Moon");
+  const sun = getPlanetRow(natal, "Sun");
 
-  if (planet === "Mercury") {
-    return true;
-  }
+  const waxing = isWaxingMoon(
+    moon?.siderealLongitude ?? moon?.lon ?? null,
+    sun?.siderealLongitude ?? sun?.lon ?? null
+  );
 
+  return waxing === true;
+}
+
+if (planet === "Mercury") {
+  return isMercuryBenefic(natal);
+}
   return false;
 }
 
-function isMalefic(planet: string | null): boolean {
+function isMalefic(planet: string | null, natal?: AnyObj | null): boolean {
   if (!planet) return false;
-  return ["Sun", "Mars", "Saturn", "Rahu", "Ketu"].includes(planet);
+
+  if (["Sun", "Mars", "Saturn", "Rahu", "Ketu"].includes(planet)) {
+    return true;
+  }
+
+  if (planet === "Moon") {
+    const moon = getPlanetRow(natal ?? null, "Moon");
+    const sun = getPlanetRow(natal ?? null, "Sun");
+
+    const waxing = isWaxingMoon(
+      moon?.siderealLongitude ?? moon?.lon ?? null,
+      sun?.siderealLongitude ?? sun?.lon ?? null
+    );
+
+    return waxing === false;
+  }
+
+  if (planet === "Mercury") {
+    return !isMercuryBenefic(natal ?? null);
+  }
+
+  return false;
 }
 
 function buildOccupants(natal: AnyObj | null, house: number): string[] {
@@ -251,7 +296,72 @@ function buildOccupants(natal: AnyObj | null, house: number): string[] {
       .filter(Boolean)
   );
 }
+function angularDistance(a: number, b: number) {
+  const diff = Math.abs((((a - b) % 360) + 540) % 360 - 180);
+  return diff;
+}
 
+function getPlanetLongitude(row: AnyObj | null | undefined): number | null {
+  const lon =
+    typeof row?.siderealLongitude === "number"
+      ? row.siderealLongitude
+      : typeof row?.lon === "number"
+      ? row.lon
+      : typeof row?.longitude === "number"
+      ? row.longitude
+      : null;
+
+  return typeof lon === "number" && Number.isFinite(lon) ? lon : null;
+}
+
+function getConjunctions(
+  natal: AnyObj | null,
+  planet: string,
+  orb = 8
+): string[] {
+  const result: string[] = [];
+
+  const aspects = Array.isArray(natal?.aspects) ? natal.aspects : [];
+
+  for (const a of aspects) {
+    const type = String(a?.aspectType ?? a?.type ?? a?.label ?? "").toLowerCase();
+
+    if (!type.includes("conj")) continue;
+
+    const p1 =
+      normPlanetName(a?.fromPlanet) ??
+      normPlanetName(a?.planetA) ??
+      normPlanetName(a?.sourcePlanet);
+
+    const p2 =
+      normPlanetName(a?.toPlanet) ??
+      normPlanetName(a?.planetB) ??
+      normPlanetName(a?.targetPlanet);
+
+    if (p1 === planet && p2) result.push(p2);
+    if (p2 === planet && p1) result.push(p1);
+  }
+
+  const planets = Array.isArray(natal?.planets) ? natal.planets : [];
+  const targetRow = getPlanetRow(natal, planet);
+  const targetLon = getPlanetLongitude(targetRow);
+
+  if (targetLon !== null) {
+    for (const row of planets) {
+      const other = normPlanetName(row?.planet ?? row?.name);
+      if (!other || other === planet) continue;
+
+      const otherLon = getPlanetLongitude(row);
+      if (otherLon === null) continue;
+
+      if (angularDistance(targetLon, otherLon) <= orb) {
+        result.push(other);
+      }
+    }
+  }
+
+  return uniqStrings(result);
+}
 function buildAspectDetails(vedicAspects: AnyObj | null, house: number) {
   const rows = Array.isArray(vedicAspects?.houses) ? vedicAspects.houses : [];
   const target = rows.find((r: AnyObj) => r?.house === house);
@@ -378,13 +488,15 @@ export function buildHouseJudgement(params: BuildParams): HouseJudgementRow[] {
     const occupants = buildOccupants(params?.natal ?? null, house);
     const aspectInfo = buildAspectDetails(params?.vedicAspects ?? null, house);
 
-    const beneficCount =
-      occupants.filter((p) => isBenefic(p, params?.natal ?? null)).length +
-      aspectInfo.simple.filter((p) => isBenefic(p, params?.natal ?? null)).length;
+    const beneficCount = uniqStrings([
+  ...occupants.filter((p) => isBenefic(p, params?.natal ?? null)),
+  ...aspectInfo.simple.filter((p) => isBenefic(p, params?.natal ?? null)),
+]).length;
 
-    const maleficCount =
-      occupants.filter((p) => isMalefic(p)).length +
-      aspectInfo.simple.filter((p) => isMalefic(p)).length;
+const maleficCount = uniqStrings([
+  ...occupants.filter((p) => isMalefic(p, params?.natal ?? null)),
+...aspectInfo.simple.filter((p) => isMalefic(p, params?.natal ?? null)),
+]).length;
 
     const houseLordStrengthBand = getStrengthBand(params?.natal ?? null, lord);
 

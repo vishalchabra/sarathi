@@ -1,26 +1,22 @@
 // FILE: src/app/sarathi/contact/page.tsx
 import Link from "next/link";
 
-export default function ContactPage() {
-  // Change this later to your real email/domain.
-  const supportEmail = "support@sarathiyourguide.com";
+const supportEmail = "support@sarathiyourguide.com";
 
+export default function ContactPage() {
   return (
     <main className="min-h-screen astro-bg text-slate-900">
-      <div className="pointer-events-none fixed inset-0 -z-10">
-        <div className="absolute left-1/2 top-[-220px] h-[520px] w-[980px] -translate-x-1/2 rounded-full bg-[color:var(--primary)]/20 blur-[140px]" />
-      </div>
-
-      <header className="sticky top-0 z-40 border-b border-[color:var(--border)] astro-bg/70 backdrop-blur">
+      <header className="sticky top-0 z-40 border-b border-[color:var(--border)] bg-white/75 backdrop-blur-xl">
         <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-4">
-          <Link href="/sarathi" className="text-sm text-slate-900/80 hover:text-slate-900">
+          <Link href="/sarathi" className="text-sm text-slate-700 hover:text-slate-900">
             ← Back to Sārathi
           </Link>
+
           <div className="flex items-center gap-4">
-            <Link className="text-sm text-slate-900 hover:text-slate-900" href="/sarathi/privacy">
+            <Link className="text-sm text-slate-700 hover:text-slate-900" href="/sarathi/privacy">
               Privacy
             </Link>
-            <Link className="text-sm text-slate-900 hover:text-slate-900" href="/sarathi/terms">
+            <Link className="text-sm text-slate-700 hover:text-slate-900" href="/sarathi/terms">
               Terms
             </Link>
           </div>
@@ -28,40 +24,76 @@ export default function ContactPage() {
       </header>
 
       <section className="mx-auto max-w-4xl px-4 pb-14 pt-10">
-        <div className="inline-flex items-center gap-2 rounded-full astro-card px-3 py-1 text-xs text-slate-900">
-          Support · Feedback · Data requests
+        <div className="inline-flex rounded-full astro-card px-4 py-1 text-xs font-semibold text-slate-700">
+          Contact Sārathi
         </div>
 
-        <h1 className="mt-5 text-3xl font-semibold">Contact</h1>
-        <p className="mt-3 max-w-2xl text-sm leading-relaxed text-slate-900">
-          Have feedback, found an issue, or want to request data deletion? We’d love to hear from you.
+        <h1 className="mt-5 text-3xl font-semibold md:text-4xl">
+          How can we help?
+        </h1>
+
+        <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-700">
+          For support, feedback, account questions, privacy requests, or business
+          enquiries, please contact us using the details below.
         </p>
 
-        <div className="mt-8 rounded-2xl astro-card p-6 text-sm text-slate-900/75 shadow-[0_0_0_1px_rgba(255,255,255,0.06)_inset]">
-          <div className="text-sm font-semibold text-slate-900/90">Email</div>
+        <div className="mt-8 grid gap-5 md:grid-cols-2">
+          <ContactCard
+            title="General support"
+            text="For product questions, technical issues, login problems, report access, or feature feedback."
+          />
+
+          <ContactCard
+            title="Privacy and data requests"
+            text="For requests related to data access, correction, deletion, or privacy-related concerns."
+          />
+        </div>
+
+        <div className="mt-8 rounded-2xl astro-card p-6 text-sm leading-7 text-slate-700">
+          <h2 className="text-base font-semibold text-slate-900">
+            Email
+          </h2>
+
           <p className="mt-2">
-            <span className="text-slate-900/90">{supportEmail}</span>
+            Please contact us at{" "}
+            <span className="font-medium text-slate-900">{supportEmail}</span>.
           </p>
 
-          <div className="mt-6 text-sm font-semibold text-slate-900/90">What to include</div>
+          <h2 className="mt-6 text-base font-semibold text-slate-900">
+            What to include
+          </h2>
+
           <ul className="mt-2 ml-5 list-disc space-y-2">
-            <li>What you were trying to do</li>
-            <li>What happened instead</li>
-            <li>A screenshot (if possible)</li>
-            <li>Your browser/device (optional)</li>
+            <li>Your account email, if relevant.</li>
+            <li>A short description of your request or issue.</li>
+            <li>The page or feature where the issue occurred.</li>
+            <li>Any screenshot, error message, browser, or device details that may help us investigate.</li>
           </ul>
 
-          <div className="mt-6">
+          <p className="mt-6 text-sm text-slate-600">
+            We aim to review support requests as soon as reasonably possible.
+            Response times may vary depending on request volume and the nature of
+            the enquiry.
+          </p>
+
+          <div className="mt-6 flex flex-wrap gap-3">
             <Link
-              href="/sarathi/chat"
-              className="inline-flex items-center rounded-full bg-[color:var(--primary)] px-4 py-2 text-sm font-semibold text-slate-900 hover:opacity-90"
+              href="/sarathi/login?next=/sarathi/chat"
+              className="inline-flex rounded-full bg-[#6E4BC6] px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#5F3FB0]"
             >
-              Ask in chat instead →
+              Ask Sārathi →
+            </Link>
+
+            <Link
+              href="/sarathi/faqs"
+              className="inline-flex rounded-full border border-[color:var(--border)] bg-white/60 px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-white/80"
+            >
+              View FAQs
             </Link>
           </div>
         </div>
 
-        <footer className="mt-12 border-t border-[color:var(--border)] pt-6 text-xs text-slate-900/55">
+        <footer className="mt-12 border-t border-[color:var(--border)] pt-6 text-xs text-slate-600">
           <div className="flex flex-wrap gap-4">
             <Link className="hover:text-slate-900" href="/sarathi/about">
               About
@@ -76,5 +108,14 @@ export default function ContactPage() {
         </footer>
       </section>
     </main>
+  );
+}
+
+function ContactCard({ title, text }: { title: string; text: string }) {
+  return (
+    <div className="rounded-2xl border border-[color:var(--border)] bg-white/60 p-5">
+      <h2 className="text-base font-semibold text-slate-900">{title}</h2>
+      <p className="mt-2 text-sm leading-7 text-slate-700">{text}</p>
+    </div>
   );
 }

@@ -271,6 +271,12 @@ function getRelationship(planet: string, signLord: string | null) {
 function getDignity(p: string, sign: string, rel: string) {
   if (EXALTATION_SIGNS[p] === sign) return "Exalted";
   if (DEBILITATION_SIGNS[p] === sign) return "Debilitated";
+  if (p === "Mercury" && sign === "Virgo") return "Moolatrikona";
+if (p === "Jupiter" && sign === "Sagittarius") return "Moolatrikona";
+if (p === "Venus" && sign === "Libra") return "Moolatrikona";
+if (p === "Saturn" && sign === "Aquarius") return "Moolatrikona";
+if (p === "Mars" && sign === "Aries") return "Moolatrikona";
+if (p === "Sun" && sign === "Leo") return "Moolatrikona";
   if ((OWN_SIGNS[p] ?? []).includes(sign)) return "Own Sign";
   if (rel === "friend") return "Friend Sign";
   if (rel === "enemy") return "Enemy Sign";
@@ -279,6 +285,7 @@ function getDignity(p: string, sign: string, rel: string) {
 
 function getStrengthBand(dignity: string) {
   if (dignity === "Exalted") return "very_strong";
+if (dignity === "Moolatrikona") return "very_strong";
   if (dignity === "Own Sign") return "strong";
   if (dignity === "Friend Sign") return "strong";
   if (dignity === "Enemy Sign") return "weak";
@@ -387,9 +394,7 @@ const mapped = (Array.isArray(transitNowRaw) ? transitNowRaw : []).map((p: any) 
     Array.isArray(dailyMoon) && dailyMoon.length > 0
       ? dailyMoon[0]
       : null;
-const venusDebug = planetsWithMoon.find(
-  (p: any) => p.planet === "Venus"
-);
+
 
 
   return {

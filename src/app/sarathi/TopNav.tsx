@@ -4,59 +4,49 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const links = [
-  { href: "/sarathi/chat", label: "Ask Sārathi" },
-  { href: "/sarathi/focused-reports", label: "Guidance" },
-  { href: "/sarathi/about", label: "About" },
+  { href: "/sarathi", label: "Home", public: true },
+  { href: "/sarathi/individual", label: "Individuals", public: true },
+  { href: "/sarathi/astrologers", label: "Astrologers", public: true },
+  { href: "/sarathi/about", label: "About", public: true },
 ];
 
 export default function TopNav() {
   const pathname = usePathname() ?? "";
 
   return (
-    <header 
-    className="flex items-center justify-between border-b border-[color:var(--border)] bg-white/70 backdrop-blur-xl px-6 py-3 text-foreground">
-      <div className="flex items-center gap-2">
-        <Link href="/" className="text-sm font-semibold tracking-wide text-foreground">
-          <span className="text-[color:var(--primary)] drop-shadow-[0_0_12px_rgba(99,102,241,0.35)]">
-            Sārathi
+    <header className="sticky top-0 z-40 border-b border-[color:var(--border)] bg-white/75 px-4 py-3 text-foreground backdrop-blur-xl">
+      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
+        <div className="flex items-center gap-2">
+          <Link
+            href="/sarathi"
+            className="text-sm font-semibold tracking-wide text-foreground"
+          >
+            <span className="text-[color:var(--primary)]">
+              Sārathi
+            </span>
+          </Link>
+
+          <span className="rounded-full bg-[#6E4BC6] px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-[#5F3FB0]">
+            Beta
           </span>
-        </Link>
-        
-        <span className="rounded-full border border-[color:var(--border)] bg-[color:var(--primary)]/10 px-2 py-0.5 text-[10px] font-medium text-[color:var(--primary)]">
-          Beta
-        </span>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Link
+            href="/sarathi/login?next=/sarathi/chat"
+            className="hidden rounded-full astro-card px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-white/80 sm:inline-flex"
+          >
+            Ask Sārathi
+          </Link>
+
+          <Link
+            href="/sarathi/login?next=/sarathi/life-report"
+            className="rounded-full bg-[#6E4BC6] px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-[#5F3FB0]"
+          >
+            Life Report
+          </Link>
+        </div>
       </div>
-
-      <nav className="flex items-center gap-4 text-xs sm:text-sm text-foreground/70">
-        {links.map((link) => {
-          const isActive =
-            pathname === link.href ||
-            (link.href !== "/sarathi/about" && pathname.startsWith(link.href));
-
-          return (
-            <Link
-              key={link.href}
-              href={link.href}
-              className={
-                "transition-colors " +
-                (isActive
-  ? "text-[color:var(--primary)] border-b border-[color:var(--primary)] pb-0.5"
-  : "hover:text-foreground")
-              }
-            >
-              {link.label}
-            </Link>
-          );
-        })}
-
-        {/* Single CTA button (so it doesn't feel duplicated as a menu item) */}
-        <Link
-          href="/sarathi/life-report"
-          className="ml-2 rounded-xl border border-[color:var(--border)] bg-[color:var(--primary)] px-3 py-1 text-xs font-medium text-white shadow-sm hover:opacity-90"
-        >
-          Life Report
-        </Link>
-      </nav>
     </header>
   );
 }

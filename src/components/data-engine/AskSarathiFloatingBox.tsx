@@ -442,7 +442,7 @@ const NAKSHATRA_ALIASES: Record<string, string> = {
   moola: "Mula",
   shravana: "Shravana",
   dhanishta: "Dhanishta",
-  dhanishtha: "Dhanishta",
+  Dhanishta: "Dhanishta",
   shatabhisha: "Shatabhisha",
   revati: "Revati",
 };

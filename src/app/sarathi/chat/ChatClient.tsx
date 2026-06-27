@@ -1,9 +1,15 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import { loadBirthProfile, saveBirthProfile } from "@/lib/birth-profile";
+import {
+  getUserBirthProfiles,
+  saveUserBirthProfile,
+  type SavedBirthProfile,
+} from "@/lib/supabase/chart-service";
 import React from "react";
 import { TimingCards, NarrativeTiming, QARich } from "@/components/TimingCards";
-import { loadBirthProfile } from "@/lib/birth-profile";
+import LockingCityAutocomplete from "@/components/profile/LockingCityAutocomplete";
 
 
 /* ===================== Local types ===================== */
@@ -126,6 +132,31 @@ type QAResponse = {
       short: string;
       full: string;
     };
+  };
+    phasePsychology?: {
+    title?: string;
+    text?: string;
+  };
+
+  strategy?: {
+    title?: string;
+    push?: string[];
+    avoid?: string[];
+    communication?: string;
+    focus?: string;
+  };
+
+  remediesDetailed?: {
+    title?: string;
+    items?: Array<{
+      remedy: string;
+      why: string;
+    }>;
+  };
+
+  hiddenOpportunity?: {
+    title?: string;
+    text?: string;
   };
   [k: string]: any;
 };
@@ -518,6 +549,7 @@ function SarathiAnswerCard({
   timingSummary,
   evidenceBullets,
   detailNote,
+  isDailyOutlook,
 }: {
   title?: string;
   nowLabel?: string;
@@ -531,6 +563,7 @@ function SarathiAnswerCard({
   timingSummary?: string;
   evidenceBullets?: string[];
   detailNote?: string;
+  isDailyOutlook?: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
 const [showEvidence, setShowEvidence] = useState(false);
@@ -539,7 +572,7 @@ const [showEvidence, setShowEvidence] = useState(false);
       ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-200"
       : confidenceLevel === "Medium"
       ? "border-amber-400/30 bg-amber-500/10 text-amber-200"
-      : "border-[color:var(--border)] bg-white/80 text-slate-200/90";
+      : "border-[color:var(--border)] bg-white/80 text-slate-700";
 
   const timingBadgeClass =
     timingStrength === "Strong"
@@ -550,27 +583,27 @@ const [showEvidence, setShowEvidence] = useState(false);
       ? "border-amber-400/30 bg-amber-500/10 text-amber-200"
       : timingStrength === "Caution"
       ? "border-rose-400/30 bg-rose-500/10 text-rose-200"
-      : "border-[color:var(--border)] bg-white/80 text-slate-200/90";
+      : "border-[color:var(--border)] bg-white/80 text-slate-700";
   return (
          <div>
-        <div className="text-xs uppercase tracking-[0.18em] text-slate-300/60">
+        <div className="text-xs uppercase tracking-[0.18em] text-slate-500">
           Sārathi's Guidance
         </div>
 
      {title &&
  !["sārathi guidance", "sarathi guidance", "career guidance", "inner guidance", "relationship guidance", "money guidance", "health guidance"].includes(title.trim().toLowerCase()) ? (
-  <div className="mt-2 text-sm font-medium text-slate-300/80">{title}</div>
+  <div className="mt-2 text-sm font-medium text-slate-700">{title}</div>
 ) : null}
 
         <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
           {confidenceText ? (
-            <div className="rounded-full astro-card px-2.5 py-1 text-[11px] text-slate-200/85">
+            <div className="rounded-full astro-card px-2.5 py-1 text-[11px] text-slate-700">
   {confidenceText}
 </div>
           ) : null}
 
           {nowLabel ? (
-            <div className="rounded-full astro-card px-2.5 py-1 text-[11px] text-slate-200/85">
+            <div className="rounded-full astro-card px-2.5 py-1 text-[11px] text-slate-700">
               Current timing: {nowLabel}
             </div>
           ) : null}
@@ -589,8 +622,8 @@ const [showEvidence, setShowEvidence] = useState(false);
         </div>
 
                  {answer ? (
-  <div className="mt-4 rounded-[22px] border border-[color:var(--border)] bg-white/80/[0.05] p-5 md:p-6">
-  <div className="whitespace-pre-wrap text-[15px] leading-8 text-slate-100/95">
+  <div className="mt-4 rounded-[22px] border border-[#E8DEF8] bg-white p-5 md:p-6 shadow-sm">
+  <div className="whitespace-pre-wrap text-[15px] leading-8 text-slate-700">
       {expanded ? answer : answer.slice(0, 520)}
       {answer.length > 520 && !expanded ? "…" : ""}
     </div>
@@ -609,21 +642,21 @@ const [showEvidence, setShowEvidence] = useState(false);
 
       {timingSummary || confidenceReason ? (
   <div className="mt-4 grid gap-3 md:grid-cols-2">
-    {timingSummary ? (
-      <div className="rounded-2xl border border-[color:var(--border)] bg-white/80/[0.04] p-4">
-        <div className="text-[11px] uppercase tracking-[0.14em] text-slate-300/45">
+    {!isDailyOutlook && timingSummary ? (
+      <div className="rounded-2xl border border-[#E8DEF8] bg-white p-4 shadow-sm">
+        <div className="text-[11px] uppercase tracking-[0.14em] text-slate-500">
           Current timing
         </div>
-        <div className="mt-2 text-sm leading-6 text-slate-100/80">{timingSummary}</div>
+        <div className="mt-2 text-sm leading-6 text-slate-700">{timingSummary}</div>
       </div>
     ) : null}
 
     {confidenceReason ? (
-      <div className="rounded-2xl border border-[color:var(--border)] bg-white/80/[0.04] p-4">
-        <div className="text-[11px] uppercase tracking-[0.14em] text-slate-300/45">
+      <div className="rounded-2xl border border-[#E8DEF8] bg-white p-4 shadow-sm">
+        <div className="text-[11px] uppercase tracking-[0.14em] text-slate-500">
           How clear this looks
         </div>
-        <div className="mt-2 text-sm leading-6 text-slate-100/80">{confidenceReason}</div>
+        <div className="mt-2 text-sm leading-6 text-slate-700">{confidenceReason}</div>
       </div>
     ) : null}
   </div>
@@ -632,15 +665,15 @@ const [showEvidence, setShowEvidence] = useState(false);
         <div className="mt-4 grid gap-3 md:grid-cols-2">
           {how ? (
             <div className="rounded-2xl astro-card p-4">
-              <div className="text-xs uppercase tracking-[0.14em] text-slate-300/60">What to do now</div>
-              <div className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-100/90">{how}</div>
+              <div className="text-xs uppercase tracking-[0.14em] text-slate-500">What to do now</div>
+              <div className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-700">{how}</div>
             </div>
           ) : null}
 
           {whyBullets && whyBullets.length ? (
             <div className="rounded-2xl astro-card p-4">
-              <div className="text-xs uppercase tracking-[0.14em] text-slate-300/60">Why this works</div>
-              <ul className="mt-2 list-disc pl-5 space-y-1 text-sm leading-6 text-slate-100/90">
+              <div className="text-xs uppercase tracking-[0.14em] text-slate-500">Why this works</div>
+              <ul className="mt-2 list-disc pl-5 space-y-1 text-sm leading-6 text-slate-700">
                 {whyBullets.slice(0, 3).map((w, i) => (
                   <li key={i}>{w}</li>
                 ))}
@@ -658,10 +691,10 @@ const [showEvidence, setShowEvidence] = useState(false);
             className="flex w-full items-center justify-between text-left"
           >
             <div>
-              <div className="text-xs uppercase tracking-[0.14em] text-slate-300/60">
+              <div className="text-xs uppercase tracking-[0.14em] text-slate-500">
                 What this is based on
               </div>
-              <div className="mt-1 text-sm text-slate-100/85">
+              <div className="mt-1 text-sm text-slate-600">
                 See the astrology signals behind this answer
               </div>
             </div>
@@ -671,7 +704,7 @@ const [showEvidence, setShowEvidence] = useState(false);
           </button>
 
           {showEvidence ? (
-            <ul className="mt-3 list-disc pl-5 space-y-2 text-sm leading-6 text-slate-100/90">
+            <ul className="mt-3 list-disc pl-5 space-y-2 text-sm leading-6 text-slate-700">
               {evidenceBullets.slice(0, 5).map((item, i) => (
                 <li key={i}>{item}</li>
               ))}
@@ -727,6 +760,25 @@ export default function ChatClient() {
   const [showDetails, setShowDetails] = useState(true);
   const [chattyMode, setChattyMode] = useState(true);
   const [profile, setProfile] = useState<Profile>({});
+  const [savedProfiles, setSavedProfiles] = useState<SavedBirthProfile[]>([]);
+const [selectedProfileId, setSelectedProfileId] = useState("");
+const [profileOpen, setProfileOpen] = useState(false);
+
+const [profileName, setProfileName] = useState("");
+const [profileDateISO, setProfileDateISO] = useState("");
+const [profileTime, setProfileTime] = useState("");
+const [profileTz, setProfileTz] = useState("");
+const [profilePlaceName, setProfilePlaceName] = useState("");
+const [profileLat, setProfileLat] = useState("");
+const [profileLon, setProfileLon] = useState("");
+const selectedPlace =
+  profilePlaceName && profileLat && profileLon
+    ? {
+        name: profilePlaceName,
+        lat: Number(profileLat),
+        lon: Number(profileLon),
+      }
+    : null;
   const [messages, setMessages] = useState<Msg[]>([
     {
       id: newId(),
@@ -744,7 +796,186 @@ export default function ChatClient() {
     const hasPlace = !!(profile?.place?.tz) && Number.isFinite(profile?.place?.lat as any) && Number.isFinite(profile?.place?.lon as any);
     return hasBirth && hasPlace;
   }, [profile]);
+useEffect(() => {
+  let cancelled = false;
 
+  async function loadSavedProfiles() {
+    try {
+      const rows = await getUserBirthProfiles();
+
+      if (cancelled) return;
+
+      setSavedProfiles(rows);
+
+      const active = loadBirthProfile();
+
+      if (active) {
+        setProfileName(active.name ?? "");
+        setProfileDateISO(active.dobISO ?? "");
+        setProfileTime(active.tob ?? "");
+        setProfileTz(active.place?.tz ?? "");
+        setProfilePlaceName(active.place?.name ?? "");
+        setProfileLat(
+          typeof active.place?.lat === "number" ? String(active.place.lat) : ""
+        );
+        setProfileLon(
+          typeof active.place?.lon === "number" ? String(active.place.lon) : ""
+        );
+
+        const matched = rows.find(
+          (p) =>
+            p.name.trim().toLowerCase() ===
+            String(active.name ?? "").trim().toLowerCase()
+        );
+
+        if (matched) {
+          setSelectedProfileId(matched.id);
+        }
+      }
+    } catch (e) {
+      console.warn("[chat] could not load saved profiles", e);
+    }
+  }
+
+  loadSavedProfiles();
+
+  return () => {
+    cancelled = true;
+  };
+}, []);
+const handleSaveChatProfile = useCallback(async () => {
+  const trimmedName = profileName.trim();
+
+  const lat = Number(profileLat);
+  const lon = Number(profileLon);
+
+  if (
+    !trimmedName ||
+    !profileDateISO ||
+    !profileTime ||
+    !profileTz ||
+    !Number.isFinite(lat) ||
+    !Number.isFinite(lon)
+  ) {
+    alert("Please fill name, birth date, time zone, latitude and longitude.");
+    return;
+  }
+
+  try {
+    const saved = await saveUserBirthProfile({
+      label: trimmedName,
+      name: trimmedName,
+      birthDateISO: profileDateISO,
+      birthTime: profileTime,
+      birthTz: profileTz,
+      lat,
+      lon,
+      placeName: profilePlaceName || "",
+    });
+
+    const nextProfile: Profile = {
+      name: saved.name,
+      dobISO: saved.birthDateISO,
+      tob: saved.birthTime,
+      place: {
+        name: saved.placeName,
+        tz: saved.birthTz,
+        lat: saved.lat,
+        lon: saved.lon,
+      },
+    };
+
+    setProfile(nextProfile);
+
+    saveBirthProfile({
+      name: saved.name,
+      dobISO: saved.birthDateISO,
+      tob: saved.birthTime,
+      place: {
+        name: saved.placeName,
+        tz: saved.birthTz,
+        lat: saved.lat,
+        lon: saved.lon,
+      },
+    });
+
+    const rows = await getUserBirthProfiles();
+    setSavedProfiles(rows);
+    setSelectedProfileId(saved.id);
+    setProfileOpen(false);
+  } catch (e) {
+    console.warn("[chat] could not save profile", e);
+    alert("Could not save profile. Please try again.");
+  }
+}, [
+  profileName,
+  profileDateISO,
+  profileTime,
+  profileTz,
+  profileLat,
+  profileLon,
+  profilePlaceName,
+]);
+const existingProfileByName = savedProfiles.find(
+  (p) =>
+    p.name.trim().toLowerCase() ===
+    profileName.trim().toLowerCase()
+);
+
+const profileButtonLabel = existingProfileByName
+  ? "Update Profile"
+  : "Save Profile";
+  const applyProfileToForm = useCallback((p: SavedBirthProfile) => {
+  setSelectedProfileId(p.id);
+
+  setProfileName(p.name ?? "");
+  setProfileDateISO(p.birthDateISO ?? "");
+  setProfileTime(p.birthTime ?? "");
+  setProfileTz(p.birthTz ?? "");
+  setProfilePlaceName(p.placeName ?? "");
+  setProfileLat(String(p.lat ?? ""));
+  setProfileLon(String(p.lon ?? ""));
+
+  const nextProfile: Profile = {
+    name: p.name,
+    dobISO: p.birthDateISO,
+    tob: p.birthTime,
+    place: {
+      name: p.placeName,
+      tz: p.birthTz,
+      lat: p.lat,
+      lon: p.lon,
+    },
+  };
+
+  setProfile(nextProfile);
+
+  saveBirthProfile({
+    name: p.name,
+    dobISO: p.birthDateISO,
+    tob: p.birthTime,
+    place: {
+      name: p.placeName,
+      tz: p.birthTz,
+      lat: p.lat,
+      lon: p.lon,
+    },
+  });
+}, []);
+useEffect(() => {
+  const handler = (event: Event) => {
+    const customEvent = event as CustomEvent<string>;
+    if (customEvent.detail) {
+      setProfileTz(customEvent.detail);
+    }
+  };
+
+  window.addEventListener("sarathi:set-tz", handler);
+
+  return () => {
+    window.removeEventListener("sarathi:set-tz", handler);
+  };
+}, []);
   // Mount & restore
   useEffect(() => {
     setMounted(true);
@@ -914,6 +1145,7 @@ console.log("[chat] profile send", {
 const payload: any = {
   question: query,
   message: query,
+  history: buildHistory(messages, query),
   profile: finalProfile,
   birthProfile: finalProfile,
   reportData: (() => {
@@ -1114,12 +1346,23 @@ const stripEvidenceMarker = (s?: string) => {
       {/* Header */}
       <header className="rounded-2xl border border-[color:var(--border)] bg-white/70 backdrop-blur-sm p-4">
         <div className="flex items-center gap-3 flex-wrap">
-          <h1 className="text-lg font-semibold tracking-tight text-foreground md:text-xl">
-            Sārathi · Chat{" "}
-            {profile?.name ? (
-              <span className="astro-text-muted text-sm font-normal">— {profile.name}</span>
-            ) : null}
-          </h1>
+          <div className="flex items-center gap-3">
+  <a
+    href="/sarathi"
+    className="rounded-full border border-[color:var(--border)] bg-white px-3 py-1 text-sm font-medium hover:bg-[color:var(--secondary)]"
+  >
+    ← Sārathi
+  </a>
+
+  <h1 className="text-lg font-semibold tracking-tight text-foreground md:text-xl">
+    Chat
+    {profile?.name ? (
+      <span className="astro-text-muted text-sm font-normal">
+        {" "}— {profile.name}
+      </span>
+    ) : null}
+  </h1>
+</div>
 
           <div className="ml-auto flex items-center gap-2 text-xs">
   {safeMode && (
@@ -1145,15 +1388,6 @@ const stripEvidenceMarker = (s?: string) => {
               : "No birth profile loaded — using default place for timing."}
           </div>
 
-          {!hasProfile && (
-            <a
-              href="/sarathi/life-report"
-              className="rounded-full astro-card px-3 py-1 hover:bg-white/80 hover:shadow-md text-slate-100"
-            >
-              Open Life Report
-            </a>
-          )}
-
           <button
             onClick={() => {
               setMessages([
@@ -1175,7 +1409,154 @@ const stripEvidenceMarker = (s?: string) => {
           </button>
         </div>
       </header>
+<section className="rounded-2xl border border-[color:var(--border)] bg-white/70 p-4">
+  <button
+    type="button"
+    onClick={() => setProfileOpen((v) => !v)}
+    className="flex w-full items-center justify-between text-left"
+  >
+    <div>
+      <div className="text-sm font-semibold text-foreground">Birth Profile</div>
+      <div className="mt-1 text-xs astro-text-muted">
+        {hasProfile
+          ? `Using ${profile?.name || "saved profile"}`
+          : "Add birth details for personalized answers"}
+      </div>
+    </div>
+    <div className="text-xs text-[color:var(--primary)]">
+      {profileOpen ? "Hide" : "Edit"}
+    </div>
+  </button>
 
+  {profileOpen || !hasProfile ? (
+    <div className="mt-4 grid gap-3 md:grid-cols-2">
+      <div className="space-y-1 md:col-span-2">
+        <label className="text-xs text-slate-600">Saved Profile</label>
+        <select
+          value={selectedProfileId}
+          onChange={(e) => {
+            const id = e.target.value;
+            setSelectedProfileId(id);
+            const selected = savedProfiles.find((p) => p.id === id);
+            if (selected) applyProfileToForm(selected);
+          }}
+          className="h-10 w-full rounded-xl border border-[color:var(--border)] bg-white px-3 text-sm text-slate-900"
+        >
+          <option value="">Select saved profile</option>
+          {savedProfiles.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.name}
+            </option>
+          ))}
+        </select>
+        <button
+  type="button"
+  onClick={() => {
+    setSelectedProfileId("");
+    setProfileName("");
+    setProfileDateISO("");
+    setProfileTime("");
+    setProfileTz("");
+    setProfilePlaceName("");
+    setProfileLat("");
+    setProfileLon("");
+    setProfile({});
+  }}
+  className="mt-2 rounded-xl border border-[color:var(--border)] bg-white px-3 py-1.5 text-xs text-foreground hover:bg-[color:var(--secondary)]"
+>
+  + New Profile
+</button>
+      </div>
+
+      <div className="space-y-1">
+        <label className="text-xs text-slate-600">Name</label>
+        <input
+          value={profileName}
+          onChange={(e) => setProfileName(e.target.value)}
+          className="h-10 w-full rounded-xl border border-[color:var(--border)] bg-white px-3 text-sm text-slate-900"
+        />
+      </div>
+
+      <div className="space-y-1">
+        <label className="text-xs text-slate-600">Birth Date</label>
+        <input
+          type="date"
+          value={profileDateISO}
+          onChange={(e) => setProfileDateISO(e.target.value)}
+          className="h-10 w-full rounded-xl border border-[color:var(--border)] bg-white px-3 text-sm text-slate-900"
+        />
+      </div>
+
+      <div className="space-y-1">
+        <label className="text-xs text-slate-600">Birth Time</label>
+        <input
+          type="time"
+          value={profileTime}
+          onChange={(e) => setProfileTime(e.target.value)}
+          className="h-10 w-full rounded-xl border border-[color:var(--border)] bg-white px-3 text-sm text-slate-900"
+        />
+      </div>
+
+      <div className="space-y-1">
+        <label className="text-xs text-slate-600">Time Zone</label>
+        <input
+          value={profileTz}
+          onChange={(e) => setProfileTz(e.target.value)}
+          placeholder="Asia/Dubai"
+          className="h-10 w-full rounded-xl border border-[color:var(--border)] bg-white px-3 text-sm text-slate-900"
+        />
+      </div>
+
+      <div className="space-y-1 md:col-span-2">
+  <label className="text-xs text-slate-600">City of Birth</label>
+
+  <LockingCityAutocomplete
+    value={selectedPlace}
+    onSelect={(p) => {
+      if (!p) {
+        setProfilePlaceName("");
+        setProfileLat("");
+        setProfileLon("");
+        return;
+      }
+
+      setProfilePlaceName(p.name);
+      setProfileLat(String(p.lat));
+      setProfileLon(String(p.lon));
+    }}
+    placeholder="Start typing birth city"
+  />
+
+  {profilePlaceName && profileLat && profileLon ? (
+    <p className="text-xs astro-text-muted">
+      {profilePlaceName} · lat {Number(profileLat).toFixed(3)}, lon{" "}
+      {Number(profileLon).toFixed(3)}
+    </p>
+  ) : null}
+</div>
+
+      <div className="md:col-span-2 flex items-center justify-between gap-3">
+        {existingProfileByName ? (
+          <p className="text-xs text-amber-700">
+            A profile with this name already exists. Saving will update it.
+          </p>
+        ) : (
+          <p className="text-xs astro-text-muted">
+            Save this profile to use it across devices.
+          </p>
+        )}
+
+        <button
+          type="button"
+          onClick={handleSaveChatProfile}
+          className="rounded-xl border border-[color:var(--border)] bg-[color:var(--primary)] px-4 py-2 text-sm font-semibold text-primary-foreground"
+        >
+          {profileButtonLabel}
+        </button>
+      </div>
+    </div>
+  ) : null}
+</section>
       {/* Messages */}
       <div className="min-h-[520px] overflow-y-auto rounded-2xl border border-[color:var(--border)] bg-white/50 p-4 space-y-6">
         {messages.map((msg, idx) => {
@@ -1199,10 +1580,15 @@ console.log("[job-debug] lengths", {
   win0do: Array.isArray(d?.windows?.[0]?.do) ? d.windows[0].do.join(" ").length : 0,
 });
 
-  const now = d?.now?.label || d?.extra?.nowLabel;
-    const core = d?.core;
-    const isDailyOutlook = core?.questionType === "daily_outlook";
-  const timingStrength =
+const now = d?.now?.label || d?.extra?.nowLabel;
+const core = d?.core;
+
+const actualQuestionType =
+  core?.questionType || d?.questionType || d?.debug?.questionType;
+
+const isDailyOutlook = actualQuestionType === "daily_outlook";
+
+const timingStrength =
   core?.questionType === "daily_outlook"
     ? undefined
     : core?.timing?.windows?.[0]?.strength;
@@ -1212,7 +1598,9 @@ console.log("[job-debug] lengths", {
     : core?.timing?.summary;
   const confidenceLevel = core?.confidence?.level;
   const confidenceReason = core?.confidence?.reason;
-  const evidenceBullets = core?.evidenceBullets || d?.evidenceBullets || [];
+  const evidenceBullets = isDailyOutlook
+  ? []
+  : core?.evidenceBullets || d?.evidenceBullets || [];
 const preferLong = intent === "when" || intent === "exact" || view === "narrative";
 
 const fallbackAnswer =
@@ -1326,10 +1714,11 @@ console.log("[chat] keys:", {
 
  const title = core?.title || d?.title || (d?.topic ? Cap(String(d.topic)) : undefined);
 
-  const detailNote = hasProfile
+const detailNote = isDailyOutlook
+  ? ""
+  : hasProfile
   ? "Deeper timing layers are available if you want to explore further."
   : "For precise timing windows, open Life Report once and save your birth profile.";
-
   // show one compact Sarathi answer card
   content = (
     <div className="space-y-3">
@@ -1346,8 +1735,102 @@ console.log("[chat] keys:", {
   timingSummary={timingSummary}
   evidenceBullets={evidenceBullets}
   detailNote={detailNote}
+  isDailyOutlook={isDailyOutlook}
 />
+{/* Phase Psychology */}
+{!isDailyOutlook && d?.phasePsychology?.text ? (
+  <div className="rounded-2xl astro-card p-4 mt-4">
+    <div className="text-xs uppercase tracking-[0.14em] text-slate-500">
+      {d.phasePsychology.title || "Why this phase feels this way"}
+    </div>
 
+    <div className="mt-2 text-sm leading-7 text-slate-700 whitespace-pre-wrap">
+      {d.phasePsychology.text}
+    </div>
+  </div>
+) : null}
+
+{/* Strategy Layer */}
+{!isDailyOutlook && d?.strategy ? (
+  <div className="rounded-2xl astro-card p-4 mt-4">
+    <div className="text-xs uppercase tracking-[0.14em] text-slate-500">
+      {d.strategy.title || "Best strategy right now"}
+    </div>
+
+    {d.strategy.focus ? (
+      <div className="mt-2 text-sm leading-6 text-slate-700">
+        {d.strategy.focus}
+      </div>
+    ) : null}
+
+    {Array.isArray(d.strategy.push) && d.strategy.push.length ? (
+      <div className="mt-3">
+        <div className="text-xs uppercase tracking-[0.12em] text-emerald-700">
+          Lean into
+        </div>
+
+        <ul className="mt-2 list-disc pl-5 space-y-1 text-sm text-slate-700">
+          {d.strategy.push.map((item, i) => (
+            <li key={i}>{item}</li>
+          ))}
+        </ul>
+      </div>
+    ) : null}
+
+    {Array.isArray(d.strategy.avoid) && d.strategy.avoid.length ? (
+      <div className="mt-4">
+        <div className="text-xs uppercase tracking-[0.12em] text-rose-700">
+          Avoid
+        </div>
+
+        <ul className="mt-2 list-disc pl-5 space-y-1 text-sm text-slate-700">
+          {d.strategy.avoid.map((item, i) => (
+            <li key={i}>{item}</li>
+          ))}
+        </ul>
+      </div>
+    ) : null}
+  </div>
+) : null}
+
+{/* Remedies */}
+{!isDailyOutlook && d?.remediesDetailed?.items?.length ? (
+  <div className="rounded-2xl astro-card p-4 mt-4">
+    <div className="text-xs uppercase tracking-[0.14em] text-slate-500">
+      {d.remediesDetailed.title || "Remedies & Alignment"}
+    </div>
+
+    <div className="mt-3 space-y-3">
+      {d.remediesDetailed.items.map((r, i) => (
+        <div
+          key={i}
+          className="rounded-xl border border-[#E8DEF8] bg-white p-3 shadow-sm"
+        >
+          <div className="text-sm font-medium text-slate-800">
+            {r.remedy}
+          </div>
+
+          <div className="mt-1 text-sm leading-6 text-slate-600">
+            {r.why}
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+) : null}
+
+{/* Hidden Opportunity */}
+{!isDailyOutlook && d?.hiddenOpportunity?.text ? (
+  <div className="rounded-2xl astro-card p-4 mt-4 border border-indigo-400/20">
+    <div className="text-xs uppercase tracking-[0.14em] text-[#6E59CF]">
+      {d.hiddenOpportunity.title || "Hidden opportunity in this phase"}
+    </div>
+
+    <div className="mt-2 text-sm leading-7 text-slate-700">
+      {d.hiddenOpportunity.text}
+    </div>
+  </div>
+) : null}
       {/* Optional deep view stays available */}
       {null}
     </div>
@@ -1355,7 +1838,7 @@ console.log("[chat] keys:", {
 } else if (msg.role === "assistant" && msg.content) {
   // keep plain assistant text messages as a simple bubble
   content = (
-    <div className="rounded-2xl border border-[color:var(--border)] bg-white/70 px-4 py-3 text-sm text-slate-100">
+    <div className="rounded-2xl border border-[color:var(--border)] bg-white px-4 py-3 text-sm text-slate-700">
       {msg.content}
     </div>
   );
@@ -1399,7 +1882,7 @@ console.log("[chat] keys:", {
       {/* Input */}
       <div className="flex gap-2">
         <input
-          className="h-11 flex-1 rounded-xl border border-[color:var(--border)] bg-white/80 px-4 text-sm text-slate-900 placeholder:text-slate-300/60 outline-none focus:border-indigo-300/40"
+          className="h-11 flex-1 rounded-xl border border-[color:var(--border)] bg-white/80 px-4 text-sm text-slate-900 placeholder:text-slate-500 outline-none focus:border-indigo-300/40"
           placeholder="Ask about career, money, relationships, health…"
           value={input}
           onChange={(e) => setInput(e.target.value)}

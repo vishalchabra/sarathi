@@ -475,8 +475,6 @@ function getNakshatraLordChain(
   let current = startPlanet;
 
   for (let i = 0; i < maxDepth; i += 1) {
-    chain.push(current);
-
     if (visited.has(current)) {
       return {
         chain,
@@ -484,15 +482,15 @@ function getNakshatraLordChain(
       };
     }
 
+    chain.push(current);
     visited.add(current);
 
     const row = findPlanetRow(planets, current);
-    const signNum =
-      row?.signNum ??
-      toSignNum(row?.sign) ??
-      toSignNum(row?.rashi);
 
-    const next = getDispositor(signNum);
+    const next =
+      normPlanetName(row?.nakshatraLord) ??
+      normPlanetName(row?.starLord) ??
+      null;
 
     if (!next) {
       return {

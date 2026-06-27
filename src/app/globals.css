@@ -266,3 +266,29 @@ body {
     border-color: rgba(88, 63, 122, 0.10);
   }
 }
+@media print {
+  body {
+    background: white !important;
+  }
+
+  button,
+  nav,
+  header,
+  input,
+  select,
+  textarea,
+  .no-print {
+    display: none !important;
+  }
+
+  .print-only-report {
+    display: block !important;
+  }
+
+  .print-report {
+    background: white !important;
+    color: #111827 !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+}

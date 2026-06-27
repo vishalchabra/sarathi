@@ -377,12 +377,7 @@ function buildOneVargaFromTrustedAsc(opts: {
 }) {
   const signFn = getVargaSignFunction(opts.varga);
   const ascSign = signFn(opts.ascLon);
-  if (opts.varga === 60) {
-  const ascInSignDeg = ((opts.ascLon % 30) + 30) % 30;
-  const ascDivisionSize = 30 / 60;
-  const ascDivision = Math.floor(ascInSignDeg / ascDivisionSize);
-
-}
+  
   const planets = opts.natalPlanets
     .filter((p) => typeof p?.lon === "number")
     .map((p) => {
@@ -395,15 +390,6 @@ let plSign: string;
 plSign = signFn(plLon);
 
 const house = computeVargaHouses(ascSign, plSign);
-if (
-      p.planet === "Rahu" ||
-      p.planet === "Ketu" ||
-      opts.varga === 60
-    ) {
-      const inSignDeg = ((plLon % 30) + 30) % 30;
-      const divisionSize = 30 / opts.varga;
-      const division = Math.floor(inSignDeg / divisionSize);
-    }
 
       return {
         name: p.planet,

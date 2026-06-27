@@ -26,7 +26,7 @@ const NAKSHATRAS_27 = [
   "Purva Ashadha",
   "Uttara Ashadha",
   "Shravana",
-  "Dhanishtha",
+  "Dhanishta",
   "Shatabhisha",
   "Purva Bhadrapada",
   "Uttara Bhadrapada",
@@ -709,7 +709,7 @@ function buildChoghadiyaTable(params: {
 function getPanchakStatus(moonLon: number | null) {
   const nk = getNakshatraFromLon(moonLon);
   const PANCHAK_NAKSHATRAS = [
-    "Dhanishtha",
+    "Dhanishta",
     "Shatabhisha",
     "Purva Bhadrapada",
     "Uttara Bhadrapada",
@@ -1009,7 +1009,22 @@ const endDaySunLon = getPlanetLon(endDayPlanets, "Sun");
 const endDayMoonLon = getPlanetLon(endDayPlanets, "Moon");
 const nextTithi = getTithiFromSunMoon(endDaySunLon, endDayMoonLon);
   const nakshatra = getNakshatraFromLon(moonLon);
+const sunriseTransit = sunriseDT
+  ? await getPlanetPositions({
+      dateISO: sunriseDT.toFormat("yyyy-MM-dd'T'HH:mm:ss"),
+      tz: params.timezone,
+      lat: params.lat,
+      lon: params.lon,
+    })
+  : null;
 
+const sunrisePlanets = Array.isArray((sunriseTransit as any)?.planets)
+  ? (sunriseTransit as any).planets
+  : [];
+
+const sunriseMoonLon = getPlanetLon(sunrisePlanets, "Moon");
+
+const nakshatraAtSunrise = getNakshatraFromLon(sunriseMoonLon);
 const nakshatraTill = await findNakshatraChangeTime({
   dateISO: params.dateISO,
   timezone: params.timezone,
@@ -1097,7 +1112,7 @@ const choghadiya = buildChoghadiyaTable({
     sunrise: solarTimes?.sunrise ?? formatHm(sunriseDT) ?? "—",
     sunset: solarTimes?.sunset ?? formatHm(sunsetDT) ?? "—",
     moonrise: null,
-    nakshatraAtSunrise: nakshatra,
+    nakshatraAtSunrise,
     nakshatraNow,
     nextNakshatra,
     tithiTill,

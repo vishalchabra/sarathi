@@ -10,7 +10,7 @@ export type NakshatraPlanetRow = {
   nakshatraLordHouse: number | null;
   nakshatraLordNakshatra: string | null;
   nakshatraLordChain: string[];
-  finalNakshatraDispositor: string | null;
+  finalNakshatraLordDispositor: string | null;
   sign: string | null;
   signNum: number | null;
   house: number | null;
@@ -121,7 +121,7 @@ const NAKSHATRA_LORDS: Record<string, string> = {
   uttarashadha: "Sun",
 
   shravana: "Moon",
-  dhanishtha: "Mars",
+  Dhanishta: "Mars",
   shatabhisha: "Rahu",
   satabhisha: "Rahu",
 
@@ -300,7 +300,7 @@ function buildPlanetNakshatraRow(
       nakshatraLordHouse: null,
       nakshatraLordNakshatra: null,
       nakshatraLordChain: [],
-      finalNakshatraDispositor: null,
+      finalNakshatraLordDispositor: null,
       sign: null,
       signNum: null,
       house: null,
@@ -380,7 +380,7 @@ const nakshatraLordChain = [
   ...nakshatraLordDispositorChainResult.chain,
 ].filter(Boolean) as string[];
 
-const finalNakshatraDispositor =
+const finalNakshatraLordDispositor =
   nakshatraLordDispositorChainResult.finalDispositor ?? null;
   const dispositor = getDispositor(signNum);
   const dispositorChainResult = getDispositorChain(natalPlanets, planet);
@@ -407,7 +407,7 @@ const finalNakshatraDispositor =
     nakshatraLordHouse: nakshatraLordHouse ?? null,
     nakshatraLordNakshatra: nakshatraLordNakshatra ?? null,
     nakshatraLordChain,
-    finalNakshatraDispositor,
+    finalNakshatraLordDispositor,
     sign: sign ?? null,
     signNum: signNum ?? null,
     house: house ?? null,
@@ -486,6 +486,11 @@ export function buildNakshatraContext(params: BuildParams): NakshatraContext {
   const natalPlanets = Array.isArray(natal?.planets) ? natal.planets : [];
 
   const natalRows: NakshatraPlanetRow[] = natalPlanets
+  .filter((p: AnyObj) =>
+    PLANET_NAMES.includes(
+      normPlanetName(p?.planet ?? p?.name) as any
+    )
+  )
     .map((p: AnyObj) =>
       buildPlanetNakshatraRow(
         normPlanetName(p?.planet ?? p?.name),
