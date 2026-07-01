@@ -363,7 +363,12 @@ const SECONDARY_LAYOUT: LayoutConfig = {
   houseArudhaShifts: {},
   houseMarkerShifts: {},
 };
-
+const TECHNICAL_PLACEMENT: Partial<Record<number, "top" | "bottom">> = {
+  2: "top",
+};
+const HOUSE_CONTENT_SHIFT: Partial<Record<number, string>> = {
+  11: "translateY(-12px)",
+};
 function getSignNumber(sign?: string | null) {
   if (!sign) return "—";
   return String(SIGN_TO_NUMBER[sign] ?? "—");
@@ -569,7 +574,46 @@ function remapHouseForReference(house: number, referenceHouse = 1) {
 
   return ((house - ref + 12) % 12) + 1;
 }
+function getTechnicalBadges(
+  houseArudhas: string[],
+  houseMarkers: ChartMarker[],
+  showArudhas: boolean,
+  showUpagrahas: boolean
+) {
+  const badges: {
+    key: string;
+    label: string;
+    type: "arudha" | "upagraha" | "shadow";
+    title?: string;
+  }[] = [];
 
+  if (showArudhas) {
+    for (const label of houseArudhas) {
+      badges.push({
+        key: `arudha-${label}`,
+        label,
+        type: "arudha",
+      });
+    }
+  }
+
+  if (showUpagrahas) {
+    for (const marker of houseMarkers) {
+      badges.push({
+        key: `${marker.type}-${marker.key}`,
+        label: marker.label,
+        type: marker.type,
+        title: getMarkerTitle(marker),
+      });
+    }
+  }
+
+  return badges;
+}
+function formatPlanetDegree(degree?: number | null) {
+  if (typeof degree !== "number") return null;
+  return `${degree.toFixed(1)}°`;
+}
 function getHouseAspectsByHouse(vedicAspects: any, referenceHouse = 1) {
   const map = new Map<number, HouseAspectMarker[]>();
 
@@ -704,6 +748,7 @@ highlightPlanets = [],
 }: MediumNorthIndianChartProps) {
   const [selected, setSelected] = useState<ChartPlanet | null>(null);
   const [hovered, setHovered] = useState<ChartPlanet | null>(null);
+  const [showDegreesOnChart, setShowDegreesOnChart] = useState(true);
   const layout = useMemo(() => getLayoutConfig(title, layoutVariant), [title, layoutVariant]);
   const chartBoxRef = useRef<HTMLDivElement | null>(null);
 const [chartScale, setChartScale] = useState(1);
@@ -753,6 +798,18 @@ const transitPlanetsByHouse = useMemo(
     resolvedLayoutVariant === "primary"
       ? PRIMARY_ASPECT_ANCHORS
       : SECONDARY_ASPECT_ANCHORS;
+      const TECHNICAL_ROW_STYLE: Partial<
+  Record<number, React.CSSProperties>
+> = {
+  2: {
+    marginTop: "-24px",
+    marginBottom: "20px",
+  },
+
+  11: {
+    marginTop: "-10px",
+  },
+};
   const activePlanet = hovered || selected;
   const transitSambandh =
   activePlanet && !activePlanet.isTransit
@@ -767,9 +824,24 @@ const transitPlanetsByHouse = useMemo(
           <p className="mt-1 text-xs text-slate-500">Click any planet to view detailed information.</p>
         </div>
 
-        <div className="text-xs text-slate-900">
-          Ascendant: <span className="font-semibold text-[color:var(--primary)]">{getSignNumber(ascSign)}</span>
-        </div>
+        <div className="flex items-center gap-4 text-xs text-slate-900">
+  <div>
+    Ascendant:{" "}
+    <span className="font-semibold text-[color:var(--primary)]">
+      {getSignNumber(ascSign)}
+    </span>
+  </div>
+
+  <label className="inline-flex items-center gap-2 text-xs text-slate-700">
+    <input
+      type="checkbox"
+      checked={showDegreesOnChart}
+      onChange={(e) => setShowDegreesOnChart(e.target.checked)}
+      className="h-3.5 w-3.5 rounded border-slate-300"
+    />
+    Show degrees
+  </label>
+</div>
       </div>
 
       <div className="mt-4">
@@ -828,32 +900,73 @@ const transitPlanetsByHouse = useMemo(
             const allForTitle = [...housePlanets, ...houseTransitPlanets];
             const houseArudhas = arudhasByHouse.get(anchor.house) ?? [];
             const houseMarkers = markersByHouse.get(anchor.house) ?? [];
-            
+            const technicalBadges = getTechnicalBadges(
+  houseArudhas,
+  houseMarkers,
+  showArudhas,
+  showUpagrahas
+);
+const technicalPlacement = TECHNICAL_PLACEMENT[anchor.house] ?? "bottom";
+const houseContentShift =
+  HOUSE_CONTENT_SHIFT[anchor.house] ?? "translateY(0px)";
+const technicalRow = technicalBadges.length ? (
+  <div
+    className="flex w-full flex-wrap justify-center gap-x-[5px] gap-y-[1px]"
+    style={{
+      lineHeight: "9px",
+      maxHeight: "18px",
+      overflow: "hidden",
+    }}
+  >
+    {technicalBadges.map((badge) => (
+      <span
+        key={`${anchor.house}-${badge.key}`}
+        title={badge.title}
+        className={
+          badge.type === "arudha"
+            ? "text-[7px] font-semibold text-fuchsia-600"
+            : badge.type === "upagraha"
+              ? "text-[7px] font-semibold text-violet-600"
+              : "text-[7px] font-semibold text-cyan-600"
+        }
+      >
+        {badge.label}
+      </span>
+    ))}
+  </div>
+) : null;
             const houseSarva = sarvaAshtakvarga?.[anchor.house - 1];
             return (
-              <div
-                key={anchor.house}
-                className="absolute"
-               style={{
-  left: anchor.x - anchor.width / 2,
-  top: anchor.y,
-  width: anchor.width,
-  minHeight: anchor.minHeight ?? 104,
-}}
-              >
-                
+             <div
+  key={anchor.house}
+  className="absolute"
+  style={{
+    left: anchor.x - anchor.width / 2,
+    top: anchor.y,
+    width: anchor.width,
+    minHeight: anchor.minHeight ?? 104,
+  }}
+>
+  <div style={{ transform: houseContentShift }}>
+    <div className="flex flex-col items-center">
+      <div
+        className={`text-[15px] font-semibold leading-none ${
+          isAscHouse ? "text-indigo-700" : "text-slate-700"
+        }`}
+        style={{ transform: houseLabelShift }}
+      >
+        {houseLabel}
+        {typeof houseSarva === "number" ? (
+          <span className="ml-1 text-[9px] font-medium text-slate-400">
+            {houseSarva}
+          </span>
+        ) : null}
+      </div>
+    </div>
 
-                <div className="flex flex-col items-center">
-                  <div
-                    className={`text-[15px] font-semibold leading-none ${isAscHouse ? "text-indigo-700" : "text-slate-700"}`}
-                    style={{ transform: houseLabelShift }}
-                  >
-                    {houseLabel}
-                    {typeof houseSarva === "number" ? (
-                      <span className="ml-1 text-[9px] font-medium text-slate-400">{houseSarva}</span>
-                    ) : null}
-                  </div>
-                </div>
+    {technicalPlacement === "top" ? (
+      <div className="mt-[3px]">{technicalRow}</div>
+    ) : null}
                 <div
                   className="mt-1 grid grid-cols-2 content-start justify-items-center gap-1"
                   style={{
@@ -892,7 +1005,21 @@ const transitPlanetsByHouse = useMemo(
                       }`}
                       title={getPlanetTitle(p)}
                     >
-                      {formatPlanetLabel(p)}
+      <span className="flex flex-col items-center leading-none">
+  <span className="font-semibold text-[10px]">
+    <span className="flex flex-col items-center leading-none">
+  <span>{formatPlanetLabel(p)}</span>
+
+  
+</span>
+  </span>
+
+  {showDegreesOnChart && typeof p.degree === "number" ? (
+    <span className="mt-[2px] text-[8px] font-medium text-orange-700">
+      {p.degree.toFixed(1)}°
+    </span>
+  ) : null}
+</span>
                     </button>
                   ))}
 
@@ -923,60 +1050,28 @@ const transitPlanetsByHouse = useMemo(
                       }`}
                       title={getPlanetTitle(p)}
                     >
-                      {formatPlanetLabel(p)}
+                        <span className="flex flex-col items-center leading-none">
+  <span className="font-semibold text-[10px]">
+    <span className="flex flex-col items-center leading-none">
+  <span>{formatPlanetLabel(p)}</span>
+</span>
+  </span>
+
+  {showDegreesOnChart && typeof p.degree === "number" ? (
+    <span className="mt-[2px] text-[8px] font-medium text-orange-700">
+      {p.degree.toFixed(1)}°
+    </span>
+  ) : null}
+</span>
                     </button>
                   ))}
                 </div>
 
-                {showArudhas && houseArudhas.length ? (
-                  <div
-                    className="mt-1 flex w-full flex-wrap justify-center gap-[2px] opacity-90"
-                    style={{ lineHeight: "9px" }}
-                  >
-                    {houseArudhas.map((label) => {
-                      const isAL = label === "AL";
-                      const isUL = label === "UL";
-
-                      return (
-                        <span
-                          key={`${anchor.house}-${label}`}
-                          className={
-                            isAL
-                              ? "rounded bg-fuchsia-100 px-[2px] py-[1px] text-[7px] font-bold text-fuchsia-700"
-                              : isUL
-                                ? "rounded bg-fuchsia-50 px-[2px] py-[1px] text-[7px] font-semibold text-fuchsia-600"
-                                : "rounded bg-fuchsia-50 px-[2px] py-[1px] text-[7px] font-medium text-fuchsia-500"
-                          }
-                          title={`${label} in ${getHouseSignName(anchor.house, ascSign) ?? "—"}`}
-                        >
-                          {label}
-                        </span>
-                      );
-                    })}
-                  </div>
-                ) : null}
-
-                {showUpagrahas && houseMarkers.length ? (
-                  <div
-                    className="mt-1 flex w-full flex-wrap justify-center gap-[2px]"
-                    style={{ lineHeight: "9px" }}
-                  >
-                    {houseMarkers.map((marker) => (
-                      <span
-                        key={`${anchor.house}-${marker.type}-${marker.key}`}
-                        className={
-                          marker.type === "upagraha"
-                            ? "rounded-sm border border-violet-100 bg-violet-50 px-[2px] py-[1px] text-[7px] font-semibold text-violet-700"
-                            : "rounded-sm border border-cyan-100 bg-cyan-50 px-[2px] py-[1px] text-[7px] font-semibold text-cyan-700"
-                        }
-                        title={getMarkerTitle(marker)}
-                      >
-                        {marker.label}
-                      </span>
-                    ))}
-                  </div>
-                ) : null}
-              </div>
+               {technicalPlacement === "bottom" ? (
+  <div className="mt-[3px]">{technicalRow}</div>
+) : null}
+  </div>
+</div>
             );
           })}
 
