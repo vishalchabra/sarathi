@@ -92,6 +92,8 @@ const PLANET_SHORT: Record<string, string> = {
   Neptune: "Ne",
   Pluto: "Pl",
 };
+
+
 const UPAGRAHA_LABELS: Record<string, string> = {
   gulika: "Gk",
   mandi: "Md",
@@ -366,7 +368,50 @@ const TECHNICAL_PLACEMENT: Partial<Record<number, "top" | "bottom">> = {
   2: "top",
 };
 const HOUSE_CONTENT_SHIFT: Partial<Record<number, string>> = {
+  // Bottom triangular houses need a small lift so content does not sit on the chart border.
+  6: "translateY(-4px)",
+  8: "translateY(-4px)",
+  // House 11 / Taurus-sign area: lift, but not too much, otherwise it starts colliding with upper labels.
   11: "translateY(-22px)",
+};
+
+const HOUSE_PLANET_WRAPS: Partial<Record<number, string>> = {
+  // Give the tight outer houses a wider local flow so crowded labels can breathe.
+  2: "translate(-14px, -2px)",
+  6: "translate(-8px, -2px)",
+  8: "translate(-8px, -2px)",
+  11: "translate(-10px, 0px)",
+  12: "translate(10px, -2px)",
+};
+
+const HOUSE_PLANET_FLOW_STYLE: Partial<Record<number, React.CSSProperties>> = {
+  // Outer triangular houses need wider local rows than the default anchor width.
+  // This keeps two objects side-by-side instead of stacking into the neighbouring house.
+  2: {
+    width: 124,
+    marginLeft: -14,
+    justifyContent: "space-between",
+  },
+  12: {
+    width: 124,
+    marginLeft: -14,
+    justifyContent: "space-between",
+  },
+  6: {
+    width: 118,
+    marginLeft: -12,
+    justifyContent: "flex-start",
+  },
+  8: {
+    width: 118,
+    marginLeft: -12,
+    justifyContent: "flex-start",
+  },
+  11: {
+    width: 118,
+    marginLeft: -14,
+    justifyContent: "center",
+  },
 };
 function getSignNumber(sign?: string | null) {
   if (!sign) return "—";
@@ -648,6 +693,27 @@ function getNakshatraShort(nakshatra?: string | null) {
 
   return map[nakshatra] ?? nakshatra.slice(0, 2);
 }
+
+function getPlanetButtonDensity(totalPlanets: number, showNakshatra: boolean, compact: boolean) {
+  if (compact || totalPlanets >= 5) return "tight";
+  if (showNakshatra || totalPlanets >= 3) return "medium";
+  return "normal";
+}
+
+function getPlanetButtonSizeClass(density: "normal" | "medium" | "tight") {
+  if (density === "tight") return "min-w-[25px] rounded px-1 py-[1px] text-[8px]";
+  if (density === "medium") return "min-w-[28px] rounded-md px-1 py-[1px] text-[9px]";
+  return "min-w-[31px] rounded-md px-1.5 py-[2px] text-[10px]";
+}
+
+function getPlanetDegreeClass(isTransitPlanet: boolean, density: "normal" | "medium" | "tight") {
+  const size = density === "tight" ? "text-[6px]" : "text-[7px]";
+  return `${size} mt-[0px] font-semibold ${isTransitPlanet ? "text-emerald-700" : "text-orange-700"}`;
+}
+
+function getNakshatraClass(density: "normal" | "medium" | "tight") {
+  return `${density === "tight" ? "text-[6px]" : "text-[7px]"} mt-[0px] font-medium text-slate-500`;
+}
 function getHouseAspectsByHouse(vedicAspects: any, referenceHouse = 1) {
   const map = new Map<number, HouseAspectMarker[]>();
 
@@ -847,7 +913,7 @@ const transitPlanetsByHouse = useMemo(
           <p className="mt-1 text-xs text-slate-500">Click any planet to view detailed information.</p>
         </div>
 
-        <div className="flex items-center gap-4 text-xs text-slate-900">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-900">
   <div>
     Ascendant:{" "}
     <span className="font-semibold text-[color:var(--primary)]">
@@ -862,17 +928,18 @@ const transitPlanetsByHouse = useMemo(
       onChange={(e) => setShowDegreesOnChart(e.target.checked)}
       className="h-3.5 w-3.5 rounded border-slate-300"
     />
-    Show degrees
+    Degrees
   </label>
+
   <label className="inline-flex items-center gap-2 text-xs text-slate-700">
-  <input
-    type="checkbox"
-    checked={showNakshatraOnChart}
-    onChange={(e) => setShowNakshatraOnChart(e.target.checked)}
-    className="h-3.5 w-3.5 rounded border-slate-300"
-  />
-  Nakshatra
-</label>
+    <input
+      type="checkbox"
+      checked={showNakshatraOnChart}
+      onChange={(e) => setShowNakshatraOnChart(e.target.checked)}
+      className="h-3.5 w-3.5 rounded border-slate-300"
+    />
+    Nakshatra
+  </label>
 </div>
       </div>
 
@@ -940,12 +1007,22 @@ const transitPlanetsByHouse = useMemo(
 const technicalPlacement = TECHNICAL_PLACEMENT[anchor.house] ?? "bottom";
 const houseContentShift =
   HOUSE_CONTENT_SHIFT[anchor.house] ?? "translateY(0px)";
+const housePlanetWrapShift =
+  HOUSE_PLANET_WRAPS[anchor.house] ?? "translate(0px, 0px)";
+const housePlanetFlowStyle =
+  HOUSE_PLANET_FLOW_STYLE[anchor.house] ?? {};
+const planetDensity = getPlanetButtonDensity(
+  shownPlanets.length,
+  showNakshatraOnChart,
+  compactPlanetLabels
+);
+const planetButtonSizeClass = getPlanetButtonSizeClass(planetDensity);
 const technicalRow = technicalBadges.length ? (
   <div
-    className="flex w-full flex-wrap justify-center gap-x-[5px] gap-y-[1px]"
+    className="flex w-full flex-wrap justify-center gap-x-[4px] gap-y-0"
     style={{
-      lineHeight: "9px",
-      maxHeight: "18px",
+      lineHeight: "8px",
+      maxHeight: "14px",
       overflow: "hidden",
     }}
   >
@@ -955,10 +1032,10 @@ const technicalRow = technicalBadges.length ? (
         title={badge.title}
         className={
           badge.type === "arudha"
-            ? "text-[7px] font-semibold text-fuchsia-600"
+            ? "text-[6px] font-semibold text-fuchsia-600"
             : badge.type === "upagraha"
-              ? "text-[7px] font-semibold text-violet-600"
-              : "text-[7px] font-semibold text-cyan-600"
+              ? "text-[6px] font-semibold text-violet-600"
+              : "text-[6px] font-semibold text-cyan-600"
         }
       >
         {badge.label}
@@ -999,10 +1076,11 @@ const technicalRow = technicalBadges.length ? (
       <div className="mt-[3px]">{technicalRow}</div>
     ) : null}
                 <div
-                  className="mt-1 flex flex-wrap content-start justify-center gap-1"
+                  className="mt-1 flex flex-wrap content-start justify-center gap-x-1 gap-y-[3px]"
                   style={{
                     maxHeight: houseMaxHeight,
-                    transform: planetShift,
+                    transform: `${planetShift} ${housePlanetWrapShift}`,
+                    ...housePlanetFlowStyle,
                   }}
                   title={allForTitle.map(getPlanetTitle).join(" • ")}
                 >
@@ -1025,11 +1103,7 @@ const technicalRow = technicalBadges.length ? (
                           setSelected(p);
                           onPlanetClick?.(p);
                         }}
-                        className={`${
-                          compactPlanetLabels
-                            ? "max-w-[34px] rounded px-1 py-[1px] text-[9px]"
-                            : "rounded-md px-1.5 py-0.5 text-[10px]"
-                        } font-medium leading-none shadow-sm transition ${
+                        className={`${planetButtonSizeClass} font-medium leading-none shadow-sm transition ${
                           p.isSynastryOverlay
                             ? "border border-violet-200 bg-violet-50 text-violet-700"
                             : isTransitPlanet
@@ -1051,19 +1125,19 @@ const technicalRow = technicalBadges.length ? (
                         title={getPlanetTitle(p)}
                       >
                         <span className="flex flex-col items-center leading-none">
-  <span>{formatPlanetLabel(p)}</span>
-
   {showDegreesOnChart && typeof p.degree === "number" ? (
-    <span className="mt-[2px] text-[7px] font-semibold text-emerald-700">
+    <span className={getPlanetDegreeClass(isTransitPlanet, planetDensity)}>
       {p.degree.toFixed(1)}°
     </span>
   ) : null}
 
+  <span className="font-semibold">{formatPlanetLabel(p)}</span>
+
   {showNakshatraOnChart && getNakshatraShort(p.nakshatra) ? (
-  <span className="mt-[1px] text-[7px] font-medium text-slate-500">
-    {getNakshatraShort(p.nakshatra)}
-  </span>
-) : null}
+    <span className={getNakshatraClass(planetDensity)}>
+      {getNakshatraShort(p.nakshatra)}
+    </span>
+  ) : null}
 </span>
                       </button>
                     );
