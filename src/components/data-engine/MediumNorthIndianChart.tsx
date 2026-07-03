@@ -92,7 +92,6 @@ const PLANET_SHORT: Record<string, string> = {
   Neptune: "Ne",
   Pluto: "Pl",
 };
-
 const UPAGRAHA_LABELS: Record<string, string> = {
   gulika: "Gk",
   mandi: "Md",
@@ -367,7 +366,7 @@ const TECHNICAL_PLACEMENT: Partial<Record<number, "top" | "bottom">> = {
   2: "top",
 };
 const HOUSE_CONTENT_SHIFT: Partial<Record<number, string>> = {
-  11: "translateY(-12px)",
+  11: "translateY(-22px)",
 };
 function getSignNumber(sign?: string | null) {
   if (!sign) return "—";
@@ -614,6 +613,41 @@ function formatPlanetDegree(degree?: number | null) {
   if (typeof degree !== "number") return null;
   return `${degree.toFixed(1)}°`;
 }
+function getNakshatraShort(nakshatra?: string | null) {
+  if (!nakshatra) return null;
+
+  const map: Record<string, string> = {
+    Ashwini: "As",
+    Bharani: "Bh",
+    Krittika: "Kr",
+    Rohini: "Ro",
+    Mrigashira: "Mr",
+    Ardra: "Ar",
+    Punarvasu: "Pu",
+    Pushya: "Ps",
+    Ashlesha: "Al",
+    Magha: "Mg",
+    "Purva Phalguni": "PF",
+    "Uttara Phalguni": "UF",
+    Hasta: "Ha",
+    Chitra: "Ch",
+    Swati: "Sw",
+    Vishakha: "Vi",
+    Anuradha: "An",
+    Jyeshtha: "Jy",
+    Mula: "Mu",
+    "Purva Ashadha": "PA",
+    "Uttara Ashadha": "UA",
+    Shravana: "Sh",
+    Dhanishta: "Dh",
+    Shatabhisha: "SB",
+    "Purva Bhadrapada": "PB",
+    "Uttara Bhadrapada": "UB",
+    Revati: "Re",
+  };
+
+  return map[nakshatra] ?? nakshatra.slice(0, 2);
+}
 function getHouseAspectsByHouse(vedicAspects: any, referenceHouse = 1) {
   const map = new Map<number, HouseAspectMarker[]>();
 
@@ -749,6 +783,7 @@ highlightPlanets = [],
   const [selected, setSelected] = useState<ChartPlanet | null>(null);
   const [hovered, setHovered] = useState<ChartPlanet | null>(null);
   const [showDegreesOnChart, setShowDegreesOnChart] = useState(true);
+  const [showNakshatraOnChart, setShowNakshatraOnChart] = useState(false);
   const layout = useMemo(() => getLayoutConfig(title, layoutVariant), [title, layoutVariant]);
   const chartBoxRef = useRef<HTMLDivElement | null>(null);
 const [chartScale, setChartScale] = useState(1);
@@ -798,18 +833,6 @@ const transitPlanetsByHouse = useMemo(
     resolvedLayoutVariant === "primary"
       ? PRIMARY_ASPECT_ANCHORS
       : SECONDARY_ASPECT_ANCHORS;
-      const TECHNICAL_ROW_STYLE: Partial<
-  Record<number, React.CSSProperties>
-> = {
-  2: {
-    marginTop: "-24px",
-    marginBottom: "20px",
-  },
-
-  11: {
-    marginTop: "-10px",
-  },
-};
   const activePlanet = hovered || selected;
   const transitSambandh =
   activePlanet && !activePlanet.isTransit
@@ -841,6 +864,15 @@ const transitPlanetsByHouse = useMemo(
     />
     Show degrees
   </label>
+  <label className="inline-flex items-center gap-2 text-xs text-slate-700">
+  <input
+    type="checkbox"
+    checked={showNakshatraOnChart}
+    onChange={(e) => setShowNakshatraOnChart(e.target.checked)}
+    className="h-3.5 w-3.5 rounded border-slate-300"
+  />
+  Nakshatra
+</label>
 </div>
       </div>
 
@@ -890,8 +922,7 @@ const transitPlanetsByHouse = useMemo(
           {layout.anchors.map((anchor) => {
             const housePlanets = planetsByHouse.get(anchor.house) ?? [];
             const houseTransitPlanets = (transitPlanetsByHouse.get(anchor.house) ?? []).map((p) => ({ ...p, isTransit: true }));
-            const shownNatalPlanets = housePlanets;
-            const shownTransitPlanets = houseTransitPlanets;
+            const shownPlanets = [...housePlanets, ...houseTransitPlanets];
             const isAscHouse = anchor.house === 1;
             const houseLabel = getHouseSignNumber(anchor.house, ascSign);
             const houseLabelShift = layout.houseLabelShifts?.[anchor.house] ?? "translateY(0px)";
@@ -968,106 +999,78 @@ const technicalRow = technicalBadges.length ? (
       <div className="mt-[3px]">{technicalRow}</div>
     ) : null}
                 <div
-                  className="mt-1 grid grid-cols-2 content-start justify-items-center gap-1"
+                  className="mt-1 flex flex-wrap content-start justify-center gap-1"
                   style={{
                     maxHeight: houseMaxHeight,
                     transform: planetShift,
                   }}
                   title={allForTitle.map(getPlanetTitle).join(" • ")}
                 >
-                  {shownNatalPlanets.map((p, idx) => (
-                    <button
-                      key={`natal-${anchor.house}-${p.planet}-${idx}`}
-                      type="button"
-                      onMouseEnter={() => setHovered(p)}
-                      onMouseLeave={() =>
-                        setHovered((curr) => (curr?.planet === p.planet && !curr?.isTransit ? null : curr))
-                      }
-                      onClick={() => {
-                        setSelected(p);
-                        onPlanetClick?.(p);
-                      }}
-                      className={`${
-  compactPlanetLabels
-    ? "max-w-[34px] rounded px-1 py-[1px] text-[9px]"
-    : "rounded-md px-1.5 py-0.5 text-[10px]"
-} font-medium leading-none shadow-sm transition ${
-                        p.isSynastryOverlay
-  ? "border border-violet-200 bg-violet-50 text-violet-700"
-  :
-                        p.planet === "Moon"
-  ? "border border-orange-200 bg-orange-50 text-orange-700"
-  : selected?.planet === p.planet && !selected?.isTransit
-    ? "border border-orange-300 bg-orange-100 text-orange-800"
-    : hovered?.planet === p.planet && !hovered?.isTransit
-      ? "border border-orange-200 bg-orange-50 text-orange-700"
-      : "border border-orange-200 bg-orange-50 text-orange-700 hover:bg-orange-100"
-                      }`}
-                      title={getPlanetTitle(p)}
-                    >
-      <span className="flex flex-col items-center leading-none">
-  <span className="font-semibold text-[10px]">
-    <span className="flex flex-col items-center leading-none">
-  <span>{formatPlanetLabel(p)}</span>
+                  {shownPlanets.map((p, idx) => {
+                    const isTransitPlanet = !!p.isTransit;
+                    const isActive = selected?.planet === p.planet && selected?.isTransit === p.isTransit;
+                    const isHovered = hovered?.planet === p.planet && hovered?.isTransit === p.isTransit;
 
-  
-</span>
-  </span>
-
-  {showDegreesOnChart && typeof p.degree === "number" ? (
-    <span className="mt-[2px] text-[8px] font-medium text-orange-700">
-      {p.degree.toFixed(1)}°
-    </span>
-  ) : null}
-</span>
-                    </button>
-                  ))}
-
-                  {shownTransitPlanets.map((p, idx) => (
-                    <button
-                      key={`transit-${anchor.house}-${p.planet}-${idx}`}
-                      type="button"
-                      onMouseEnter={() => setHovered(p)}
-                      onMouseLeave={() =>
-                        setHovered((curr) => (curr?.planet === p.planet && curr?.isTransit ? null : curr))
-                      }
-                      onClick={() => {
-                        setSelected(p);
-                        onPlanetClick?.(p);
-                      }}
-                      className={`${
-  compactPlanetLabels
-    ? "max-w-[34px] rounded px-1 py-[1px] text-[9px]"
-    : "rounded-md px-1.5 py-0.5 text-[10px]"
-} font-medium leading-none shadow-sm transition ${
-                        highlightSet.has(p.planet)
-  ? "border border-indigo-300 bg-indigo-50 text-indigo-700"
-  : selected?.planet === p.planet && selected?.isTransit
-    ? "border border-emerald-200 bg-emerald-100 text-emerald-700"
-    : hovered?.planet === p.planet && hovered?.isTransit
-      ? "border border-emerald-200 bg-emerald-50 text-emerald-700"
-      : "border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
-                      }`}
-                      title={getPlanetTitle(p)}
-                    >
+                    return (
+                      <button
+                        key={`${isTransitPlanet ? "transit" : "natal"}-${anchor.house}-${p.planet}-${idx}`}
+                        type="button"
+                        onMouseEnter={() => setHovered(p)}
+                        onMouseLeave={() =>
+                          setHovered((curr) =>
+                            curr?.planet === p.planet && curr?.isTransit === p.isTransit ? null : curr
+                          )
+                        }
+                        onClick={() => {
+                          setSelected(p);
+                          onPlanetClick?.(p);
+                        }}
+                        className={`${
+                          compactPlanetLabels
+                            ? "max-w-[34px] rounded px-1 py-[1px] text-[9px]"
+                            : "rounded-md px-1.5 py-0.5 text-[10px]"
+                        } font-medium leading-none shadow-sm transition ${
+                          p.isSynastryOverlay
+                            ? "border border-violet-200 bg-violet-50 text-violet-700"
+                            : isTransitPlanet
+                              ? highlightSet.has(p.planet)
+                                ? "border border-indigo-300 bg-indigo-50 text-indigo-700"
+                                : isActive
+                                  ? "border border-emerald-200 bg-emerald-100 text-emerald-700"
+                                  : isHovered
+                                    ? "border border-emerald-200 bg-emerald-50 text-emerald-700"
+                                    : "border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                              : p.planet === "Moon"
+                                ? "border border-orange-200 bg-orange-50 text-orange-700"
+                                : isActive
+                                  ? "border border-orange-300 bg-orange-100 text-orange-800"
+                                  : isHovered
+                                    ? "border border-orange-200 bg-orange-50 text-orange-700"
+                                    : "border border-orange-200 bg-orange-50 text-orange-700 hover:bg-orange-100"
+                        }`}
+                        title={getPlanetTitle(p)}
+                      >
                         <span className="flex flex-col items-center leading-none">
-  <span className="font-semibold text-[10px]">
-    <span className="flex flex-col items-center leading-none">
   <span>{formatPlanetLabel(p)}</span>
-</span>
-  </span>
 
   {showDegreesOnChart && typeof p.degree === "number" ? (
-    <span className="mt-[2px] text-[8px] font-medium text-orange-700">
+    <span className="mt-[2px] text-[7px] font-semibold text-emerald-700">
       {p.degree.toFixed(1)}°
     </span>
   ) : null}
+
+  {showNakshatraOnChart && getNakshatraShort(p.nakshatra) ? (
+  <span className="mt-[1px] text-[7px] font-medium text-slate-500">
+    {getNakshatraShort(p.nakshatra)}
+  </span>
+) : null}
 </span>
-                    </button>
-                  ))}
+                      </button>
+                    );
+                  })}
                 </div>
 
-               {technicalPlacement === "bottom" ? (
+{technicalPlacement === "bottom" ? (
   <div className="mt-[3px]">{technicalRow}</div>
 ) : null}
   </div>
