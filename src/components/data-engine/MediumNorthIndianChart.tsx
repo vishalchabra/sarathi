@@ -251,8 +251,8 @@ const PRIMARY_LAYOUT: LayoutConfig = {
     12: "translate(0,-2px)",
   },
   houseLabelShifts: {
-    2: "translateY(6px)",
-    12: "translateY(6px)",
+    2: "translateY(2px)",
+    12: "translateY(2px)",
   },
   houseMaxHeights: {
     1: 72,
@@ -344,8 +344,8 @@ const SECONDARY_LAYOUT: LayoutConfig = {
     12: "translate(0,-1px)",
   },
   houseLabelShifts: {
-    2: "translateY(4px)",
-    12: "translateY(4px)",
+    2: "translateY(2px)",
+    12: "translateY(2px)",
   },
   houseMaxHeights: {
     1: 72,
@@ -365,54 +365,35 @@ const SECONDARY_LAYOUT: LayoutConfig = {
   houseMarkerShifts: {},
 };
 const TECHNICAL_PLACEMENT: Partial<Record<number, "top" | "bottom">> = {
+  // Top triangular houses have less vertical room near the lower edge,
+  // so keep technical labels above the planet group.
   2: "top",
+  12: "top",
 };
 const HOUSE_CONTENT_SHIFT: Partial<Record<number, string>> = {
-  // Bottom triangular houses need a small lift so content does not sit on the chart border.
   6: "translateY(-4px)",
   8: "translateY(-4px)",
-  // House 11 / Taurus-sign area: lift, but not too much, otherwise it starts colliding with upper labels.
   11: "translateY(-22px)",
+  12: "translateY(2px)",
 };
 
 const HOUSE_PLANET_WRAPS: Partial<Record<number, string>> = {
-  // Give the tight outer houses a wider local flow so crowded labels can breathe.
-  2: "translate(-14px, -2px)",
-  6: "translate(-8px, -2px)",
-  8: "translate(-8px, -2px)",
-  11: "translate(-10px, 0px)",
-  12: "translate(10px, -2px)",
+  // Top triangular houses: move planet group below the zodiac number and technical row.
+  2: "translate(-4px, 14px)",
+  12: "translate(4px, 14px)",
+  // Tight outer houses: small horizontal breathing room.
+  6: "translate(-4px, 0px)",
+  8: "translate(-4px, 0px)",
+  11: "translate(-8px, 0px)",
 };
 
-const HOUSE_PLANET_FLOW_STYLE: Partial<Record<number, React.CSSProperties>> = {
-  // Outer triangular houses need wider local rows than the default anchor width.
-  // This keeps two objects side-by-side instead of stacking into the neighbouring house.
-  2: {
-    width: 124,
-    marginLeft: -14,
-    justifyContent: "space-between",
-  },
-  12: {
-    width: 124,
-    marginLeft: -14,
-    justifyContent: "space-between",
-  },
-  6: {
-    width: 118,
-    marginLeft: -12,
-    justifyContent: "flex-start",
-  },
-  8: {
-    width: 118,
-    marginLeft: -12,
-    justifyContent: "flex-start",
-  },
-  11: {
-    width: 118,
-    marginLeft: -14,
-    justifyContent: "center",
-  },
+const HOUSE_TECHNICAL_ROW_SHIFTS: Partial<Record<number, string>> = {
+  // Slightly lift top technical rows so they do not hide behind the planet buttons.
+  2: "translateY(-2px)",
+  12: "translateY(-2px)",
+  11: "translateY(-2px)",
 };
+
 function getSignNumber(sign?: string | null) {
   if (!sign) return "—";
   return String(SIGN_TO_NUMBER[sign] ?? "—");
@@ -443,7 +424,7 @@ function formatPlanetLabel(p: ChartPlanet) {
   const short = PLANET_SHORT[planetName] ?? String(planetName).slice(0, 2);
   const transitPrefix = p?.isTransit ? "T-" : "";
 
-  return `${transitPrefix}${short}${p.retrograde ? "*" : ""}`;
+  return `${transitPrefix}${short}`;
 }
 function getPlanetsByHouse(
   planets: ChartPlanet[],
@@ -701,18 +682,18 @@ function getPlanetButtonDensity(totalPlanets: number, showNakshatra: boolean, co
 }
 
 function getPlanetButtonSizeClass(density: "normal" | "medium" | "tight") {
-  if (density === "tight") return "min-w-[25px] rounded px-1 py-[1px] text-[8px]";
-  if (density === "medium") return "min-w-[28px] rounded-md px-1 py-[1px] text-[9px]";
-  return "min-w-[31px] rounded-md px-1.5 py-[2px] text-[10px]";
+  if (density === "tight") return "min-w-[26px] rounded px-1 py-[1px] text-[8px]";
+  if (density === "medium") return "min-w-[29px] rounded-md px-1 py-[2px] text-[9px]";
+  return "min-w-[32px] rounded-md px-1.5 py-0.5 text-[10px]";
 }
 
 function getPlanetDegreeClass(isTransitPlanet: boolean, density: "normal" | "medium" | "tight") {
   const size = density === "tight" ? "text-[6px]" : "text-[7px]";
-  return `${size} mt-[0px] font-semibold ${isTransitPlanet ? "text-emerald-700" : "text-orange-700"}`;
+  return `${size} mt-[1px] font-semibold ${isTransitPlanet ? "text-emerald-700" : "text-orange-700"}`;
 }
 
 function getNakshatraClass(density: "normal" | "medium" | "tight") {
-  return `${density === "tight" ? "text-[6px]" : "text-[7px]"} mt-[0px] font-medium text-slate-500`;
+  return `${density === "tight" ? "text-[6px]" : "text-[7px]"} mt-[1px] font-medium text-slate-500`;
 }
 function getHouseAspectsByHouse(vedicAspects: any, referenceHouse = 1) {
   const map = new Map<number, HouseAspectMarker[]>();
@@ -1005,12 +986,18 @@ const transitPlanetsByHouse = useMemo(
   showUpagrahas
 );
 const technicalPlacement = TECHNICAL_PLACEMENT[anchor.house] ?? "bottom";
+const technicalRowShift: Partial<Record<number, string>> = {
+  12: "translateY(10px)",
+};
+
+const technicalTransform =
+  technicalRowShift[anchor.house] ?? "translateY(0px)";
 const houseContentShift =
   HOUSE_CONTENT_SHIFT[anchor.house] ?? "translateY(0px)";
 const housePlanetWrapShift =
   HOUSE_PLANET_WRAPS[anchor.house] ?? "translate(0px, 0px)";
-const housePlanetFlowStyle =
-  HOUSE_PLANET_FLOW_STYLE[anchor.house] ?? {};
+const houseTechnicalRowShift =
+  HOUSE_TECHNICAL_ROW_SHIFTS[anchor.house] ?? "translateY(0px)";
 const planetDensity = getPlanetButtonDensity(
   shownPlanets.length,
   showNakshatraOnChart,
@@ -1022,7 +1009,7 @@ const technicalRow = technicalBadges.length ? (
     className="flex w-full flex-wrap justify-center gap-x-[4px] gap-y-0"
     style={{
       lineHeight: "8px",
-      maxHeight: "14px",
+      maxHeight: "16px",
       overflow: "hidden",
     }}
   >
@@ -1073,14 +1060,18 @@ const technicalRow = technicalBadges.length ? (
     </div>
 
     {technicalPlacement === "top" ? (
-      <div className="mt-[3px]">{technicalRow}</div>
-    ) : null}
+  <div
+    className="mt-[3px]"
+    style={{ transform: technicalTransform }}
+  >
+    {technicalRow}
+  </div>
+) : null}
                 <div
                   className="mt-1 flex flex-wrap content-start justify-center gap-x-1 gap-y-[3px]"
                   style={{
                     maxHeight: houseMaxHeight,
-                    transform: `${planetShift} ${housePlanetWrapShift}`,
-                    ...housePlanetFlowStyle,
+                    transform: `${housePlanetWrapShift} ${planetShift}`,
                   }}
                   title={allForTitle.map(getPlanetTitle).join(" • ")}
                 >
@@ -1107,20 +1098,32 @@ const technicalRow = technicalBadges.length ? (
                           p.isSynastryOverlay
                             ? "border border-violet-200 bg-violet-50 text-violet-700"
                             : isTransitPlanet
-                              ? highlightSet.has(p.planet)
-                                ? "border border-indigo-300 bg-indigo-50 text-indigo-700"
-                                : isActive
-                                  ? "border border-emerald-200 bg-emerald-100 text-emerald-700"
-                                  : isHovered
-                                    ? "border border-emerald-200 bg-emerald-50 text-emerald-700"
-                                    : "border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
-                              : p.planet === "Moon"
-                                ? "border border-orange-200 bg-orange-50 text-orange-700"
-                                : isActive
-                                  ? "border border-orange-300 bg-orange-100 text-orange-800"
-                                  : isHovered
-                                    ? "border border-orange-200 bg-orange-50 text-orange-700"
-                                    : "border border-orange-200 bg-orange-50 text-orange-700 hover:bg-orange-100"
+                              ? p.retrograde
+  ? isActive
+    ? "border-2 border-sky-400 bg-emerald-100 text-emerald-700"
+    : isHovered
+      ? "border-2 border-sky-400 bg-emerald-50 text-emerald-700"
+      : "border-2 border-sky-400 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+  : highlightSet.has(p.planet)
+    ? "border border-indigo-300 bg-indigo-50 text-indigo-700"
+    : isActive
+      ? "border border-emerald-200 bg-emerald-100 text-emerald-700"
+      : isHovered
+        ? "border border-emerald-200 bg-emerald-50 text-emerald-700"
+        : "border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                              : p.retrograde
+  ? isActive
+    ? "border-2 border-sky-400 bg-orange-100 text-orange-800"
+    : isHovered
+      ? "border-2 border-sky-400 bg-orange-50 text-orange-700"
+      : "border-2 border-sky-400 bg-orange-50 text-orange-700 hover:bg-orange-100"
+  : p.planet === "Moon"
+    ? "border border-orange-200 bg-orange-50 text-orange-700"
+    : isActive
+      ? "border border-orange-300 bg-orange-100 text-orange-800"
+      : isHovered
+        ? "border border-orange-200 bg-orange-50 text-orange-700"
+        : "border border-orange-200 bg-orange-50 text-orange-700 hover:bg-orange-100"
                         }`}
                         title={getPlanetTitle(p)}
                       >
@@ -1145,7 +1148,12 @@ const technicalRow = technicalBadges.length ? (
                 </div>
 
 {technicalPlacement === "bottom" ? (
-  <div className="mt-[3px]">{technicalRow}</div>
+  <div
+    className="mt-[3px]"
+    style={{ transform: technicalTransform }}
+  >
+    {technicalRow}
+  </div>
 ) : null}
   </div>
 </div>
@@ -1203,7 +1211,12 @@ const technicalRow = technicalBadges.length ? (
         {showAspects ? (
           <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full border border-violet-300 bg-violet-50" /> House Aspects</span>
         ) : null}
-        <span>* Retrograde</span>
+      <span className="inline-flex items-center gap-2">
+  <span className="inline-flex h-4 w-4 items-center justify-center rounded border-2 border-sky-400 bg-orange-50 text-[7px] font-semibold text-orange-700">
+    P
+  </span>
+  Retrograde Border
+</span>
       </div>
 
       {showPlanetDetails && activePlanet ? (
