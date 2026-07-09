@@ -76,6 +76,7 @@ type MediumNorthIndianChartProps = {
   aspectHouseReferenceHouse?: number;
   rightPanel?: ReactNode;
 highlightPlanets?: string[];
+placementMode?: "sign" | "house";
 };
 
 const PLANET_SHORT: Record<string, string> = {
@@ -317,10 +318,10 @@ const SECONDARY_LAYOUT: LayoutConfig = {
   frameHeight: 500,
   outerRect: { x: 34, y: 34, width: 452, height: 432 },
   anchors: [
-    { house: 2, x: 158, y: 62, width: 82, minHeight: 96 },
+    { house: 2, x: 145, y: 50, width: 82, minHeight: 96 },
     { house: 12, x: 362, y: 62, width: 82, minHeight: 96 },
 
-    { house: 3, x: 94, y: 132, width: 80, minHeight: 96 },
+    { house: 3, x: 80, y: 132, width: 80, minHeight: 96 },
     { house: 1, x: 260, y: 106, width: 98, minHeight: 96 },
     { house: 11, x: 426, y: 132, width: 80, minHeight: 96 },
 
@@ -332,7 +333,7 @@ const SECONDARY_LAYOUT: LayoutConfig = {
     { house: 9, x: 446, y: 350, width: 76, minHeight: 96 },
 
     { house: 6, x: 158, y: 396, width: 80, minHeight: 96 },
-    { house: 8, x: 362, y: 396, width: 80, minHeight: 96 },
+    { house: 8, x: 390, y: 396, width: 80, minHeight: 96 },
   ],
   housePlanetShifts: {
     1: "translate(0,-1px)",
@@ -378,19 +379,19 @@ const HOUSE_CONTENT_SHIFT: Partial<Record<number, string>> = {
 };
 
 const HOUSE_PLANET_WRAPS: Partial<Record<number, string>> = {
-  // Top triangular houses: move planet group below the zodiac number and technical row.
   2: "translate(-4px, 14px)",
   12: "translate(4px, 14px)",
-  // Tight outer houses: small horizontal breathing room.
+
   6: "translate(-4px, 0px)",
-  8: "translate(-4px, 0px)",
+  8: "translate(24px, 4px)",
   11: "translate(-8px, 0px)",
 };
 
 const HOUSE_TECHNICAL_ROW_SHIFTS: Partial<Record<number, string>> = {
-  // Slightly lift top technical rows so they do not hide behind the planet buttons.
+  // V4: keep technical labels as an independent layer.
+  // This avoids Gk/Md/Arudha labels being hidden behind planet buttons.
   2: "translateY(-2px)",
-  12: "translateY(-2px)",
+  12: "translateY(10px)",
   11: "translateY(-2px)",
 };
 
@@ -826,6 +827,7 @@ export default function MediumNorthIndianChart({
   aspectHouseReferenceHouse = 1,
   rightPanel = null,
 highlightPlanets = [],
+placementMode = "sign",
 }: MediumNorthIndianChartProps) {
   const [selected, setSelected] = useState<ChartPlanet | null>(null);
   const [hovered, setHovered] = useState<ChartPlanet | null>(null);
@@ -853,7 +855,21 @@ useEffect(() => {
   return () => observer.disconnect();
 }, [layout.frameWidth]);
   const pct = (value: number, total: number) => `${(value / total) * 100}%`;
-  const planetsByHouse = useMemo(() => getPlanetsByHouse(planets, mode), [planets, mode]);
+  const displayPlanets = useMemo(() => {
+  if (placementMode === "house") {
+    return planets.map((p) => ({
+      ...p,
+      displayHouse: p.house,
+    }));
+  }
+
+  return planets;
+}, [planets, placementMode]);
+
+const planetsByHouse = useMemo(
+  () => getPlanetsByHouse(displayPlanets, mode),
+  [displayPlanets, mode]
+);
 const transitPlanetsByHouse = useMemo(
   () => getPlanetsByHouse(transitPlanets, mode),
   [transitPlanets, mode]
@@ -986,18 +1002,12 @@ const transitPlanetsByHouse = useMemo(
   showUpagrahas
 );
 const technicalPlacement = TECHNICAL_PLACEMENT[anchor.house] ?? "bottom";
-const technicalRowShift: Partial<Record<number, string>> = {
-  12: "translateY(10px)",
-};
-
 const technicalTransform =
-  technicalRowShift[anchor.house] ?? "translateY(0px)";
+  HOUSE_TECHNICAL_ROW_SHIFTS[anchor.house] ?? "translateY(0px)";
 const houseContentShift =
   HOUSE_CONTENT_SHIFT[anchor.house] ?? "translateY(0px)";
 const housePlanetWrapShift =
   HOUSE_PLANET_WRAPS[anchor.house] ?? "translate(0px, 0px)";
-const houseTechnicalRowShift =
-  HOUSE_TECHNICAL_ROW_SHIFTS[anchor.house] ?? "translateY(0px)";
 const planetDensity = getPlanetButtonDensity(
   shownPlanets.length,
   showNakshatraOnChart,
@@ -1096,34 +1106,36 @@ const technicalRow = technicalBadges.length ? (
                         }}
                         className={`${planetButtonSizeClass} font-medium leading-none shadow-sm transition ${
                           p.isSynastryOverlay
-                            ? "border border-violet-200 bg-violet-50 text-violet-700"
+                            ? p.retrograde
+                              ? "border-2 border-sky-400 bg-violet-50 text-violet-700"
+                              : "border border-violet-200 bg-violet-50 text-violet-700"
                             : isTransitPlanet
                               ? p.retrograde
-  ? isActive
-    ? "border-2 border-sky-400 bg-emerald-100 text-emerald-700"
-    : isHovered
-      ? "border-2 border-sky-400 bg-emerald-50 text-emerald-700"
-      : "border-2 border-sky-400 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
-  : highlightSet.has(p.planet)
-    ? "border border-indigo-300 bg-indigo-50 text-indigo-700"
-    : isActive
-      ? "border border-emerald-200 bg-emerald-100 text-emerald-700"
-      : isHovered
-        ? "border border-emerald-200 bg-emerald-50 text-emerald-700"
-        : "border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                                ? isActive
+                                  ? "border-2 border-sky-400 bg-emerald-100 text-emerald-700"
+                                  : isHovered
+                                    ? "border-2 border-sky-400 bg-emerald-50 text-emerald-700"
+                                    : "border-2 border-sky-400 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                                : highlightSet.has(p.planet)
+                                  ? "border border-indigo-300 bg-indigo-50 text-indigo-700"
+                                  : isActive
+                                    ? "border border-emerald-200 bg-emerald-100 text-emerald-700"
+                                    : isHovered
+                                      ? "border border-emerald-200 bg-emerald-50 text-emerald-700"
+                                      : "border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
                               : p.retrograde
-  ? isActive
-    ? "border-2 border-sky-400 bg-orange-100 text-orange-800"
-    : isHovered
-      ? "border-2 border-sky-400 bg-orange-50 text-orange-700"
-      : "border-2 border-sky-400 bg-orange-50 text-orange-700 hover:bg-orange-100"
-  : p.planet === "Moon"
-    ? "border border-orange-200 bg-orange-50 text-orange-700"
-    : isActive
-      ? "border border-orange-300 bg-orange-100 text-orange-800"
-      : isHovered
-        ? "border border-orange-200 bg-orange-50 text-orange-700"
-        : "border border-orange-200 bg-orange-50 text-orange-700 hover:bg-orange-100"
+                                ? isActive
+                                  ? "border-2 border-sky-400 bg-orange-100 text-orange-800"
+                                  : isHovered
+                                    ? "border-2 border-sky-400 bg-orange-50 text-orange-700"
+                                    : "border-2 border-sky-400 bg-orange-50 text-orange-700 hover:bg-orange-100"
+                                : p.planet === "Moon"
+                                  ? "border border-orange-200 bg-orange-50 text-orange-700"
+                                  : isActive
+                                    ? "border border-orange-300 bg-orange-100 text-orange-800"
+                                    : isHovered
+                                      ? "border border-orange-200 bg-orange-50 text-orange-700"
+                                      : "border border-orange-200 bg-orange-50 text-orange-700 hover:bg-orange-100"
                         }`}
                         title={getPlanetTitle(p)}
                       >
@@ -1211,12 +1223,12 @@ const technicalRow = technicalBadges.length ? (
         {showAspects ? (
           <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full border border-violet-300 bg-violet-50" /> House Aspects</span>
         ) : null}
-      <span className="inline-flex items-center gap-2">
-  <span className="inline-flex h-4 w-4 items-center justify-center rounded border-2 border-sky-400 bg-orange-50 text-[7px] font-semibold text-orange-700">
-    P
-  </span>
-  Retrograde Border
-</span>
+        <span className="inline-flex items-center gap-2">
+          <span className="inline-flex h-4 w-4 items-center justify-center rounded border-2 border-sky-400 bg-orange-50 text-[7px] font-semibold text-orange-700">
+            P
+          </span>
+          Retrograde Border
+        </span>
       </div>
 
       {showPlanetDetails && activePlanet ? (

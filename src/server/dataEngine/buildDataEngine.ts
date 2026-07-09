@@ -46,6 +46,7 @@ import { buildNabhasaYogas } from "./buildNabhasaYogas";
 import { buildClassicYogas } from "./buildClassicYogas";
 import { buildYogaActivation } from "./buildYogaActivation";
 import { computeDegreeHitWindows } from "./triggerEngine/degreeHitWindows";
+import { buildKPData } from "./buildKPData";
 import {
   sweJulday as sweWasmJulday,
   sweCalcUt as sweWasmCalcUt,
@@ -275,6 +276,7 @@ triggerEngine: {
   kpPlanetOnCusp: any;
   bhavaChalit: any;
   classicChalit: any;
+  kpData: any;
   nabhasaYogas: any;
   classicYogas: any;
   dasha: any;
@@ -1650,6 +1652,19 @@ const classicYogas = {
   ...classicYogasRaw,
   activations: classicYogaActivations,
 };
+const kpData = buildKPData({
+  planets: Array.isArray((natalWithStrengths as any)?.planets)
+    ? (natalWithStrengths as any).planets
+    : Array.isArray((natalWithStrengths as any)?.rows)
+    ? (natalWithStrengths as any).rows
+    : [],
+  houseCusps: Array.isArray((classicChalit as any)?.cusps)
+    ? (classicChalit as any).cusps
+    : Array.isArray((bhavaChalit as any)?.cusps)
+    ? (bhavaChalit as any).cusps
+    : [],
+});
+console.log("KP DATA", JSON.stringify(kpData, null, 2));
   return {
     meta: {
       generatedAtISO: new Date().toISOString(),
@@ -1759,6 +1774,7 @@ triggerEngine: {
   : upcomingTransits?.planetaryTransits ?? [],
     bhavaChalit,
     classicChalit,
+    kpData,
     nabhasaYogas,
     classicYogas,
     kpPlanetOnCusp,

@@ -928,7 +928,8 @@ const [utilityHoraData, setUtilityHoraData] = useState<any | null>(null);
 const searchParams = useSearchParams();
 const router = useRouter();
 const crmClientId: string | null = searchParams?.get("clientId") ?? null;
-
+const [checkingAccess, setCheckingAccess] = useState(true);
+const [accessAllowed, setAccessAllowed] = useState(false);
 const [linkedClient, setLinkedClient] = useState<AstrologerClient | null>(null);
 const [linkedClientCharts, setLinkedClientCharts] = useState<ClientChart[]>([]);
 const [selectedLinkedChartId, setSelectedLinkedChartId] = useState("");
@@ -2086,6 +2087,41 @@ useEffect(() => {
     alive = false;
   };
 }, [crmClientId]);
+useEffect(() => {
+  let cancelled = false;
+
+  async function checkAccess() {
+    try {
+      const res = await fetch("/api/entitlements");
+
+      if (!res.ok) {
+        router.replace("/sarathi/login?next=/sarathi/data-engine");
+        return;
+      }
+
+      const json = await res.json();
+
+      if (!json.entitlements.dataEngine.allowed) {
+        router.replace("/sarathi/upgrade?feature=data-engine");
+        return;
+      }
+
+      if (!cancelled) {
+        setAccessAllowed(true);
+      }
+    } finally {
+      if (!cancelled) {
+        setCheckingAccess(false);
+      }
+    }
+  }
+
+  checkAccess();
+
+  return () => {
+    cancelled = true;
+  };
+}, [router]);
   const selectedVargaValue =
   vargaEntries.find(([key]) => key === selectedVarga)?.[1] ?? null;
 
@@ -2094,6 +2130,17 @@ const primaryButtonClass =
 
 const errorBoxClass =
   "mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700 shadow-sm";
+ if (checkingAccess) {
+  return (
+    <div className="flex min-h-screen items-center justify-center">
+      Checking access...
+    </div>
+  );
+}
+
+if (!accessAllowed) {
+  return null;
+}
   return (
     <main className="min-h-screen astro-bg text-slate-800">
       <div className="pointer-events-none fixed inset-0 -z-10">
@@ -3318,9 +3365,6 @@ nabhasaYogas={data?.foundations?.nabhasaYogas ?? data?.nabhasaYogas}
                   <AshtakvargaCard data={data?.strength?.ashtakvarga} />
                   <PrastharaCard data={data?.strength?.prasthara} />
                   <BhavMadhyaCard data={data?.strength?.bhavMadhya} />
-                  <KpPlanetOnCuspCard
-  data={formatKpPlanetOnCuspForAstroSage(kpPlanetOnCusp)}
-/>
                   <FiveFoldFriendshipCard data={data?.strength?.fiveFoldFriendship} />
                   <AvakhadaCard data={data?.strength?.avakhada} />
                 </section>
@@ -3364,6 +3408,8 @@ dashaTimelines={data?.timing?.dasha?.timelines ?? data?.dasha?.timelines ?? null
   nabhasaYogas={data?.foundations?.nabhasaYogas ?? data?.nabhasaYogas ?? null}
   classicYogas={data?.foundations?.classicYogas ?? data?.classicYogas ?? null}
   roles={data?.foundations?.roles ?? data?.roles}
+  kpData={(data as any)?.kpData}
+  kpPlanetOnCusp={data?.strength?.kpPlanetOnCusp}
 />
             ) : null}
             {data && activeTab === "compare" ? (

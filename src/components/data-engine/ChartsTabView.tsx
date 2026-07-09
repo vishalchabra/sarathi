@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import MediumNorthIndianChart from "@/components/data-engine/MediumNorthIndianChart";
+import KpPlanetOnCuspCard from "@/components/data-engine/KpPlanetOnCuspCard";
+import { formatKpPlanetOnCuspForAstroSage } from "@/lib/astrology/kp/formatKpPlanetOnCuspForAstroSage";
 
 type SimpleChartData = {
   title: string;
@@ -1749,6 +1751,148 @@ function InfoRows({
     </div>
   );
 }
+function buildKPChartPlanets(kpData?: any) {
+  return (Array.isArray(kpData?.planets) ? kpData.planets : [])
+    .filter((p: any) =>
+      ["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn", "Rahu", "Ketu"].includes(
+        String(p?.planet)
+      )
+    )
+    .map((p: any) => ({
+      planet: p.planet,
+      sign: p.sign,
+      house: p.house,
+      displayHouse: p.house, // this makes MediumNorthIndianChart place by KP house
+      degree: p.degree,
+      nakshatra: p.nakshatra,
+      pada: p.pada,
+      retrograde: Boolean(p.retrograde),
+    }));
+}
+function KPSystemPanel({
+  kpData,
+  kpPlanetOnCusp,
+}: {
+  kpData?: any;
+  kpPlanetOnCusp?: any;
+}) {
+  const planets = kpData?.planets ?? [];
+  const cusps = kpData?.cusps ?? [];
+  const kpChartPlanets = buildKPChartPlanets(kpData);
+  const kpAscSign = cusps?.[0]?.sign ?? null;
+  return (
+    <div className="space-y-6">
+      <KpPlanetOnCuspCard
+      data={formatKpPlanetOnCuspForAstroSage(kpPlanetOnCusp)}
+    />
+   <ChartCard
+  title="KP Cusp Chart"
+  subtitle="Planets placed by KP house boundaries."
+>
+  {kpAscSign && kpChartPlanets.length ? (
+    <MediumNorthIndianChart
+      title=""
+      ascSign={kpAscSign}
+      planets={kpChartPlanets}
+      layoutVariant="secondary"
+    />
+  ) : (
+    <PlaceholderChart label="KP cusp chart unavailable" />
+  )}
+</ChartCard>
+      <ChartCard
+        title="KP Planet Table"
+        subtitle="Planetary star, sub and sub-sub lord details."
+      >
+        <div className="overflow-x-auto rounded-xl border">
+          <table className="min-w-full text-sm">
+            <thead className="bg-slate-100">
+              <tr>
+                <th className="px-3 py-2 text-left">Planet</th>
+                <th className="px-3 py-2">House</th>
+                <th className="px-3 py-2">Sign</th>
+                <th className="px-3 py-2">Degree</th>
+                <th className="px-3 py-2">Nakshatra</th>
+                <th className="px-3 py-2">Pada</th>
+                <th className="px-3 py-2">Star Lord</th>
+                <th className="px-3 py-2">Sub Lord</th>
+                <th className="px-3 py-2">SS Lord</th>
+                <th className="px-3 py-2">R</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {planets.map((p: any) => (
+                <tr
+                  key={p.planet}
+                  className="border-t hover:bg-slate-50"
+                >
+                  <td className="px-3 py-2 font-medium">{p.planet}</td>
+                  <td className="px-3 py-2 text-center">{p.house}</td>
+                  <td className="px-3 py-2">{p.sign}</td>
+                  <td className="px-3 py-2">
+                    {p.degree.toFixed(2)}°
+                  </td>
+                  <td className="px-3 py-2">{p.nakshatra}</td>
+                  <td className="px-3 py-2 text-center">{p.pada}</td>
+                  <td className="px-3 py-2">{p.nakshatraLord}</td>
+                  <td className="px-3 py-2">{p.subLord}</td>
+                  <td className="px-3 py-2">{p.subSubLord}</td>
+                  <td className="px-3 py-2 text-center">
+                    {p.retrograde ? "R" : ""}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </ChartCard>
+
+      <ChartCard
+        title="KP Cusp Table"
+        subtitle="Cuspal star, sub and sub-sub lords."
+      >
+        <div className="overflow-x-auto rounded-xl border">
+          <table className="min-w-full text-sm">
+            <thead className="bg-slate-100">
+              <tr>
+                <th className="px-3 py-2">Cusp</th>
+                <th className="px-3 py-2">Sign</th>
+                <th className="px-3 py-2">Degree</th>
+                <th className="px-3 py-2">Nakshatra</th>
+                <th className="px-3 py-2">Pada</th>
+                <th className="px-3 py-2">Star Lord</th>
+                <th className="px-3 py-2">Sub Lord</th>
+                <th className="px-3 py-2">SS Lord</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {cusps.map((c: any) => (
+                <tr
+                  key={c.cusp}
+                  className="border-t hover:bg-slate-50"
+                >
+                  <td className="px-3 py-2 text-center">{c.cusp}</td>
+                  <td className="px-3 py-2">{c.sign}</td>
+                  <td className="px-3 py-2">
+                    {c.degree.toFixed(2)}°
+                  </td>
+                  <td className="px-3 py-2">{c.nakshatra}</td>
+                  <td className="px-3 py-2 text-center">{c.pada}</td>
+                  <td className="px-3 py-2">{c.nakshatraLord}</td>
+                  <td className="px-3 py-2">{c.subLord}</td>
+                  <td className="px-3 py-2">{c.subSubLord}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </ChartCard>
+
+    </div>
+  );
+}
 export default function ChartsTabView({
   selectedDateISO,
   setSelectedDateISO,
@@ -1776,6 +1920,8 @@ export default function ChartsTabView({
   nabhasaYogas,
   classicYogas,
   roles,
+  kpData,
+  kpPlanetOnCusp,
 }: {
   selectedDateISO: string;
   setSelectedDateISO: (value: string) => void;
@@ -1803,6 +1949,8 @@ export default function ChartsTabView({
   nabhasaYogas?: any;
   classicYogas?: any;
   roles?: any;
+  kpData?: any;
+  kpPlanetOnCusp?: any;
 }) {
 const [overlayTransitPlanets, setOverlayTransitPlanets] = useState<any[]>([]);
 const [transitChartPlanets, setTransitChartPlanets] = useState<any[]>([]);
@@ -1837,7 +1985,7 @@ const [transitLoading, setTransitLoading] = useState(false);
   const [houseReferenceMenuOpen, setHouseReferenceMenuOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const modalCardRef = useRef<HTMLDivElement | null>(null);
-
+  const [activeChartTab, setActiveChartTab] = useState<"charts" | "kp">("charts");
   const chandraChart = buildChandraChartPlanets(natalPlanets);
 
   const mdReferenceChart = buildReferenceChartFromPlanet(
@@ -2188,6 +2336,42 @@ return {
 }, [natalPlanets, bhavaChalit]);
   return (
     <div className="mt-6 space-y-6">
+      <div className="flex gap-2 rounded-2xl border border-[color:var(--border)] bg-white p-2 shadow-sm">
+  <button
+    type="button"
+    onClick={() => setActiveChartTab("charts")}
+    className={
+      "rounded-xl px-4 py-2 text-sm font-semibold transition " +
+      (activeChartTab === "charts"
+        ? "bg-indigo-600 text-white shadow-sm"
+        : "text-slate-600 hover:bg-slate-50")
+    }
+  >
+    Charts
+  </button>
+
+  <button
+    type="button"
+    onClick={() => setActiveChartTab("kp")}
+    className={
+      "rounded-xl px-4 py-2 text-sm font-semibold transition " +
+      (activeChartTab === "kp"
+        ? "bg-indigo-600 text-white shadow-sm"
+        : "text-slate-600 hover:bg-slate-50")
+    }
+  >
+    KP System
+  </button>
+</div>
+{activeChartTab === "kp" ? (
+ <KPSystemPanel
+  kpData={kpData}
+  kpPlanetOnCusp={kpPlanetOnCusp}
+/>
+) : null}
+
+{activeChartTab === "charts" ? (
+  <>
       <div className="space-y-6">
         <ChartCard
   title="Natal Lagna Chart"
@@ -2650,7 +2834,7 @@ planets={(bhavaChalit?.planets ?? []).map((p: any) => {
                 </div>
               ) : null}
 
-              <MediumNorthIndianChart
+                           <MediumNorthIndianChart
                 title=""
                 ascSign={natalAscSign}
                 planets={normalizeTransitPlanets(transitChartPlanets, natalAscSign)}
@@ -2662,12 +2846,15 @@ planets={(bhavaChalit?.planets ?? []).map((p: any) => {
           )}
         </ChartCard>
       </div>
-      <ChartInfoDrawer
-  chart={chartInfoDrawer}
-  onClose={() => setChartInfoDrawer(null)}
-/>
+      </>
+    ) : null}
 
-{expandedChartModal}
-    </div>
-  );
+    <ChartInfoDrawer
+      chart={chartInfoDrawer}
+      onClose={() => setChartInfoDrawer(null)}
+    />
+
+    {expandedChartModal}
+  </div>
+);
 }
