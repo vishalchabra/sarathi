@@ -89,7 +89,59 @@ const NAKSHATRA_NAMES = [
   "Uttara Bhadrapada",
   "Revati",
 ] as const;
+const SIGN_LORDS: Record<string, string> = {
+  Aries: "Mars",
+  Taurus: "Venus",
+  Gemini: "Mercury",
+  Cancer: "Moon",
+  Leo: "Sun",
+  Virgo: "Mercury",
+  Libra: "Venus",
+  Scorpio: "Mars",
+  Sagittarius: "Jupiter",
+  Capricorn: "Saturn",
+  Aquarius: "Saturn",
+  Pisces: "Jupiter",
+};
 
+const NAKSHATRA_LORDS = [
+  "Ketu",
+  "Venus",
+  "Sun",
+  "Moon",
+  "Mars",
+  "Rahu",
+  "Jupiter",
+  "Saturn",
+  "Mercury",
+  "Ketu",
+  "Venus",
+  "Sun",
+  "Moon",
+  "Mars",
+  "Rahu",
+  "Jupiter",
+  "Saturn",
+  "Mercury",
+  "Ketu",
+  "Venus",
+  "Sun",
+  "Moon",
+  "Mars",
+  "Rahu",
+  "Jupiter",
+  "Saturn",
+  "Mercury",
+] as const;
+
+const UPAGRAHA_DISPLAY_NAMES: Record<UpagrahaKey, string> = {
+  gulika: "Gulika",
+  mandi: "Mandi",
+  yamakantaka: "Yamakantaka",
+  kala: "Kala",
+  mrityu: "Mrityu",
+  arthaprahara: "Ardha Prahara",
+};
 /**
  * AstroSage-compatible calibration matrix.
  *
@@ -336,18 +388,29 @@ function normalize360(v: number) {
 
 function getNakshatraAndPadaFromLon(lon: number | null | undefined) {
   if (typeof lon !== "number" || Number.isNaN(lon)) {
-    return { nakshatra: null, pada: null };
+    return {
+      nakshatra: null,
+      nakshatraIndex: null,
+      nakshatraLord: null,
+      pada: null,
+      degreeInNakshatra: null,
+    };
   }
 
   const x = normalize360(lon);
   const nakSpan = 360 / 27;
-  const idx = Math.floor(x / nakSpan);
-  const withinNak = x % nakSpan;
-  const pada = Math.floor(withinNak / (nakSpan / 4)) + 1;
+  const padaSpan = nakSpan / 4;
+
+  const nakshatraIndex = Math.floor(x / nakSpan);
+  const degreeInNakshatra = x - nakshatraIndex * nakSpan;
+  const pada = Math.floor(degreeInNakshatra / padaSpan) + 1;
 
   return {
-    nakshatra: NAKSHATRA_NAMES[idx] ?? null,
+    nakshatra: NAKSHATRA_NAMES[nakshatraIndex] ?? null,
+    nakshatraIndex,
+    nakshatraLord: NAKSHATRA_LORDS[nakshatraIndex] ?? null,
     pada,
+    degreeInNakshatra: Number(degreeInNakshatra.toFixed(6)),
   };
 }
 
@@ -377,7 +440,51 @@ function getDegreeInSign(lon: number | null | undefined) {
   if (typeof lon !== "number" || Number.isNaN(lon)) return null;
   return Number((normalize360(lon) % 30).toFixed(2));
 }
+function getNavamsaSignFromLon(lon: number | null | undefined) {
+  if (typeof lon !== "number" || Number.isNaN(lon)) return null;
 
+  const signs = [
+    "Aries",
+    "Taurus",
+    "Gemini",
+    "Cancer",
+    "Leo",
+    "Virgo",
+    "Libra",
+    "Scorpio",
+    "Sagittarius",
+    "Capricorn",
+    "Aquarius",
+    "Pisces",
+  ];
+
+  const normalizedLon = normalize360(lon);
+  const navamsaIndex = Math.floor(normalizedLon / (30 / 9)) % 12;
+
+  return signs[navamsaIndex] ?? null;
+}
+function formatDegreeDMS(degree: number | null | undefined) {
+  if (typeof degree !== "number" || Number.isNaN(degree)) return null;
+
+  let degrees = Math.floor(degree);
+  const minuteDecimal = (degree - degrees) * 60;
+  let minutes = Math.floor(minuteDecimal);
+  let seconds = Math.round((minuteDecimal - minutes) * 60);
+
+  if (seconds === 60) {
+    seconds = 0;
+    minutes += 1;
+  }
+
+  if (minutes === 60) {
+    minutes = 0;
+    degrees += 1;
+  }
+
+  return `${degrees}°${String(minutes).padStart(2, "0")}′${String(
+    seconds
+  ).padStart(2, "0")}″`;
+}
 function getHouseFromAsc(pointSign: string | null, natalAscSign: string | null) {
   if (!pointSign || !natalAscSign) return null;
 
@@ -415,7 +522,36 @@ function buildEightSegments(startDT: any, endDT: any) {
     };
   });
 }
+function buildUpagrahaPlacementLabel(params: {
+  sign: string | null;
+  degreeFormatted: string | null;
+  houseFromAsc: number | null;
+  nakshatra: string | null;
+  pada: number | null;
+}) {
+  const {
+    sign,
+    degreeFormatted,
+    houseFromAsc,
+    nakshatra,
+    pada,
+  } = params;
 
+  const signPlacement =
+    sign && degreeFormatted ? `${sign} ${degreeFormatted}` : sign;
+
+  const housePlacement = houseFromAsc
+    ? `${houseFromAsc}${getOrdinalSuffix(houseFromAsc)} house`
+    : null;
+
+  const nakshatraPlacement = nakshatra
+    ? `${nakshatra}${pada ? `, Pada ${pada}` : ""}`
+    : null;
+
+  return [signPlacement, housePlacement, nakshatraPlacement]
+    .filter(Boolean)
+    .join(" • ");
+}
 function isDusthana(house: number | null) {
   return [6, 8, 12].includes(Number(house));
 }
@@ -688,11 +824,21 @@ async function buildPointFromSegment(params: {
       ? normalize360(pointAsc.lon)
       : null;
 
-  const sign = getSignFromLon(lon);
-  const degree = getDegreeInSign(lon);
-  const nakInfo = getNakshatraAndPadaFromLon(lon);
-  const houseFromAsc = getHouseFromAsc(sign, params.natalAscendant.sign);
+ const sign = getSignFromLon(lon);
+const degree = getDegreeInSign(lon);
+const degreeFormatted = formatDegreeDMS(degree);
+const nakInfo = getNakshatraAndPadaFromLon(lon);
+const houseFromAsc = getHouseFromAsc(sign, params.natalAscendant.sign);
 
+const signLord = sign ? SIGN_LORDS[sign] ?? null : null;
+const navamsaSign = getNavamsaSignFromLon(lon);
+const placementLabel = buildUpagrahaPlacementLabel({
+  sign,
+  degreeFormatted,
+  houseFromAsc,
+  nakshatra: nakInfo.nakshatra,
+  pada: nakInfo.pada,
+});
   return {
     pointMomentISO: pointMomentDT.toISO(),
     pointMomentType,
@@ -702,12 +848,20 @@ async function buildPointFromSegment(params: {
           ? params.pointMomentRatio
           : null
         : null,
-    lon,
-    sign,
-    degree,
-    nakshatra: nakInfo.nakshatra,
-    pada: nakInfo.pada,
-    houseFromAsc,
+   lon,
+sign,
+degree,
+degreeFormatted,
+signLord,
+
+nakshatra: nakInfo.nakshatra,
+nakshatraIndex: nakInfo.nakshatraIndex,
+nakshatraLord: nakInfo.nakshatraLord,
+degreeInNakshatra: nakInfo.degreeInNakshatra,
+pada: nakInfo.pada,
+navamsaSign,
+placementLabel,
+houseFromAsc,
     flags: {
       isDusthana: isDusthana(houseFromAsc),
       isUpachaya: isUpachaya(houseFromAsc),
@@ -768,6 +922,8 @@ async function buildSegmentedUpagraha(params: {
   if (!point) return null;
 
   return {
+      key,
+  displayName: UPAGRAHA_DISPLAY_NAMES[key],
     phase,
     weekday: weekdayName,
     segmentIndex,
@@ -779,11 +935,19 @@ async function buildSegmentedUpagraha(params: {
     pointMomentType: point.pointMomentType,
     pointMomentRatio: point.pointMomentRatio ?? null,
     lon: point.lon,
-    sign: point.sign,
-    degree: point.degree,
-    nakshatra: point.nakshatra,
-    pada: point.pada,
-    houseFromAsc: point.houseFromAsc,
+sign: point.sign,
+degree: point.degree,
+degreeFormatted: point.degreeFormatted,
+signLord: point.signLord,
+
+nakshatra: point.nakshatra,
+nakshatraIndex: point.nakshatraIndex,
+nakshatraLord: point.nakshatraLord,
+degreeInNakshatra: point.degreeInNakshatra,
+pada: point.pada,
+navamsaSign: point.navamsaSign,
+
+houseFromAsc: point.houseFromAsc,
     flags: point.flags,
     calculationBasis: {
       spanType: phase,

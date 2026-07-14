@@ -32,7 +32,20 @@ const SIGN_TO_NUM: Record<string, number> = {
   Aquarius: 11,
   Pisces: 12,
 };
-
+const SIGN_LORDS: Record<string, string> = {
+  Aries: "Mars",
+  Taurus: "Venus",
+  Gemini: "Mercury",
+  Cancer: "Moon",
+  Leo: "Sun",
+  Virgo: "Mercury",
+  Libra: "Venus",
+  Scorpio: "Mars",
+  Sagittarius: "Jupiter",
+  Capricorn: "Saturn",
+  Aquarius: "Saturn",
+  Pisces: "Jupiter",
+};
 const NAKSHATRA_NAMES = [
   "Ashwini",
   "Bharani",
@@ -62,7 +75,35 @@ const NAKSHATRA_NAMES = [
   "Uttara Bhadrapada",
   "Revati",
 ] as const;
-
+const NAKSHATRA_LORDS = [
+  "Ketu",
+  "Venus",
+  "Sun",
+  "Moon",
+  "Mars",
+  "Rahu",
+  "Jupiter",
+  "Saturn",
+  "Mercury",
+  "Ketu",
+  "Venus",
+  "Sun",
+  "Moon",
+  "Mars",
+  "Rahu",
+  "Jupiter",
+  "Saturn",
+  "Mercury",
+  "Ketu",
+  "Venus",
+  "Sun",
+  "Moon",
+  "Mars",
+  "Rahu",
+  "Jupiter",
+  "Saturn",
+  "Mercury",
+] as const;
 function normalize360(v: number) {
   const x = v % 360;
   return x < 0 ? x + 360 : x;
@@ -94,10 +135,35 @@ function getDegreeInSign(lon: number | null | undefined) {
   if (typeof lon !== "number" || Number.isNaN(lon)) return null;
   return Number((normalize360(lon) % 30).toFixed(2));
 }
+function formatDegreeDMS(degree: number | null | undefined) {
+  if (typeof degree !== "number" || Number.isNaN(degree)) return null;
 
+  let degrees = Math.floor(degree);
+  const minuteDecimal = (degree - degrees) * 60;
+  let minutes = Math.floor(minuteDecimal);
+  let seconds = Math.round((minuteDecimal - minutes) * 60);
+
+  if (seconds === 60) {
+    seconds = 0;
+    minutes += 1;
+  }
+
+  if (minutes === 60) {
+    minutes = 0;
+    degrees += 1;
+  }
+
+  return `${degrees}°${String(minutes).padStart(2, "0")}′${String(
+    seconds
+  ).padStart(2, "0")}″`;
+}
 function getNakshatraAndPadaFromLon(lon: number | null | undefined) {
   if (typeof lon !== "number" || Number.isNaN(lon)) {
-    return { nakshatra: null, pada: null };
+    return {
+      nakshatra: null,
+      nakshatraLord: null,
+      pada: null,
+    };
   }
 
   const x = normalize360(lon);
@@ -108,6 +174,7 @@ function getNakshatraAndPadaFromLon(lon: number | null | undefined) {
 
   return {
     nakshatra: NAKSHATRA_NAMES[idx] ?? null,
+    nakshatraLord: NAKSHATRA_LORDS[idx] ?? null,
     pada,
   };
 }
@@ -156,18 +223,28 @@ function buildPointFromLongitude(params: {
 
   const sign = getSignFromLon(lon);
   const degree = getDegreeInSign(lon);
+  const degreeFormatted = formatDegreeDMS(degree);
   const nakInfo = getNakshatraAndPadaFromLon(lon);
   const houseFromAsc = getHouseFromAsc(sign, params.natalAscendant.sign);
+
+  const signLord = sign ? SIGN_LORDS[sign] ?? null : null;
 
   return {
     source: params.source,
     formulaKey: params.formulaKey,
+
     lon,
     sign,
     degree,
+    degreeFormatted,
+    signLord,
+
     nakshatra: nakInfo.nakshatra,
+    nakshatraLord: nakInfo.nakshatraLord,
     pada: nakInfo.pada,
+
     houseFromAsc,
+
     flags: {
       isDusthana: isDusthana(houseFromAsc),
       isUpachaya: isUpachaya(houseFromAsc),

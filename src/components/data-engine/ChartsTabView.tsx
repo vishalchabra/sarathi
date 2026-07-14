@@ -1436,6 +1436,178 @@ function PlanetNakshatraSnapshot({
     </aside>
   );
 }
+function UpagrahaDataSnapshot({
+  upagrahas,
+  solarShadowPoints,
+}: {
+  upagrahas?: any;
+  solarShadowPoints?: any;
+}) {
+  const [mode, setMode] = useState<"time" | "solar">("time");
+
+  const timeBasedKeys = [
+    "gulika",
+    "mandi",
+    "yamakantaka",
+    "kala",
+    "mrityu",
+    "arthaprahara",
+  ];
+
+  const solarShadowKeys = [
+    "dhuma",
+    "vyatipata",
+    "parivesha",
+    "indrachapa",
+    "upaketu",
+  ];
+
+  const displayNames: Record<string, string> = {
+    gulika: "Gulika",
+    mandi: "Mandi",
+    yamakantaka: "Yamakantaka",
+    kala: "Kala",
+    mrityu: "Mrityu",
+    arthaprahara: "Ardha Prahara",
+
+    dhuma: "Dhuma",
+    vyatipata: "Vyatipata",
+    parivesha: "Parivesha",
+    indrachapa: "Indrachapa",
+    upaketu: "Upaketu",
+  };
+
+  const source = mode === "time" ? upagrahas : solarShadowPoints;
+  const keys = mode === "time" ? timeBasedKeys : solarShadowKeys;
+
+  const rows = keys
+    .map((key) => {
+      const point = source?.[key];
+
+      if (!point || typeof point?.lon !== "number") return null;
+
+      return {
+        key,
+        name: point?.displayName ?? displayNames[key] ?? key,
+        sign: point?.sign ?? "—",
+        degreeFormatted:
+          point?.degreeFormatted ??
+          (typeof point?.degree === "number"
+            ? `${point.degree.toFixed(2)}°`
+            : "—"),
+        house: point?.houseFromAsc ?? "—",
+        nakshatra: point?.nakshatra ?? "—",
+        pada: point?.pada ?? "—",
+        signLord: point?.signLord ?? "—",
+        nakshatraLord: point?.nakshatraLord ?? "—",
+      };
+    })
+    .filter(Boolean) as any[];
+
+  return (
+    <aside className="mt-4 rounded-2xl border border-[color:var(--border)] bg-white/90 p-4 shadow-sm">
+      <div>
+        <h4 className="text-sm font-semibold text-slate-900">
+          Upagraha Data
+        </h4>
+
+        <p className="mt-1 text-xs text-slate-500">
+          Exact sign, house, degree and nakshatra placements.
+        </p>
+      </div>
+
+      <div className="mt-4 grid grid-cols-2 rounded-xl bg-slate-100 p-1">
+        <button
+          type="button"
+          onClick={() => setMode("time")}
+          className={
+            "rounded-lg px-3 py-2 text-xs font-semibold transition " +
+            (mode === "time"
+              ? "bg-white text-slate-900 shadow-sm"
+              : "text-slate-500")
+          }
+        >
+          Time-based Upagrahas
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setMode("solar")}
+          className={
+            "rounded-lg px-3 py-2 text-xs font-semibold transition " +
+            (mode === "solar"
+              ? "bg-white text-slate-900 shadow-sm"
+              : "text-slate-500")
+          }
+        >
+          Solar Shadow Points
+        </button>
+      </div>
+
+      {!rows.length ? (
+        <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-xs text-slate-500">
+          {mode === "time"
+            ? "Time-based Upagraha data unavailable."
+            : "Solar shadow-point data unavailable."}
+        </div>
+      ) : (
+        <div className="mt-4 overflow-x-auto rounded-xl border border-slate-200">
+          <table className="min-w-full text-xs">
+            <thead className="bg-slate-100 text-slate-600">
+              <tr>
+                <th className="px-3 py-2 text-left">Point</th>
+                <th className="px-3 py-2 text-left">Placement</th>
+                <th className="px-3 py-2 text-center">House</th>
+                <th className="px-3 py-2 text-left">Nakshatra</th>
+                <th className="px-3 py-2 text-center">Pada</th>
+                <th className="px-3 py-2 text-left">Sign Lord</th>
+                <th className="px-3 py-2 text-left">Nakshatra Lord</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {rows.map((row) => (
+                <tr
+                  key={row.key}
+                  className="border-t border-slate-100 hover:bg-slate-50"
+                >
+                  <td className="whitespace-nowrap px-3 py-2 font-semibold text-slate-900">
+                    {row.name}
+                  </td>
+
+                  <td className="whitespace-nowrap px-3 py-2 text-slate-700">
+                    {row.sign} {row.degreeFormatted}
+                  </td>
+
+                  <td className="px-3 py-2 text-center text-slate-700">
+                    {row.house}
+                  </td>
+
+                  <td className="whitespace-nowrap px-3 py-2 text-slate-700">
+                    {row.nakshatra}
+                  </td>
+
+                  <td className="px-3 py-2 text-center text-slate-700">
+                    {row.pada}
+                  </td>
+
+                  <td className="whitespace-nowrap px-3 py-2 text-slate-700">
+                    {row.signLord}
+                  </td>
+
+                  <td className="whitespace-nowrap px-3 py-2 text-slate-700">
+                    {row.nakshatraLord}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </aside>
+  );
+}
+
 const SIGN_META: Record<string, { element: string; mode: string }> = {
   Aries: { element: "Fire", mode: "Movable" },
   Taurus: { element: "Earth", mode: "Fixed" },
@@ -2475,6 +2647,10 @@ return {
   roles={roles}
   natalStrengths={natalStrengths}
 />
+   <UpagrahaDataSnapshot
+  upagrahas={upagrahas}
+  solarShadowPoints={solarShadowPoints}
+/>
   </div>
 
   <div className="xl:sticky xl:top-4">
@@ -2484,6 +2660,7 @@ return {
 />
 
     <PlanetNakshatraSnapshot planets={natalPlanets} />
+
   </div>
 </div>
 
