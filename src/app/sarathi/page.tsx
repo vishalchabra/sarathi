@@ -68,7 +68,7 @@ export default function SarathiHome() {
             ]}
             primaryHref="/sarathi/individual"
             primaryCta="Explore for Individuals"
-            secondaryHref="/sarathi/login?next=/sarathi/chat"
+            secondaryHref="/sarathi/individual/login?next=/sarathi/chat"
             secondaryCta="Ask Sārathi"
           />
 
@@ -84,7 +84,7 @@ export default function SarathiHome() {
   ]}
   primaryHref="/sarathi/astrologers"
   primaryCta="Explore for Astrologers"
-  secondaryHref="/sarathi/login?next=/sarathi/data-engine"
+  secondaryHref="/sarathi/astrologers/login?next=/sarathi/data-engine"
   secondaryCta="Open Data Engine"
 />
         </div>
@@ -100,7 +100,7 @@ export default function SarathiHome() {
         </div>
 
         <footer className="mt-14 border-t border-[color:var(--border)] pt-6 text-xs astro-text-soft">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-start gap-12">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>© {new Date().getFullYear()} Sārathi. All rights reserved.</div>
             <div className="flex flex-wrap gap-4">
               <Link className="hover:text-foreground" href="/sarathi/about">About</Link>

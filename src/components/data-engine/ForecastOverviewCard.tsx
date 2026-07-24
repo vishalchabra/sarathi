@@ -332,7 +332,7 @@ const last = area.rows[area.rows.length - 1];
       </div>
 
       <div className="mt-6 rounded-2xl border border-dashed border-slate-300 bg-slate-50/70 p-4 text-sm text-slate-600">
-        This is a summary layer. Keep exact calculations in Transits / Raw Data, and use this view to decide which area to inspect first.
+        This page summarizes the most active planets, houses and life areas. Use it to quickly identify where the chart is currently focused before reviewing the detailed activation data.
       </div>
     </section>
   );

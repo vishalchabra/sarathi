@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getUserEntitlements } from "@/server/auth/getUserEntitlements";
 
 import TopNav from "../TopNav";
 import LifeReportShell from "./_shell";
@@ -12,7 +13,13 @@ export default async function LifeReportPage() {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/login");
+    redirect("/sarathi/individual/login?next=/sarathi/life-report");
+  }
+
+  const entitlements = await getUserEntitlements(user.id);
+
+  if (!entitlements.lifeReport.allowed) {
+    redirect("/sarathi/upgrade?feature=life-report");
   }
 
   return (

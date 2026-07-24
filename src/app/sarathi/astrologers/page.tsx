@@ -28,7 +28,7 @@ export default function AstrologersPage() {
 
     <div className="mt-8 flex flex-wrap gap-3">
       <Link
-        href="/sarathi/login?next=/sarathi/data-engine"
+        href="/sarathi/astrologers/login?next=/sarathi/data-engine"
         className="rounded-full bg-[color:var(--primary)] px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90"
       >
         Open Data Engine
@@ -70,7 +70,7 @@ export default function AstrologersPage() {
       </div>
 
       <Link
-        href="/sarathi/login?next=/sarathi/data-engine"
+        href="/sarathi/astrologers/login?next=/sarathi/data-engine"
         className="mt-3 inline-flex rounded-full bg-[color:var(--primary)] px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 md:mt-0"
       >
         Try the workspace
@@ -131,22 +131,22 @@ export default function AstrologersPage() {
           <div className="mt-6 grid gap-6 md:grid-cols-3">
             <PricingCard
               name="Starter"
-              price="Free Trial"
-              desc="For testing the Data Engine and exploring the workflow."
+              price="24-hour free trial"
+              desc="Explore the Data Engine with complimentary access for 24 hours."
               features={[
                 "Limited chart generation",
                 "Core chart data",
                 "Dasha overview",
                 "Basic transit view",
               ]}
-              cta="Start free trial"
-              href="/sarathi/login?next=/sarathi/data-engine"
+              cta="Start 24-hour trial"
+              href="/sarathi/astrologers/login?next=/sarathi/data-engine"
             />
 
             <PricingCard
               name="Professional"
-              price="$12 / month"
-              desc="Introductory launch offer for early astrologers. Pricing may change as more professional features are added."
+              price="₹1,499 / month"
+              desc="🚀 Introductory launch offer. Early adopters lock in ₹1,499/month before regular pricing of ₹1,999/month."
               features={[
                 "Unlimited client chart checks",
                 "Dashas, transits and vargas",
@@ -154,7 +154,7 @@ export default function AstrologersPage() {
                 "Early access to upcoming CRM and report tools",
               ]}
               cta="Choose Professional"
-              href="/sarathi/login?next=/sarathi/data-engine"
+              href="/sarathi/astrologers/login?next=/sarathi/data-engine"
               highlighted
             />
 
@@ -223,7 +223,17 @@ function PricingCard({
       }
     >
       <div className="text-sm font-semibold text-foreground">{name}</div>
-      <div className="mt-3 text-3xl font-semibold text-foreground">{price}</div>
+      <div className="mt-3">
+  <div className="text-3xl font-semibold text-foreground">
+    {price}
+  </div>
+
+  {highlighted && (
+    <div className="mt-2 inline-flex rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-800">
+      🚀 Introductory Launch Offer
+    </div>
+  )}
+</div>
       <p className="mt-3 text-sm leading-relaxed astro-text-soft">{desc}</p>
 
       <ul className="mt-6 space-y-2 text-sm astro-text-soft">

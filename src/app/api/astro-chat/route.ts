@@ -2,6 +2,9 @@ export const runtime = "nodejs";
 
 import "server-only";
 import { NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
+import { getUserEntitlements } from "@/server/auth/getUserEntitlements";
+import { logQuestionUsage } from "@/server/access/logQuestionUsage";
 import { inferCareer } from "@/server/astro/inference/career";
 import { buildPanchangData } from "@/server/dataEngine/buildPanchangData";
 import { buildSarathiChatContext } from "@/server/astro-chat/buildSarathiChatContext";
@@ -10173,29 +10176,75 @@ function isVagueTimingFollowup(question: string): boolean {
 
 export async function POST(req: Request) {
   try {
+    const supabase = await createClient();
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json(
+        {
+          ok: false,
+          locked: true,
+          reason: "login_required",
+          message: "Please sign in to ask Sārathi.",
+        },
+        { status: 401 }
+      );
+    }
+
+    const entitlements = await getUserEntitlements(user.id);
+
+    if (!entitlements.askSarathi.allowed) {
+      return NextResponse.json(
+        {
+          ok: false,
+          locked: true,
+          reason: "ask_limit_reached",
+          message:
+  "You’ve used your complimentary Ask Sārathi question. Please upgrade to continue.",
+          entitlements,
+        },
+        { status: 403 }
+      );
+    }
+
     const body = (await req.json().catch(() => ({}))) as any;
+
     const question = safeStr(body?.question ?? body?.message);
-    if (!question) return badJson("No question provided", 400);
+
+    if (!question) {
+      return badJson("No question provided", 400);
+    }
 
     const rawProfile =
-  body?.profile ??
-  body?.birthProfile ??
-  body?.birth ??
-  null;
+      body?.profile ??
+      body?.birthProfile ??
+      body?.birth ??
+      null;
 
-const profile = normalizeProfile(rawProfile);
-const profileOk = hasValidProfile(profile);
-const resolvedProfile = profile;
-    let report: LifeReportLike | any = body?.report ?? body?.reportData ?? null;
-    if (report && typeof report === "object" && report.data && typeof report.data === "object") {
+    const profile = normalizeProfile(rawProfile);
+    const profileOk = hasValidProfile(profile);
+    const resolvedProfile = profile;
+
+    let report: LifeReportLike | any =
+      body?.report ?? body?.reportData ?? null;
+
+    if (
+      report &&
+      typeof report === "object" &&
+      report.data &&
+      typeof report.data === "object"
+    ) {
       report = report.data;
     }
 
-  const history = Array.isArray(body?.history) ? body.history : [];
-const conversationState = extractConversationState(history);
-const continuation = isFollowupContinuationQuestion(question);
-const vagueTimingFollowup = isVagueTimingFollowup(question);
-const detectedTopic = detectTopic(question);
+    const history = Array.isArray(body?.history) ? body.history : [];
+    const conversationState = extractConversationState(history);
+    const continuation = isFollowupContinuationQuestion(question);
+    const vagueTimingFollowup = isVagueTimingFollowup(question);
+    const detectedTopic = detectTopic(question);
 
 const inferredFollowupTopic = inferFollowupTopic(
   question,
@@ -10734,6 +10783,11 @@ if (
   .replace(/\. The chart is currently rewarding/g, ".\n\nThe chart is currently rewarding")
   .replace(/\. This does not look like a stagnant phase/g, ".\n\nThis does not look like a stagnant phase")
   .trim();
+  await logQuestionUsage({
+  userId: user.id,
+  question,
+  topic,
+});
     return okJson({
       answer,
       evidenceBullets: astroBundle.evidenceBullets,

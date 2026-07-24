@@ -10,19 +10,11 @@ import PlanetTable from "@/components/data-engine/PlanetTable";
 import HouseLordTable from "@/components/data-engine/HouseLordTable";
 import FunctionalRolesCard from "@/components/data-engine/FunctionalRolesCard";
 import DashaBlock from "@/components/data-engine/DashaBlock";
-import TransitTable from "@/components/data-engine/TransitTable";
-import UpcomingTransitsCard from "@/components/data-engine/UpcomingTransitsCard";
-import TransitWindowsCard from "@/components/data-engine/TransitWindowsCard";
 import MajorTransitTimelineCard from "@/components/data-engine/MajorTransitTimelineCard";
 import PlanetTransitTimelineCard from "@/components/data-engine/PlanetTransitTimelineCard";
 import PanchangCard from "@/components/data-engine/PanchangCard";
-import PlanetStrengthCard from "@/components/data-engine/PlanetStrengthCard";
-import NatalAspectsCard from "@/components/data-engine/NatalAspectsCard";
-import TransitInteractionCard from "@/components/data-engine/TransitInteractionCard";
 import DashaLordProfileCard from "@/components/data-engine/DashaLordProfileCard";
 import NakshatraContextCard from "@/components/data-engine/NakshatraContextCard";
-import VedicPlanetAspectsCard from "@/components/data-engine/VedicPlanetAspectsCard";
-import VedicHouseAspectsCard from "@/components/data-engine/VedicHouseAspectsCard";
 import HouseJudgementCard from "@/components/data-engine/HouseJudgementCard";
 import ChartsTabView from "@/components/data-engine/ChartsTabView";
 import ShadbalaCard from "@/components/data-engine/ShadbalaCard";
@@ -32,7 +24,6 @@ import BhavMadhyaCard from "@/components/data-engine/BhavMadhyaCard";
 import FiveFoldFriendshipCard from "@/components/data-engine/FiveFoldFriendshipCard";
 import AvakhadaCard from "@/components/data-engine/AvakhadaCard";
 import tzLookup from "tz-lookup";
-import UpagrahaCard from "@/components/data-engine/UpagrahaCard";
 import KpPlanetOnCuspCard from "@/components/data-engine/KpPlanetOnCuspCard";
 import { formatKpPlanetOnCuspForAstroSage } from "@/lib/astrology/kp/formatKpPlanetOnCuspForAstroSage";
 import DashaLordTransitTrackerCard from "@/components/data-engine/DashaLordTransitTrackerCard";
@@ -51,15 +42,14 @@ import {
 } from "@/lib/supabase/astrologer-crm-service";
 type TabKey =
   | "foundations"
-  | "analysis"
-  | "timing"
-  | "transits"
-  | "forecast"
-  | "vargas"
   | "charts"
-  | "compare"
+  | "vargas"
+  | "timing"
+  | "forecast"
   | "strength"
-  | "utilities";
+  | "utilities"
+  | "compare"
+  | "analysis";
 
 type UpcomingTransitBuckets = {
   moonTransits?: any[];
@@ -477,73 +467,6 @@ timerRef.current = window.setTimeout(async () => {
   );
 }
 
-function PrimarySignalsCard({
-  strongestPlanets,
-  weakestPlanets,
-  keyHouses,
-  currentDashaLabel,
-  watchouts,
-}: {
-  strongestPlanets: string[];
-  weakestPlanets: string[];
-  keyHouses: Array<string | number>;
-  currentDashaLabel: string;
-  watchouts: string[];
-}) {
-  return (
-    <div className="rounded-2xl astro-card p-5 shadow-sm ring-1 ring-black/5">
-      <h2 className="text-base font-semibold text-slate-900">Primary Signals</h2>
-      <p className="mt-1 text-sm text-slate-600">
-        High-priority chart flags for quick astrologer review.
-      </p>
-
-      <div className="mt-4 space-y-3">
-        <div>
-          <div className="text-xs font-medium uppercase tracking-wide text-slate-400">
-            Current Dasha
-          </div>
-          <div className="mt-1 text-sm text-slate-900">{currentDashaLabel || "—"}</div>
-        </div>
-
-        <div>
-          <div className="text-xs font-medium uppercase tracking-wide text-slate-400">
-            Strongest Planets
-          </div>
-          <div className="mt-1 text-sm text-slate-900">
-            {strongestPlanets.length ? strongestPlanets.join(", ") : "—"}
-          </div>
-        </div>
-
-        <div>
-          <div className="text-xs font-medium uppercase tracking-wide text-slate-400">
-            Weakest Planets
-          </div>
-          <div className="mt-1 text-sm text-slate-900">
-            {weakestPlanets.length ? weakestPlanets.join(", ") : "—"}
-          </div>
-        </div>
-
-        <div>
-          <div className="text-xs font-medium uppercase tracking-wide text-slate-400">
-            Key Houses
-          </div>
-          <div className="mt-1 text-sm text-slate-900">
-            {keyHouses.length ? keyHouses.join(", ") : "—"}
-          </div>
-        </div>
-
-        <div>
-          <div className="text-xs font-medium uppercase tracking-wide text-slate-400">
-            Watchouts
-          </div>
-          <div className="mt-1 text-sm text-slate-900">
-            {watchouts.length ? watchouts.join(" • ") : "—"}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
 type TransitQueryCondition = {
   id: string;
   planet: string;
@@ -1805,11 +1728,6 @@ const upagrahas = useMemo(
   [data]
 );
 useEffect(() => {
-  if (upagrahas) {
-    console.log("UPAGRAHA DEBUG", upagrahas);
-  }
-}, [upagrahas]);
-useEffect(() => {
   setTransitQueryMatches((current) =>
     sortTransitQueryMatches(current, transitQuerySortBy)
   );
@@ -1818,13 +1736,6 @@ const solarShadowPoints = useMemo(
   () =>
     data?.foundations?.solarShadowPoints ??
     data?.solarShadowPoints ??
-    null,
-  [data]
-);
-const foundationPersonalStrength = useMemo(
-  () =>
-    data?.foundations?.personalStrength ??
-    data?.timing?.personalStrength ??
     null,
   [data]
 );
@@ -1848,118 +1759,6 @@ const foundationPersonalStrength = useMemo(
     () => planets.find((p: any) => p?.planet === "Moon") ?? null,
     [planets]
   );
-
-  const strongestPlanets = useMemo(() => {
-    const rows = Array.isArray(natalStrengths) ? natalStrengths : [];
-
-    const scorePlanet = (row: any) => {
-      let score = 0;
-      if (row?.strengthBand === "strong") score += 4;
-      if (row?.strengthBand === "medium") score += 2;
-      if (row?.strengthBand === "weak") score -= 2;
-      if (row?.isExalted) score += 5;
-      if (row?.isOwnSign) score += 4;
-      if (row?.isMoolatrikona) score += 4;
-      if (row?.isVargottama) score += 2;
-      if (row?.isDebilitated) score -= 5;
-      if (row?.combust) score -= 2;
-      return score;
-    };
-
-    return rows
-      .filter((row: any) =>
-        ["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn", "Rahu", "Ketu"].includes(
-          String(row?.planet ?? "")
-        )
-      )
-      .slice()
-      .sort((a: any, b: any) => scorePlanet(b) - scorePlanet(a))
-      .slice(0, 3)
-      .map((row: any) => row?.planet)
-      .filter(Boolean);
-  }, [natalStrengths]);
-
-  const weakestPlanets = useMemo(() => {
-    const rows = Array.isArray(natalStrengths) ? natalStrengths : [];
-
-    const scorePlanet = (row: any) => {
-      let score = 0;
-      if (row?.strengthBand === "strong") score += 4;
-      if (row?.strengthBand === "medium") score += 2;
-      if (row?.strengthBand === "weak") score -= 2;
-      if (row?.isExalted) score += 5;
-      if (row?.isOwnSign) score += 4;
-      if (row?.isMoolatrikona) score += 4;
-      if (row?.isVargottama) score += 2;
-      if (row?.isDebilitated) score -= 5;
-      if (row?.combust) score -= 2;
-      return score;
-    };
-
-    return rows
-      .filter((row: any) =>
-        ["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn", "Rahu", "Ketu"].includes(
-          String(row?.planet ?? "")
-        )
-      )
-      .slice()
-      .sort((a: any, b: any) => scorePlanet(a) - scorePlanet(b))
-      .slice(0, 3)
-      .map((row: any) => row?.planet)
-      .filter(Boolean);
-  }, [natalStrengths]);
-
-  const keyHouses = useMemo(() => {
-    const rows = Array.isArray(houseJudgement) ? houseJudgement : [];
-
-    const scoreHouse = (row: any) => {
-      let score = 0;
-
-      if (row?.houseStrengthLabel === "strong") score += 4;
-      if (row?.houseStrengthLabel === "mixed") score += 2;
-      if (row?.houseStrengthLabel === "weak") score -= 2;
-
-      if (row?.houseLordStrengthBand === "strong") score += 3;
-      if (row?.houseLordStrengthBand === "medium") score += 1;
-
-      score += Number(row?.beneficCount ?? 0);
-      score -= Number(row?.maleficCount ?? 0) * 0.5;
-      score += Number(row?.occupantCount ?? 0) * 0.5;
-
-      return score;
-    };
-
-    return rows
-      .slice()
-      .sort((a: any, b: any) => scoreHouse(b) - scoreHouse(a))
-      .slice(0, 4)
-      .map((row: any) => row?.house)
-      .filter((x: any) => x !== null && x !== undefined);
-  }, [houseJudgement]);
-
-  const watchouts = useMemo(() => {
-    const out: string[] = [];
-
-    for (const row of natalStrengths ?? []) {
-      const p = row?.planet;
-      if (!p) continue;
-
-      if (row?.isDebilitated) out.push(`${p} debilitated`);
-      if (row?.combust) out.push(`${p} combust`);
-      if (row?.strengthBand === "weak") out.push(`${p} weak`);
-    }
-
-    for (const row of houseJudgement ?? []) {
-      const mal = Number(row?.maleficCount ?? 0);
-      const ben = Number(row?.beneficCount ?? 0);
-
-      if (mal >= 2 && mal > ben) {
-        out.push(`H${row?.house} under pressure`);
-      }
-    }
-
-    return out.slice(0, 4);
-  }, [natalStrengths, houseJudgement]);
 
   const currentDashaLabel = useMemo(() => {
     const md =
@@ -2095,13 +1894,15 @@ useEffect(() => {
       const res = await fetch("/api/entitlements");
 
       if (!res.ok) {
-        router.replace("/sarathi/login?next=/sarathi/data-engine");
+        router.replace(
+          "/sarathi/astrologers/login?next=/sarathi/data-engine"
+        );
         return;
       }
 
       const json = await res.json();
 
-      if (!json.entitlements.dataEngine.allowed) {
+      if (!json.entitlements?.dataEngine?.allowed) {
         router.replace("/sarathi/upgrade?feature=data-engine");
         return;
       }
@@ -2109,6 +1910,10 @@ useEffect(() => {
       if (!cancelled) {
         setAccessAllowed(true);
       }
+    } catch {
+      router.replace(
+        "/sarathi/astrologers/login?next=/sarathi/data-engine"
+      );
     } finally {
       if (!cancelled) {
         setCheckingAccess(false);
@@ -2534,9 +2339,11 @@ nabhasaYogas={data?.foundations?.nabhasaYogas ?? data?.nabhasaYogas}
               <div className="mt-6 space-y-8">
                 <section className="space-y-4">
                   <div>
-                    <h2 className="text-lg font-semibold text-slate-900">Chart Identity</h2>
+                    <h2 className="text-lg font-semibold text-slate-900">
+                      Chart Identity
+                    </h2>
                     <p className="text-sm text-slate-900">
-                      Core birth details, Panchang, and high-signal chart markers.
+                      Core birth details and natal chart identity.
                     </p>
                   </div>
 
@@ -2570,185 +2377,31 @@ nabhasaYogas={data?.foundations?.nabhasaYogas ?? data?.nabhasaYogas}
                       <span className="rounded-full border border-[color:var(--border)] bg-white px-3.5 py-1.5 text-xs font-medium text-slate-700 shadow-sm">
                         Dasha - {currentDashaLabel}
                       </span>
-
-                      {strongestPlanets.length ? (
-                        <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3.5 py-1.5 text-xs font-semibold text-emerald-700 shadow-sm">
-                          Strong - {strongestPlanets.join(", ")}
-                        </span>
-                      ) : null}
-
-                      {weakestPlanets.length ? (
-                        <span className="rounded-full border border-amber-200 bg-amber-50 px-3.5 py-1.5 text-xs font-semibold text-amber-700 shadow-sm">
-                          Weak - {weakestPlanets.join(", ")}
-                        </span>
-                      ) : null}
-
-                      {keyHouses.length ? (
-                        <span className="rounded-full border border-sky-200 bg-sky-50 px-3.5 py-1.5 text-xs font-semibold text-sky-700 shadow-sm">
-                          Houses - {keyHouses.join(", ")}
-                        </span>
-                      ) : null}
                     </div>
                   </div>
 
                   <BirthSummaryCard birthMeta={birthMeta} natal={natal} />
 
-                  <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-                    {birthPanchang ? (
-                      <PanchangCard
-                        title="Birth Panchang"
-                        subtitle="Panchang reference for the date of birth."
-                        data={birthPanchang}
-                      />
-                    ) : (
-                      <div className="rounded-2xl astro-card p-5 text-sm text-slate-900">
-                        Birth Panchang not available.
-                      </div>
-                    )}
-
-                    <PrimarySignalsCard
-                      strongestPlanets={strongestPlanets}
-                      weakestPlanets={weakestPlanets}
-                      keyHouses={keyHouses}
-                      currentDashaLabel={currentDashaLabel}
-                      watchouts={watchouts}
+                  {birthPanchang ? (
+                    <PanchangCard
+                      title="Birth Panchang"
+                      subtitle="Panchang reference for the date of birth."
+                      data={birthPanchang}
                     />
-                  </div>
-                 <section className="space-y-4">
-  <div>
-    <h2 className="text-lg font-semibold text-slate-900">Upagrahas, Solar Shadow Points & Moon Strength</h2>
-<p className="text-sm text-slate-900">
-  Chart-linked segmented upagrahas, classical solar shadow points, and daily lunar support factors for judgement.
-</p>
-  </div>
-
-  <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-    <UpagrahaCard
-      title="Gulika"
-      point={upagrahas?.gulika}
-      methodLabel={upagrahas?.traditionLabel ?? upagrahas?.methodId ?? "—"}
-    />
-
-    <UpagrahaCard
-      title="Mandi"
-      point={upagrahas?.mandi}
-      methodLabel={upagrahas?.traditionLabel ?? upagrahas?.methodId ?? "—"}
-    />
-
-    <UpagrahaCard
-      title="Yamakantaka"
-      point={upagrahas?.yamakantaka}
-      methodLabel={upagrahas?.traditionLabel ?? upagrahas?.methodId ?? "—"}
-    />
-
-    <UpagrahaCard
-      title="Kala"
-      point={upagrahas?.kala}
-      methodLabel={upagrahas?.traditionLabel ?? upagrahas?.methodId ?? "—"}
-    />
-
-    <UpagrahaCard
-      title="Mrityu"
-      point={upagrahas?.mrityu}
-      methodLabel={upagrahas?.traditionLabel ?? upagrahas?.methodId ?? "—"}
-    />
-    <UpagrahaCard
-  title="Ardhaprahara"
-  point={upagrahas?.arthaprahara}
-  methodLabel={upagrahas?.traditionLabel ?? upagrahas?.methodId ?? "—"}
-/>
-   <UpagrahaCard
-  title="Dhuma"
-  point={solarShadowPoints?.dhuma}
-  methodLabel={solarShadowPoints?.traditionLabel ?? solarShadowPoints?.methodId ?? "—"}
-/>
-
-<UpagrahaCard
-  title="Vyatipata"
-  point={solarShadowPoints?.vyatipata}
-  methodLabel={solarShadowPoints?.traditionLabel ?? solarShadowPoints?.methodId ?? "—"}
-/>
-
-<UpagrahaCard
-  title="Parivesha"
-  point={solarShadowPoints?.parivesha}
-  methodLabel={solarShadowPoints?.traditionLabel ?? solarShadowPoints?.methodId ?? "—"}
-/>
-
-<UpagrahaCard
-  title="Indrachapa"
-  point={solarShadowPoints?.indrachapa}
-  methodLabel={solarShadowPoints?.traditionLabel ?? solarShadowPoints?.methodId ?? "—"}
-/>
-
-<UpagrahaCard
-  title="Upaketu"
-  point={solarShadowPoints?.upaketu}
-  methodLabel={solarShadowPoints?.traditionLabel ?? solarShadowPoints?.methodId ?? "—"}
-/>
-    <div className="rounded-2xl border border-[color:var(--border)] bg-white/70 p-5 text-sm text-slate-900 shadow-sm backdrop-blur-sm">
-      <div className="text-xs font-medium uppercase tracking-wide text-slate-400">
-        Tarabala & Chandrabala
-      </div>
-
-      {!foundationPersonalStrength ? (
-        <div className="mt-2 text-slate-900">No lunar strength data available.</div>
-      ) : (
-        <div className="mt-3 space-y-2">
-          <div>
-            <span className="text-slate-400">Tarabala:</span>{" "}
-            {foundationPersonalStrength?.tarabalam?.tara ?? "—"}
-          </div>
-
-          <div>
-            <span className="text-slate-400">Tarabala Favorable:</span>{" "}
-            {foundationPersonalStrength?.tarabalam?.favorable == null
-              ? "—"
-              : foundationPersonalStrength.tarabalam.favorable
-              ? "Yes"
-              : "No"}
-          </div>
-
-          <div>
-            <span className="text-slate-400">Chandrabala Favorable:</span>{" "}
-            {foundationPersonalStrength?.chandrabalam?.favorable == null
-              ? "—"
-              : foundationPersonalStrength.chandrabalam.favorable
-              ? "Yes"
-              : "No"}
-          </div>
-
-          <div>
-            <span className="text-slate-400">Natal Moon Nakshatra:</span>{" "}
-            {foundationPersonalStrength?.natalMoonNakshatra ?? "—"}
-          </div>
-
-          <div>
-            <span className="text-slate-400">Transit Moon Nakshatra:</span>{" "}
-            {foundationPersonalStrength?.transitMoonNakshatra ?? "—"}
-          </div>
-
-          <div>
-            <span className="text-slate-400">Natal Moon Sign:</span>{" "}
-            {foundationPersonalStrength?.natalMoonSign ?? "—"}
-          </div>
-
-          <div>
-            <span className="text-slate-400">Transit Moon Sign:</span>{" "}
-            {foundationPersonalStrength?.transitMoonSign ?? "—"}
-          </div>
-        </div>
-      )}
-    </div>
-  </div>
-</section>
+                  ) : (
+                    <div className="rounded-2xl astro-card p-5 text-sm text-slate-900">
+                      Birth Panchang not available.
+                    </div>
+                  )}
                 </section>
 
                 <section className="space-y-4">
                   <div>
-                    <h2 className="text-lg font-semibold text-slate-900">Natal Framework</h2>
+                    <h2 className="text-lg font-semibold text-slate-900">
+                      Natal Framework
+                    </h2>
                     <p className="text-sm text-slate-900">
-                      Base structure of the natal chart for manual judgement.
+                      Planetary placements, house ownership and functional planetary roles.
                     </p>
                   </div>
 
@@ -2763,27 +2416,8 @@ nabhasaYogas={data?.foundations?.nabhasaYogas ?? data?.nabhasaYogas}
                 <section className="space-y-4">
                   <div>
                     <h2 className="text-lg font-semibold text-slate-900">
-                      Aspect and Strength Layer
+                      House Judgement
                     </h2>
-                    <p className="text-sm text-slate-900">
-                      Strengths, aspects, and interaction patterns across the chart.
-                    </p>
-                  </div>
-
-                  <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-                    <PlanetStrengthCard rows={natalStrengths} />
-                    <NatalAspectsCard rows={natalAspects} />
-                  </div>
-
-                  <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-                    <VedicPlanetAspectsCard data={vedicAspects} />
-                    <VedicHouseAspectsCard data={vedicAspects} />
-                  </div>
-                </section>
-
-                <section className="space-y-4">
-                  <div>
-                    <h2 className="text-lg font-semibold text-slate-900">House Judgement</h2>
                     <p className="text-sm text-slate-900">
                       Consolidated house-level judgement for quick review.
                     </p>
@@ -2807,28 +2441,6 @@ nabhasaYogas={data?.foundations?.nabhasaYogas ?? data?.nabhasaYogas}
                 />
 
                 <NakshatraContextCard data={nakshatraContext} />
-              </div>
-            ) : null}
-
-            {data && activeTab === "transits" ? (
-              <div className="mt-6 space-y-6">
-                <TransitTable transitNow={transitNow} />
-
-                {transitInteractions?.length ? (
-                  <TransitInteractionCard rows={transitInteractions} />
-                ) : null}
-
-                {(upcomingTransitItems?.planetaryTransits?.length ||
-                  upcomingTransitItems?.moonTransits?.length) ? (
-                  <UpcomingTransitsCard
-                    data={upcomingTransitItems}
-                    ascSign={natal?.ascendant?.sign ?? null}
-                  />
-                ) : null}
-
-                {transitWindows?.length ? (
-                  <TransitWindowsCard windows={transitWindows} />
-                ) : null}
               </div>
             ) : null}
 

@@ -2,6 +2,8 @@
 
   import "server-only";
   import { NextResponse } from "next/server";
+  import { createClient } from "@/lib/supabase/server";
+  import { getUserEntitlements } from "@/server/auth/getUserEntitlements";
   import { buildLifeReport } from "@/server/astro/life-engine";
   import { cacheGet, cacheSet, makeCacheKey } from "@/server/cache/simpleCache";
   import { buildNotificationFactsFromDailyGuide } from "@/server/notifications/daily-facts";
@@ -1759,10 +1761,41 @@ if (!transitNowFacts.length && Array.isArray(topTransits) && topTransits.length 
     );
   }
 
-  export async function POST(req: Request) {
-    console.log("=== LIFE_REPORT_ROUTE_HIT ===");
-    try {
-      const body = await req.json();
+ export async function POST(req: Request) {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json(
+      {
+        ok: false,
+        reason: "not_authenticated",
+        error: "Please sign in to generate a Life Report.",
+      },
+      { status: 401 }
+    );
+  }
+
+  const entitlements = await getUserEntitlements(user.id);
+
+  if (!entitlements.lifeReport.allowed) {
+    return NextResponse.json(
+      {
+        ok: false,
+        reason: "life_report_access_required",
+        error: "Your account does not have access to Life Reports.",
+      },
+      { status: 403 }
+    );
+  }
+
+  console.log("=== LIFE_REPORT_ROUTE_HIT ===");
+
+  try {
+    const body = await req.json();
      const isPaid = body?.isPaid === true;
       // ----------------------------
       // 1) Parse location (support old + new schema)

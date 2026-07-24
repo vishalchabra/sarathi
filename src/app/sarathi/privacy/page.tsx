@@ -30,8 +30,8 @@ function Shell({ children }: { children: React.ReactNode }) {
         </h1>
 
         <p className="mt-2 text-sm text-slate-500">
-          Last updated: {new Date().toISOString().slice(0, 10)}
-        </p>
+  Last updated: 18 July 2026
+</p>
 
         <div className="mt-8 space-y-6 rounded-2xl astro-card p-6 text-sm leading-7 text-slate-700">
           {children}

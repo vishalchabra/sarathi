@@ -319,7 +319,7 @@ const SECONDARY_LAYOUT: LayoutConfig = {
   outerRect: { x: 34, y: 34, width: 452, height: 432 },
   anchors: [
     { house: 2, x: 145, y: 50, width: 82, minHeight: 96 },
-    { house: 12, x: 362, y: 62, width: 82, minHeight: 96 },
+    { house: 12, x: 362, y: 50, width: 82, minHeight: 96 },
 
     { house: 3, x: 80, y: 132, width: 80, minHeight: 96 },
     { house: 1, x: 260, y: 106, width: 98, minHeight: 96 },

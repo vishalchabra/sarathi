@@ -26,14 +26,14 @@ export default function IndividualPage() {
 
           <div className="mt-8 flex flex-wrap gap-3">
             <Link
-              href="/sarathi/login?next=/sarathi/life-report"
+              href="/sarathi/individual/login?next=/sarathi/life-report"
               className="rounded-full bg-[color:var(--primary)] px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90"
             >
               Generate Life Report
             </Link>
 
             <Link
-              href="/sarathi/login?next=/sarathi/chat"
+              href="/sarathi/individual/login?next=/sarathi/chat"
               className="rounded-full astro-card px-5 py-2.5 text-sm font-semibold text-foreground hover:bg-white/80 hover:shadow-md"
             >
               Ask Sārathi
@@ -99,39 +99,53 @@ export default function IndividualPage() {
           </div>
 
           <h2 className="mt-3 text-3xl font-semibold text-foreground">
-            Start with a free preview
-          </h2>
+  Choose how you want to begin
+</h2>
 
-          <div className="mt-6 grid gap-6 md:grid-cols-2">
-            <PricingCard
-              name="Free Preview"
-              price="$0"
-              desc="Generate a basic preview of your Life Report."
-              features={[
-                "Birth profile setup",
-                "Basic life pattern",
-                "Limited overview",
-                "Locked premium sections",
-              ]}
-              cta="Generate free preview"
-              href="/sarathi/login?next=/sarathi/life-report"
-            />
+          <div className="mt-6 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+  <PricingCard
+    name="Free Preview"
+    price="₹0"
+    desc="Generate a basic preview of your Life Report."
+    features={[
+      "Birth profile setup",
+      "Basic life pattern",
+      "Limited overview",
+      "Locked premium sections",
+    ]}
+    cta="Generate free preview"
+    href="/sarathi/individual/login?next=/sarathi/life-report"
+  />
 
-            <PricingCard
-              name="Full Life Report"
-              price="$9"
-              desc="Introductory launch price for the complete Life Report."
-              features={[
-                "Full personal Life Report",
-                "Current and upcoming timing",
-                "Deeper life phases",
-                "Ask Sārathi access",
-              ]}
-              cta="Unlock full report"
-              href="/sarathi/login?next=/sarathi/life-report"
-              highlighted
-            />
-          </div>
+  <PricingCard
+    name="Full Life Report"
+    price="₹999"
+    desc="Introductory launch offer. One-time payment for your complete personalised Life Report."
+    features={[
+      "Full personal Life Report",
+      "Current and upcoming timing",
+      "Deeper life phases",
+      "Lifetime access to your complete report",
+    ]}
+    cta="Unlock full report"
+    href="/sarathi/individual/login?next=/sarathi/life-report"
+    highlighted
+  />
+
+  <PricingCard
+    name="Ask Sārathi"
+    price="From ₹99"
+    desc="Your first question is complimentary. Continue with question packs whenever you need deeper guidance."
+    features={[
+  "1 Question — ₹99",
+  "⭐ Most Popular | 5 Questions — ₹399",
+  "3 Questions — ₹249",
+  "10 Questions — ₹799",
+]}
+    cta="Ask Sārathi"
+    href="/sarathi/individual/login?next=/sarathi/chat"
+  />
+</div>
         </section>
       </section>
     </main>
@@ -186,14 +200,38 @@ function PricingCard({
       <div className="mt-3 text-3xl font-semibold text-foreground">{price}</div>
       <p className="mt-3 text-sm leading-relaxed astro-text-soft">{desc}</p>
 
-      <ul className="mt-6 space-y-2 text-sm astro-text-soft">
-        {features.map((f) => (
-          <li key={f} className="flex gap-2">
+      <ul className="mt-6 space-y-3 text-sm astro-text-soft">
+  {features.map((f) => {
+    const popular = f.startsWith("⭐");
+
+    return (
+      <li
+        key={f}
+        className={
+          popular
+            ? "rounded-xl border border-[color:var(--primary)] bg-[color:var(--primary)]/10 p-3"
+            : "flex gap-2"
+        }
+      >
+        {popular ? (
+          <div>
+            <div className="mb-1 text-xs font-semibold uppercase text-[color:var(--primary)]">
+              ⭐ Most Popular
+            </div>
+            <div className="font-medium text-foreground">
+              {f.replace("⭐ Most Popular | ", "")}
+            </div>
+          </div>
+        ) : (
+          <>
             <span className="text-[color:var(--primary)]">✓</span>
             <span>{f}</span>
-          </li>
-        ))}
-      </ul>
+          </>
+        )}
+      </li>
+    );
+  })}
+</ul>
 
       <Link
         href={href}

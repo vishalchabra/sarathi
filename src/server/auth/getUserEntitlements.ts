@@ -1,27 +1,35 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
 
-const FREE_ASK_LIMIT = 2;
+const FREE_ASK_LIMIT = 1;
 
 type Plan = "free" | "pro" | "premium";
 
 export type UserEntitlements = {
   plan: Plan;
+
   role: "user" | "admin" | "astrologer" | "support";
+
+  individualAccess: boolean;
+  astrologerAccess: boolean;
+
   askSarathi: {
-  allowed: boolean;
-  freeRemaining: number;
-  purchasedRemaining: number;
-  totalRemaining: number;
-  totalUsed: number;
-};
+    allowed: boolean;
+    freeRemaining: number;
+    purchasedRemaining: number;
+    totalRemaining: number;
+    totalUsed: number;
+  };
+
   dataEngine: {
     allowed: boolean;
     trialEndsAt: string | null;
   };
+
   lifeReport: {
     allowed: boolean;
   };
+
   consultation: {
     allowed: boolean;
   };
@@ -46,40 +54,50 @@ export async function getUserEntitlements(
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("created_at, role")
+    .select(
+  "created_at, role, individual_access, astrologer_access, data_engine_grandfathered"
+)
     .eq("id", userId)
     .maybeSingle();
 
   const {
-  data: { user },
-} = await supabase.auth.getUser();
+    data: { user },
+  } = await supabase.auth.getUser();
 
-const profileCreatedAt = profile?.created_at ?? user?.created_at ?? null;
+  const profileCreatedAt =
+    profile?.created_at ?? user?.created_at ?? null;
 
   const trialEndsAt = profileCreatedAt
-    ? new Date(new Date(profileCreatedAt).getTime() + 24 * 60 * 60 * 1000)
+    ? new Date(
+        new Date(profileCreatedAt).getTime() + 24 * 60 * 60 * 1000
+      )
     : null;
+  const isDataEngineTrialActive =
+  Boolean(trialEndsAt) &&
+  trialEndsAt!.getTime() > Date.now();
 
+const isDataEngineGrandfathered =
+  Boolean(profile?.data_engine_grandfathered);
   let { data: wallet } = await supabase
-  .from("user_wallets")
-  .select("*")
-  .eq("user_id", userId)
-  .maybeSingle();
-
-if (!wallet) {
-  const { data: createdWallet } = await supabase
     .from("user_wallets")
-    .insert({
-      user_id: userId,
-      free_credits_remaining: FREE_ASK_LIMIT,
-      purchased_credits_remaining: 0,
-      total_credits_used: 0,
-    })
     .select("*")
-    .single();
+    .eq("user_id", userId)
+    .maybeSingle();
 
-  wallet = createdWallet;
-}
+  if (!wallet) {
+    const { data: createdWallet } = await supabase
+      .from("user_wallets")
+      .insert({
+        user_id: userId,
+        free_credits_remaining: FREE_ASK_LIMIT,
+        purchased_credits_remaining: 0,
+        total_credits_used: 0,
+      })
+      .select("*")
+      .single();
+
+    wallet = createdWallet;
+  }
 
   const { data: subscription } = await supabase
     .from("subscriptions")
@@ -99,36 +117,73 @@ if (!wallet) {
 
   const hasActiveSubscription = isActiveSubscription(subscription);
   const isAdmin = profile?.role === "admin";
+
+  const individualAccess =
+    isAdmin || Boolean(profile?.individual_access);
+
+  const astrologerAccess =
+    isAdmin || Boolean(profile?.astrologer_access);
+
   const plan = hasActiveSubscription
     ? ((subscription.plan ?? "pro") as Plan)
     : "free";
 
-  const freeRemaining = Number(wallet?.free_credits_remaining ?? 0);
-const purchasedRemaining = Number(wallet?.purchased_credits_remaining ?? 0);
-const totalUsed = Number(wallet?.total_credits_used ?? 0);
-const totalRemaining = freeRemaining + purchasedRemaining;
+  const freeRemaining = Number(
+    wallet?.free_credits_remaining ?? 0
+  );
 
-  
+  const purchasedRemaining = Number(
+    wallet?.purchased_credits_remaining ?? 0
+  );
+
+  const totalUsed = Number(
+    wallet?.total_credits_used ?? 0
+  );
+
+  const totalRemaining =
+    freeRemaining + purchasedRemaining;
 
   return {
     plan,
+
     role: (profile?.role ?? "user") as UserEntitlements["role"],
+
+    individualAccess,
+    astrologerAccess,
+
     askSarathi: {
-  allowed: isAdmin || hasActiveSubscription || totalRemaining > 0,
-  freeRemaining: isAdmin ? 999999 : freeRemaining,
-  purchasedRemaining: isAdmin ? 999999 : purchasedRemaining,
-  totalRemaining: isAdmin ? 999999 : totalRemaining,
-  totalUsed,
-},
+      allowed:
+        individualAccess &&
+        (isAdmin || hasActiveSubscription || totalRemaining > 0),
+
+      freeRemaining: isAdmin ? 999999 : freeRemaining,
+      purchasedRemaining: isAdmin ? 999999 : purchasedRemaining,
+      totalRemaining: isAdmin ? 999999 : totalRemaining,
+      totalUsed,
+    },
 
     dataEngine: {
-  // Temporary open access until payment and upgrade flow are live.
-  allowed: true,
-  trialEndsAt: null,
+  allowed:
+    astrologerAccess &&
+    (isAdmin ||
+      isDataEngineGrandfathered ||
+      hasActiveSubscription ||
+      isDataEngineTrialActive),
+
+  trialEndsAt:
+    isAdmin ||
+    isDataEngineGrandfathered ||
+    hasActiveSubscription
+      ? null
+      : trialEndsAt?.toISOString() ?? null,
 },
 
     lifeReport: {
-      allowed: isAdmin || hasActiveSubscription || Boolean(lifeReportPurchase),
+      allowed:
+        individualAccess &&
+        (isAdmin ||
+          hasActiveSubscription ||
+          Boolean(lifeReportPurchase)),
     },
 
     consultation: {

@@ -1194,33 +1194,70 @@ const payload: any = {
       body = { ok: false, error: `Network error: ${e?.message || e}` };
     }
 
-    const errText = String((body && body.error) || "");
-    const effectiveNowLabel =
-      nowLabel || (body && ((body.extra && body.extra.nowLabel) || (body.now && body.now.label)));
+    const errText = String(
+  body?.message ||
+    body?.error ||
+    ""
+);
 
-    if (!res?.ok || !body || body.ok === false) {
-      const fallback: QAResponse = {
-        ok: true,
-        title: "Overview",
-        windows: [],
-        bottomLine: {
-          lead: "I couldn’t fetch a detailed answer right now, but here’s a safe overview.",
-          nuance: errText && errText !== "undefined" ? errText : "",
-        },
-        now: effectiveNowLabel ? { label: effectiveNowLabel } : {},
-        spans,
-        copy: {
-          answer:
-            "Let’s keep momentum steady while I refresh your timing windows." +
-            (effectiveNowLabel ? ` You’re currently in **${effectiveNowLabel}**.` : ""),
-          how: "Work in weekly bursts; warm referrals first, small visible wins every week.",
-        },
-        extra: effectiveNowLabel ? { nowLabel: effectiveNowLabel } : {},
-        meta: { version: "fallback" },
-      };
-      fallback.windows = normalizeWindows(fallback.windows);
-      return fallback;
-    }
+const effectiveNowLabel =
+  nowLabel ||
+  (body &&
+    ((body.extra && body.extra.nowLabel) ||
+      (body.now && body.now.label)));
+
+// User is no longer authenticated
+if (res?.status === 401 && body?.reason === "login_required") {
+  window.location.href =
+    "/sarathi/individual/login?next=/sarathi/chat";
+
+  throw new Error("Please sign in to ask Sārathi.");
+}
+
+// Complimentary question limit has been reached
+if (res?.status === 403 && body?.reason === "ask_limit_reached") {
+  throw new Error(
+    body?.message ||
+      "You’ve used your complimentary Ask Sārathi question. Please upgrade to continue."
+  );
+}
+
+// All other API or network failures
+if (!res?.ok || !body || body.ok === false) {
+  const fallback: QAResponse = {
+    ok: true,
+    title: "Overview",
+    windows: [],
+    bottomLine: {
+      lead:
+        "I couldn’t fetch a detailed answer right now, but here’s a safe overview.",
+      nuance:
+        errText && errText !== "undefined"
+          ? errText
+          : "",
+    },
+    now: effectiveNowLabel
+      ? { label: effectiveNowLabel }
+      : {},
+    spans,
+    copy: {
+      answer:
+        "Let’s keep momentum steady while I refresh your timing windows." +
+        (effectiveNowLabel
+          ? ` You’re currently in **${effectiveNowLabel}**.`
+          : ""),
+      how:
+        "Work in weekly bursts; warm referrals first, small visible wins every week.",
+    },
+    extra: effectiveNowLabel
+      ? { nowLabel: effectiveNowLabel }
+      : {},
+    meta: { version: "fallback" },
+  };
+
+  fallback.windows = normalizeWindows(fallback.windows);
+  return fallback;
+}
 
     const withNow: QAResponse = {
       ...(body as QAResponse),
@@ -1317,19 +1354,25 @@ const stripEvidenceMarker = (s?: string) => {
 
       setMessages((m: Msg[]) => [...m, { id: newId(), role: "assistant", data: safeData }]);
     } catch (e: any) {
-      console.error("[chat] /api/qa error:", e);
-      setMessages((m: Msg[]) => [
-        ...m,
-        {
-          id: newId(),
-          role: "assistant",
-          content: "I couldn’t fetch a detailed answer right now. Please check birth details or try again.",
-          error: typeof e?.message === "string" ? e.message : "Request failed",
-        },
-      ]);
-    } finally {
-      setLoading(false);
-    }
+  console.error("[chat] /api/astro-chat error:", e);
+
+  const errorMessage =
+    typeof e?.message === "string" && e.message.trim()
+      ? e.message
+      : "I couldn’t fetch a detailed answer right now. Please try again.";
+
+  setMessages((m: Msg[]) => [
+    ...m,
+    {
+      id: newId(),
+      role: "assistant",
+      content: errorMessage,
+      error: errorMessage,
+    },
+  ]);
+} finally {
+  setLoading(false);
+}
   }
 
   if (!mounted) {
