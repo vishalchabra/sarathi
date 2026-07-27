@@ -162,15 +162,15 @@ if (lifeReportPurchaseError) {
     astrologerAccess,
 
     askSarathi: {
-      allowed:
-        individualAccess &&
-        (isAdmin || hasActiveSubscription || totalRemaining > 0),
+  allowed:
+    individualAccess &&
+    (isAdmin || totalRemaining > 0),
 
-      freeRemaining: isAdmin ? 999999 : freeRemaining,
-      purchasedRemaining: isAdmin ? 999999 : purchasedRemaining,
-      totalRemaining: isAdmin ? 999999 : totalRemaining,
-      totalUsed,
-    },
+  freeRemaining: isAdmin ? 999999 : freeRemaining,
+  purchasedRemaining: isAdmin ? 999999 : purchasedRemaining,
+  totalRemaining: isAdmin ? 999999 : totalRemaining,
+  totalUsed,
+},
 
     dataEngine: {
   allowed:

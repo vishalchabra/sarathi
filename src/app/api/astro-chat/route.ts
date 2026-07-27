@@ -1239,6 +1239,27 @@ function polishUserFacingDates(text: string): string {
     replaceRawISODates(text)
   );
 }
+function describeBroaderChartSupport(
+  verdict: AnalysisLayer["verdict"]
+): string {
+  switch (verdict) {
+    case "strong":
+      return "The broader chart picture strongly reinforces this indication.";
+
+    case "moderate":
+      return "The broader chart picture provides meaningful support for this indication.";
+
+    case "mixed":
+      return "The broader chart picture supports parts of this theme, although its expression may be uneven.";
+
+    case "weak":
+      return "The broader chart picture places only limited emphasis on this indication.";
+
+    case "unclear":
+    default:
+      return "The available supporting factors do not clearly emphasize this indication.";
+  }
+}
 function getTimingTopicCopy(
   topic: AskSarathiDomain,
   eventType?: AskSarathiEventType
@@ -2135,7 +2156,11 @@ if (astroBundle.promiseLayer?.summary) {
 }
 
 if (astroBundle.divisionalLayer?.summary) {
-  why.push(`Divisional support: ${astroBundle.divisionalLayer.summary}`);
+  why.push(
+  describeBroaderChartSupport(
+    astroBundle.divisionalLayer.verdict
+  )
+);
 }
 
 if (astroBundle.karakaLayer?.summary) {
@@ -2208,8 +2233,10 @@ let bestUse = astroBundle.actionBias?.bestUse || "Use this phase for preparation
     action = "Use the window as guidance, not as a guarantee.";
     humanReason =
       "This looks more like a phase-based timing pattern than a single guaranteed date.";
-    astroReason =
-      `The timing judgement is based on ${getDashaPhrase(astroBundle)}, relevant houses, divisional support, and transit triggers.`;
+   astroReason =
+  `The timing judgement is based on ${getDashaPhrase(
+    astroBundle
+  )}, the relevant houses, the broader chart pattern, and current transit triggers.`;
   }
 
   if (questionType === "diagnosis") {
@@ -2222,8 +2249,8 @@ let bestUse = astroBundle.actionBias?.bestUse || "Use this phase for preparation
     humanReason =
       astroBundle.insightProfile?.coreMessage ||
       "The issue is less about one event and more about how promise, timing, and blockers are interacting.";
-    astroReason =
-      "The diagnosis comes from the promise layer, timing layer, dasha-period support, divisional confirmation, and conversion blockers.";
+   astroReason =
+  "The diagnosis comes from the underlying chart pattern, the current dasha, supporting chart factors, timing conditions, and any factors delaying full expression.";
   }
 
   return {
@@ -3237,8 +3264,10 @@ const selectedDashaText =
     params.divisionalLayer?.verdict === "unclear"
   ) {
     blockingReasons.push(
-      "Divisional confirmation is not strong enough yet for a confident final event."
-    );
+  describeBroaderChartSupport(
+    params.divisionalLayer.verdict
+  )
+);
   }
 let strongestSupport: string | null = null;
 let strongestBlocker: string | null = null;
@@ -3259,8 +3288,9 @@ if (
   params.divisionalLayer?.verdict === "unclear"
 ) {
   strongestBlocker =
-    params.divisionalLayer?.bullets?.[0] ??
-    "Divisional confirmation remains incomplete.";
+  describeBroaderChartSupport(
+    params.divisionalLayer.verdict
+  );
 }
   return {
     primaryReason,
@@ -3294,9 +3324,11 @@ function buildWhyNotNow(params: {
     params.divisionalLayer?.verdict === "weak" ||
     params.divisionalLayer?.verdict === "unclear"
   ) {
-    reasons.push(
-      "The divisional chart confirmation is not clear enough yet for a confident final result."
-    );
+   reasons.push(
+  describeBroaderChartSupport(
+    params.divisionalLayer.verdict
+  )
+);
   }
 
   if (params.currentDashaLine) {
@@ -3341,7 +3373,9 @@ function buildConversionDiagnosisV2(params: {
 
   if (params.divisionalLayer.verdict === "strong") {
     conversionStrength += 40;
-    conversionReasons.push("Divisional chart confirmation is strong.");
+    conversionReasons.push(
+  "The broader chart picture strongly reinforces the possibility of a visible outcome."
+);
   }
 
   if (params.promiseLayer.verdict === "strong") {
@@ -3356,7 +3390,11 @@ function buildConversionDiagnosisV2(params: {
 
   if (["weak", "unclear"].includes(params.divisionalLayer.verdict)) {
     blockageStrength += 35;
-    blockageReasons.push("Divisional confirmation remains incomplete.");
+    blockageReasons.push(
+  describeBroaderChartSupport(
+    params.divisionalLayer.verdict
+  )
+);
   }
 
   if (params.timingLayer.verdict === "mixed") {
@@ -8559,7 +8597,7 @@ function buildDivisionalLayer(
   const contradictions = uniq([
     ...usableCharts.flatMap((x) => x.contradictions.map((v) => `${x.chart}: ${v}`)),
     ...(usableCharts.some((x) => x.verdict === "strong") && usableCharts.some((x) => ["weak", "unclear"].includes(x.verdict))
-      ? ["The divisional charts do not agree cleanly; strong promise in one chart is moderated by weak or unavailable confirmation elsewhere."]
+      ? ["The supporting chart factors are not fully aligned, so a strong indication in one part of the chart may express only partially or unevenly."]
       : []),
   ]).slice(0, 10);
 
@@ -9348,7 +9386,7 @@ function scorePredictionWindow({
         .toUpperCase()}`
     );
   } else {
-    missing.push("Divisional confirmation is still limited");
+    missing.push("The broader chart picture offers only limited additional emphasis.");
   }
 
   const degreeHits = Array.isArray(report?.degreeHits)
@@ -9891,9 +9929,13 @@ function buildThemeSignal(
 
   if (divisionalLayer.verdict === "strong" || divisionalLayer.verdict === "moderate") {
     score += 20;
-    activeSignals.push(`Divisional support is ${divisionalLayer.verdict}.`);
+    activeSignals.push(
+  describeBroaderChartSupport(
+    divisionalLayer.verdict
+  )
+);
   } else {
-    missingSignals.push("Divisional confirmation is still weak or unclear.");
+    missingSignals.push("The supporting chart factors do not clearly reinforce this theme.");
   }
 
   if (karakaLayer.verdict === "strong" || karakaLayer.verdict === "moderate") {
@@ -11587,11 +11629,14 @@ hiddenOpportunity: astroBundle.hiddenOpportunity,
           "Do not say divisional analysis is incomplete unless astrologyEvidencePacket.completeness or missingData explicitly shows missing required data.",
           "Do not treat transit activity as a guaranteed durable outcome.",
           "Do not give a sharp date when the timing packet has low confidence.",
+          "Never describe a divisional chart, divisional support, or divisional confirmation as weak, poor, bad, incomplete, or insufficient in user-facing language.",
+          "Translate low or unclear divisional support into holistic language such as: the broader chart picture places limited emphasis on this theme, the supporting factors do not strongly reinforce it, or its expression may be uneven.",
+          "Do not expose internal evidence labels such as divisional support, promise layer, conversion score, blocker score, or confirmation strength in the final narrative.",
         ],
         answerOrder: [
           "Direct answer",
           "Strongest supporting and blocking evidence",
-          "Divisional chart confirmation",
+          "Broader supporting chart picture",
           "Timing and event stage",
           "Practical guidance and caution",
         ],
@@ -12140,7 +12185,11 @@ let topic: AskSarathiDomain =
     : inferredFollowupTopic
     ? inferredFollowupTopic
     : "generic";
-
+await logQuestionUsage({
+  userId: user.id,
+  question,
+  topic,
+});
 const questionType: AskSarathiQuestionType =
   continuation || vagueTimingFollowup ? "timing" : detectQuestionType(question);
 
@@ -12923,11 +12972,6 @@ if (
   .replace(/\. This does not look like a stagnant phase/g, ".\n\nThis does not look like a stagnant phase")
   .trim();
   answer = polishUserFacingDates(answer);
-  await logQuestionUsage({
-  userId: user.id,
-  question,
-  topic,
-});
 const premiumResponse = premiumTimingAnswer;
 
 const shortAnswer =
