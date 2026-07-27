@@ -36,11 +36,15 @@ function ConfirmedContent() {
           </p>
 
           <Link
-            href={`/sarathi/login?next=${encodeURIComponent(nextPath)}`}
-            className="mt-6 inline-flex rounded-full bg-[color:var(--primary)] px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90"
-          >
-            Continue to sign in
-          </Link>
+  href={`${
+    nextPath.startsWith("/sarathi/data-engine")
+      ? "/sarathi/astrologers/login"
+      : "/sarathi/individual/login"
+  }?next=${encodeURIComponent(nextPath)}`}
+  className="mt-6 inline-flex rounded-full bg-[color:var(--primary)] px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90"
+>
+  Continue to sign in
+</Link>
         </div>
       </section>
     </main>

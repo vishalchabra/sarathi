@@ -107,13 +107,23 @@ const isDataEngineGrandfathered =
     .order("created_at", { ascending: false })
     .maybeSingle();
 
-  const { data: lifeReportPurchase } = await supabase
+  const { data: lifeReportPurchase, error: lifeReportPurchaseError } =
+  await supabase
     .from("purchases")
     .select("id")
     .eq("user_id", userId)
     .eq("product", "life_report")
     .eq("status", "paid")
+    .order("created_at", { ascending: false })
+    .limit(1)
     .maybeSingle();
+
+if (lifeReportPurchaseError) {
+  console.error(
+    "Failed to check Life Report purchase:",
+    lifeReportPurchaseError
+  );
+}
 
   const hasActiveSubscription = isActiveSubscription(subscription);
   const isAdmin = profile?.role === "admin";

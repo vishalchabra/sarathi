@@ -85,14 +85,18 @@ export async function POST(request: Request) {
     ? "/sarathi/life-report"
     : product.code === "data_engine_monthly"
       ? "/sarathi/data-engine"
-      : "/sarathi/chat";
+      : product.code === "consultation"
+        ? "/sarathi/consultation"
+        : "/sarathi/chat";
 
 const cancelPath =
   product.code === "life_report"
     ? "/sarathi/upgrade?feature=life-report"
     : product.code === "data_engine_monthly"
       ? "/sarathi/upgrade?feature=data-engine"
-      : "/sarathi/upgrade?feature=ask-sarathi";
+      : product.code === "consultation"
+        ? "/sarathi/consultation"
+        : "/sarathi/upgrade?feature=ask-sarathi";
 
     const session = await stripe.checkout.sessions.create({
       mode: product.mode,

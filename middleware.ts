@@ -42,8 +42,9 @@ export async function middleware(request: NextRequest) {
 
   if (!user) {
     const loginUrl = new URL("/sarathi/login", request.url);
-    loginUrl.searchParams.set("next", pathname + (search || ""));
-    return NextResponse.redirect(loginUrl);
+loginUrl.searchParams.set("next", pathname + (search || ""));
+
+return NextResponse.redirect(loginUrl);
   }
 
   return response;

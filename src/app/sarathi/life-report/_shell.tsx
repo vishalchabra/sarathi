@@ -730,7 +730,62 @@ const COUNTRY_CODES_SORTED = [...COUNTRY_CODES].sort((a, b) =>
 
     return null;
   }
+function formatISODateForDisplay(value: string): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(
+    String(value ?? "").trim()
+  );
 
+  if (!match) return "";
+
+  const [, year, month, day] = match;
+
+  return `${day}/${month}/${year}`;
+}
+
+function parseDisplayDateToISO(value: string): string | null {
+  const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(
+    String(value ?? "").trim()
+  );
+
+  if (!match) return null;
+
+  const [, dayText, monthText, yearText] = match;
+
+  const day = Number(dayText);
+  const month = Number(monthText);
+  const year = Number(yearText);
+
+  const date = new Date(year, month - 1, day);
+
+  const isRealDate =
+    date.getFullYear() === year &&
+    date.getMonth() === month - 1 &&
+    date.getDate() === day;
+
+  if (!isRealDate) return null;
+  if (year < 1900) return null;
+
+  const today = new Date();
+  today.setHours(23, 59, 59, 999);
+
+  if (date > today) return null;
+
+  return `${yearText}-${monthText}-${dayText}`;
+}
+
+function formatBirthDateInput(value: string): string {
+  const digits = value.replace(/\D/g, "").slice(0, 8);
+
+  if (digits.length <= 2) {
+    return digits;
+  }
+
+  if (digits.length <= 4) {
+    return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+  }
+
+  return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+}
   function normalizeTimeForBackend(v: string): string | null {
     if (/^\d{2}:\d{2}$/.test(v)) return v;
     const m = /^(\d{1,2}):(\d{2})\s*([AaPp][Mm])$/.exec(v.trim());
@@ -6308,14 +6363,26 @@ const adLord =
   : [];
 
 const fallbackFromNowPlan = (() => {
-  const np: any = (report as any)?.nowPlan ?? (report as any)?.nowNearFuture ?? null;
+  const np: any =
+    (report as any)?.nowPlan ??
+    (report as any)?.nowNearFuture ??
+    null;
+
   if (!np || typeof np !== "object") return [];
 
   const out: any[] = [];
 
-  const now3 = Array.isArray(np?.now3Days?.likelyScenarios) ? np.now3Days.likelyScenarios : [];
-  const now3Areas = Array.isArray(np?.now3Days?.focusAreas) ? np.now3Days.focusAreas : [];
-  const next14 = Array.isArray(np?.next14Days?.timing) ? np.next14Days.timing : [];
+  const now3 = Array.isArray(np?.now3Days?.likelyScenarios)
+    ? np.now3Days.likelyScenarios
+    : [];
+
+  const now3Areas = Array.isArray(np?.now3Days?.focusAreas)
+    ? np.now3Days.focusAreas
+    : [];
+
+  const next14 = Array.isArray(np?.next14Days?.timing)
+    ? np.next14Days.timing
+    : [];
 
   for (let i = 0; i < Math.min(3, now3.length); i++) {
     out.push({
@@ -6325,7 +6392,11 @@ const fallbackFromNowPlan = (() => {
       trigger: "Active now",
       confidence: "High",
       energy: "High",
-      focus: String(now3Areas[i]?.area ?? now3Areas[0]?.area ?? "Current focus"),
+      focus: String(
+        now3Areas[i]?.area ??
+        now3Areas[0]?.area ??
+        "Current focus"
+      ),
       subfocus: "",
       houseNum: null,
       guidance: String(now3[i] ?? "").trim(),
@@ -6337,7 +6408,9 @@ const fallbackFromNowPlan = (() => {
     out.push({
       kind: "day",
       dateISO: String(next14[i]?.window ?? "").trim(),
-      dateLabel: String(next14[i]?.window ?? `Upcoming ${i + 1}`).trim(),
+      dateLabel: String(
+        next14[i]?.window ?? `Upcoming ${i + 1}`
+      ).trim(),
       trigger: "Upcoming",
       confidence: "Medium",
       energy: "High",
@@ -6355,7 +6428,7 @@ const fallbackFromNowPlan = (() => {
 const visible =
   list.length > 0
     ? list.slice(0, 7)
-    : [];
+    : fallbackFromNowPlan.slice(0, 7);
 
 console.log("[NOW TAB] todayNextFewDaysCards =", (report as any)?.todayNextFewDaysCards);
 console.log("[NOW TAB] fallbackFromNowPlan =", fallbackFromNowPlan);
@@ -9978,7 +10051,15 @@ const FullGuidanceV2UI: React.FC<{ fg: any }> = ({ fg }) => {
     initialLon = "",
   }) => {
     const [name, setName] = useState<string>(initialName ?? "");
-const [dateISO, setDateISO] = useState<string>(initialDateISO ?? "");
+
+const [dateISO, setDateISO] = useState<string>(
+  initialDateISO ?? ""
+);
+
+const [dateDisplay, setDateDisplay] = useState<string>(
+  formatISODateForDisplay(initialDateISO ?? "")
+);
+
 const [time, setTime] = useState<string>(initialTime ?? "");
 const [tz, setTz] = useState<string>(initialTz ?? "");
 const [errors, setErrors] = useState<Record<string, string>>({});
@@ -10105,6 +10186,15 @@ setTz(saved.birth_tz || "");
     cancelled = true;
   };
 }, []);
+useEffect(() => {
+  if (!dateISO) return;
+
+  const formatted = formatISODateForDisplay(dateISO);
+
+  if (formatted && formatted !== dateDisplay) {
+    setDateDisplay(formatted);
+  }
+}, [dateISO]);
   // ---------------- Plan gating (reactive) ----------------
   type PlanTier = "free" | "advanced" | "full";
 
@@ -10378,10 +10468,16 @@ function validateBirthDetails() {
     next.email = "Enter a valid email address.";
   }
 
-  if (!dateISO) {
-    next.dateISO = "Date of birth is required.";
-  }
+  if (!dateDisplay.trim()) {
+  next.dateISO = "Date of birth is required.";
+} else {
+  const parsedISO = parseDisplayDateToISO(dateDisplay);
 
+  if (!parsedISO) {
+    next.dateISO =
+      "Enter a valid date of birth in DD/MM/YYYY format.";
+  }
+}
   if (!time) {
     next.time = "Time of birth is required.";
   }
@@ -14167,33 +14263,60 @@ const text = uniqueTextParts
 </div>
 
   <div className="space-y-2">
-    <Label>Date of Birth *</Label>
-   <Input
-  value={dateISO}
-  onChange={(e) => {
-    setDateISO(e.target.value);
+  <Label htmlFor="date-of-birth">
+    Date of Birth *
+  </Label>
 
-    if (errors.dateISO) {
-      setErrors((prev) => {
-        const next = { ...prev };
-        delete next.dateISO;
-        return next;
-      });
+  <Input
+    id="date-of-birth"
+    type="text"
+    inputMode="numeric"
+    autoComplete="bday"
+    placeholder="DD/MM/YYYY"
+    maxLength={10}
+    value={dateDisplay}
+    onChange={(e) => {
+      const formatted = formatBirthDateInput(e.target.value);
+
+      setDateDisplay(formatted);
+
+      const parsedISO = parseDisplayDateToISO(formatted);
+
+      setDateISO(parsedISO ?? "");
+
+      if (errors.dateISO) {
+        setErrors((prev) => {
+          const next = { ...prev };
+          delete next.dateISO;
+          return next;
+        });
+      }
+    }}
+    onBlur={() => {
+      if (!dateDisplay.trim()) return;
+
+      const parsedISO = parseDisplayDateToISO(dateDisplay);
+
+      if (!parsedISO) {
+        setErrors((prev) => ({
+          ...prev,
+          dateISO: "Enter a valid date in DD/MM/YYYY format.",
+        }));
+      }
+    }}
+    className={
+      errors.dateISO
+        ? "border-red-500 focus-visible:ring-red-500"
+        : undefined
     }
-  }}
-  className={
-    errors.dateISO
-      ? "border-red-500 focus-visible:ring-red-500"
-      : undefined
-  }
-/>
+  />
 
-{errors.dateISO && (
-  <p className="mt-1 text-xs text-red-600">
-    {errors.dateISO}
-  </p>
-)}
-  </div>
+  {errors.dateISO && (
+    <p className="mt-1 text-xs text-red-600">
+      {errors.dateISO}
+    </p>
+  )}
+</div>
 
   <div className="space-y-2">
     <Label>Time of Birth *</Label>

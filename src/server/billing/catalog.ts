@@ -8,7 +8,8 @@ export type BillingProductCode =
   | "ask_3"
   | "ask_5"
   | "ask_10"
-  | "data_engine_monthly";
+  | "data_engine_monthly"
+  | "consultation";
 
 export type BillingMode = "payment" | "subscription";
 
@@ -180,6 +181,28 @@ export const BILLING_CATALOG: Record<
       usd: {
         currency: "usd",
         unitAmount: 1999,
+      },
+    },
+  },
+    consultation: {
+    code: "consultation",
+    name: "Personal Astrology Consultation",
+    description:
+      "A personalised one-on-one Vedic astrology consultation based on your birth chart, life circumstances and specific questions.",
+    mode: "payment",
+    stripePriceId: "price_1Tx7tb2MbXDIzt3plO3NOOoy",
+    prices: {
+      inr: {
+        currency: "inr",
+        unitAmount: 199900,
+      },
+      aed: {
+        currency: "aed",
+        unitAmount: 9900,
+      },
+      usd: {
+        currency: "usd",
+        unitAmount: 2000,
       },
     },
   },

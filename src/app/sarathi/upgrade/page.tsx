@@ -7,177 +7,278 @@ type Props = {
   }>;
 };
 
-const featureConfig = {
+type FeatureKey = "life-report" | "ask-sarathi" | "data-engine";
+
+const featureConfig: Record<
+  FeatureKey,
+  {
+    title: string;
+    description: string;
+    backHref: string;
+  }
+> = {
   "life-report": {
     title: "Unlock Your Complete Life Report",
     description:
       "Access your full birth chart analysis, planetary strengths, dashas, career, relationships, wealth, health, spirituality and downloadable report.",
-    backHref: "/sarathi",
+    backHref: "/sarathi/life-report",
   },
+
   "ask-sarathi": {
     title: "Continue Your Conversation with Sārathi",
     description:
-      "You’ve used your complimentary question. Upgrade to continue asking deeper questions about timing, decisions and life direction.",
+      "You’ve used your complimentary question. Choose a question pack or subscribe for unlimited access to Ask Sārathi and the Data Engine.",
     backHref: "/sarathi/chat",
   },
+
   "data-engine": {
     title: "Unlock the Sārathi Data Engine",
     description:
-      "Your complimentary 24-hour access has ended. Continue exploring Panchang, transits, yogas, Shadbala, Ashtakavarga and advanced chart tools.",
+      "Your complimentary 24-hour access has ended. Subscribe to continue exploring Panchang, transits, yogas, Shadbala, Ashtakavarga and advanced chart tools.",
     backHref: "/sarathi/data-engine",
   },
 };
 
-export default async function SarathiUpgradePage({ searchParams }: Props) {
+export default async function SarathiUpgradePage({
+  searchParams,
+}: Props) {
   const { feature } = await searchParams;
 
-  const config =
-    featureConfig[feature as keyof typeof featureConfig] ??
-    featureConfig["life-report"];
+  const selectedFeature: FeatureKey =
+    feature === "ask-sarathi" ||
+    feature === "data-engine" ||
+    feature === "life-report"
+      ? feature
+      : "life-report";
+
+  const config = featureConfig[selectedFeature];
 
   return (
-    <main className="mx-auto max-w-4xl px-4 py-10 space-y-8">
-      <section className="rounded-3xl border border-[color:var(--border)] bg-white/80 p-6 shadow-sm">
-        <p className="text-xs font-semibold uppercase tracking-wide text-[color:var(--primary)]">
-          Unlock Sārathi
-        </p>
+    <main className="min-h-screen astro-bg px-4 py-10 text-slate-900">
+      <div className="mx-auto max-w-5xl space-y-8">
+        <section className="rounded-3xl border border-[color:var(--border)] bg-white/80 p-6 shadow-sm sm:p-8">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[color:var(--primary)]">
+            Unlock Sārathi
+          </p>
 
-        <h1 className="mt-3 text-3xl font-semibold text-slate-900">
-          {config.title}
-        </h1>
+          <h1 className="mt-3 text-3xl font-semibold text-slate-900">
+            {config.title}
+          </h1>
 
-        <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-700">
-          {config.description}
-        </p>
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-700">
+            {config.description}
+          </p>
+        </section>
+
+        {selectedFeature === "ask-sarathi" ? (
+          <AskSarathiOptions />
+        ) : null}
+
+        {selectedFeature === "data-engine" ? (
+          <DataEngineSubscription />
+        ) : null}
+
+        {selectedFeature === "life-report" ? (
+          <LifeReportPurchase />
+        ) : null}
+
+        <div>
+          <Link
+            href={config.backHref}
+            className="inline-flex rounded-xl border border-[color:var(--border)] bg-white/80 px-4 py-2 text-sm font-medium text-slate-900 transition hover:bg-white"
+          >
+            Back
+          </Link>
+        </div>
+      </div>
+    </main>
+  );
+}
+
+function AskSarathiOptions() {
+  return (
+    <div className="space-y-8">
+      <section>
+        <div className="mb-4">
+          <h2 className="text-xl font-semibold text-slate-900">
+            Choose a Question Pack
+          </h2>
+
+          <p className="mt-1 text-sm text-slate-700">
+            Purchase only the number of questions you need.
+          </p>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <QuestionCard
+            title="1 Question"
+            description="Perfect for one focused question."
+            productCode="ask_1"
+            buttonLabel="Buy 1 Question"
+          />
+
+          <QuestionCard
+            title="3 Questions"
+            description="Explore a few connected topics."
+            productCode="ask_3"
+            buttonLabel="Buy 3 Questions"
+          />
+
+          <QuestionCard
+            title="5 Questions"
+            description="A flexible pack for deeper guidance."
+            productCode="ask_5"
+            buttonLabel="Buy 5 Questions"
+          />
+
+          <QuestionCard
+            title="10 Questions"
+            description="Best for ongoing conversations and timing questions."
+            productCode="ask_10"
+            buttonLabel="Buy 10 Questions"
+            badge="Best Value"
+            highlighted
+          />
+        </div>
       </section>
 
-     {feature === "ask-sarathi" ? (
-  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-    <div className="rounded-2xl border border-[color:var(--border)] bg-white/80 p-5 shadow-sm">
-      <div className="text-lg font-semibold text-slate-900">
-        1 Question
+      <section>
+        <div className="mb-4">
+          <h2 className="text-xl font-semibold text-slate-900">
+            Or Choose Unlimited Access
+          </h2>
+
+          <p className="mt-1 text-sm text-slate-700">
+            Ideal for users who want to use Sārathi regularly.
+          </p>
+        </div>
+
+        <ProSubscriptionCard />
+      </section>
+    </div>
+  );
+}
+
+type QuestionCardProps = {
+  title: string;
+  description: string;
+  productCode: "ask_1" | "ask_3" | "ask_5" | "ask_10";
+  buttonLabel: string;
+  badge?: string;
+  highlighted?: boolean;
+};
+
+function QuestionCard({
+  title,
+  description,
+  productCode,
+  buttonLabel,
+  badge,
+  highlighted = false,
+}: QuestionCardProps) {
+  return (
+    <div
+      className={`rounded-2xl bg-white/85 p-5 shadow-sm ${
+        highlighted
+          ? "border border-[color:var(--primary)]"
+          : "border border-[color:var(--border)]"
+      }`}
+    >
+      {badge ? (
+        <div className="text-xs font-semibold uppercase tracking-wide text-[color:var(--primary)]">
+          {badge}
+        </div>
+      ) : null}
+
+      <div className={`${badge ? "mt-2" : ""} text-lg font-semibold`}>
+        {title}
       </div>
 
-      <p className="mt-2 text-sm text-slate-700">
-        Perfect for one focused question.
+      <p className="mt-2 min-h-10 text-sm leading-5 text-slate-700">
+        {description}
       </p>
 
-      <CheckoutButton productCode="ask_1" currency="inr">
-        Buy 1 Question
+      <CheckoutButton productCode={productCode} currency="inr">
+        {buttonLabel}
       </CheckoutButton>
     </div>
+  );
+}
 
-    <div className="rounded-2xl border border-[color:var(--border)] bg-white/80 p-5 shadow-sm">
-      <div className="text-lg font-semibold text-slate-900">
-        3 Questions
-      </div>
-
-      <p className="mt-2 text-sm text-slate-700">
-        Continue exploring a few connected topics.
-      </p>
-
-      <CheckoutButton productCode="ask_3" currency="inr">
-        Buy 3 Questions
-      </CheckoutButton>
+function DataEngineSubscription() {
+  return (
+    <div className="mx-auto max-w-2xl">
+      <ProSubscriptionCard />
     </div>
+  );
+}
 
-    <div className="rounded-2xl border border-[color:var(--border)] bg-white/80 p-5 shadow-sm">
-      <div className="text-lg font-semibold text-slate-900">
-        5 Questions
-      </div>
-
-      <p className="mt-2 text-sm text-slate-700">
-        A flexible pack for deeper guidance.
-      </p>
-
-      <CheckoutButton productCode="ask_5" currency="inr">
-        Buy 5 Questions
-      </CheckoutButton>
-    </div>
-
-    <div className="rounded-2xl border border-[color:var(--primary)] bg-white/90 p-5 shadow-sm">
+function ProSubscriptionCard() {
+  return (
+    <div className="rounded-3xl border border-[color:var(--primary)] bg-white/90 p-6 shadow-sm sm:p-8">
       <div className="text-xs font-semibold uppercase tracking-wide text-[color:var(--primary)]">
-        Best Value
+        Monthly Subscription
       </div>
 
-      <div className="mt-2 text-lg font-semibold text-slate-900">
-        10 Questions
-      </div>
+      <h2 className="mt-2 text-2xl font-semibold text-slate-900">
+        Sārathi Pro
+      </h2>
 
-      <p className="mt-2 text-sm text-slate-700">
-        Best for ongoing conversations and timing questions.
+      <p className="mt-3 text-sm leading-6 text-slate-700">
+        Get ongoing access to Sārathi’s AI guidance and advanced astrology
+        tools through one monthly subscription.
       </p>
 
-      <CheckoutButton productCode="ask_10" currency="inr">
-        Buy 10 Questions
-      </CheckoutButton>
-    </div>
-  </div>
-) : (
-  <div className="grid gap-4 md:grid-cols-2">
-    <div className="rounded-2xl border border-[color:var(--border)] bg-white/80 p-5 shadow-sm">
-      <div className="text-lg font-semibold text-slate-900">
-        Sārathi Pro
-      </div>
-
-      <div className="mt-2 text-sm text-slate-700">
-        For users who want ongoing access to Sārathi’s AI guidance and
-        advanced astrology tools.
-      </div>
-
-      <ul className="mt-4 space-y-2 text-sm text-slate-800">
+      <ul className="mt-6 space-y-3 text-sm text-slate-800">
         <li>✓ Unlimited Ask Sārathi questions</li>
         <li>✓ Unlimited Data Engine access</li>
-        <li>✓ Daily predictions and transits</li>
+        <li>✓ Panchang and planetary transits</li>
+        <li>✓ Yogas, Shadbala and Ashtakavarga</li>
+        <li>✓ Divisional charts and advanced astrology tools</li>
         <li>✓ Future premium updates</li>
       </ul>
 
-      <button className="mt-5 w-full rounded-xl bg-[color:var(--primary)] px-4 py-2.5 text-sm font-semibold text-white opacity-80">
-        Payments Opening Shortly
-      </button>
-    </div>
-
-    <div className="rounded-2xl border border-[color:var(--border)] bg-white/80 p-5 shadow-sm">
-      <div className="text-lg font-semibold text-slate-900">
-        Life Report
-      </div>
-
-      <div className="mt-2 text-sm text-slate-700">
-        One-time unlock for your complete personal astrology report.
-      </div>
-
-      <ul className="mt-4 space-y-2 text-sm text-slate-800">
-        <li>✓ Complete Life Report</li>
-        <li>✓ Career, wealth, relationship and health insights</li>
-        <li>✓ Dasha and timing roadmap</li>
-        <li>✓ PDF download</li>
-        <li>✓ Lifetime access</li>
-      </ul>
-
-      <CheckoutButton productCode="life_report" currency="inr">
-        Buy Life Report
+      <CheckoutButton
+        productCode="data_engine_monthly"
+        currency="inr"
+      >
+        Subscribe to Sārathi Pro
       </CheckoutButton>
     </div>
-  </div>
-)}
+  );
+}
 
-      <div className="rounded-2xl border border-dashed border-[color:var(--border)] bg-white/60 p-5">
-        <div className="text-sm font-semibold text-slate-900">
-          One-on-One Consultation
+function LifeReportPurchase() {
+  return (
+    <div className="mx-auto max-w-2xl">
+      <div className="rounded-3xl border border-[color:var(--border)] bg-white/90 p-6 shadow-sm sm:p-8">
+        <div className="text-xs font-semibold uppercase tracking-wide text-[color:var(--primary)]">
+          One-Time Purchase
         </div>
 
-        <p className="mt-2 text-sm text-slate-700">
-          Personal consultation booking will be added soon for users who want a
-          deeper discussion with the founder.
-        </p>
-      </div>
+        <h2 className="mt-2 text-2xl font-semibold text-slate-900">
+          Complete Life Report
+        </h2>
 
-      <Link
-        href={config.backHref}
-        className="inline-flex rounded-xl border border-[color:var(--border)] bg-white/80 px-4 py-2 text-sm font-medium text-slate-900"
-      >
-        Back
-      </Link>
-    </main>
+        <p className="mt-3 text-sm leading-6 text-slate-700">
+          Unlock your complete personal astrology report with lifetime
+          access.
+        </p>
+
+        <ul className="mt-6 space-y-3 text-sm text-slate-800">
+          <li>✓ Complete birth chart analysis</li>
+          <li>✓ Career, wealth, relationship and health insights</li>
+          <li>✓ Planetary strengths and important yogas</li>
+          <li>✓ Dasha and timing roadmap</li>
+          <li>✓ Spiritual direction and personal growth insights</li>
+          <li>✓ Downloadable PDF report</li>
+          <li>✓ Lifetime access</li>
+        </ul>
+
+        <CheckoutButton productCode="life_report" currency="inr">
+          Buy Life Report
+        </CheckoutButton>
+      </div>
+    </div>
   );
 }

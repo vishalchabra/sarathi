@@ -93,16 +93,52 @@ async function fulfilCheckoutSession(
     }
 
     if (data === false) {
-      console.log(
-        `Stripe purchase ${paymentIntentId} was already fulfilled.`
-      );
-    } else {
-      console.log(
-        `Stripe purchase ${paymentIntentId} fulfilled successfully.`
-      );
-    }
+  console.log(
+    `Stripe purchase ${paymentIntentId} was already fulfilled.`
+  );
+} else {
+  console.log(
+    `Stripe purchase ${paymentIntentId} fulfilled successfully.`
+  );
+}
 
-    return;
+/*
+ * A consultation purchase grants one consultation-form entitlement.
+ * Upsert using the Stripe payment ID so repeated webhook deliveries
+ * do not create duplicate consultation entitlements.
+ */
+if (product.code === "consultation") {
+  const now = new Date().toISOString();
+
+  const { error: entitlementError } = await supabaseAdmin
+    .from("consultation_entitlements")
+    .upsert(
+      {
+        user_id: userId,
+        stripe_payment_id: paymentIntentId,
+        stripe_checkout_session_id: session.id,
+        status: "available",
+        purchased_at: now,
+        updated_at: now,
+      },
+      {
+        onConflict: "stripe_payment_id",
+        ignoreDuplicates: true,
+      }
+    );
+
+  if (entitlementError) {
+    throw new Error(
+      `Unable to grant consultation entitlement: ${entitlementError.message}`
+    );
+  }
+
+  console.log(
+    `Consultation entitlement granted for Stripe purchase ${paymentIntentId}.`
+  );
+}
+
+return;
   }
 
   /*

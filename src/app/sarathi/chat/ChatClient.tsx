@@ -165,7 +165,7 @@ type Msg = { id: string; role: Role; content?: string; data?: QAResponse; error?
 
 /* ===================== Keys & IDs ===================== */
 const LIFE_REPORT_KEY = "life-report-profile";
-const DEFAULT_PROFILE_KEY = "sarathi_default_profile_v1";
+
 
 const newId = () =>
   typeof crypto !== "undefined" && "randomUUID" in crypto
@@ -185,12 +185,26 @@ function placeFromProfile(p?: Profile) {
   return valid ? { name: pl.name, tz: pl.tz, lat: pl.lat, lon: pl.lon } : undefined;
 }
 
-function effectivePlace(p?: Profile): Required<Place> {
+function effectivePlace(p?: Profile): Required<Place> | null {
   const pl = p?.place;
-  const valid = pl && typeof pl.lat === "number" && typeof pl.lon === "number" && !!pl.tz;
-  return valid
-    ? (pl as Required<Place>)
-    : { name: "Dubai", tz: "Asia/Dubai", lat: 25.2048, lon: 55.2708 };
+
+  const lat = Number(pl?.lat);
+  const lon = Number(pl?.lon);
+  const tz = String(pl?.tz ?? "").trim();
+
+  const valid =
+    Number.isFinite(lat) &&
+    Number.isFinite(lon) &&
+    !!tz;
+
+  if (!valid) return null;
+
+  return {
+    name: String(pl?.name ?? ""),
+    tz,
+    lat,
+    lon,
+  };
 }
 
 /* ===================== Natal (houses/aspects) from Life Report ===================== */
@@ -980,6 +994,11 @@ useEffect(() => {
   useEffect(() => {
     setMounted(true);
     try {
+  localStorage.removeItem("sarathi.birthProfile.v1");
+  localStorage.removeItem("sarathi_default_profile_v1");
+  localStorage.removeItem("life-report-profile");
+} catch {}
+    try {
       const qs = new URLSearchParams(window.location.search);
       if (qs.get("safe") === "1") setSafeMode(true);
       const q = qs.get("q");
@@ -999,53 +1018,26 @@ useEffect(() => {
   }
 } catch {}
 
-        // Profile load (AUTHORITATIVE ORDER)
-    try {
-      // 1) Prefer ACTIVE profile saved by Life Report
-      const active = loadBirthProfile();
-      if (active) {
-        setProfile({
-          name: active.name,
-          dobISO: active.dobISO,
-          tob: active.tob,
-          place: active.place,
-        });
-      } else {
-        // 2) Fallback: old chat default profile
-        const rawDefault = localStorage.getItem(DEFAULT_PROFILE_KEY);
-        if (rawDefault) {
-          const p = JSON.parse(rawDefault);
-          setProfile({
-            name: p.name,
-            dobISO: p.birthDateISO,
-            tob: p.birthTime,
-            place:
-              p.birthTz != null
-                ? {
-                    name: p.placeName,
-                    tz: p.birthTz,
-                    lat: Number(p.lat),
-                    lon: Number(p.lon),
-                  }
-                : undefined,
-          });
-        } else {
-          // 3) Last fallback: legacy life report profile
-          const rawLR = localStorage.getItem(LIFE_REPORT_KEY);
-          if (rawLR) setProfile(JSON.parse(rawLR));
-        }
-      }
-    } catch {
-      setProfile({});
-    }
+       try {
+  const active = loadBirthProfile();
+
+  if (active?.dobISO && active?.tob && active?.place?.tz) {
+    setProfile({
+      name: active.name,
+      dobISO: active.dobISO,
+      tob: active.tob,
+      place: active.place,
+    });
+  } else {
+    setProfile({});
+  }
+} catch {
+  setProfile({});
+}
 
     const onStorage = (e: StorageEvent) => {
       // If active profile changes anywhere, re-load it
-      if (
-        e.key === "sarathi.birthProfile.v1" ||
-        e.key === DEFAULT_PROFILE_KEY ||
-        e.key === LIFE_REPORT_KEY
-      ) {
+     if (e.key === "sarathi.birthProfile.v1") {
         try {
           const active = loadBirthProfile();
           if (active) {
@@ -1081,12 +1073,27 @@ useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
-  const canSend = useMemo(() => input.trim().length > 0 && !loading, [input, loading]);
+const canSend = useMemo(
+  () =>
+    input.trim().length > 0 &&
+    !loading &&
+    hasProfile,
+  [input, loading, hasProfile]
+);
 
   /* ---- unified server call ---- */
   const askServer = async (query: string, prof: Profile) => {
-    const place = placeFromProfile(prof) ?? effectivePlace(prof);
-    const natalFromLR = readLifeReportNatal();
+   const place =
+  placeFromProfile(prof) ??
+  effectivePlace(prof);
+
+if (!place) {
+  throw new Error(
+    "Please complete your birth profile before asking Sārathi."
+  );
+}
+
+const natalFromLR = readLifeReportNatal();
 
     const baseProfile: any = {
       ...(prof?.name ? { name: prof.name } : {}),
@@ -1114,8 +1121,15 @@ const fresh = getFreshProfileForApi();
 // Fall back to the in-memory profile if fresh is missing
 const finalProfile: Profile = fresh ?? prof ?? {};
 
-// Ensure we always have a usable place object (even if birth details missing)
-const finalPlace = effectivePlace(finalProfile);
+const finalPlace =
+  placeFromProfile(finalProfile) ??
+  effectivePlace(finalProfile);
+
+if (!finalPlace) {
+  throw new Error(
+    "Please complete your birth profile before asking Sārathi."
+  );
+}
 
 // Debug (shows in browser console)
 console.log("[sarathi/chat] finalProfile being sent", {
@@ -1277,9 +1291,18 @@ if (!res?.ok || !body || body.ok === false) {
   };
 
   async function send(textArg?: string) {
-    const raw = (textArg ?? input).trim();
-    if (!raw || loading) return;
+  const raw = (textArg ?? input).trim();
 
+  if (!raw || loading) return;
+
+  if (!hasProfile) {
+    setProfileOpen(true);
+    return;
+  }
+    if (!hasProfile) {
+  setProfileOpen(true);
+  return;
+}
     const augmented = idQueryPassThrough(raw);
     const userIntent = intentFromQuery(augmented);
 
@@ -1427,8 +1450,8 @@ const stripEvidenceMarker = (s?: string) => {
             }
           >
             {hasProfile
-              ? `Profile loaded${profile?.name ? `: ${profile.name}` : ""}`
-              : "No birth profile loaded — using default place for timing."}
+  ? `Profile loaded${profile?.name ? `: ${profile.name}` : ""}`
+  : "Complete your birth profile to begin asking Sārathi."}
           </div>
 
           <button
@@ -1454,10 +1477,14 @@ const stripEvidenceMarker = (s?: string) => {
       </header>
 <section className="rounded-2xl border border-[color:var(--border)] bg-white/70 p-4">
   <button
-    type="button"
-    onClick={() => setProfileOpen((v) => !v)}
-    className="flex w-full items-center justify-between text-left"
-  >
+  type="button"
+  onClick={() => {
+    if (hasProfile) {
+      setProfileOpen((v) => !v);
+    }
+  }}
+  className="flex w-full items-center justify-between text-left"
+>
     <div>
       <div className="text-sm font-semibold text-foreground">Birth Profile</div>
       <div className="mt-1 text-xs astro-text-muted">
@@ -1466,9 +1493,13 @@ const stripEvidenceMarker = (s?: string) => {
           : "Add birth details for personalized answers"}
       </div>
     </div>
-    <div className="text-xs text-[color:var(--primary)]">
-      {profileOpen ? "Hide" : "Edit"}
-    </div>
+   <div className="text-xs text-[color:var(--primary)]">
+  {!hasProfile
+    ? "Required"
+    : profileOpen
+      ? "Hide"
+      : "Edit"}
+</div>
   </button>
 
   {profileOpen || !hasProfile ? (
@@ -1924,15 +1955,22 @@ const detailNote = isDailyOutlook
 
       {/* Input */}
       <div className="flex gap-2">
-        <input
-          className="h-11 flex-1 rounded-xl border border-[color:var(--border)] bg-white/80 px-4 text-sm text-slate-900 placeholder:text-slate-500 outline-none focus:border-indigo-300/40"
-          placeholder="Ask about career, money, relationships, health…"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") send();
-          }}
-        />
+       <input
+  className="h-11 flex-1 rounded-xl border border-[color:var(--border)] bg-white/80 px-4 text-sm text-slate-900 placeholder:text-slate-500 outline-none focus:border-indigo-300/40 disabled:cursor-not-allowed disabled:opacity-60"
+  placeholder={
+    hasProfile
+      ? "Ask about career, money, relationships, health…"
+      : "Complete your birth profile above to begin"
+  }
+  value={input}
+  disabled={!hasProfile || loading}
+  onChange={(e) => setInput(e.target.value)}
+  onKeyDown={(e) => {
+    if (e.key === "Enter" && hasProfile) {
+      send();
+    }
+  }}
+/>
         <button
           onClick={() => send()}
           disabled={!canSend}

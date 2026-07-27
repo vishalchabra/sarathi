@@ -24,14 +24,38 @@ export default function SarathiHome() {
             </div>
           </Link>
 
-          <nav className="hidden items-center gap-5 text-sm text-foreground/75 lg:flex">
-            <Link className="hover:text-foreground" href="/sarathi/about">About Us</Link>
-            <Link className="hover:text-foreground" href="/sarathi/why-sarathi">Why Sārathi</Link>
-            <Link className="hover:text-foreground" href="/sarathi/faqs">FAQs</Link>
-            <Link className="hover:text-foreground" href="/sarathi/privacy">Privacy</Link>
-            <Link className="hover:text-foreground" href="/sarathi/terms">Terms</Link>
-            <Link className="hover:text-foreground" href="/sarathi/contact">Contact</Link>
-          </nav>
+         <nav className="hidden items-center gap-5 text-sm text-foreground/75 lg:flex">
+  <Link className="hover:text-foreground" href="/sarathi/about">
+    About Us
+  </Link>
+
+  <Link className="hover:text-foreground" href="/sarathi/why-sarathi">
+    Why Sārathi
+  </Link>
+
+  <Link
+    className="font-medium text-[color:var(--primary)] hover:opacity-80"
+    href="/sarathi/consultation"
+  >
+    Consultation
+  </Link>
+
+  <Link className="hover:text-foreground" href="/sarathi/faqs">
+    FAQs
+  </Link>
+
+  <Link className="hover:text-foreground" href="/sarathi/contact">
+    Contact
+  </Link>
+
+  <Link className="hover:text-foreground" href="/sarathi/privacy">
+    Privacy
+  </Link>
+
+  <Link className="hover:text-foreground" href="/sarathi/terms">
+    Terms
+  </Link>
+</nav>
         </div>
       </header>
 
@@ -88,7 +112,40 @@ export default function SarathiHome() {
   secondaryCta="Open Data Engine"
 />
         </div>
+<section className="mt-10 rounded-3xl astro-card p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.06)_inset] md:p-8">
+  <div className="grid gap-6 md:grid-cols-[1fr_auto] md:items-center">
+    <div>
+      <div className="text-xs font-semibold uppercase tracking-widest astro-text-muted">
+        Personal guidance
+      </div>
 
+      <h2 className="mt-3 text-2xl font-semibold text-foreground md:text-3xl">
+        Prefer a private one-on-one consultation?
+      </h2>
+
+      <p className="mt-3 max-w-2xl text-sm leading-relaxed astro-text-soft md:text-base">
+        Discuss your birth chart, current dasha, important decisions and
+        upcoming timing periods through a focused personal consultation.
+      </p>
+
+      <div className="mt-5 flex flex-wrap gap-x-5 gap-y-2 text-sm astro-text-soft">
+        <span>Career and business</span>
+        <span>Relationships and marriage</span>
+        <span>Finance and property</span>
+        <span>Relocation and timing</span>
+      </div>
+    </div>
+
+    <div className="md:pl-6">
+      <Link
+        href="/sarathi/consultation"
+        className="inline-flex w-full justify-center rounded-full bg-[color:var(--primary)] px-6 py-3 text-sm font-semibold text-primary-foreground hover:opacity-90 md:w-auto"
+      >
+        Request a Consultation
+      </Link>
+    </div>
+  </div>
+</section>
         <div className="mt-10 rounded-2xl astro-card p-6 text-center">
           <div className="text-sm font-semibold text-foreground">
             Sārathi does not replace your free will.
@@ -108,6 +165,9 @@ export default function SarathiHome() {
               <Link className="hover:text-foreground" href="/sarathi/privacy">Privacy</Link>
               <Link className="hover:text-foreground" href="/sarathi/terms">Terms</Link>
               <Link className="hover:text-foreground" href="/sarathi/contact">Contact</Link>
+              <Link className="hover:text-foreground" href="/sarathi/consultation">
+  Consultation
+</Link>
             </div>
           </div>
         </footer>
@@ -150,29 +210,29 @@ function JourneyCard({
       </p>
 
       <ul className="mt-6 space-y-3 text-sm astro-text-soft">
-        {points.map((point) => (
-          <li key={point} className="flex gap-3">
-            <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-[color:var(--primary)]" />
-            <span>{point}</span>
-          </li>
-        ))}
-      </ul>
+  {points.map((point) => (
+    <li key={point} className="flex gap-3">
+      <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-[color:var(--primary)]" />
+      <span>{point}</span>
+    </li>
+  ))}
+</ul>
 
-      <div className="mt-auto flex flex-col gap-3 pt-8 sm:flex-row">
-        <Link
-          href={primaryHref}
-          className="inline-flex justify-center rounded-full bg-[color:var(--primary)] px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90"
-        >
-          {primaryCta}
-        </Link>
+<div className="mt-auto flex flex-col gap-3 pt-8 sm:flex-row">
+  <Link
+    href={primaryHref}
+    className="inline-flex justify-center rounded-full bg-[color:var(--primary)] px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90"
+  >
+    {primaryCta}
+  </Link>
 
-        <Link
-          href={secondaryHref}
-          className="inline-flex justify-center rounded-full astro-card px-5 py-2.5 text-sm font-semibold text-foreground hover:bg-white/80 hover:shadow-md"
-        >
-          {secondaryCta}
-        </Link>
-      </div>
+  <Link
+    href={secondaryHref}
+    className="inline-flex justify-center rounded-full astro-card px-5 py-2.5 text-sm font-semibold text-foreground hover:bg-white/80 hover:shadow-md"
+  >
+    {secondaryCta}
+  </Link>
+</div>
     </div>
   );
 }
