@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { sendEmail } from "@/lib/mailer";
-
+import { buildConsultationEmail } from "@/lib/emails/consultationEmail";
 function escapeHtml(value: string) {
   return value
     .replace(/&/g, "&amp;")
@@ -300,7 +300,18 @@ if (entitlementConsumeError || !consumedEntitlement) {
       backgroundContext || "Not provided"
     );
 
+    const appUrl = (
+  process.env.NEXT_PUBLIC_APP_URL ||
+  "https://sarathiyourguide.com"
+).replace(/\/$/, "");
 
+const consultationEmail = buildConsultationEmail({
+  name: finalCustomerName,
+  appUrl,
+  consultationDate: null,
+  consultationTime: null,
+  timezone: null,
+});
     const adminEmailPromise = adminEmail
       ? sendEmail({
           to: adminEmail,
@@ -374,56 +385,11 @@ Please contact them with the earliest available consultation slot.
       : Promise.resolve();
 
     const customerEmailPromise = sendEmail({
-      to: authenticatedEmail,
-      subject: "We received your Sārathi consultation request",
-      text: [
-  `Hi ${finalCustomerName},`,
-  "",
-  "Thank you for requesting a Personal Astrology Consultation with Sārathi.",
-  "",
-  `Consultation area: ${consultationArea}`,
-  "",
-  "We will personally review your birth details and consultation focus.",
-  "",
-  "Within one business day, we will contact you with the earliest available consultation slot.",
-  "",
-  "If needed, we will coordinate a suitable time with you via email or WhatsApp.",
-  "",
-  "Regards,",
-  "Sārathi",
-].join("\n"),
-      html: `
-        <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #1f2937;">
-          <p>Hi ${safeName},</p>
-
-          <p>
-            Thank you for requesting a personal Sārathi consultation.
-          </p>
-
-         <p>
-  <strong>Consultation area:</strong>
-  ${safeConsultationArea}
-</p>
-
-<p>
-  We will personally review your birth details and consultation focus.
-</p>
-
-<p>
-  Within one business day, we will contact you with the earliest available consultation slot.
-</p>
-
-<p>
-  If needed, we will coordinate a suitable time with you via email or WhatsApp.
-</p>
-
-          <p>
-            Regards,<br />
-            <strong>Sārathi</strong>
-          </p>
-        </div>
-      `,
-    });
+  to: authenticatedEmail,
+  subject: consultationEmail.subject,
+  text: consultationEmail.text,
+  html: consultationEmail.html,
+});
 
     const emailResults = await Promise.allSettled([
       adminEmailPromise,

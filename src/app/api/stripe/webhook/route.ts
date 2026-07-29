@@ -3,6 +3,11 @@ import Stripe from "stripe";
 
 import { stripe } from "@/lib/stripe";
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import { sendEmail } from "@/lib/mailer";
+import { buildLifeReportEmail } from "@/lib/emails/lifeReportEmail";
+import { buildAskSarathiEmail } from "@/lib/emails/askSarathiEmail";
+import { buildDataEngineEmail } from "@/lib/emails/dataEngineEmail";
+import { getCheckoutEmailContext } from "@/lib/emails/emailContext";
 import {
   getBillingProduct,
   isBillingProductCode,
@@ -44,6 +49,7 @@ async function fulfilCheckoutSession(
    * Handle one-time purchases:
    * - Life Report
    * - Ask Sārathi question credits
+   * - Consultation
    */
   if (product.mode === "payment") {
     /*
@@ -92,53 +98,149 @@ async function fulfilCheckoutSession(
       );
     }
 
-    if (data === false) {
-  console.log(
-    `Stripe purchase ${paymentIntentId} was already fulfilled.`
-  );
-} else {
-  console.log(
-    `Stripe purchase ${paymentIntentId} fulfilled successfully.`
-  );
-}
+    const isNewPurchase = data !== false;
 
-/*
- * A consultation purchase grants one consultation-form entitlement.
- * Upsert using the Stripe payment ID so repeated webhook deliveries
- * do not create duplicate consultation entitlements.
- */
-if (product.code === "consultation") {
-  const now = new Date().toISOString();
+    if (!isNewPurchase) {
+      console.log(
+        `Stripe purchase ${paymentIntentId} was already fulfilled.`
+      );
+    } else {
+      console.log(
+        `Stripe purchase ${paymentIntentId} fulfilled successfully.`
+      );
+    }
 
-  const { error: entitlementError } = await supabaseAdmin
-    .from("consultation_entitlements")
-    .upsert(
-      {
-        user_id: userId,
-        stripe_payment_id: paymentIntentId,
-        stripe_checkout_session_id: session.id,
-        status: "available",
-        purchased_at: now,
-        updated_at: now,
-      },
-      {
-        onConflict: "stripe_payment_id",
-        ignoreDuplicates: true,
+    /*
+     * Send the Life Report purchase email only for a newly
+     * fulfilled purchase.
+     */
+    if (isNewPurchase && product.code === "life_report") {
+      try {
+        const emailContext = await getCheckoutEmailContext({
+          userId,
+          session,
+        });
+
+        if (!emailContext) {
+          console.error(
+            `Life Report email skipped because no email address was found for user ${userId}.`
+          );
+        } else {
+          const lifeReportEmail = buildLifeReportEmail({
+            name: emailContext.name,
+            appUrl: emailContext.appUrl,
+          });
+
+          await sendEmail({
+            to: emailContext.recipientEmail,
+            subject: lifeReportEmail.subject,
+            text: lifeReportEmail.text,
+            html: lifeReportEmail.html,
+          });
+
+          console.log(
+            `Life Report purchase email sent to ${emailContext.recipientEmail}.`
+          );
+        }
+      } catch (emailError) {
+        /*
+         * The purchase has already been recorded. An email failure
+         * must not cause Stripe to retry fulfilment.
+         */
+        console.error(
+          `Life Report purchase email failed for Stripe purchase ${paymentIntentId}:`,
+          emailError
+        );
       }
-    );
+    }
 
-  if (entitlementError) {
-    throw new Error(
-      `Unable to grant consultation entitlement: ${entitlementError.message}`
-    );
-  }
+    /*
+     * Send the Ask Sārathi credit email only for a newly
+     * fulfilled purchase.
+     */
+    if (
+      isNewPurchase &&
+      product.code.startsWith("ask_") &&
+      typeof product.credits === "number" &&
+      product.credits > 0
+    ) {
+      try {
+        const emailContext = await getCheckoutEmailContext({
+          userId,
+          session,
+        });
 
-  console.log(
-    `Consultation entitlement granted for Stripe purchase ${paymentIntentId}.`
-  );
-}
+        if (!emailContext) {
+          console.error(
+            `Ask Sārathi email skipped because no email address was found for user ${userId}.`
+          );
+        } else {
+          const askSarathiEmail = buildAskSarathiEmail({
+            name: emailContext.name,
+            appUrl: emailContext.appUrl,
+            credits: product.credits,
+          });
 
-return;
+          await sendEmail({
+            to: emailContext.recipientEmail,
+            subject: askSarathiEmail.subject,
+            text: askSarathiEmail.text,
+            html: askSarathiEmail.html,
+          });
+
+          console.log(
+            `Ask Sārathi purchase email sent to ${emailContext.recipientEmail} for ${product.credits} credits.`
+          );
+        }
+      } catch (emailError) {
+        /*
+         * Credits have already been granted. An email failure must
+         * not cause Stripe to retry fulfilment.
+         */
+        console.error(
+          `Ask Sārathi purchase email failed for Stripe purchase ${paymentIntentId}:`,
+          emailError
+        );
+      }
+    }
+
+    /*
+     * A consultation purchase grants one consultation-form entitlement.
+     * Upsert using the Stripe payment ID so repeated webhook deliveries
+     * do not create duplicate consultation entitlements.
+     */
+    if (product.code === "consultation") {
+      const now = new Date().toISOString();
+
+      const { error: entitlementError } = await supabaseAdmin
+        .from("consultation_entitlements")
+        .upsert(
+          {
+            user_id: userId,
+            stripe_payment_id: paymentIntentId,
+            stripe_checkout_session_id: session.id,
+            status: "available",
+            purchased_at: now,
+            updated_at: now,
+          },
+          {
+            onConflict: "stripe_payment_id",
+            ignoreDuplicates: true,
+          }
+        );
+
+      if (entitlementError) {
+        throw new Error(
+          `Unable to grant consultation entitlement: ${entitlementError.message}`
+        );
+      }
+
+      console.log(
+        `Consultation entitlement granted for Stripe purchase ${paymentIntentId}.`
+      );
+    }
+
+    return;
   }
 
   /*
@@ -154,6 +256,26 @@ return;
     );
   }
 
+  /*
+   * Check whether this subscription has already been recorded.
+   * Stripe may resend checkout.session.completed.
+   */
+  const {
+    data: existingSubscription,
+    error: existingSubscriptionError,
+  } = await supabaseAdmin
+    .from("subscriptions")
+    .select("provider_subscription_id")
+    .eq("provider_subscription_id", subscriptionId)
+    .maybeSingle();
+
+  if (existingSubscriptionError) {
+    throw new Error(
+      `Unable to check Stripe subscription: ${existingSubscriptionError.message}`
+    );
+  }
+
+  const isNewSubscription = !existingSubscription;
   const now = new Date().toISOString();
 
   const { error } = await supabaseAdmin
@@ -183,11 +305,57 @@ return;
   console.log(
     `Stripe subscription ${subscriptionId} activated successfully.`
   );
+
+  /*
+   * Send the Data Engine activation email only when the subscription
+   * is recorded for the first time.
+   */
+  if (
+    isNewSubscription &&
+    product.code === "data_engine_monthly"
+  ) {
+    try {
+      const emailContext = await getCheckoutEmailContext({
+        userId,
+        session,
+      });
+
+      if (!emailContext) {
+        console.error(
+          `Data Engine email skipped because no email address was found for user ${userId}.`
+        );
+      } else {
+        const dataEngineEmail = buildDataEngineEmail({
+          name: emailContext.name,
+          appUrl: emailContext.appUrl,
+        });
+
+        await sendEmail({
+          to: emailContext.recipientEmail,
+          subject: dataEngineEmail.subject,
+          text: dataEngineEmail.text,
+          html: dataEngineEmail.html,
+        });
+
+        console.log(
+          `Data Engine subscription email sent to ${emailContext.recipientEmail}.`
+        );
+      }
+    } catch (emailError) {
+      /*
+       * Subscription access is already active. An email failure must
+       * not cause Stripe to retry activation.
+       */
+      console.error(
+        `Data Engine subscription email failed for ${subscriptionId}:`,
+        emailError
+      );
+    }
+  }
 }
 
 export async function POST(request: Request) {
-  const webhookSecret =
-    process.env.STRIPE_WEBHOOK_SECRET;
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
   if (!webhookSecret) {
     console.error(

@@ -101,13 +101,36 @@ function AuthContent({
         password,
       });
 
-      if (error) {
-        setMessage(error.message);
-        return;
-      }
+     if (error) {
+  setMessage(error.message);
+  return;
+}
 
-      router.replace(nextPath);
-      router.refresh();
+/*
+ * Send the welcome email after the user's first successful sign-in.
+ * This request is deliberately non-blocking for the login experience:
+ * an email failure must not prevent access to Sārathi.
+ */
+try {
+  const welcomeResponse = await fetch("/api/auth/welcome-email", {
+    method: "POST",
+  });
+
+  if (!welcomeResponse.ok) {
+    console.error(
+      "Welcome email request failed:",
+      await welcomeResponse.text()
+    );
+  }
+} catch (welcomeEmailError) {
+  console.error(
+    "Welcome email request failed:",
+    welcomeEmailError
+  );
+}
+
+router.replace(nextPath);
+router.refresh();
     } catch {
       setMessage("Something went wrong. Please try again.");
     } finally {

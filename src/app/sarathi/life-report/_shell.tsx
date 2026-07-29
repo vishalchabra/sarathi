@@ -48,6 +48,7 @@
   saveUserBirthProfile,
 } from "@/lib/supabase/chart-service";
 import LockingCityAutocomplete from "@/components/profile/LockingCityAutocomplete";
+import FreeLifeReportUpgradeCard from "@/components/sarathi/FreeLifeReportUpgradeCard";
 import { PDFDownloadLink } from "@react-pdf/renderer";
 import LifeReportPdf from "@/components/pdf/LifeReportPdf";
   const AYANAMSA_LAHIRI_APPROX = 23.85;
@@ -10776,9 +10777,12 @@ if (!place) return;
   lon: place.lon,
   placeName: place.name,
   notificationTz,
-  isPaid: true,
+
+  // The server must determine paid access from the user's entitlement.
+  previewRequested: true,
 };
-const canRunPaidFlows = payload.isPaid === true;
+
+let canRunPaidFlows = false;
 const normalizedProfile = {
   name: (name || "User").trim(),
   dobISO: dISO,
@@ -10859,7 +10863,12 @@ try {
 
 
   const envelope: any = await res.json();
-  setApiIsPaid(envelope?.access?.isPaid === true);
+
+const serverIsPaid =
+  envelope?.access?.isPaid === true;
+
+setApiIsPaid(serverIsPaid);
+canRunPaidFlows = serverIsPaid;
   // Unwrap: get the ACTUAL report object that contains nowPlan/nowNearFuture
   const data: any =
     envelope?.report ??
@@ -10871,6 +10880,7 @@ try {
 
   setReport(data as any);
   console.log("[life-report] setReport done:", !!data, Object.keys(data || {}));
+  
   // Debug to prove the fix
   console.log("[life-report] envelope keys:", Object.keys(envelope || {}));
   console.log("[life-report] data keys:", Object.keys(data || {}));
@@ -10884,7 +10894,32 @@ try {
 
   //  IMPORTANT: from this point forward, use `data` as your life report object
 
+if (!canRunPaidFlows) {
+  // Free preview must contain deterministic chart data only.
+  setAiSummary("");
+  setTimelineSummary("");
 
+  setTransits([]);
+  setTransitNow([]);
+  setTransitSummary("");
+  setDashaTransitSummary("");
+
+  setMonthlyInsights([]);
+  setWeeklyInsights([]);
+  setDailyHighlights([]);
+
+  setTransitsLoading(false);
+  setMonthlyLoading(false);
+  setWeeklyLoading(false);
+  setDailyLoading(false);
+
+  setActiveTab("overview");
+
+  const computedKey = `${dISO}|${t}|${tz}|${place.lat}|${place.lon}`;
+  setLastReportKey(computedKey);
+
+  return;
+}
 // ?? STEP 2: ai-personality teaser (cached)
 try {
   const personalityCacheKey = `sarathi:ai-personality:${payload.birthDateISO}:${payload.birthTime}:${payload.birthTz}:v1`;
@@ -10980,21 +11015,6 @@ try {
   setAiSummary(`(DEBUG) ai-personality crashed: ${e?.message ?? String(e)}`);
 }
 
-if (!canRunPaidFlows) {
-  setTimelineSummary("");
-  setTransits([]);
-  setTransitNow([]);
-  setTransitSummary("");
-  setDashaTransitSummary("");
-  setMonthlyInsights([]);
-  setWeeklyInsights([]);
-  setDailyHighlights([]);
-  setTransitsLoading(false);
-  setMonthlyLoading(false);
-  setWeeklyLoading(false);
-  setDailyLoading(false);
-  return;
-}
       // ?? Notifications from API - state (all 3 buckets)
       const anyData = data as any;
       const preview = anyData.previewNotifications ?? null;
@@ -14442,9 +14462,13 @@ const text = uniqueTextParts
       disabled={loading}
       className="w-full sm:w-auto"
     >
-      {loading ? "Generating..." : "Generate / Refresh Report"}
+      {loading
+  ? "Generating..."
+  : canSeeFull
+  ? "Generate / Refresh Report"
+  : "Generate Free Preview"}
     </Button>
-    {report && (
+    {report && canSeeFull && (
   <PDFDownloadLink
     document={
      <LifeReportPdf
@@ -14518,7 +14542,12 @@ sunSign={report?.sunSign}
   <TabsContent value="overview" className="mt-4">
   <div className="space-y-6">
     <TabPlacements />
-    <TabPersonality report={report} />
+
+    {canSeeFull ? (
+      <TabPersonality report={report} />
+    ) : (
+      <FreeLifeReportUpgradeCard />
+    )}
   </div>
 </TabsContent>
   <TabsContent value="phases" className="mt-4">
