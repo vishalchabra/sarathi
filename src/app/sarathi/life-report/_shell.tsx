@@ -14424,93 +14424,107 @@ const text = uniqueTextParts
     </p>
   )}
 </div>
-            {/* Profiles row + Generate button */}
-  <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-    {/* Left: profile selector + save */}
-    <div className="flex flex-wrap items-center gap-2 text-xs">
-      <span className="font-semibold uppercase tracking-wide text-foreground">
-        Profiles:
-      </span>
+           {/* Profiles row + report actions */}
+<div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+  {/* Left: profile selector + save */}
+  <div className="flex flex-wrap items-center gap-2 text-xs">
+    <span className="font-semibold uppercase tracking-wide text-foreground">
+      Profiles:
+    </span>
 
-      <select
-        className="rounded-md border bg-background px-2 py-1 text-xs text-foreground"
-        value={selectedProfileId}
-        onChange={(e) => handleSelectProfile(e.target.value)}
-      >
-        <option value="">(None selected)</option>
-        {profiles.map((p) => (
-          <option key={p.id} value={p.id}>
-  {p.name} 
-</option>
-        ))}
-      </select>
+    <select
+      className="rounded-md border bg-background px-2 py-1 text-xs text-foreground"
+      value={selectedProfileId}
+      onChange={(e) => handleSelectProfile(e.target.value)}
+    >
+      <option value="">(None selected)</option>
 
-      <button
-        type="button"
-        className="rounded-md border px-2 py-1 text-[11px] text-foreground/90 border-foreground/30"
-        onClick={handleSaveProfile}
-      >
-        Save current as profile
-      </button>
-    </div>
+      {profiles.map((p) => (
+        <option key={p.id} value={p.id}>
+          {p.name}
+        </option>
+      ))}
+    </select>
 
-    {/* Right: generate / refresh button */}
+    <button
+      type="button"
+      className="rounded-md border border-foreground/30 px-2 py-1 text-[11px] text-foreground/90"
+      onClick={handleSaveProfile}
+    >
+      Save current as profile
+    </button>
+  </div>
 
+  {/* Right: report actions */}
+  <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
     <Button
       type="button"
       onClick={handleGenerate}
       disabled={loading}
-      className="w-full sm:w-auto"
+      className="w-full whitespace-nowrap sm:w-auto"
     >
       {loading
-  ? "Generating..."
-  : canSeeFull
-  ? "Generate / Refresh Report"
-  : "Generate Free Preview"}
+        ? "Generating..."
+        : canSeeFull
+          ? report
+            ? "Regenerate Report"
+      : "Generate Life Report"
+    : "Generate Free Preview"}
     </Button>
-    {report && canSeeFull && (
-  <PDFDownloadLink
-    document={
-     <LifeReportPdf
-  report={report}
-  profileName={name}
-  dashaTimeline={dashaTimeline}
-  monthlyInsights={monthlyInsights}
-  weeklyInsights={weeklyInsights}
-  dailyHighlights={dailyHighlights}
-  transits={transits}
-  jobPrediction={jobPrediction}
-  ascSign={report?.ascSign}
-moonSign={report?.moonSign}
-sunSign={report?.sunSign}
-/>
-    }
-    fileName={`Sarathi-Life-Report-${(name || "User").replace(/\s+/g, "-")}-${new Date()
-  .toISOString()
-  .slice(0, 10)}.pdf`}
-  >
-    {({ loading: pdfLoading }) => (
-      <Button
-        type="button"
-        variant="outline"
-        className="w-full sm:w-auto no-print"
-      >
-        {pdfLoading ? "Preparing PDF..." : "Download PDF"}
-      </Button>
-    )}
-  </PDFDownloadLink>
-)}
-  <Link href="/sarathi/chat">
-    <Button
-      type="button"
-      variant="outline"
-      className="w-full sm:w-auto"
-    >
-      Ask Sarathi
-    </Button>
-  </Link>
-  </div>
 
+    {report && canSeeFull && (
+      <PDFDownloadLink
+        document={
+          <LifeReportPdf
+            report={report}
+            profileName={name}
+            dashaTimeline={dashaTimeline}
+            monthlyInsights={monthlyInsights}
+            weeklyInsights={weeklyInsights}
+            dailyHighlights={dailyHighlights}
+            transits={transits}
+            jobPrediction={jobPrediction}
+            ascSign={report?.ascSign}
+            moonSign={report?.moonSign}
+            sunSign={report?.sunSign}
+          />
+        }
+        fileName={`Sarathi-Life-Report-${(name || "User").replace(
+          /\s+/g,
+          "-"
+        )}-${new Date().toISOString().slice(0, 10)}.pdf`}
+      >
+        {({ loading: pdfLoading }) => (
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full whitespace-nowrap sm:w-auto no-print"
+          >
+            {pdfLoading ? "Preparing PDF..." : "Download PDF"}
+          </Button>
+        )}
+      </PDFDownloadLink>
+    )}
+
+    {report && canSeeFull && (
+      <Link href="/sarathi/chat">
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full whitespace-nowrap sm:w-auto border-violet-300 text-violet-700 hover:bg-violet-50"
+        >
+          Ask Sārathi
+        </Button>
+      </Link>
+    )}
+  </div>
+</div>
+
+{report && canSeeFull && (
+  <p className="mt-2 text-right text-xs text-slate-500">
+    Includes one complimentary Ask Sārathi question.
+  </p>
+)}
           </CardContent>
         </Card>
 

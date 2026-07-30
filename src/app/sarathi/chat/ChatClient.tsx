@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import Link from "next/link";
 import { loadBirthProfile, saveBirthProfile } from "@/lib/birth-profile";
 import {
   getUserBirthProfiles,
@@ -767,7 +768,13 @@ function loadLifeReportCache(): any | null {
 
 
 /* ===================== Component ===================== */
-export default function ChatClient() {
+type ChatClientProps = {
+  askAllowed: boolean;
+};
+
+export default function ChatClient({
+  askAllowed,
+}: ChatClientProps) {
   const [mounted, setMounted] = useState(false);
   const [safeMode, setSafeMode] = useState(false);
   const [view, setView] = useState<"cards" | "narrative" | "qa">("qa");
@@ -801,9 +808,10 @@ const selectedPlace =
     },
   ]);
 
-  const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
-  const bottomRef = useRef<HTMLDivElement | null>(null);
+ const [input, setInput] = useState("");
+const [loading, setLoading] = useState(false);
+const [askLocked, setAskLocked] = useState(!askAllowed);
+const bottomRef = useRef<HTMLDivElement | null>(null);
 
   const hasProfile = useMemo(() => {
     const hasBirth = !!profile?.dobISO && !!profile?.tob;
@@ -1230,9 +1238,11 @@ if (res?.status === 401 && body?.reason === "login_required") {
 
 // Complimentary question limit has been reached
 if (res?.status === 403 && body?.reason === "ask_limit_reached") {
+  setAskLocked(true);
+
   throw new Error(
     body?.message ||
-      "You’ve used your complimentary Ask Sārathi question. Please upgrade to continue."
+      "You’ve used your complimentary Ask Sārathi question."
   );
 }
 
@@ -1290,10 +1300,12 @@ if (!res?.ok || !body || body.ok === false) {
     return withNow;
   };
 
-  async function send(textArg?: string) {
+async function send(textArg?: string) {
   const raw = (textArg ?? input).trim();
 
-  if (!raw || loading) return;
+  if (!raw || loading || askLocked) {
+    return;
+  }
 
   if (!hasProfile) {
     setProfileOpen(true);
@@ -1475,6 +1487,46 @@ const stripEvidenceMarker = (s?: string) => {
           </button>
         </div>
       </header>
+      {askLocked ? (
+  <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+    <div className="text-sm font-semibold text-amber-950">
+      Your complimentary question has been used
+    </div>
+
+    <p className="mt-1 text-sm leading-6 text-amber-900">
+      Purchase additional Ask Sārathi questions to continue receiving
+      personalised guidance.
+    </p>
+
+    <div className="mt-4 flex flex-wrap gap-3">
+      <Link
+        href="/sarathi/upgrade?feature=ask-sarathi"
+        className="inline-flex items-center justify-center rounded-xl bg-[color:var(--primary)] px-4 py-2.5 text-sm font-semibold text-white transition hover:opacity-90"
+      >
+        Buy More Questions
+      </Link>
+
+      <Link
+        href="/sarathi/life-report"
+        className="inline-flex items-center justify-center rounded-xl border border-[color:var(--border)] bg-white px-4 py-2.5 text-sm font-medium text-slate-900 transition hover:bg-slate-50"
+      >
+        Return to Life Report
+      </Link>
+    </div>
+  </section>
+) : (
+  <section className="rounded-2xl border border-violet-200 bg-violet-50 px-4 py-3">
+    <div className="text-sm font-semibold text-violet-950">
+      One complimentary question available
+    </div>
+
+    <p className="mt-1 text-xs leading-5 text-violet-800">
+      Your account includes one complimentary Ask Sārathi question.
+      Ask one clear question and include any relevant context for the
+      most meaningful guidance.
+    </p>
+  </section>
+)}
 <section className="rounded-2xl border border-[color:var(--border)] bg-white/70 p-4">
   <button
   type="button"
@@ -1954,31 +2006,36 @@ const detailNote = isDailyOutlook
       </div>
 
       {/* Input */}
-      <div className="flex gap-2">
-       <input
-  className="h-11 flex-1 rounded-xl border border-[color:var(--border)] bg-white/80 px-4 text-sm text-slate-900 placeholder:text-slate-500 outline-none focus:border-indigo-300/40 disabled:cursor-not-allowed disabled:opacity-60"
-  placeholder={
-    hasProfile
-      ? "Ask about career, money, relationships, health…"
-      : "Complete your birth profile above to begin"
-  }
-  value={input}
-  disabled={!hasProfile || loading}
-  onChange={(e) => setInput(e.target.value)}
-  onKeyDown={(e) => {
-    if (e.key === "Enter" && hasProfile) {
-      send();
+<div className="flex gap-2">
+  <input
+    className="h-11 flex-1 rounded-xl border border-[color:var(--border)] bg-white/80 px-4 text-sm text-slate-900 placeholder:text-slate-500 outline-none focus:border-indigo-300/40 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500"
+    placeholder={
+      askLocked
+        ? "Purchase more questions to continue."
+        : "Ask about career, money, relationships, health…"
     }
-  }}
-/>
-        <button
-          onClick={() => send()}
-          disabled={!canSend}
-          className="inline-flex items-center justify-center h-11 rounded-xl px-4 text-sm font-semibold border border-[color:var(--border)] bg-[color:var(--primary)] hover:opacity-90 disabled:opacity-50 text-slate-100"
-        >
-          Send
-        </button>
-      </div>
+    value={input}
+    onChange={(e) => setInput(e.target.value)}
+    disabled={loading || askLocked}
+    onKeyDown={(e) => {
+      if (
+        e.key === "Enter" &&
+        !loading &&
+        !askLocked
+      ) {
+        send();
+      }
+    }}
+  />
+
+  <button
+    onClick={() => send()}
+    disabled={!canSend || askLocked}
+    className="inline-flex h-11 items-center justify-center rounded-xl border border-[color:var(--border)] bg-[color:var(--primary)] px-4 text-sm font-semibold text-slate-100 hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+  >
+    {askLocked ? "Questions Used" : "Send"}
+  </button>
+</div>
         </div>
     </main>
   );

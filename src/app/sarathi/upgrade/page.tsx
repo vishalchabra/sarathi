@@ -25,11 +25,11 @@ const featureConfig: Record<
   },
 
   "ask-sarathi": {
-    title: "Continue Your Conversation with Sārathi",
-    description:
-      "You’ve used your complimentary question. Choose a question pack or subscribe for unlimited access to Ask Sārathi and the Data Engine.",
-    backHref: "/sarathi/chat",
-  },
+  title: "Continue Your Conversation with Sārathi",
+  description:
+    "Your complimentary Ask Sārathi question has been used. Choose a question pack to continue, or subscribe to Sārathi Pro for ongoing access to Ask Sārathi and the Data Engine.",
+  backHref: "/sarathi/chat",
+},
 
   "data-engine": {
     title: "Unlock the Sārathi Data Engine",
@@ -101,12 +101,13 @@ function AskSarathiOptions() {
       <section>
         <div className="mb-4">
           <h2 className="text-xl font-semibold text-slate-900">
-            Choose a Question Pack
-          </h2>
+  Continue with Ask Sārathi
+</h2>
 
-          <p className="mt-1 text-sm text-slate-700">
-            Purchase only the number of questions you need.
-          </p>
+<p className="mt-1 text-sm text-slate-700">
+  Choose the number of additional questions you need. Purchased
+  questions will be added to your account after payment.
+</p>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

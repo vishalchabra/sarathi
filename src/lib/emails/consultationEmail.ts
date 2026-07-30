@@ -1,5 +1,3 @@
-// FILE: src/lib/emails/consultationEmail.ts
-
 import { buildEmailLayout } from "./layout";
 
 function escapeHtml(value: string) {
@@ -7,7 +5,7 @@ function escapeHtml(value: string) {
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
+    .replace(/\"/g, "&quot;")
     .replace(/'/g, "&#039;");
 }
 
@@ -19,124 +17,19 @@ type ConsultationEmailOptions = {
   timezone?: string | null;
 };
 
-export function buildConsultationEmail({
-  name,
-  appUrl,
-  consultationDate,
-  consultationTime,
-  timezone,
-}: ConsultationEmailOptions) {
+export function buildConsultationEmail({ name, consultationDate, consultationTime, timezone }: ConsultationEmailOptions) {
   const safeName = escapeHtml(name);
-
-  const consultationUrl = `${appUrl.replace(/\/$/, "")}/sarathi/consultation`;
-
-  const dateLine =
-    consultationDate && consultationTime
-      ? `${consultationDate} at ${consultationTime}${
-          timezone ? ` (${timezone})` : ""
-        }`
-      : consultationDate
-        ? consultationDate
-        : null;
-
-  const subject = dateLine
-    ? `Your Sārathi Consultation is Confirmed for ${consultationDate}`
-    : "Your Sārathi Consultation Request is Confirmed";
-
-  const text = `
-Dear ${name},
-
-Thank you for booking a personal consultation with Sārathi.
-
-${
-  dateLine
-    ? `Your consultation is scheduled for ${dateLine}.`
-    : "Your consultation request has been received successfully."
-}
-
-Please ensure your birth details are accurate and keep your most important questions ready before the session.
-
-You can review your consultation details here:
-
-${consultationUrl}
-
-For the most meaningful discussion, we recommend focusing on two or three important areas rather than trying to cover everything at once.
-
-With gratitude,
-
-Team Sārathi
-`.trim();
+  const dateLine = consultationDate && consultationTime ? `${consultationDate} at ${consultationTime}${timezone ? ` (${timezone})` : ""}` : consultationDate || null;
+  const subject = dateLine ? `Your Sārathi Consultation is Confirmed for ${consultationDate}` : "We Received Your Sārathi Consultation Request";
+  const text = `Dear ${name},\n\nThank you for booking a personal consultation with Sārathi.\n\n${dateLine ? `Your consultation is scheduled for ${dateLine}.` : "Your consultation request has been received successfully."}\n\n${dateLine ? "Please keep your most important questions ready before the session." : "Our team will review your details and contact you with the earliest available consultation slot."}\n\nFor the most meaningful discussion, focus on two or three important areas rather than trying to cover everything at once.\n\nWith gratitude,\n\nTeam Sārathi`;
 
   const html = buildEmailLayout({
-    title: dateLine
-      ? "Your Consultation is Confirmed"
-      : "Your Consultation Request is Confirmed",
-
-    previewText: dateLine
-      ? `Your Sārathi consultation is scheduled for ${dateLine}.`
-      : "Your personal consultation request has been received successfully.",
-
+    title: dateLine ? "Your Consultation is Confirmed" : "We Received Your Consultation Request",
+    previewText: dateLine ? `Your Sārathi consultation is scheduled for ${dateLine}.` : "Your personal consultation request has been received successfully.",
     greeting: `Dear ${safeName},`,
-
-    bodyHtml: `
-<p>
-Thank you for booking a personal consultation with <strong>Sārathi</strong>.
-</p>
-
-${
-  dateLine
-    ? `
-<p>
-Your consultation is scheduled for:
-</p>
-
-<div style="
-  margin:24px 0;
-  padding:20px;
-  border:1px solid #e8e1f2;
-  border-radius:14px;
-  background:#faf8fd;
-">
-  <p style="margin:0;font-size:17px;font-weight:700;color:#24183d;">
-    ${escapeHtml(dateLine)}
-  </p>
-</div>
-`
-    : `
-<p>
-Your consultation request has been received successfully. Our team will share the confirmed date and time with you.
-</p>
-`
-}
-
-<h2 style="margin-top:36px;color:#24183d;">
-Before the consultation
-</h2>
-
-<ul style="padding-left:20px;line-height:1.9;">
-  <li>Confirm that your birth date, birth time and birth place are accurate.</li>
-  <li>Keep your most important questions ready.</li>
-  <li>Focus on two or three meaningful areas rather than trying to cover everything at once.</li>
-  <li>Join from a quiet place where you can speak comfortably.</li>
-</ul>
-
-<p>
-A consultation is most valuable when approached with openness, patience and a clear intention.
-</p>
-`,
-
-    cta: {
-      label: "View Consultation Details",
-      href: consultationUrl,
-    },
-
-    reflection:
-      "Clarity often arrives when we stop asking every question and begin listening deeply to the right one.",
+    bodyHtml: `<p>Thank you for booking a personal consultation with <strong>Sārathi</strong>.</p>${dateLine ? `<div style="margin:22px 0;padding:18px 20px;border:1px solid #e7e2ee;border-radius:10px;background:#faf9fc;"><div style="margin-bottom:5px;color:#756d7f;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;">Consultation schedule</div><div style="color:#2d2637;font-size:17px;line-height:1.5;font-weight:700;">${escapeHtml(dateLine)}</div></div>` : `<p>Your consultation request has been received successfully. Our team will review your details and contact you with the earliest available consultation slot.</p>`}<h2 style="margin:32px 0 14px;color:#2d2637;font-size:20px;">Before the consultation</h2><ul style="padding-left:20px;line-height:1.85;"><li>Confirm that your birth details are accurate.</li><li>Keep your most important questions ready.</li><li>Focus on two or three meaningful areas.</li><li>Join from a quiet place where you can speak comfortably.</li></ul>`,
+    reflection: "Clarity often arrives when we stop asking every question and begin listening deeply to the right one.",
   });
 
-  return {
-    subject,
-    text,
-    html,
-  };
+  return { subject, text, html };
 }
