@@ -13,11 +13,6 @@ export async function logQuestionUsage({
   question,
   topic,
 }: LogQuestionUsageParams) {
-  /*
-   * This function is called only after the API route has authenticated
-   * the user. Use the server-only service client so RPC execution and
-   * usage logging are not affected by browser-session RLS permissions.
-   */
   const { data: creditSource, error: creditError } =
     await supabaseAdmin.rpc("consume_ask_sarathi_credit", {
       p_user_id: userId,
@@ -52,11 +47,6 @@ export async function logQuestionUsage({
     });
 
   if (usageError) {
-    /*
-     * The credit has already been consumed. Log this failure, but do
-     * not give the customer another free question because the audit
-     * insert failed.
-     */
     console.error("QUESTION_USAGE_LOG_ERROR", {
       userId,
       message: usageError.message,
