@@ -53,7 +53,7 @@ export const BILLING_CATALOG: Record<
     description:
       "One-time access to your complete personalised Sārathi Life Report.",
     mode: "payment",
-    stripePriceId: "price_1TwOMG2MbXDIzt3pzWKMDpVv",
+    stripePriceId: "price_1TzccgRyK8MNzHdLWo7nIje5",
     prices: {
       inr: {
         currency: "inr",
@@ -75,7 +75,7 @@ export const BILLING_CATALOG: Record<
     name: "Ask Sārathi — 1 Question",
     description: "One additional Ask Sārathi question credit.",
     mode: "payment",
-    stripePriceId: "price_1TwOQZ2MbXDIzt3pR46wC9Uv",
+    stripePriceId: "price_1Tzcf5RyK8MNzHdL1e2qPQ5F",
     credits: 1,
     prices: {
       inr: {
@@ -98,7 +98,7 @@ export const BILLING_CATALOG: Record<
     name: "Ask Sārathi — 3 Questions",
     description: "Three additional Ask Sārathi question credits.",
     mode: "payment",
-    stripePriceId: "price_1TwORY2MbXDIzt3p6YUIlQnR",
+    stripePriceId: "price_1TzcgcRyK8MNzHdLjNNra9q8",
     credits: 3,
     prices: {
       inr: {
@@ -121,7 +121,7 @@ export const BILLING_CATALOG: Record<
     name: "Ask Sārathi — 5 Questions",
     description: "Five additional Ask Sārathi question credits.",
     mode: "payment",
-    stripePriceId: "price_1TwOSM2MbXDIzt3plgYypbe0",
+    stripePriceId: "price_1TzchlRyK8MNzHdLQ2ZL1Yoa",
     credits: 5,
     prices: {
       inr: {
@@ -144,7 +144,7 @@ export const BILLING_CATALOG: Record<
     name: "Ask Sārathi — 10 Questions",
     description: "Ten additional Ask Sārathi question credits.",
     mode: "payment",
-    stripePriceId: "price_1TwOTC2MbXDIzt3p2wMcniVX",
+    stripePriceId: "price_1Tzcj0RyK8MNzHdLGXJNFxKc",
     credits: 10,
     prices: {
       inr: {
@@ -168,7 +168,7 @@ export const BILLING_CATALOG: Record<
     description:
       "Monthly access to Sārathi’s professional astrology Data Engine.",
     mode: "subscription",
-    stripePriceId: "price_1TwOUE2MbXDIzt3pQ7jkvqzP",
+    stripePriceId: "price_1TzckDRyK8MNzHdLKPlF5smG",
     prices: {
       inr: {
         currency: "inr",
@@ -190,7 +190,7 @@ export const BILLING_CATALOG: Record<
     description:
       "A personalised one-on-one Vedic astrology consultation based on your birth chart, life circumstances and specific questions.",
     mode: "payment",
-    stripePriceId: "price_1Tx7tb2MbXDIzt3plO3NOOoy",
+    stripePriceId: "price_1Tzcm5RyK8MNzHdLwASPTBPn",
     prices: {
       inr: {
         currency: "inr",
@@ -202,7 +202,7 @@ export const BILLING_CATALOG: Record<
       },
       usd: {
         currency: "usd",
-        unitAmount: 2000,
+        unitAmount: 2500,
       },
     },
   },
