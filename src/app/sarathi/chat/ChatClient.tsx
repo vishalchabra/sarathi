@@ -1248,39 +1248,11 @@ if (res?.status === 403 && body?.reason === "ask_limit_reached") {
 
 // All other API or network failures
 if (!res?.ok || !body || body.ok === false) {
-  const fallback: QAResponse = {
-    ok: true,
-    title: "Overview",
-    windows: [],
-    bottomLine: {
-      lead:
-        "I couldn’t fetch a detailed answer right now, but here’s a safe overview.",
-      nuance:
-        errText && errText !== "undefined"
-          ? errText
-          : "",
-    },
-    now: effectiveNowLabel
-      ? { label: effectiveNowLabel }
-      : {},
-    spans,
-    copy: {
-      answer:
-        "Let’s keep momentum steady while I refresh your timing windows." +
-        (effectiveNowLabel
-          ? ` You’re currently in **${effectiveNowLabel}**.`
-          : ""),
-      how:
-        "Work in weekly bursts; warm referrals first, small visible wins every week.",
-    },
-    extra: effectiveNowLabel
-      ? { nowLabel: effectiveNowLabel }
-      : {},
-    meta: { version: "fallback" },
-  };
-
-  fallback.windows = normalizeWindows(fallback.windows);
-  return fallback;
+  throw new Error(
+    errText && errText !== "undefined"
+      ? errText
+      : "Sārathi could not process your question. Please try again."
+  );
 }
 
     const withNow: QAResponse = {
