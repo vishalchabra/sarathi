@@ -163,7 +163,15 @@ type QAResponse = {
 };
 
 type Msg = { id: string; role: Role; content?: string; data?: QAResponse; error?: string };
-
+type HistoryItem = {
+  id: string;
+  question: string;
+  topic?: string | null;
+  answer_json: QAResponse;
+  profile_name?: string | null;
+  created_at: string;
+  updated_at: string;
+};
 /* ===================== Keys & IDs ===================== */
 const LIFE_REPORT_KEY = "life-report-profile";
 
@@ -766,7 +774,42 @@ function loadLifeReportCache(): any | null {
   }
 }
 
+async function saveAskSarathiHistory({
+  question,
+  answer,
+  topic,
+  profileName,
+}: {
+  question: string;
+  answer: QAResponse;
+  topic?: string | null;
+  profileName?: string | null;
+}) {
+  const response = await fetch("/api/ask-sarathi/history", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+    },
+    cache: "no-store",
+    body: JSON.stringify({
+      question,
+      answer,
+      topic: topic ?? null,
+      profileName: profileName ?? null,
+    }),
+  });
 
+  const body = await response.json().catch(() => null);
+
+  if (!response.ok || !body?.ok) {
+    throw new Error(
+      body?.error ||
+        "The Ask Sārathi response could not be saved."
+    );
+  }
+
+  return body.item;
+}
 /* ===================== Component ===================== */
 type ChatClientProps = {
   askAllowed: boolean;
@@ -784,7 +827,9 @@ export default function ChatClient({
   const [savedProfiles, setSavedProfiles] = useState<SavedBirthProfile[]>([]);
 const [selectedProfileId, setSelectedProfileId] = useState("");
 const [profileOpen, setProfileOpen] = useState(false);
-
+const [historyItems, setHistoryItems] = useState<HistoryItem[]>([]);
+const [historyOpen, setHistoryOpen] = useState(false);
+const [historyLoading, setHistoryLoading] = useState(false);
 const [profileName, setProfileName] = useState("");
 const [profileDateISO, setProfileDateISO] = useState("");
 const [profileTime, setProfileTime] = useState("");
@@ -938,6 +983,36 @@ const handleSaveChatProfile = useCallback(async () => {
   profileLon,
   profilePlaceName,
 ]);
+const loadHistory = useCallback(async () => {
+  setHistoryLoading(true);
+
+  try {
+    const response = await fetch("/api/ask-sarathi/history", {
+      method: "GET",
+      cache: "no-store",
+    });
+
+    const body = await response.json().catch(() => null);
+
+    if (!response.ok || !body?.ok) {
+      throw new Error(
+        body?.error || "Could not load Ask Sārathi history."
+      );
+    }
+
+    setHistoryItems(
+      Array.isArray(body.history) ? body.history : []
+    );
+  } catch (error) {
+    console.error("[chat] Could not load history:", error);
+  } finally {
+    setHistoryLoading(false);
+  }
+}, []);
+
+useEffect(() => {
+  loadHistory();
+}, [loadHistory]);
 const existingProfileByName = savedProfiles.find(
   (p) =>
     p.name.trim().toLowerCase() ===
@@ -1359,7 +1434,44 @@ const stripEvidenceMarker = (s?: string) => {
 
       safeData.windows = normalizeWindows(safeData.windows);
 
-      setMessages((m: Msg[]) => [...m, { id: newId(), role: "assistant", data: safeData }]);
+/*
+ * Show the answer immediately.
+ */
+setMessages((m: Msg[]) => [
+  ...m,
+  {
+    id: newId(),
+    role: "assistant",
+    data: safeData,
+  },
+]);
+
+/*
+ * Save the complete successful response to the user's account.
+ * A history-saving failure must not hide an answer that was
+ * already generated successfully.
+ */
+try {
+  await saveAskSarathiHistory({
+    question: raw,
+    answer: safeData,
+    topic:
+      typeof safeData.topic === "string"
+        ? safeData.topic
+        : null,
+    profileName:
+      profile?.name?.trim() ||
+      profileName.trim() ||
+      null,
+  });
+
+  await loadHistory();
+} catch (historyError) {
+  console.error(
+    "[chat] Could not save Ask Sārathi history:",
+    historyError
+  );
+}
     } catch (e: any) {
   console.error("[chat] /api/astro-chat error:", e);
 
@@ -1438,27 +1550,117 @@ const stripEvidenceMarker = (s?: string) => {
   : "Complete your birth profile to begin asking Sārathi."}
           </div>
 
-          <button
-            onClick={() => {
-              setMessages([
-  {
-    id: newId(),
-    role: "assistant",
-    content: "Hi — Sārathi Chat is ready. Ask about career, money, relationships, health, or timing.",
-  },
-]);
+          <div className="ml-auto flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setHistoryOpen((value) => !value)}
+              className="rounded-full border border-[color:var(--border)] bg-white px-3 py-1 text-sm text-foreground hover:bg-[color:var(--secondary)] hover:shadow-md"
+            >
+              {historyOpen ? "Hide History" : "History"}
+            </button>
 
-              try {
-                localStorage.removeItem("sarathi-chat");
-              } catch {}
-            }}
-            className="ml-auto rounded-full border border-[color:var(--border)] bg-white px-3 py-1 text-sm text-foreground hover:bg-[color:var(--secondary)] hover:shadow-md"
-            title="Clear chat history"
-          >
-            Clear
-          </button>
+            <button
+              type="button"
+              onClick={() => {
+                setMessages([
+                  {
+                    id: newId(),
+                    role: "assistant",
+                    content:
+                      "Hi — Sārathi Chat is ready. Ask about career, money, relationships, health, or timing.",
+                  },
+                ]);
+
+                try {
+                  localStorage.removeItem("sarathi-chat");
+                } catch {}
+              }}
+              className="rounded-full border border-[color:var(--border)] bg-white px-3 py-1 text-sm text-foreground hover:bg-[color:var(--secondary)] hover:shadow-md"
+              title="Clear current chat"
+            >
+              Clear
+            </button>
+          </div>
         </div>
       </header>
+
+      {historyOpen ? (
+        <section className="rounded-2xl border border-[color:var(--border)] bg-white/80 p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h2 className="text-sm font-semibold text-foreground">
+                Ask Sārathi History
+              </h2>
+
+              <p className="mt-1 text-xs text-slate-600">
+                Open any previous question without using another credit.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={loadHistory}
+              disabled={historyLoading}
+              className="rounded-xl border border-[color:var(--border)] bg-white px-3 py-1.5 text-xs text-foreground disabled:opacity-50"
+            >
+              {historyLoading ? "Loading..." : "Refresh"}
+            </button>
+          </div>
+
+          <div className="mt-4 max-h-80 space-y-2 overflow-y-auto pr-1">
+            {historyLoading && historyItems.length === 0 ? (
+              <p className="text-sm text-slate-500">
+                Loading your saved questions...
+              </p>
+            ) : historyItems.length === 0 ? (
+              <p className="text-sm text-slate-500">
+                No saved questions yet.
+              </p>
+            ) : (
+              historyItems.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => {
+                    setMessages([
+                      {
+                        id: newId(),
+                        role: "user",
+                        content: item.question,
+                      },
+                      {
+                        id: newId(),
+                        role: "assistant",
+                        data: item.answer_json,
+                      },
+                    ]);
+
+                    setHistoryOpen(false);
+                  }}
+                  className="w-full rounded-xl border border-[#E8DEF8] bg-white p-3 text-left transition hover:border-[color:var(--primary)] hover:shadow-sm"
+                >
+                  <div className="text-sm font-medium text-slate-900">
+                    {item.question}
+                  </div>
+
+                  <div className="mt-1 flex flex-wrap gap-2 text-xs text-slate-500">
+                    {item.profile_name ? (
+                      <span>{item.profile_name}</span>
+                    ) : null}
+
+                    {item.topic ? <span>• {item.topic}</span> : null}
+
+                    <span>
+                      • {new Date(item.created_at).toLocaleString()}
+                    </span>
+                  </div>
+                </button>
+              ))
+            )}
+          </div>
+        </section>
+      ) : null}
+
       {askLocked ? (
   <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
     <div className="text-sm font-semibold text-amber-950">
