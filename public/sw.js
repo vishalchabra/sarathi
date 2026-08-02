@@ -1,15 +1,15 @@
-const CACHE_NAME = "sarathi-v1";
+const CACHE_NAME = "sarathi-v2";
 
 const OFFLINE_URL = "/sarathi";
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll([
-        OFFLINE_URL,
-        "/icons/icon-192.png",
-        "/icons/icon-512.png",
-      ]);
+     return cache.addAll([
+  OFFLINE_URL,
+  "/icons/icon-192-v2.png",
+  "/icons/icon-512-v2.png",
+]);
     })
   );
 

@@ -84,26 +84,26 @@ export const metadata: Metadata = {
   },
 
   icons: {
-    icon: [
-      {
-        url: "/icons/icon-192.png",
-        sizes: "192x192",
-        type: "image/png",
-      },
-      {
-        url: "/icons/icon-512.png",
-        sizes: "512x512",
-        type: "image/png",
-      },
-    ],
-    apple: [
-      {
-        url: "/apple-touch-icon.png",
-        sizes: "180x180",
-        type: "image/png",
-      },
-    ],
-  },
+  icon: [
+    {
+      url: "/icons/icon-192-v2.png",
+      sizes: "192x192",
+      type: "image/png",
+    },
+    {
+      url: "/icons/icon-512-v2.png",
+      sizes: "512x512",
+      type: "image/png",
+    },
+  ],
+  apple: [
+    {
+      url: "/apple-touch-icon.png",
+      sizes: "180x180",
+      type: "image/png",
+    },
+  ],
+},
 };
 
 const organizationSchema = {
