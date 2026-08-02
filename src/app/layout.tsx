@@ -39,7 +39,6 @@ export const metadata: Metadata = {
   ],
 
   creator: "Sārathi",
-
   publisher: "Sārathi",
 
   robots: {
@@ -66,7 +65,6 @@ export const metadata: Metadata = {
     title: "Sārathi | AI-Powered Vedic Astrology",
     description:
       "Personalised Vedic astrology powered by AI. Life Reports, Ask Sārathi, planetary analysis and professional astrology tools.",
-
     images: [
       {
         url: "/sarathi-logo.png",
@@ -108,6 +106,42 @@ export const metadata: Metadata = {
   },
 };
 
+const organizationSchema = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "@id": "https://www.sarathiyourguide.com/#organization",
+  name: "Sārathi",
+  alternateName: "Sarathi",
+  url: "https://www.sarathiyourguide.com",
+  logo: {
+    "@type": "ImageObject",
+    url: "https://www.sarathiyourguide.com/sarathi-logo.png",
+    width: 1024,
+    height: 1024,
+  },
+  description:
+    "Sārathi is an AI-powered Vedic astrology platform offering personalised Life Reports, astrology guidance, professional chart analysis and personal consultations.",
+};
+
+const websiteSchema = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "@id": "https://www.sarathiyourguide.com/#website",
+  url: "https://www.sarathiyourguide.com",
+  name: "Sārathi",
+  alternateName: "Sarathi",
+  description:
+    "Personalised AI-powered Vedic astrology guidance, Life Reports and professional astrology tools.",
+  publisher: {
+    "@id": "https://www.sarathiyourguide.com/#organization",
+  },
+  inLanguage: "en",
+};
+
+function serializeJsonLd(data: object) {
+  return JSON.stringify(data).replace(/</g, "\\u003c");
+}
+
 export default function RootLayout({
   children,
 }: {
@@ -116,6 +150,20 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: serializeJsonLd(organizationSchema),
+          }}
+        />
+
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: serializeJsonLd(websiteSchema),
+          }}
+        />
+
         <ServiceWorkerRegister />
         {children}
       </body>
