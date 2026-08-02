@@ -49,10 +49,36 @@ const faqs = [
     a: "Yes. Birth details are sensitive, and Sārathi is being built with privacy and account-based access in mind.",
   },
 ];
+const faqSchema = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "@id": "https://www.sarathiyourguide.com/sarathi/faqs#faq",
+  url: "https://www.sarathiyourguide.com/sarathi/faqs",
+  name: "Sārathi Frequently Asked Questions",
+  mainEntity: faqs.map((item) => ({
+    "@type": "Question",
+    name: item.q,
+    acceptedAnswer: {
+      "@type": "Answer",
+      text: item.a,
+    },
+  })),
+};
 
+function serializeJsonLd(data: object) {
+  return JSON.stringify(data).replace(/</g, "\\u003c");
+}
 export default function FAQsPage() {
   return (
-    <main className="min-h-screen astro-bg text-slate-900">
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: serializeJsonLd(faqSchema),
+        }}
+      />
+
+      <main className="min-h-screen astro-bg text-slate-900">
       <section className="mx-auto max-w-5xl px-4 py-12 md:py-16">
         <Link href="/sarathi" className="text-sm text-slate-600 hover:text-slate-900">
           ← Back to Sārathi
@@ -115,6 +141,7 @@ export default function FAQsPage() {
           </div>
         </div>
       </section>
-    </main>
+      </main>
+    </>
   );
 }
