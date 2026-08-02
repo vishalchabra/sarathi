@@ -1,6 +1,61 @@
-import SarathiAuthPage from "@/components/auth/SarathiAuthPage";
+import { redirect } from "next/navigation";
 
-export default function IndividualLoginPage() {
+import SarathiAuthPage from "@/components/auth/SarathiAuthPage";
+import { createClient } from "@/lib/supabase/server";
+
+type Props = {
+  searchParams: Promise<{
+    next?: string;
+  }>;
+};
+
+function safeNextPath(
+  value: string | undefined,
+  fallback: string
+) {
+  if (!value) {
+    return fallback;
+  }
+
+  if (!value.startsWith("/sarathi")) {
+    return fallback;
+  }
+
+  if (
+    value.startsWith("/sarathi/login") ||
+    value.startsWith("/sarathi/individual/login") ||
+    value.startsWith("/sarathi/astrologers/login")
+  ) {
+    return fallback;
+  }
+
+  return value;
+}
+
+export default async function IndividualLoginPage({
+  searchParams,
+}: Props) {
+  const { next } = await searchParams;
+
+  const nextPath = safeNextPath(
+    next,
+    "/sarathi/life-report"
+  );
+
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  /*
+   * If a valid session already exists, do not show
+   * the login form again.
+   */
+  if (user) {
+    redirect(nextPath);
+  }
+
   return (
     <SarathiAuthPage
       accountType="individual"
