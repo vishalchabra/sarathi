@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 import "./globals.css";
 import ServiceWorkerRegister from "@/components/pwa/ServiceWorkerRegister";
-
+import { GoogleAnalytics } from "@next/third-parties/google";
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.sarathiyourguide.com"),
 
@@ -166,6 +166,7 @@ export default function RootLayout({
 
         <ServiceWorkerRegister />
         {children}
+        <GoogleAnalytics gaId="G-WKFJ595D05" />
       </body>
     </html>
   );
