@@ -5,18 +5,15 @@ const PROTECTED_ROUTES = [
   "/sarathi/life-report",
   "/sarathi/chat",
   "/sarathi/data-engine",
+  "/sarathi/consultation",
 ];
 
 export async function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
 
-  const isProtected = PROTECTED_ROUTES.some((route) =>
-    pathname.startsWith(route)
-  );
-
-  if (!isProtected) return NextResponse.next();
-
-  let response = NextResponse.next({ request });
+  let response = NextResponse.next({
+    request,
+  });
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -26,9 +23,17 @@ export async function middleware(request: NextRequest) {
         getAll() {
           return request.cookies.getAll();
         },
+
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => {
+          cookiesToSet.forEach(({ name, value }) => {
             request.cookies.set(name, value);
+          });
+
+          response = NextResponse.next({
+            request,
+          });
+
+          cookiesToSet.forEach(({ name, value, options }) => {
             response.cookies.set(name, value, options);
           });
         },
@@ -36,15 +41,31 @@ export async function middleware(request: NextRequest) {
     }
   );
 
+  /*
+   * This refreshes and validates the Supabase session.
+   * Do not place unrelated code between createServerClient()
+   * and this call.
+   */
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) {
-    const loginUrl = new URL("/sarathi/login", request.url);
-loginUrl.searchParams.set("next", pathname + (search || ""));
+  const isProtectedRoute = PROTECTED_ROUTES.some((route) =>
+    pathname.startsWith(route)
+  );
 
-return NextResponse.redirect(loginUrl);
+  if (isProtectedRoute && !user) {
+    const loginUrl = new URL(
+      "/sarathi/individual/login",
+      request.url
+    );
+
+    loginUrl.searchParams.set(
+      "next",
+      pathname + (search || "")
+    );
+
+    return NextResponse.redirect(loginUrl);
   }
 
   return response;
@@ -52,8 +73,10 @@ return NextResponse.redirect(loginUrl);
 
 export const config = {
   matcher: [
-    "/sarathi/life-report/:path*",
-    "/sarathi/chat/:path*",
-    "/sarathi/data-engine/:path*",
+    /*
+     * Run on normal application pages, but skip static files,
+     * images and common metadata files.
+     */
+    "/((?!_next/static|_next/image|favicon.ico|sw.js|manifest.webmanifest|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
   ],
 };
