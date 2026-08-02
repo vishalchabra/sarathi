@@ -1,5 +1,19 @@
 import Link from "next/link";
-
+import { createSEO } from "@/lib/seo";
+export const metadata = createSEO({
+  title: "Why Choose Sārathi for Vedic Astrology Guidance",
+  description:
+    "Discover how Sārathi makes Vedic astrology practical, personalised and non-fatalistic through clear timing, useful guidance and responsible chart analysis.",
+  path: "/sarathi/why-sarathi",
+  keywords: [
+    "Why Sārathi",
+    "Practical Vedic Astrology",
+    "Personalised Astrology Guidance",
+    "Non-Fatalistic Astrology",
+    "AI Astrology Platform",
+    "Astrology Timing Guidance",
+  ],
+});
 export default function WhySarathiPage() {
   return (
     <main className="min-h-screen astro-bg text-slate-900">

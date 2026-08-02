@@ -1,5 +1,20 @@
 import Link from "next/link";
-
+import { createSEO } from "@/lib/seo";
+export const metadata = createSEO({
+  title: "Professional Vedic Astrology Software for Astrologers",
+  description:
+    "Use Sārathi’s professional Vedic astrology Data Engine for charts, dashas, transits, vargas, Panchang, strength systems and consultation-ready analysis in one workspace.",
+  path: "/sarathi/astrologers",
+  keywords: [
+    "Vedic Astrology Software",
+    "Astrology Software for Astrologers",
+    "Professional Astrology Tools",
+    "Vedic Astrology Data Engine",
+    "Kundli Software",
+    "Dasha Analysis Software",
+    "Astrology Consultation Tools",
+  ],
+});
 export default function AstrologersPage() {
   return (
     <main className="astro-bg min-h-screen text-foreground">

@@ -1,6 +1,20 @@
 // FILE: src/app/sarathi/contact/page.tsx
 import Link from "next/link";
-
+import { createSEO } from "@/lib/seo";
+export const metadata = createSEO({
+  title: "Contact Sārathi Support",
+  description:
+    "Contact Sārathi for product support, account questions, report access, technical issues, privacy requests, feedback or business enquiries.",
+  path: "/sarathi/contact",
+  keywords: [
+    "Contact Sārathi",
+    "Sārathi Support",
+    "Astrology Platform Support",
+    "Life Report Support",
+    "Ask Sārathi Support",
+    "Vedic Astrology Help",
+  ],
+});
 const supportEmail = "support@sarathiyourguide.com";
 
 export default function ContactPage() {

@@ -1,5 +1,21 @@
 import Link from "next/link";
-
+import { createSEO } from "@/lib/seo";
+export const metadata = createSEO({
+  title: "Personalised Vedic Astrology Guidance for Individuals",
+  description:
+    "Explore your birth chart, current dasha, transits and timing windows with Sārathi. Generate a personalised Life Report and ask clear astrology questions about career, relationships, money, health and life direction.",
+  path: "/sarathi/individual",
+  keywords: [
+    "Personalised Vedic Astrology",
+    "Birth Chart Guidance",
+    "Vedic Life Report",
+    "Ask Astrology Questions",
+    "Career Astrology",
+    "Marriage Astrology",
+    "Dasha Analysis",
+    "Jyotish Guidance",
+  ],
+});
 export default function IndividualPage() {
   return (
     <main className="astro-bg min-h-screen text-foreground">

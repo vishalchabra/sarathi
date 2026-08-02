@@ -1,10 +1,28 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+
+import { createSEO } from "@/lib/seo";
 import { createClient } from "@/lib/supabase/server";
 import { getUserEntitlements } from "@/server/auth/getUserEntitlements";
 
 import TopNav from "../TopNav";
 import LifeReportShell from "./_shell";
-
+export const metadata: Metadata = createSEO({
+  title: "AI Vedic Astrology Life Report",
+  description:
+    "Generate your personalised AI-powered Vedic Astrology Life Report. Understand your birth chart, dashas, transits, strengths, challenges and upcoming life phases with practical guidance.",
+  path: "/sarathi/life-report",
+  keywords: [
+    "Vedic Astrology Life Report",
+    "AI Life Report",
+    "Birth Chart Report",
+    "Personalised Kundli Report",
+    "Dasha Analysis",
+    "Transit Analysis",
+    "Astrology Report",
+    "Jyotish Report",
+  ],
+});
 export default async function LifeReportPage() {
   const supabase = await createClient();
 

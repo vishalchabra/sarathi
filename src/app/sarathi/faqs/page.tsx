@@ -1,5 +1,20 @@
 import Link from "next/link";
-
+import { createSEO } from "@/lib/seo";
+export const metadata = createSEO({
+  title: "Frequently Asked Questions | Sārathi",
+  description:
+    "Find answers about Sārathi, AI-powered Vedic astrology, Life Reports, Ask Sārathi, the Astrologer Data Engine, pricing, privacy and how the platform works.",
+  path: "/sarathi/faqs",
+  keywords: [
+    "Astrology FAQ",
+    "Vedic Astrology Questions",
+    "Life Report FAQ",
+    "Ask Sarathi",
+    "AI Astrology FAQ",
+    "Astrologer Data Engine",
+    "Birth Chart Questions",
+  ],
+});
 const faqs = [
   {
     q: "What is Sārathi?",

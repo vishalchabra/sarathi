@@ -1,6 +1,21 @@
 // FILE: src/app/sarathi/page.tsx
 import Link from "next/link";
-
+import { createSEO } from "@/lib/seo";
+export const metadata = createSEO({
+  title: "AI-Powered Vedic Astrology Platform | Sārathi",
+  description:
+    "Discover personalised Vedic astrology with AI. Generate detailed Life Reports, ask unlimited astrology questions, explore advanced chart analysis and receive accurate Vedic guidance with Sārathi.",
+  path: "/sarathi",
+  keywords: [
+    "AI Astrology",
+    "Vedic Astrology",
+    "Birth Chart",
+    "Kundli",
+    "Life Report",
+    "Jyotish",
+    "Ask Astrology Questions",
+  ],
+});
 export default function SarathiHome() {
   return (
     <main className="astro-bg min-h-screen text-foreground">

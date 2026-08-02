@@ -1,6 +1,20 @@
 // FILE: src/app/sarathi/about/page.tsx
 import Link from "next/link";
-
+import { createSEO } from "@/lib/seo";
+export const metadata = createSEO({
+  title: "About Sārathi — Calm, Practical Vedic Astrology Guidance",
+  description:
+    "Learn why Sārathi was created, the meaning behind its name, and its mission to make Vedic astrology clear, practical, non-fatalistic and useful in everyday life.",
+  path: "/sarathi/about",
+  keywords: [
+    "About Sārathi",
+    "Vedic Astrology Guidance",
+    "Practical Astrology",
+    "AI Vedic Astrology",
+    "Non-Fatalistic Astrology",
+    "Jyotish Guidance",
+  ],
+});
 function PageShell({
   title,
   subtitle,
