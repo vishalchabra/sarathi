@@ -137,7 +137,33 @@ const websiteSchema = {
   },
   inLanguage: "en",
 };
-
+const softwareApplicationSchema = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "@id": "https://www.sarathiyourguide.com/#software",
+  name: "Sārathi",
+  alternateName: "Sarathi",
+  url: "https://www.sarathiyourguide.com/sarathi",
+  applicationCategory: "LifestyleApplication",
+  applicationSubCategory: "Vedic Astrology",
+  operatingSystem: "Web",
+  browserRequirements: "Requires a modern web browser",
+  description:
+    "Sārathi is an AI-powered Vedic astrology platform offering personalised Life Reports, astrology question-and-answer guidance, focused reports and professional chart-analysis tools.",
+  image: "https://www.sarathiyourguide.com/sarathi-logo.png",
+  publisher: {
+    "@id": "https://www.sarathiyourguide.com/#organization",
+  },
+  offers: {
+    "@type": "AggregateOffer",
+    priceCurrency: "INR",
+    lowPrice: "0",
+    highPrice: "1499",
+    offerCount: "6",
+    availability: "https://schema.org/InStock",
+    url: "https://www.sarathiyourguide.com/sarathi/individual",
+  },
+};
 function serializeJsonLd(data: object) {
   return JSON.stringify(data).replace(/</g, "\\u003c");
 }
@@ -163,7 +189,12 @@ export default function RootLayout({
             __html: serializeJsonLd(websiteSchema),
           }}
         />
-
+        <script
+  type="application/ld+json"
+  dangerouslySetInnerHTML={{
+    __html: serializeJsonLd(softwareApplicationSchema),
+  }}
+/>
         <ServiceWorkerRegister />
         {children}
         <GoogleAnalytics gaId="G-WKFJ595D05" />
