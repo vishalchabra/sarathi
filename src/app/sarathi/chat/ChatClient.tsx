@@ -1933,9 +1933,9 @@ const longFromWindows =
 
 const bestLongAnswer =
   [
-    d?.copy?.long,
     d?.answer,
     core?.prose?.full,
+    d?.copy?.long,
     d?.copy?.answer,
     core?.prose?.short,
     d?.bottomLine?.lead,
@@ -1944,9 +1944,9 @@ const bestLongAnswer =
     .map((x) => String(x || "").trim())
     .find((x) => x.length >= 80) ||
   [
-    d?.copy?.long,
     d?.answer,
     core?.prose?.full,
+    d?.copy?.long,
     d?.copy?.answer,
     core?.prose?.short,
     d?.bottomLine?.lead,
@@ -1958,9 +1958,9 @@ const bestLongAnswer =
 
 const bestShortAnswer =
   [
-    d?.copy?.answer,
     d?.answer,
     core?.prose?.short,
+    d?.copy?.answer,
     d?.copy?.long,
     core?.prose?.full,
     d?.bottomLine?.lead,
@@ -1969,9 +1969,9 @@ const bestShortAnswer =
     .map((x) => String(x || "").trim())
     .find((x) => x.length >= 40) ||
   [
-    d?.copy?.answer,
     d?.answer,
     core?.prose?.short,
+    d?.copy?.answer,
     d?.copy?.long,
     core?.prose?.full,
     d?.bottomLine?.lead,

@@ -626,6 +626,9 @@ function buildStructuredPrompt(body: any): string {
   const signatureBrief = buildSarathiSignature(body);
 
   const astroFacts = body?.astroFacts ?? {};
+  const domainIntelligence =
+  body?.domainIntelligence ??
+  null;
   const lines: string[] = [];
   const staleTimingPattern =
   /major structural|structural .*window|appears around|timing shift|timing engine says|upcoming dasha or sub-period/i;
@@ -781,7 +784,17 @@ const evidenceBullets =
   if (finalDecisionLine) {
     lines.push(`\nFINAL_DECISION_LINE:\n${finalDecisionLine}`);
   }
-
+  if (
+  domainIntelligence?.available
+) {
+  lines.push(
+    `\nDOMAIN_INTELLIGENCE:\n${JSON.stringify(
+      domainIntelligence,
+      null,
+      2
+    )}`
+  );
+}
   if (dailyAstroContext) {
     lines.push(
       `\nDAILY_ASTRO_CONTEXT:\n${JSON.stringify(dailyAstroContext, null, 2)}`
@@ -954,10 +967,7 @@ if (
     "major structural"
   )
 ) {
-  console.log(
-    "[PACKET STILL CONTAINS MAJOR STRUCTURAL]",
-    JSON.stringify(astroInterpretationPacketForPrompt, null, 2)
-  );
+  
 }
 if (astroInterpretationPacketForPrompt) {
   lines.push(
@@ -1141,17 +1151,7 @@ for (const needle of staleNeedles) {
         ? sectionMatch[sectionMatch.length - 1].trim()
         : "UNKNOWN_SECTION";
 
-    console.log(
-      `[STALE SOURCE FOUND] ${needle}`,
-      JSON.stringify(
-        {
-          section,
-          preview: before.slice(-500) + after,
-        },
-        null,
-        2
-      )
-    );
+   
 
     idx = finalPrompt.indexOf(needle, idx + needle.length);
   }
@@ -1237,7 +1237,14 @@ function buildStructuredSystemPrompt(): string {
     "For job_change, focus on 3rd/6th/10th/12th houses, applications, interviews, recruiter contact, resignation thinking, offer movement, and employer change.",
     "For career_movement, compare promotion/internal movement and job change/external movement separately.",
     "Do not merge all career questions into one generic career answer.",
-
+    "DOMAIN INTELLIGENCE RULE:",
+"If DOMAIN_INTELLIGENCE is available, use it as the primary source for profession suitability, career fit, natural capabilities, work style, leadership, business suitability, and vocation questions.",
+"For profession suitability, first answer whether the profession is genuinely suitable, then explain the strongest relevant capabilities, then explain any important capability gaps.",
+"Do not let generic planetary interpretations override a coherent DOMAIN_INTELLIGENCE profile.",
+"Separate permanent suitability from current timing. A person can be well suited to a profession even when the current dasha or transit is not ideal for making the move now.",
+"If the user asks about a specific profession, assess that profession from DOMAIN_INTELLIGENCE before discussing timing.",
+"If stronger alternative career fits are present, mention them only when they materially help answer the user's question.",
+"Do not expose internal capability scores, profile keys, engine names, or JSON field names unless the user explicitly asks for scoring.",
     "PROPERTY RULE:",
     "For property questions, focus on 4th house, 2nd house, 11th house, 12th house, Mars, Venus, Moon, and D4.",
     "Clearly distinguish search, planning, paperwork, negotiation, registration, possession, and final purchase.",
@@ -1458,6 +1465,7 @@ const triggerText = triggerWindows.length
 export async function POST(req: Request) {
   try {
     const body = (await req.json().catch(() => ({}))) as any;
+
     const style = (body?.style as "casual" | "formal" | "neutral") ?? "neutral";
 
     const rawA = body?.text ?? body?.input;
@@ -1513,6 +1521,7 @@ export async function POST(req: Request) {
       });
 
                const textRaw = completion.choices[0]?.message?.content ?? raw;
+ 
 
       let text = String(textRaw ?? "")
         .replace(/[ \t]+/g, " ")

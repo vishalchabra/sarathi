@@ -6,7 +6,7 @@ import { getUserEntitlements } from "@/server/auth/getUserEntitlements";
 export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
-  console.log("=== DATA_ENGINE_HIT ===");
+  
 
   try {
     const supabase = await createClient();

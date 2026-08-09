@@ -8,6 +8,31 @@ import { logQuestionUsage } from "@/server/access/logQuestionUsage";
 import { inferCareer } from "@/server/astro/inference/career";
 import { buildPanchangData } from "@/server/dataEngine/buildPanchangData";
 import { buildSarathiChatContext } from "@/server/astro-chat/buildSarathiChatContext";
+import {
+  buildSixPillarExplainabilityProfile,
+  type SixPillarExplainabilityProfile,
+} from "@/server/astro-chat/explainabilityEngine";
+import { buildStructuredEvidence } from "@/server/astro-chat/evidenceFormatter";
+import { buildSeniorAstrologerResponse } from "@/server/astro-chat/seniorAstrologerResponse";
+import { buildCanonicalChartContext, type CanonicalChartContext } from "@/server/astro-chat/chartContext";
+import { buildAstroDecision, type AstroDecision } from "@/server/astro-chat/decisionEngine";
+import { tryRunAstroChatV2 } from "@/server/astro-chat-v2/orchestrator";
+import {
+  buildChartFacts,
+} from "@/server/astrology-intelligence/chart/buildChartFacts";
+
+import {
+  buildAstrologyIntelligenceEngine,
+} from "@/server/astrology-intelligence/buildAstrologyIntelligenceEngine";
+import {
+  buildBusinessIntelligenceSummary,
+} from "@/server/astrology-intelligence/presenters/buildBusinessIntelligenceSummary";
+import {
+  buildDomainIntelligenceContext,
+} from "@/server/astrology-intelligence/presenters/buildDomainIntelligenceContext";
+import {
+  buildUserContext,
+} from "@/server/astro-chat/buildUserContext";
 /*
   Sārathi astro chat route — simplified generic pipeline
 
@@ -160,9 +185,10 @@ type RankedTimingWindow = TimingWindow & {
   windowClass: TimingWindowClass;
   practicalMeaning: string;
 
- scoreBreakdown?: {
+scoreBreakdown?: {
   baseScore: number;
   natalPromise: number;
+  sambandhaSupport: number;
   divisionalSupport: number;
   dashaSupport: number;
   transitSupport: number;
@@ -197,6 +223,8 @@ type UniversalEventTrigger = {
 };
 type GenericAstroBundle = {
   question: string;
+  canonicalChartContext?: CanonicalChartContext;
+  decision?: AstroDecision;
   topic: AskSarathiDomain;
   questionType: AskSarathiQuestionType;
   timeDirection: TimeDirection;
@@ -224,6 +252,8 @@ type GenericAstroBundle = {
   astroInterpretationPacket?: AstroInterpretationPacket;
   astroJudgement?: UniversalAstroJudgement;
   promiseLayer: AnalysisLayer;
+  sambandhaAnalysis: SambandhaAnalysis;
+  explainabilityProfile?: SixPillarExplainabilityProfile;
   divisionalLayer: AnalysisLayer;
   divisionalBreakdown?: {
     chart: string;
@@ -357,23 +387,313 @@ type CareerEventType =
   | "internal_shift"
   | "stability_check"
   | "generic";
-type AskSarathiEventType =
-  | CareerEventType
-  | "buy_property"
-  | "sell_property"
-  | "move_home"
-  | "buy_vehicle"
-  | "upgrade_vehicle"
+  type RelationshipEventType =
+  | "relationship_suitability"
+  | "partner_profile"
+  | "relationship_pattern"
+  | "love_vs_arranged"
+  | "new_relationship"
+  | "meeting_partner"
+  | "reconciliation"
+  | "marriage_commitment"
+  | "marriage_timing"
+  | "generic";
+  type WealthEventType =
+  | "wealth_potential"
+  | "earning_style"
+  | "wealth_pattern"
+  | "saving_capacity"
+  | "investment_suitability"
+  | "multiple_income"
   | "salary_increase"
   | "bonus"
   | "side_income"
-  | "new_relationship"
-  | "marriage_commitment"
-  | "reconciliation"
+  | "financial_improvement"
+  | "wealth_timing"
+  | "generic";
+  type BusinessEventType =
+  | "business_suitability"
+  | "business_style"
+  | "business_vs_job"
+  | "partnership_suitability"
+  | "entrepreneurial_pattern"
+  | "business_launch"
+  | "business_growth"
+  | "client_growth"
+  | "partnership_timing"
+  | "business_timing"
+  | "generic";
+type EducationEventType =
+  | "education_suitability"
+  | "subject_fit"
+  | "stream_choice"
+  | "higher_education"
+  | "study_pattern"
+  | "exam_performance"
+  | "education_timing"
+  | "generic";
+
+type SpiritualEventType =
+  | "spiritual_inclination"
+  | "spiritual_path"
+  | "devotional_style"
+  | "meditation_suitability"
+  | "mantra_suitability"
+  | "guru_pattern"
+  | "spiritual_growth"
+  | "spiritual_timing"
+  | "generic";
+
+type HealthEventType =
+  | "health_constitution"
+  | "health_sensitivity"
+  | "stress_pattern"
+  | "recovery_capacity"
+  | "lifestyle_pattern"
   | "health_recovery"
   | "health_checkup"
+  | "health_timing"
+  | "generic";
+type ChildrenEventType =
+  | "parenthood_potential"
+  | "parenting_style"
+  | "child_relationship_pattern"
+  | "child_aptitude"
+  | "conception_timing"
+  | "childbirth_timing"
+  | "child_development_timing"
+  | "generic";
+type PropertyEventType =
+  | "property_potential"
+  | "property_investment_suitability"
+  | "property_pattern"
+  | "home_stability"
+  | "buy_property"
+  | "sell_property"
+  | "move_home"
+  | "property_timing"
+  | "generic";
+type VehicleEventType =
+  | "vehicle_potential"
+  | "vehicle_preference"
+  | "vehicle_pattern"
+  | "buy_vehicle"
+  | "upgrade_vehicle"
+  | "vehicle_timing"
+  | "generic";
+type RelocationEventType =
+  | "relocation_potential"
+  | "foreign_settlement_potential"
+  | "relocation_pattern"
+  | "location_preference"
   | "foreign_move"
   | "local_move"
+  | "relocation_timing"
+  | "generic";
+type DisputeEventType =
+  | "conflict_pattern"
+  | "legal_suitability"
+  | "negotiation_style"
+  | "litigation_pattern"
+  | "dispute_resolution"
+  | "legal_case_timing"
+  | "settlement_timing"
+  | "generic";
+type ParentsEventType =
+  | "parent_relationship_pattern"
+  | "mother_relationship"
+  | "father_relationship"
+  | "parental_influence"
+  | "family_elder_pattern"
+  | "parent_support_timing"
+  | "parent_responsibility_timing"
+  | "generic";
+type SiblingsEventType =
+  | "sibling_relationship_pattern"
+  | "elder_sibling_pattern"
+  | "younger_sibling_pattern"
+  | "sibling_support"
+  | "sibling_conflict_timing"
+  | "sibling_support_timing"
+  | "generic";
+type TravelEventType =
+  | "travel_inclination"
+  | "foreign_travel_pattern"
+  | "frequent_travel_pattern"
+  | "pilgrimage_pattern"
+  | "travel_timing"
+  | "foreign_travel_timing"
+  | "pilgrimage_timing"
+  | "generic";
+type ReputationEventType =
+  | "reputation_potential"
+  | "public_image_pattern"
+  | "recognition_pattern"
+  | "visibility_style"
+  | "reputation_growth"
+  | "recognition_timing"
+  | "reputation_recovery"
+  | "generic";
+type DebtEventType =
+  | "debt_pattern"
+  | "borrowing_tendency"
+  | "repayment_capacity"
+  | "liability_pattern"
+  | "debt_reduction"
+  | "loan_timing"
+  | "repayment_timing"
+  | "generic";
+type InheritanceEventType =
+  | "inheritance_potential"
+  | "ancestral_pattern"
+  | "legacy_pattern"
+  | "inheritance_conflict_pattern"
+  | "inheritance_timing"
+  | "inheritance_settlement"
+  | "legacy_transfer_timing"
+  | "generic";
+type MentalHealthEventType =
+  | "mental_emotional_pattern"
+  | "overthinking_pattern"
+  | "mood_sensitivity"
+  | "stress_resilience"
+  | "emotional_regulation_pattern"
+  | "mental_health_recovery"
+  | "mental_health_timing"
+  | "support_timing"
+  | "generic";
+type PetsEventType =
+  | "pet_relationship_pattern"
+  | "pet_caregiving_style"
+  | "pet_responsibility_pattern"
+  | "generic";
+
+type InnerEventType =
+  | "life_direction_pattern"
+  | "purpose_pattern"
+  | "inner_conflict_pattern"
+  | "self_understanding_pattern"
+  | "meaning_pattern"
+  | "generic";
+type AskSarathiEventType =
+  | CareerEventType
+  | ParentsEventType
+  | SiblingsEventType
+  | TravelEventType
+  | ReputationEventType
+  | DebtEventType
+  | InheritanceEventType
+  | MentalHealthEventType
+  | PetsEventType
+  | InnerEventType
+  // Property
+  | "buy_property"
+  | "sell_property"
+  | "move_home"
+  | "property_potential"
+  | "property_investment_suitability"
+  | "property_pattern"
+  | "home_stability"
+  | "property_timing"
+
+  // Vehicle
+  | "buy_vehicle"
+  | "upgrade_vehicle"
+  | "vehicle_potential"
+  | "vehicle_preference"
+  | "vehicle_pattern"
+  | "vehicle_timing"
+
+  // Wealth / Money
+  | "salary_increase"
+  | "bonus"
+  | "side_income"
+  | "wealth_potential"
+  | "earning_style"
+  | "wealth_pattern"
+  | "saving_capacity"
+  | "investment_suitability"
+  | "multiple_income"
+  | "financial_improvement"
+  | "wealth_timing"
+
+  // Business
+  | "business_suitability"
+  | "business_style"
+  | "business_vs_job"
+  | "partnership_suitability"
+  | "entrepreneurial_pattern"
+  | "business_launch"
+  | "business_growth"
+  | "client_growth"
+  | "partnership_timing"
+  | "business_timing"
+
+  // Relationships / Marriage
+  | "relationship_suitability"
+  | "partner_profile"
+  | "relationship_pattern"
+  | "love_vs_arranged"
+  | "new_relationship"
+  | "meeting_partner"
+  | "reconciliation"
+  | "marriage_commitment"
+  | "marriage_timing"
+
+  // Education
+  | "education_suitability"
+  | "subject_fit"
+  | "stream_choice"
+  | "higher_education"
+  | "study_pattern"
+  | "exam_performance"
+  | "education_timing"
+
+  // Spirituality
+  | "spiritual_inclination"
+  | "spiritual_path"
+  | "devotional_style"
+  | "meditation_suitability"
+  | "mantra_suitability"
+  | "guru_pattern"
+  | "spiritual_growth"
+  | "spiritual_timing"
+
+  // Health
+  | "health_recovery"
+  | "health_checkup"
+  | "health_constitution"
+  | "health_sensitivity"
+  | "stress_pattern"
+  | "recovery_capacity"
+  | "lifestyle_pattern"
+  | "health_timing"
+  // Children
+  | "parenthood_potential"
+  | "parenting_style"
+  | "child_relationship_pattern"
+  | "child_aptitude"
+  | "conception_timing"
+  | "childbirth_timing"
+  | "child_development_timing"
+  // Relocation
+  | "foreign_move"
+  | "local_move"
+  | "relocation_potential"
+  | "foreign_settlement_potential"
+  | "relocation_pattern"
+  | "location_preference"
+  | "relocation_timing"
+  // Disputes
+  | "conflict_pattern"
+  | "legal_suitability"
+  | "negotiation_style"
+  | "litigation_pattern"
+  | "dispute_resolution"
+  | "legal_case_timing"
+  | "settlement_timing"
+  
+  // Generic
   | "generic_event";
 type DashaAtTime = {
   md?: string | null;
@@ -482,6 +802,14 @@ type AstrologyEvidencePacket = {
     karakas: string[];
     houseEvidence: string[];
     karakaEvidence: string[];
+  };
+  sambandha: {
+    verdict: SambandhaAnalysis["verdict"];
+    connectivityScore: number;
+    dashaConnectivityScore: number;
+    conversionScore: number;
+    relationships: PlanetarySambandha[];
+    missingRequiredLinks: string[];
   };
   divisionalAnalysis: DivisionalAnalysis;
   timing: {
@@ -731,11 +1059,14 @@ type AstroInterpretationPacket = {
 };
 
   astrology: {
-    houses: number[];
-    supportHouses: number[];
-    karakas: string[];
-    divisionalCharts: string[];
-    houseLordReasons: string[];
+  houses: number[];
+  supportHouses: number[];
+  karakas: string[];
+  divisionalCharts: string[];
+  houseLordReasons: string[];
+  sambandhaReasons: string[];
+  sambandhaVerdict: SambandhaAnalysis["verdict"];
+  sambandhaScore: number;
     currentDasha: {
       md?: string | null;
       ad?: string | null;
@@ -798,6 +1129,84 @@ type WhyChain = {
   level1: string;
   level2: string;
   level3: string;
+};
+type SambandhaType =
+  | "conjunction"
+  | "mutual_aspect"
+  | "one_way_aspect"
+  | "sign_exchange"
+  | "same_dispositor"
+  | "house_occupation"
+  | "house_aspect"
+  | "dasha_to_event_lord"
+  | "dasha_to_karaka";
+
+type SambandhaImpact =
+  | "support"
+  | "block"
+  | "mixed"
+  | "neutral";
+
+type PlanetarySambandha = {
+  id: string;
+
+  planetA: string;
+  planetB?: string | null;
+
+  type: SambandhaType;
+
+  reciprocal: boolean;
+  direct: boolean;
+
+  planetAHouse?: number | null;
+  planetBHouse?: number | null;
+
+  planetASign?: string | null;
+  planetBSign?: string | null;
+
+  orb?: number | null;
+
+  relatedHouses: number[];
+
+  score: number;
+  impact: SambandhaImpact;
+
+  reason: string;
+};
+
+type SambandhaAnalysis = {
+  topic: AskSarathiDomain;
+  eventType?: AskSarathiEventType;
+
+  focusHouses: number[];
+  supportHouses: number[];
+
+  eventHouseLords: string[];
+  supportHouseLords: string[];
+  relevantKarakas: string[];
+  activeDashaLords: string[];
+
+  relationships: PlanetarySambandha[];
+
+  supportiveLinks: PlanetarySambandha[];
+  mixedLinks: PlanetarySambandha[];
+  blockingLinks: PlanetarySambandha[];
+
+  missingRequiredLinks: string[];
+
+  connectivityScore: number;
+  dashaConnectivityScore: number;
+  conversionScore: number;
+
+  verdict:
+    | "strongly_connected"
+    | "connected"
+    | "partially_connected"
+    | "disconnected"
+    | "insufficient_data";
+
+  summary: string;
+  bullets: string[];
 };
 type DailyAstroContext = {
   dateISO: string;
@@ -1155,7 +1564,31 @@ const SIGN_TO_NUM: Record<string, number> = {
   Aquarius: 11,
   Pisces: 12,
 };
-
+const SIGN_LORDS: Record<string, string> = {
+  Aries: "Mars",
+  Taurus: "Venus",
+  Gemini: "Mercury",
+  Cancer: "Moon",
+  Leo: "Sun",
+  Virgo: "Mercury",
+  Libra: "Venus",
+  Scorpio: "Mars",
+  Sagittarius: "Jupiter",
+  Capricorn: "Saturn",
+  Aquarius: "Saturn",
+  Pisces: "Jupiter",
+};
+const PLANET_NAMES = [
+  "Sun",
+  "Moon",
+  "Mars",
+  "Mercury",
+  "Jupiter",
+  "Venus",
+  "Saturn",
+  "Rahu",
+  "Ketu",
+] as const;
 function getHouseFromLagnaSign(
   lagnaSign: string | null | undefined,
   transitSign: string | null | undefined
@@ -1166,6 +1599,873 @@ function getHouseFromLagnaSign(
   if (!lagnaNum || !transitNum) return null;
 
   return ((transitNum - lagnaNum + 12) % 12) + 1;
+}
+type NormalizedNatalPlanet = {
+  planet: string;
+  sign: string | null;
+  house: number | null;
+  degree: number | null;
+  nakshatra: string | null;
+};
+
+function normalizePlanetName(value: unknown): string | null {
+  const raw = String(value ?? "").trim().toLowerCase();
+
+  if (!raw) return null;
+
+  const match = PLANET_NAMES.find(
+    (planet) => planet.toLowerCase() === raw
+  );
+
+  return match ?? null;
+}
+
+function normalizeSignName(value: unknown): string | null {
+  const raw = String(value ?? "").trim().toLowerCase();
+
+  if (!raw) return null;
+
+  const match = Object.keys(SIGN_TO_NUM).find(
+    (sign) => sign.toLowerCase() === raw
+  );
+
+  return match ?? null;
+}
+
+function normalizeHouseNumber(value: unknown): number | null {
+  const parsed = Number(value);
+
+  if (!Number.isFinite(parsed)) return null;
+  if (parsed < 1 || parsed > 12) return null;
+
+  return Math.trunc(parsed);
+}
+
+function normalizeDegree(value: unknown): number | null {
+  const parsed = Number(value);
+
+  if (!Number.isFinite(parsed)) return null;
+
+  /*
+   * Accept either degree within sign or absolute longitude.
+   */
+  const normalized =
+    parsed >= 30
+      ? parsed % 30
+      : parsed;
+
+  if (normalized < 0 || normalized >= 30) {
+    return null;
+  }
+
+  return normalized;
+}
+
+function getNatalPlanetsForSambandha(
+  report: any
+): NormalizedNatalPlanet[] {
+  const candidates = [
+    report?.natal?.planets,
+    report?.planets,
+    report?.chartContext?.planets,
+    report?.birthChart?.planets,
+    report?.baseChartFactors?.planets,
+  ];
+
+  const source =
+    candidates.find(Array.isArray) ?? [];
+
+  return source
+    .map((row: any): NormalizedNatalPlanet | null => {
+      const planet =
+        normalizePlanetName(
+          row?.planet ??
+          row?.name ??
+          row?.graha
+        );
+
+      if (!planet) return null;
+
+      return {
+        planet,
+        sign: normalizeSignName(
+          row?.sign ??
+          row?.rashi ??
+          row?.signName
+        ),
+        house: normalizeHouseNumber(
+          row?.house ??
+          row?.houseNumber ??
+          row?.bhava
+        ),
+        degree: normalizeDegree(
+          row?.degree ??
+          row?.degreeInSign ??
+          row?.longitude
+        ),
+        nakshatra:
+          safeStr(
+            row?.nakshatra ??
+            row?.nakshatraName ??
+            row?.star
+          ) || null,
+      };
+    })
+    .filter(
+      (
+        row: NormalizedNatalPlanet | null
+      ): row is NormalizedNatalPlanet =>
+        Boolean(row)
+    );
+}
+
+function getLagnaSignForSambandha(
+  report: any
+): string | null {
+  const canonicalLagna = buildCanonicalChartContext(report).lagnaSign;
+  if (canonicalLagna) return canonicalLagna;
+
+  const candidates = [
+    report?.ascendant?.sign,
+    report?.ascendantSign,
+    report?.lagna?.sign,
+    report?.lagnaSign,
+    report?.natal?.ascendant?.sign,
+    report?.natal?.ascendantSign,
+    report?.birthChart?.ascendant?.sign,
+    report?.birthChart?.lagna?.sign,
+    report?.chartContext?.ascendant?.sign,
+    report?.baseChartFactors?.ascendant?.sign,
+    report?.baseChartFactors?.lagnaSign,
+  ];
+
+  for (const candidate of candidates) {
+    const sign = normalizeSignName(candidate);
+
+    if (sign) return sign;
+  }
+
+  return null;
+}
+
+function getSignForHouse(
+  lagnaSign: string,
+  house: number
+): string | null {
+  const lagnaNumber = SIGN_TO_NUM[lagnaSign];
+
+  if (!lagnaNumber) return null;
+  if (house < 1 || house > 12) return null;
+
+  const targetSignNumber =
+    ((lagnaNumber + house - 2) % 12) + 1;
+
+  return (
+    Object.entries(SIGN_TO_NUM).find(
+      ([, number]) => number === targetSignNumber
+    )?.[0] ?? null
+  );
+}
+
+function getLordOfHouse(
+  lagnaSign: string,
+  house: number
+): string | null {
+  const sign = getSignForHouse(
+    lagnaSign,
+    house
+  );
+
+  return sign
+    ? SIGN_LORDS[sign] ?? null
+    : null;
+}
+
+function circularDegreeDistance(
+  first: number | null,
+  second: number | null
+): number | null {
+  if (
+    first === null ||
+    second === null
+  ) {
+    return null;
+  }
+
+  const direct = Math.abs(first - second);
+
+  return Math.min(
+    direct,
+    30 - direct
+  );
+}
+
+function houseDistance(
+  fromHouse: number,
+  toHouse: number
+): number {
+  return (
+    ((toHouse - fromHouse + 12) % 12) + 1
+  );
+}
+
+function getParashariAspectDistances(
+  planet: string
+): number[] {
+  const distances = [7];
+
+  if (planet === "Mars") {
+    distances.push(4, 8);
+  }
+
+  if (planet === "Jupiter") {
+    distances.push(5, 9);
+  }
+
+  if (planet === "Saturn") {
+    distances.push(3, 10);
+  }
+
+  /*
+   * Rahu/Ketu special aspects are deliberately excluded
+   * from version one because traditions differ.
+   */
+  return distances;
+}
+
+function planetAspectsPlanet(
+  from: NormalizedNatalPlanet,
+  to: NormalizedNatalPlanet
+): boolean {
+  if (
+    from.house === null ||
+    to.house === null
+  ) {
+    return false;
+  }
+
+  const distance = houseDistance(
+    from.house,
+    to.house
+  );
+
+  return getParashariAspectDistances(
+    from.planet
+  ).includes(distance);
+}
+
+function uniqueStrings(
+  values: Array<string | null | undefined>
+): string[] {
+  return Array.from(
+    new Set(
+      values.filter(
+        (value): value is string =>
+          Boolean(value)
+      )
+    )
+  );
+}
+
+function makeSambandhaId(
+  planetA: string,
+  planetB: string,
+  type: SambandhaType
+): string {
+  return [
+    planetA,
+    planetB,
+    type,
+  ]
+    .sort()
+    .join(":");
+}
+
+function buildPlanetPairSambandhas(
+  first: NormalizedNatalPlanet,
+  second: NormalizedNatalPlanet,
+  eventPlanets: Set<string>,
+  planetHouseRoles: Map<string, number[]>
+): PlanetarySambandha[] {
+  const relationships: PlanetarySambandha[] = [];
+
+  const firstIsRelevant =
+    eventPlanets.has(first.planet);
+
+  const secondIsRelevant =
+    eventPlanets.has(second.planet);
+
+  if (
+    !firstIsRelevant &&
+    !secondIsRelevant
+  ) {
+    return relationships;
+  }
+
+  const relatedHouses = uniqueStrings([
+    ...(planetHouseRoles.get(first.planet) ?? []).map(String),
+    ...(planetHouseRoles.get(second.planet) ?? []).map(String),
+  ]).map(Number);
+
+  const bothRelevant =
+    firstIsRelevant &&
+    secondIsRelevant;
+
+  const impact: SambandhaImpact =
+    bothRelevant
+      ? "support"
+      : "mixed";
+
+  if (
+    first.sign &&
+    second.sign &&
+    first.sign === second.sign
+  ) {
+    const orb = circularDegreeDistance(
+      first.degree,
+      second.degree
+    );
+
+    let score = 7;
+
+    if (orb !== null && orb <= 3) {
+      score += 3;
+    } else if (
+      orb !== null &&
+      orb <= 8
+    ) {
+      score += 2;
+    } else if (
+      orb !== null &&
+      orb >= 20
+    ) {
+      score -= 1;
+    }
+
+    relationships.push({
+      id: makeSambandhaId(
+        first.planet,
+        second.planet,
+        "conjunction"
+      ),
+      planetA: first.planet,
+      planetB: second.planet,
+      type: "conjunction",
+      reciprocal: true,
+      direct: true,
+      planetAHouse: first.house,
+      planetBHouse: second.house,
+      planetASign: first.sign,
+      planetBSign: second.sign,
+      orb,
+      relatedHouses,
+      score,
+      impact,
+      reason:
+        orb !== null
+          ? `${first.planet} and ${second.planet} are conjunct in ${first.sign} with approximately ${orb.toFixed(
+              1
+            )}° separation.`
+          : `${first.planet} and ${second.planet} are conjunct in ${first.sign}.`,
+    });
+  }
+
+  const firstAspectsSecond =
+    planetAspectsPlanet(
+      first,
+      second
+    );
+
+  const secondAspectsFirst =
+    planetAspectsPlanet(
+      second,
+      first
+    );
+
+  if (
+    firstAspectsSecond &&
+    secondAspectsFirst
+  ) {
+    relationships.push({
+      id: makeSambandhaId(
+        first.planet,
+        second.planet,
+        "mutual_aspect"
+      ),
+      planetA: first.planet,
+      planetB: second.planet,
+      type: "mutual_aspect",
+      reciprocal: true,
+      direct: true,
+      planetAHouse: first.house,
+      planetBHouse: second.house,
+      planetASign: first.sign,
+      planetBSign: second.sign,
+      relatedHouses,
+      score: 7,
+      impact,
+      reason: `${first.planet} and ${second.planet} mutually aspect one another.`,
+    });
+  } else if (
+    firstAspectsSecond ||
+    secondAspectsFirst
+  ) {
+    const from =
+      firstAspectsSecond
+        ? first
+        : second;
+
+    const to =
+      firstAspectsSecond
+        ? second
+        : first;
+
+    relationships.push({
+      id: `${from.planet}:${to.planet}:one_way_aspect`,
+      planetA: from.planet,
+      planetB: to.planet,
+      type: "one_way_aspect",
+      reciprocal: false,
+      direct: true,
+      planetAHouse: from.house,
+      planetBHouse: to.house,
+      planetASign: from.sign,
+      planetBSign: to.sign,
+      relatedHouses,
+      score: 4,
+      impact,
+      reason: `${from.planet} aspects ${to.planet}.`,
+    });
+  }
+
+  const firstDispositor =
+    first.sign
+      ? SIGN_LORDS[first.sign]
+      : null;
+
+  const secondDispositor =
+    second.sign
+      ? SIGN_LORDS[second.sign]
+      : null;
+
+  if (
+    firstDispositor &&
+    secondDispositor &&
+    firstDispositor === secondDispositor &&
+    firstDispositor !== first.planet &&
+    firstDispositor !== second.planet
+  ) {
+    relationships.push({
+      id: makeSambandhaId(
+        first.planet,
+        second.planet,
+        "same_dispositor"
+      ),
+      planetA: first.planet,
+      planetB: second.planet,
+      type: "same_dispositor",
+      reciprocal: true,
+      direct: false,
+      planetAHouse: first.house,
+      planetBHouse: second.house,
+      planetASign: first.sign,
+      planetBSign: second.sign,
+      relatedHouses,
+      score: 3,
+      impact,
+      reason: `${first.planet} and ${second.planet} are connected through their common dispositor ${firstDispositor}.`,
+    });
+  }
+
+  if (
+    firstDispositor === second.planet &&
+    secondDispositor === first.planet
+  ) {
+    relationships.push({
+      id: makeSambandhaId(
+        first.planet,
+        second.planet,
+        "sign_exchange"
+      ),
+      planetA: first.planet,
+      planetB: second.planet,
+      type: "sign_exchange",
+      reciprocal: true,
+      direct: true,
+      planetAHouse: first.house,
+      planetBHouse: second.house,
+      planetASign: first.sign,
+      planetBSign: second.sign,
+      relatedHouses,
+      score: 9,
+      impact,
+      reason: `${first.planet} and ${second.planet} are in sign exchange, creating a strong reciprocal sambandha.`,
+    });
+  }
+
+  return relationships;
+}
+
+function buildSambandhaAnalysis(params: {
+  report: any;
+  topic: AskSarathiDomain;
+  eventType?: AskSarathiEventType;
+  rule: TopicRule;
+  activeDasha: {
+    md?: string | null;
+    ad?: string | null;
+    pd?: string | null;
+  };
+}): SambandhaAnalysis {
+  const {
+    report,
+    topic,
+    eventType,
+    rule,
+    activeDasha,
+  } = params;
+
+  const planets =
+    getNatalPlanetsForSambandha(report);
+
+  const lagnaSign =
+    getLagnaSignForSambandha(report);
+
+  const focusHouses =
+    uniqueStrings(
+      (rule.houses ?? []).map(String)
+    ).map(Number);
+
+  const supportHouses =
+    uniqueStrings(
+      (rule.supportHouses ?? []).map(String)
+    ).map(Number);
+
+  if (
+    !lagnaSign ||
+    planets.length === 0
+  ) {
+    return {
+      topic,
+      eventType,
+      focusHouses,
+      supportHouses,
+      eventHouseLords: [],
+      supportHouseLords: [],
+      relevantKarakas: rule.karakas,
+      activeDashaLords: uniqueStrings([
+        activeDasha.md,
+        activeDasha.ad,
+        activeDasha.pd,
+      ]),
+      relationships: [],
+      supportiveLinks: [],
+      mixedLinks: [],
+      blockingLinks: [],
+      missingRequiredLinks: [
+        !lagnaSign
+          ? "Ascendant sign is unavailable."
+          : "",
+        planets.length === 0
+          ? "Natal planet placements are unavailable."
+          : "",
+      ].filter(Boolean),
+      connectivityScore: 0,
+      dashaConnectivityScore: 0,
+      conversionScore: 0,
+      verdict: "insufficient_data",
+      summary:
+        "Sambandha could not be judged because the ascendant or natal planet placements were unavailable.",
+      bullets: [],
+    };
+  }
+
+  const eventHouseLords =
+    uniqueStrings(
+      focusHouses.map((house) =>
+        getLordOfHouse(
+          lagnaSign,
+          house
+        )
+      )
+    );
+
+  const supportHouseLords =
+    uniqueStrings(
+      supportHouses.map((house) =>
+        getLordOfHouse(
+          lagnaSign,
+          house
+        )
+      )
+    );
+
+  const relevantKarakas =
+    uniqueStrings(rule.karakas);
+
+  const activeDashaLords =
+    uniqueStrings([
+      normalizePlanetName(activeDasha.md),
+      normalizePlanetName(activeDasha.ad),
+      normalizePlanetName(activeDasha.pd),
+    ]);
+
+  const eventPlanets = new Set(
+    uniqueStrings([
+      ...eventHouseLords,
+      ...supportHouseLords,
+      ...relevantKarakas,
+      ...activeDashaLords,
+    ])
+  );
+
+  const planetHouseRoles =
+    new Map<string, number[]>();
+
+  for (const house of focusHouses) {
+    const lord =
+      getLordOfHouse(
+        lagnaSign,
+        house
+      );
+
+    if (!lord) continue;
+
+    planetHouseRoles.set(
+      lord,
+      uniqueStrings([
+        ...(planetHouseRoles.get(lord) ?? []).map(String),
+        String(house),
+      ]).map(Number)
+    );
+  }
+
+  for (const house of supportHouses) {
+    const lord =
+      getLordOfHouse(
+        lagnaSign,
+        house
+      );
+
+    if (!lord) continue;
+
+    planetHouseRoles.set(
+      lord,
+      uniqueStrings([
+        ...(planetHouseRoles.get(lord) ?? []).map(String),
+        String(house),
+      ]).map(Number)
+    );
+  }
+
+  const relationships: PlanetarySambandha[] = [];
+
+  for (
+    let firstIndex = 0;
+    firstIndex < planets.length;
+    firstIndex += 1
+  ) {
+    for (
+      let secondIndex = firstIndex + 1;
+      secondIndex < planets.length;
+      secondIndex += 1
+    ) {
+      relationships.push(
+        ...buildPlanetPairSambandhas(
+          planets[firstIndex],
+          planets[secondIndex],
+          eventPlanets,
+          planetHouseRoles
+        )
+      );
+    }
+  }
+
+  const deduplicatedRelationships =
+    Array.from(
+      new Map(
+        relationships.map((relationship) => [
+          relationship.id,
+          relationship,
+        ])
+      ).values()
+    );
+
+  const supportiveLinks =
+    deduplicatedRelationships.filter(
+      (relationship) =>
+        relationship.impact === "support"
+    );
+
+  const mixedLinks =
+    deduplicatedRelationships.filter(
+      (relationship) =>
+        relationship.impact === "mixed"
+    );
+
+  const blockingLinks =
+    deduplicatedRelationships.filter(
+      (relationship) =>
+        relationship.impact === "block"
+    );
+
+  const requiredEventPlanets =
+    uniqueStrings([
+      ...eventHouseLords,
+      ...supportHouseLords,
+    ]);
+
+  const connectedPlanets = new Set<string>();
+
+  for (const relationship of supportiveLinks) {
+    connectedPlanets.add(
+      relationship.planetA
+    );
+
+    if (relationship.planetB) {
+      connectedPlanets.add(
+        relationship.planetB
+      );
+    }
+  }
+
+  const missingRequiredLinks =
+    requiredEventPlanets
+      .filter(
+        (planet) =>
+          !connectedPlanets.has(planet)
+      )
+      .map(
+        (planet) =>
+          `${planet} is relevant to the event but has no direct supporting relationship with the other required event factors.`
+      );
+
+  const rawConnectivity =
+    supportiveLinks.reduce(
+      (total, relationship) =>
+        total + relationship.score,
+      0
+    );
+
+  const possibleRelationshipBase =
+    Math.max(
+      1,
+      requiredEventPlanets.length * 7
+    );
+
+  const connectivityScore =
+    Math.max(
+      0,
+      Math.min(
+        100,
+        Math.round(
+          (rawConnectivity /
+            possibleRelationshipBase) *
+            100
+        )
+      )
+    );
+
+  const dashaLinks =
+    supportiveLinks.filter(
+      (relationship) =>
+        activeDashaLords.includes(
+          relationship.planetA
+        ) ||
+        Boolean(
+          relationship.planetB &&
+          activeDashaLords.includes(
+            relationship.planetB
+          )
+        )
+    );
+
+  const dashaConnectivityScore =
+    activeDashaLords.length === 0
+      ? 0
+      : Math.max(
+          0,
+          Math.min(
+            100,
+            Math.round(
+              dashaLinks.reduce(
+                (total, relationship) =>
+                  total +
+                  relationship.score,
+                0
+              ) /
+                Math.max(
+                  1,
+                  activeDashaLords.length * 7
+                ) *
+                100
+            )
+          )
+        );
+
+  const conversionScore =
+    Math.round(
+      connectivityScore * 0.7 +
+      dashaConnectivityScore * 0.3
+    );
+
+  const verdict:
+    SambandhaAnalysis["verdict"] =
+      conversionScore >= 75
+        ? "strongly_connected"
+        : conversionScore >= 55
+        ? "connected"
+        : conversionScore >= 30
+        ? "partially_connected"
+        : "disconnected";
+
+  const strongestRelationships =
+    [...supportiveLinks]
+      .sort(
+        (first, second) =>
+          second.score - first.score
+      )
+      .slice(0, 5);
+
+  const summary =
+    verdict === "strongly_connected"
+      ? "The required event houses, their lords, relevant karakas and active period lords are strongly interconnected."
+      : verdict === "connected"
+      ? "The event-producing factors have meaningful planetary connectivity, giving the promise a usable route toward manifestation."
+      : verdict === "partially_connected"
+      ? "Some required event factors are connected, but the chain is incomplete; movement may occur more easily than final conversion."
+      : "The relevant event factors are present but insufficiently connected for a clean or dependable conversion.";
+
+  const bullets = [
+    ...strongestRelationships.map(
+      (relationship) =>
+        relationship.reason
+    ),
+    ...missingRequiredLinks.slice(0, 3),
+  ];
+
+  return {
+    topic,
+    eventType,
+    focusHouses,
+    supportHouses,
+    eventHouseLords,
+    supportHouseLords,
+    relevantKarakas,
+    activeDashaLords,
+    relationships:
+      deduplicatedRelationships,
+    supportiveLinks,
+    mixedLinks,
+    blockingLinks,
+    missingRequiredLinks,
+    connectivityScore,
+    dashaConnectivityScore,
+    conversionScore,
+    verdict,
+    summary,
+    bullets,
+  };
 }
 function sameISODate(a: any, b: string): boolean {
   return String(a ?? "").slice(0, 10) === b;
@@ -1553,263 +2853,6 @@ function getTimingTopicCopy(
   };
   }
 }
-function buildPremiumTimingAnswer(
-  astroBundle: GenericAstroBundle
-): {
-  short: string;
-  full: string;
-  action: string;
-} {
-  const eventType =
-  astroBundle.eventType ??
-  astroBundle.careerEventType;
-
-  const topicCopy = getTimingTopicCopy(
-    astroBundle.topic,
-    eventType
-  );
-
-  const eventName =
-    topicCopy.eventName;
-
-  const outcomeName =
-    topicCopy.outcomeName;
-
-  const movementName =
-    topicCopy.movementName;
-
-  const activationMeaning =
-    topicCopy.activationMeaning;
-
-  const conversionMeaning =
-    topicCopy.conversionMeaning;
-
-  /*
-   * Different timing sources may have slightly different
-   * object shapes. We normalize access locally so TypeScript
-   * does not complain about optional ranked-window properties.
-   */
-  const selectedWindow: any =
-    astroBundle.selectedTimingWindow ??
-    astroBundle.bestAvailableWindow ??
-    astroBundle.strongestWindow ??
-    astroBundle.nearestWindow ??
-    astroBundle.rankedTimingWindows?.[0] ??
-    astroBundle.timingWindows?.[0] ??
-    null;
-
-  const trigger: any =
-    astroBundle.bestEventTrigger ??
-    null;
-
-  const windowStart =
-    selectedWindow?.start ??
-    selectedWindow?.from ??
-    selectedWindow?.startISO ??
-    selectedWindow?.peak ??
-    selectedWindow?.end ??
-    null;
-
-  const windowEnd =
-    selectedWindow?.end ??
-    selectedWindow?.to ??
-    selectedWindow?.endISO ??
-    null;
-
-  const hasRealRange =
-    Boolean(windowStart) &&
-    Boolean(windowEnd) &&
-    !sameTimingDate(
-      windowStart,
-      windowEnd
-    );
-
-  const windowLabel =
-    hasRealRange
-      ? `${fmtDateShort(
-          String(windowStart)
-        )} to ${fmtDateShort(
-          String(windowEnd)
-        )}`
-      : selectedWindow?.label
-      ? formatWindowLabel(
-          String(selectedWindow.label)
-        )
-      : windowStart
-      ? fmtDateShort(
-          String(windowStart)
-        )
-      : null;
-
-  const triggerDate =
-    trigger?.date
-      ? fmtDateShort(
-          String(trigger.date)
-        )
-      : null;
-
-  const confidence =
-    selectedWindow?.confidence ??
-    trigger?.confidence ??
-    String(
-      astroBundle.confidence ?? ""
-    ).toLowerCase();
-
-  const confidenceText =
-    confidence === "high"
-      ? "The timing support is comparatively strong, although the final outcome still depends on practical readiness and real-world follow-through."
-      : confidence === "medium"
-      ? "The timing support is meaningful, although it should be treated as a probability window rather than a guaranteed result."
-      : "The timing is emerging but still needs practical confirmation through real-world movement.";
-
-  const timingVerdict =
-    astroBundle.timingLayer?.verdict;
-
-  const immediateLine =
-    timingVerdict === "strong"
-      ? `The chart shows meaningful support for ${outcomeName} during the upcoming period.`
-      : timingVerdict === "moderate"
-      ? `The chart shows a usable upcoming period for ${outcomeName}, although the result is not guaranteed.`
-      : topicCopy.weakOpening;
-
-  const nearTermTriggerSentence =
-  triggerDate
-    ? `The nearer activation point is ${triggerDate}. This can bring ${activationMeaning}, but it should be treated as movement rather than the guaranteed date of ${outcomeName}.`
-    : "";
-
-const windowSentence =
-  windowLabel
-    ? hasRealRange
-      ? `The stronger longer-term ${eventName} phase runs from ${windowLabel}.`
-      : `${movementName} becomes stronger around ${windowLabel}, but this is an activation point rather than the guaranteed date of ${outcomeName}.`
-    : `The timing for ${outcomeName} is better understood as a broader phase rather than one exact date.`;
-
-  const conversionVerdict =
-    astroBundle
-      .conversionDiagnosisV2
-      ?.verdict;
-  /*
-   * Do not repeat the same date range when the headline
-   * already contains it.
-   */
-  const processSentence =
-  hasRealRange &&
-  conversionVerdict !== "movement_favored"
-    ? `This is a developing phase, so the process may begin with ${activationMeaning} and move toward ${conversionMeaning} later in the window.`
-    : "";
-
-
-  const conversionSentence =
-    conversionVerdict ===
-    "conversion_favored"
-      ? `The period has support not only for initial movement but also for conversion into ${conversionMeaning}.`
-      : conversionVerdict ===
-        "movement_favored"
-      ? `The first expression is more likely to be ${activationMeaning}. Conversion into ${conversionMeaning} may follow only after the initial movement develops.`
-      : conversionVerdict ===
-        "blocked"
-      ? `There may be visible movement through ${activationMeaning}, but conversion into ${conversionMeaning} could remain delayed unless the practical blockers clear.`
-      : `Treat this as a supportive phase for ${activationMeaning}, not as a guarantee that ${conversionMeaning} will happen on one exact date.`;
-
-  const selectedBreakdown =
-  selectedWindow?.scoreBreakdown;
-
-const selectedDashaLord =
-  selectedWindow?.dashaLord
-    ? String(selectedWindow.dashaLord)
-    : null;
-
-const natalSupported =
-  Number(
-    selectedBreakdown?.natalPromise ?? 0
-  ) > 0;
-
-const divisionalSupported =
-  Number(
-    selectedBreakdown?.divisionalSupport ?? 0
-  ) > 0;
-
-const transitConfirmed =
-  Number(
-    selectedBreakdown?.transitSupport ?? 0
-  ) > 0;
-
-const whyParts: string[] = [];
-
-if (selectedDashaLord) {
-  whyParts.push(
-    `the ${selectedDashaLord} sub-period activates movement connected with ${outcomeName}`
-  );
-}
-
-if (
-  natalSupported &&
-  divisionalSupported
-) {
-  whyParts.push(
-    "the natal and divisional charts both provide supporting potential"
-  );
-} else if (natalSupported) {
-  whyParts.push(
-    "the natal chart provides supporting potential"
-  );
-} else if (divisionalSupported) {
-  whyParts.push(
-    "the relevant divisional chart provides supporting confirmation"
-  );
-}
-
-if (!transitConfirmed) {
-  whyParts.push(
-    "supporting transits have not yet confirmed a final outcome"
-  );
-}
-
-const whyText =
-  whyParts.length
-    ? `This period stands out because ${whyParts.join(
-        "; "
-      )}.`
-    : `This period has been selected from the combined dasha, natal promise, divisional support, and transit picture for ${outcomeName}.`;
-
-  const short =
-  polishUserFacingDates(
-    [
-      immediateLine,
-      nearTermTriggerSentence,
-      windowSentence,
-    ]
-        .filter(Boolean)
-        .join(" ")
-    );
-
-  const full =
-    polishUserFacingDates(
-      [
-        short,
-        processSentence,
-        conversionSentence,
-        whyText,
-        confidenceText,
-      ]
-        .filter(Boolean)
-        .join("\n\n")
-    );
-
-  const action = [
-    topicCopy.preparationAction,
-    topicCopy.activationAction,
-    topicCopy.caution,
-  ]
-    .filter(Boolean)
-    .join("\n");
-
-  return {
-    short,
-    full,
-    action,
-  };
-}
 function pickDailyRowForDate(report: any, dateISO: string): any {
   const candidates = [
     report?.dailyPanchang,
@@ -1950,10 +2993,7 @@ if (Number.isFinite(lat) && Number.isFinite(lon)) {
   });
 }
 if (!panchangSource) {
-  console.warn(
-    "[DAILY_ASTRO_CONTEXT] No date-matched panchang found for",
-    resolved.dateISO
-  );
+
 }
  const moonTransit =
   report?.dailyTransit?.moon ??
@@ -2154,7 +3194,13 @@ function buildUniversalAstroJudgement(
 if (astroBundle.promiseLayer?.summary) {
   why.push(`Promise layer: ${astroBundle.promiseLayer.summary}`);
 }
-
+if (
+  astroBundle.sambandhaAnalysis?.summary
+) {
+  why.push(
+    `Planetary connectivity: ${astroBundle.sambandhaAnalysis.summary}`
+  );
+}
 if (astroBundle.divisionalLayer?.summary) {
   why.push(
   describeBroaderChartSupport(
@@ -2189,6 +3235,19 @@ let astroReason =
   "The chart shows mixed but usable support, so the result depends on timing and practical handling.";
 
 let strongestReason =
+  astroBundle.sambandhaAnalysis.verdict ===
+    "strongly_connected"
+    ? "The required event houses, their lords and the active period planets are strongly connected."
+    : astroBundle.sambandhaAnalysis.verdict ===
+      "connected"
+    ? "The event-producing planets have a meaningful relationship that can support manifestation."
+    : astroBundle.sambandhaAnalysis.verdict ===
+      "partially_connected"
+    ? "The chart can create movement, but the planetary relationship chain is incomplete."
+    : astroBundle.sambandhaAnalysis.verdict ===
+      "disconnected"
+    ? "The relevant factors are present but insufficiently connected for a clean result."
+    : "The available timing signals require cautious interpretation because planetary connectivity is incomplete.";
   "The timing signals are mixed, so the result is more likely to develop gradually than suddenly.";
 
 if (astroBundle.currentDasha?.line) {
@@ -2835,29 +3894,7 @@ const dashaRows = [
   const isJanFeb2027Window =
     startKey >= "2027-01-01" && startKey <= "2027-02-28";
 
-  if (isJanFeb2027Window) {
-    console.log(
-      "[JAN/FEB 2027 DASHA WINDOW PICK]",
-      JSON.stringify(
-        {
-          level: row?._level,
-          label: row?.label,
-          mahaLord: row?.mahaLord,
-          antarLord: row?.antarLord,
-          pratyantarLord: row?.pratyantarLord,
-          md: row?.md,
-          ad: row?.ad,
-          pd: row?.pd,
-          lord: row?.lord,
-          pickedPlanet: planet,
-          start,
-          end,
-        },
-        null,
-        2
-      )
-    );
-  }
+  
 
   // Avoid using very broad MD rows when nearer AD/PD rows already exist.
   if (row?._level === "md" && out.length > 0) continue;
@@ -3343,6 +4380,7 @@ function buildConversionDiagnosisV2(params: {
   topic: AskSarathiDomain;
   eventType?: AskSarathiEventType;
   promiseLayer: AnalysisLayer;
+  sambandhaAnalysis: SambandhaAnalysis;
   divisionalLayer: AnalysisLayer;
   karakaLayer: AnalysisLayer;
   timingLayer: AnalysisLayer;
@@ -3382,7 +4420,60 @@ function buildConversionDiagnosisV2(params: {
     conversionStrength += 25;
     conversionReasons.push("The underlying promise can produce a visible outcome.");
   }
+  if (
+  params.sambandhaAnalysis.verdict ===
+  "strongly_connected"
+) {
+  movementStrength += 15;
+  conversionStrength += 25;
 
+  movementReasons.push(
+    "The relevant event lords, karakas and active period lords form a strong planetary relationship chain."
+  );
+
+  conversionReasons.push(
+    "The event-producing factors are strongly connected, giving the natal promise a clear route toward manifestation."
+  );
+} else if (
+  params.sambandhaAnalysis.verdict ===
+  "connected"
+) {
+  movementStrength += 10;
+  conversionStrength += 15;
+
+  conversionReasons.push(
+    "The required event factors have meaningful planetary connectivity."
+  );
+} else if (
+  params.sambandhaAnalysis.verdict ===
+  "partially_connected"
+) {
+  movementStrength += 10;
+  blockageStrength += 10;
+
+  movementReasons.push(
+    "Some event factors are connected, which can produce activity or discussion."
+  );
+
+  blockageReasons.push(
+    "The planetary relationship chain is incomplete, so movement may not convert cleanly into the final outcome."
+  );
+} else if (
+  params.sambandhaAnalysis.verdict ===
+  "disconnected"
+) {
+  blockageStrength += 30;
+
+  blockageReasons.push(
+    "The required event factors are individually present but insufficiently connected for dependable conversion."
+  );
+} else {
+  blockageStrength += 5;
+
+  blockageReasons.push(
+    "Planetary connectivity could not be fully assessed because chart relationship data is incomplete."
+  );
+}
   if (params.bestAvailableWindow?.windowClass === "outcome") {
     conversionStrength += 30;
     conversionReasons.push("The selected timing window is classified as an outcome window.");
@@ -3443,9 +4534,16 @@ const isOutcomeWindow =
   params.bestAvailableWindow
     ?.windowClass === "outcome";
 
+const hasConversionSambandha =
+  params.sambandhaAnalysis.verdict ===
+    "strongly_connected" ||
+  params.sambandhaAnalysis.verdict ===
+    "connected";
+
 const canFavorConversion =
   isOutcomeWindow &&
-  hasTransitConfirmation;
+  hasTransitConfirmation &&
+  hasConversionSambandha;
 
 const verdict:
   | "conversion_favored"
@@ -3470,6 +4568,7 @@ const verdict:
 }
 function buildPromotionConversionEngine(params: {
   promiseLayer: AnalysisLayer;
+  sambandhaAnalysis: SambandhaAnalysis;
   divisionalLayer: AnalysisLayer;
   karakaLayer: AnalysisLayer;
   timingLayer: AnalysisLayer;
@@ -3528,7 +4627,49 @@ function buildPromotionConversionEngine(params: {
     blockerScore += 20;
     blockerReasons.push("Timing support is not strong enough to guarantee final promotion or pay conversion.");
   }
+  if (
+  params.sambandhaAnalysis.verdict ===
+    "strongly_connected" ||
+  params.sambandhaAnalysis.verdict ===
+    "connected"
+) {
+  conversionScore +=
+    params.sambandhaAnalysis.verdict ===
+    "strongly_connected"
+      ? 25
+      : 15;
 
+  conversionReasons.push(
+    "The promotion houses, their lords and relevant career significators form an operative planetary relationship."
+  );
+}
+
+if (
+  params.sambandhaAnalysis.verdict ===
+  "partially_connected"
+) {
+  titleScore += 10;
+  blockerScore += 10;
+
+  titleReasons.push(
+    "The relationship pattern can produce recognition or discussion."
+  );
+
+  blockerReasons.push(
+    "The incomplete planetary relationship chain may delay formal title conversion."
+  );
+}
+
+if (
+  params.sambandhaAnalysis.verdict ===
+  "disconnected"
+) {
+  blockerScore += 25;
+
+  blockerReasons.push(
+    "The promotion-producing houses are insufficiently connected for clean formal conversion."
+  );
+}
   const verdict =
     conversionScore > blockerScore
       ? "promotion_conversion_possible"
@@ -3823,6 +4964,7 @@ function rankTimingWindows(params: {
   timingPolicy: GenericAstroBundle["timingPolicy"];
 
   promiseLayer: AnalysisLayer;
+  sambandhaAnalysis: SambandhaAnalysis;
   divisionalLayer: AnalysisLayer;
   karakaLayer: AnalysisLayer;
 }): RankedTimingWindow[] {
@@ -3833,6 +4975,7 @@ function rankTimingWindows(params: {
     activeDasha,
     timingPolicy,
     promiseLayer,
+    sambandhaAnalysis,
     divisionalLayer,
     karakaLayer,
   } = params;
@@ -3842,6 +4985,7 @@ function rankTimingWindows(params: {
  const scoreBreakdown = {
   baseScore: 30,
   natalPromise: 0,
+  sambandhaSupport: 0,
   divisionalSupport: 0,
   dashaSupport: 0,
   transitSupport: 0,
@@ -3983,6 +5127,32 @@ let score = scoreBreakdown.baseScore;
   }
 
   if (
+    sambandhaAnalysis.verdict ===
+    "strongly_connected"
+  ) {
+    scoreBreakdown.sambandhaSupport += 8;
+    score += 8;
+  } else if (
+    sambandhaAnalysis.verdict ===
+    "connected"
+  ) {
+    scoreBreakdown.sambandhaSupport += 5;
+    score += 5;
+  } else if (
+    sambandhaAnalysis.verdict ===
+    "partially_connected"
+  ) {
+    scoreBreakdown.sambandhaSupport += 2;
+    score += 2;
+  } else if (
+    sambandhaAnalysis.verdict ===
+    "disconnected"
+  ) {
+    scoreBreakdown.penalties -= 8;
+    score -= 8;
+  }
+
+  if (
     divisionalLayer.verdict ===
     "strong"
   ) {
@@ -4084,42 +5254,154 @@ function detectEventType(
   if (topic === "career") {
     return detectCareerEventType(question, topic, timeDirection ?? "mixed") ?? "generic_event";
   }
+if (topic === "business") {
+  return detectBusinessEventType(
+    question,
+    topic,
+    timeDirection ?? "mixed"
+  );
+}
+if (topic === "education") {
+  return detectEducationEventType(
+    question,
+    topic,
+    timeDirection ?? "mixed"
+  );
+}
+if (topic === "property") {
+  return detectPropertyEventType(
+    question,
+    topic,
+    timeDirection ?? "mixed"
+  );
+}
 
-  if (topic === "property") {
-    if (/\bsell|selling|dispose|exit\b/.test(q)) return "sell_property";
-    if (/\bmove|shift|relocate|change home\b/.test(q)) return "move_home";
-    return "buy_property";
-  }
+if (topic === "vehicle") {
+  return detectVehicleEventType(
+    question,
+    topic,
+    timeDirection ?? "mixed"
+  );
+}
 
-  if (topic === "vehicle") {
-    if (/\bupgrade|better car|bigger car|luxury\b/.test(q)) return "upgrade_vehicle";
-    return "buy_vehicle";
-  }
+if (topic === "money") {
+  return detectWealthEventType(
+    question,
+    topic,
+    timeDirection ?? "mixed"
+  );
+}
 
-  if (topic === "money") {
-    if (/\bbonus|incentive|variable pay\b/.test(q)) return "bonus";
-    if (/\bside income|side hustle|extra income|business income\b/.test(q)) return "side_income";
-    return "salary_increase";
-  }
+if (
+  topic === "relationships" ||
+  topic === "marriage"
+) {
+  return detectRelationshipEventType(
+    question,
+    topic,
+    timeDirection ?? "mixed"
+  );
+}
 
-  if (topic === "relationships") {
-    if (/\breconcile|come back|ex|patch up\b/.test(q)) return "reconciliation";
-    if (/\bmarry|marriage|commitment|wedding\b/.test(q)) return "marriage_commitment";
-    return "new_relationship";
-  }
+if (topic === "health") {
+  return detectHealthEventType(
+    question,
+    topic,
+    timeDirection ?? "mixed"
+  );
+}
 
-  if (topic === "marriage") return "marriage_commitment";
+ if (topic === "relocation") {
+  return detectRelocationEventType(
+    question,
+    topic,
+    timeDirection ?? "mixed"
+  );
+}
+if (topic === "spiritual") {
+  return detectSpiritualEventType(
+    question,
+    topic,
+    timeDirection ?? "mixed"
+  );
+}
+if (topic === "child") {
+  return detectChildrenEventType(
+    question,
+    topic,
+    timeDirection ?? "mixed"
+  );
+}
+if (topic === "disputes") {
+  return detectDisputeEventType(
+    question,
+    topic,
+    timeDirection ?? "mixed"
+  );
+}
+if (topic === "parents") {
+  return detectParentsEventType(
+    question,
+    topic,
+    timeDirection ?? "mixed"
+  );
+}
 
-  if (topic === "health") {
-    if (/\brecover|recovery|heal|improve\b/.test(q)) return "health_recovery";
-    return "health_checkup";
-  }
+if (topic === "siblings") {
+  return detectSiblingsEventType(
+    question,
+    topic,
+    timeDirection ?? "mixed"
+  );
+}
+if (topic === "travel") {
+  return detectTravelEventType(
+    question,
+    topic,
+    timeDirection ?? "mixed"
+  );
+}
+if (topic === "reputation") {
+  return detectReputationEventType(
+    question,
+    topic,
+    timeDirection ?? "mixed"
+  );
+}
+if (topic === "debt") {
+  return detectDebtEventType(
+    question,
+    topic,
+    timeDirection ?? "mixed"
+  );
+}
+if (topic === "inheritance") {
+  return detectInheritanceEventType(
+    question,
+    topic,
+    timeDirection ?? "mixed"
+  );
+}
+if (topic === "mental_health") {
+  return detectMentalHealthEventType(
+    question,
+    topic,
+    timeDirection ?? "mixed"
+  );
+}
+if (topic === "pets") {
+  return detectPetsEventType(
+    question,
+    topic
+  );
+}
 
-  if (topic === "relocation") {
-    if (/\babroad|foreign|overseas|country\b/.test(q)) return "foreign_move";
-    return "local_move";
-  }
-
+if (topic === "inner") {
+  return detectInnerEventType(
+    question,
+    topic
+  );
+}
   return "generic_event";
 }
 function detectCareerEventType(
@@ -4131,12 +5413,14 @@ function detectCareerEventType(
 
   const q = question.toLowerCase().trim();
 
-  // identity first (strongest)
-  if (
-    /\b(what is my profession|what is my current profession|what do i do|what kind of work|line of work|career type|job type)\b/.test(q)
-  ) {
-    return "profession_identity";
-  }
+// profession identity / suitability first
+if (
+  /\b(what is my profession|what is my current profession|what do i do|what kind of work|line of work|career type|job type|what profession suits me|which profession suits me|what career suits me|which career suits me|should i become|can i become|would i be good as|am i suited for|am i suitable for|is .* suitable for me)\b/.test(
+    q
+  )
+) {
+  return "profession_identity";
+}
 
   // promotion
   if (/\b(get promoted|promotion|promote)\b/.test(q)) {
@@ -4166,6 +5450,782 @@ function detectCareerEventType(
 
   return "generic";
 }
+function detectRelationshipEventType(
+  question: string,
+  topic: AskSarathiDomain,
+  timeDirection: TimeDirection
+): RelationshipEventType {
+  if (
+    topic !== "relationships" &&
+    topic !== "marriage"
+  ) {
+    return "generic";
+  }
+
+  const q =
+    question.toLowerCase().trim();
+
+  if (
+    /\b(what kind of partner|what type of partner|what sort of partner|who would suit me|who suits me|ideal partner|suitable partner|partner profile)\b/.test(q)
+  ) {
+    return "partner_profile";
+  }
+
+  if (
+    /\b(am i suited for marriage|am i suitable for marriage|would marriage suit me|is marriage suitable for me|am i suited for relationships|am i suitable for relationships|relationship suitability|marriage suitability)\b/.test(q)
+  ) {
+    return "relationship_suitability";
+  }
+
+  if (
+    /\b(why do my relationships|why are my relationships|why do relationships|relationship pattern|relationship patterns|why am i unlucky in love|why do i struggle in relationships|why do i struggle with relationships|why do my relationships fail)\b/.test(q)
+  ) {
+    return "relationship_pattern";
+  }
+
+  if (
+    /\b(love marriage or arranged marriage|arranged marriage or love marriage|love or arranged marriage|arranged or love marriage|love vs arranged|love versus arranged)\b/.test(q)
+  ) {
+    return "love_vs_arranged";
+  }
+
+  if (
+    /\b(reconcile|reconciliation|patch up|get back together|come back|return to me|ex return|ex come back|former partner return)\b/.test(q)
+  ) {
+    return "reconciliation";
+  }
+
+  if (
+    /\b(when will i meet|when am i likely to meet|when will i find|when am i likely to find|meet a serious partner|meet my partner|meet my spouse|meet someone serious|meet someone special)\b/.test(q)
+  ) {
+    return "meeting_partner";
+  }
+
+  if (
+    /\b(when will i marry|when will i get married|when am i likely to marry|when am i likely to get married|marriage timing|timing of marriage|when is marriage likely)\b/.test(q)
+  ) {
+    return "marriage_timing";
+  }
+
+  if (
+    /\b(will we marry|will i marry|will this relationship lead to marriage|will this relationship become serious|commitment|engagement|wedding|marriage)\b/.test(q)
+  ) {
+    return "marriage_commitment";
+  }
+
+  if (
+    /\b(new relationship|new partner|new love|someone new|start dating|dating someone|new person|find love)\b/.test(q)
+  ) {
+    return "new_relationship";
+  }
+
+  if (timeDirection === "identity") {
+    return "relationship_suitability";
+  }
+
+  if (timeDirection === "future") {
+    return topic === "marriage"
+      ? "marriage_timing"
+      : "new_relationship";
+  }
+
+  return "generic";
+}
+function detectWealthEventType(
+  question: string,
+  topic: AskSarathiDomain,
+  timeDirection: TimeDirection
+): WealthEventType {
+ if (topic !== "money") {
+  return "generic";
+}
+
+  const q =
+    question.toLowerCase().trim();
+
+  // Permanent wealth potential
+  if (
+    /\b(am i naturally wealthy|do i have wealth potential|can i become wealthy|will i be wealthy|wealth potential|financial potential|money potential)\b/.test(q)
+  ) {
+    return "wealth_potential";
+  }
+
+  // Permanent earning style
+  if (
+    /\b(how do i earn money best|how should i earn money|best way for me to earn|what is my earning style|earning style|how can i make money|how do i make money best)\b/.test(q)
+  ) {
+    return "earning_style";
+  }
+
+  // Permanent wealth pattern / retention
+  if (
+    /\b(why do i struggle with money|why can't i save|why can i not save|why does money not stay|money does not stay|wealth pattern|financial pattern|why do i lose money|why am i bad with money)\b/.test(q)
+  ) {
+    return "wealth_pattern";
+  }
+
+  // Permanent saving capacity
+  if (
+    /\b(am i good at saving|can i build savings|saving capacity|savings potential|wealth retention|retain money|hold on to money)\b/.test(q)
+  ) {
+    return "saving_capacity";
+  }
+
+  // Permanent investment suitability
+  if (
+    /\b(am i suited to investing|am i suitable for investing|should i invest|investment suitability|am i good at investing|would investing suit me)\b/.test(q)
+  ) {
+    return "investment_suitability";
+  }
+
+  // Permanent multiple-income potential
+  if (
+    /\b(multiple income streams|multiple sources of income|more than one income|second income|can i have multiple incomes|can i earn from multiple sources)\b/.test(q)
+  ) {
+    return "multiple_income";
+  }
+
+  // Bonus
+  if (
+    /\b(bonus|incentive|variable pay)\b/.test(q)
+  ) {
+    return "bonus";
+  }
+
+  // Salary increase
+  if (
+    /\b(salary increase|salary increment|pay rise|pay raise|increase in salary|increase my salary|higher salary)\b/.test(q)
+  ) {
+    return "salary_increase";
+  }
+
+  // Side income
+  if (
+    /\b(side income|side hustle|extra income|additional income|consulting income|freelance income)\b/.test(q)
+  ) {
+    return "side_income";
+  }
+
+  // Explicit financial improvement timing
+  if (
+    /\b(when will my finances improve|when will money improve|when will my financial situation improve|when will income improve|financial improvement)\b/.test(q)
+  ) {
+    return "financial_improvement";
+  }
+
+  // Explicit wealth timing
+  if (
+    /\b(when will i become wealthy|when will i become rich|when will wealth increase|wealth timing|when will i have more money|when will i earn more)\b/.test(q)
+  ) {
+    return "wealth_timing";
+  }
+
+  // Fallback by time direction
+  if (timeDirection === "identity") {
+    return "wealth_potential";
+  }
+
+  if (timeDirection === "future") {
+    return "financial_improvement";
+  }
+
+  return "generic";
+}
+function detectBusinessEventType(
+  question: string,
+  topic: AskSarathiDomain,
+  timeDirection: TimeDirection
+): BusinessEventType {
+  if (topic !== "business") {
+    return "generic";
+  }
+
+  const q =
+    question.toLowerCase().trim();
+
+  // Permanent business suitability
+  if (
+    /\b(am i suited for business|am i suitable for business|should i do business|would business suit me|business suitability|entrepreneurship suit me|am i entrepreneurial)\b/.test(q)
+  ) {
+    return "business_suitability";
+  }
+
+  // Permanent business style
+  if (
+    /\b(what kind of business suits me|which business suits me|what type of business suits me|business style|what business should i do|best business for me)\b/.test(q)
+  ) {
+    return "business_style";
+  }
+
+  // Permanent business vs employment
+  if (
+    /\b(business or job|job or business|business vs job|business versus job|employment or business|business or employment)\b/.test(q)
+  ) {
+    return "business_vs_job";
+  }
+
+  // Permanent partnership suitability
+  if (
+    /\b(am i suited for a business partnership|am i suitable for partnership|should i have a business partner|business partnership suit me|partnership suitability)\b/.test(q)
+  ) {
+    return "partnership_suitability";
+  }
+
+  // Permanent entrepreneurial pattern
+  if (
+    /\b(entrepreneurial pattern|entrepreneurial nature|business temperament|business personality|how entrepreneurial am i|what is my entrepreneurial style)\b/.test(q)
+  ) {
+    return "entrepreneurial_pattern";
+  }
+
+  // Explicit launch timing
+  if (
+    /\b(when should i start my business|when should i launch my business|when can i start a business|when is a good time to start a business|business launch|launch my business)\b/.test(q)
+  ) {
+    return "business_launch";
+  }
+
+  // Business growth timing
+  if (
+    /\b(when will my business grow|when will business improve|when will my business improve|business growth|when will business pick up|when will sales improve)\b/.test(q)
+  ) {
+    return "business_growth";
+  }
+
+  // Client growth
+  if (
+    /\b(when will i get more clients|when will clients increase|client growth|customer growth|more customers|increase clients)\b/.test(q)
+  ) {
+    return "client_growth";
+  }
+
+  // Partnership timing
+  if (
+    /\b(when should i enter a partnership|when should i take a partner|when will i get a business partner|partnership timing)\b/.test(q)
+  ) {
+    return "partnership_timing";
+  }
+
+  // Generic business timing
+  if (
+    /\b(when is business favorable|when is business favourable|business timing|when is a good time for business|when will business become successful)\b/.test(q)
+  ) {
+    return "business_timing";
+  }
+
+  if (timeDirection === "identity") {
+    return "business_suitability";
+  }
+
+  if (timeDirection === "future") {
+    return "business_timing";
+  }
+
+  return "generic";
+}
+function detectEducationEventType(
+  question: string,
+  topic: AskSarathiDomain,
+  timeDirection: TimeDirection
+): EducationEventType {
+  if (topic !== "education") {
+    return "generic";
+  }
+
+  const q =
+    question.toLowerCase().trim();
+
+  // Permanent overall education suitability
+  if (
+    /\b(am i good at studies|am i suited for higher education|am i suitable for higher education|education suitability|do i have strong education potential|academic potential)\b/.test(q)
+  ) {
+    return "education_suitability";
+  }
+
+  // Permanent subject fit
+  if (
+    /\b(what subjects suit me|which subjects suit me|what subject suits me|which subject should i choose|best subjects for me|what should i study|what field should i study)\b/.test(q)
+  ) {
+    return "subject_fit";
+  }
+
+  // Permanent stream choice
+  if (
+    /\b(science or commerce|commerce or science|science vs commerce|science versus commerce|arts or science|science or arts|commerce or arts|arts or commerce|which stream should i choose|best stream for me)\b/.test(q)
+  ) {
+    return "stream_choice";
+  }
+
+  // Permanent study / learning pattern
+  if (
+    /\b(why do i struggle to study|why can't i study|why can i not study|why do i lose focus while studying|study pattern|learning pattern|how do i learn best|what is my learning style|why am i distracted in studies)\b/.test(q)
+  ) {
+    return "study_pattern";
+  }
+
+  // Higher-education timing
+  if (
+    /\b(when should i pursue higher education|when should i study abroad|when is a good time for higher studies|when should i do masters|when should i do my masters|when should i go to university|higher education timing)\b/.test(q)
+  ) {
+    return "higher_education";
+  }
+
+  // Exam performance / timed academic result
+  if (
+    /\b(will i do well in my exam|will i pass my exam|will i pass the exam|how will my exams go|exam performance|will i clear my exam|will i clear the exam|will i succeed in my exams)\b/.test(q)
+  ) {
+    return "exam_performance";
+  }
+
+  // Generic education timing
+  if (
+    /\b(when will studies improve|when will my studies improve|when will education improve|education timing|when is a good time to study|when will academic performance improve)\b/.test(q)
+  ) {
+    return "education_timing";
+  }
+
+  if (timeDirection === "identity") {
+    return "education_suitability";
+  }
+
+  if (timeDirection === "future") {
+    return "education_timing";
+  }
+
+  return "generic";
+}
+function detectSpiritualEventType(
+  question: string,
+  topic: AskSarathiDomain,
+  timeDirection: TimeDirection
+): SpiritualEventType {
+  if (topic !== "spiritual") {
+    return "generic";
+  }
+
+  const q =
+    question.toLowerCase().trim();
+
+  if (
+    /\b(am i naturally spiritual|am i spiritual|do i have spiritual inclination|spiritual inclination|spiritual nature|spiritual potential)\b/.test(q)
+  ) {
+    return "spiritual_inclination";
+  }
+
+  if (
+    /\b(what spiritual path suits me|which spiritual path suits me|what path should i follow|bhakti or jnana|jnana or bhakti|bhakti or meditation|what form of spirituality suits me)\b/.test(q)
+  ) {
+    return "spiritual_path";
+  }
+
+  if (
+    /\b(devotional style|bhakti style|am i devotional|does bhakti suit me|devotion suit me|prayer suit me)\b/.test(q)
+  ) {
+    return "devotional_style";
+  }
+
+  if (
+    /\b(am i suited to meditation|is meditation suitable for me|does meditation suit me|meditation suitability|should i meditate)\b/.test(q)
+  ) {
+    return "meditation_suitability";
+  }
+
+  if (
+    /\b(am i suited to mantra|does mantra suit me|mantra suitability|should i chant mantra|mantra practice suit me|which practice suits me)\b/.test(q)
+  ) {
+    return "mantra_suitability";
+  }
+
+  if (
+    /\b(guru pattern|guru connection|relationship with guru|do i need a guru|am i likely to have a guru|spiritual teacher pattern)\b/.test(q)
+  ) {
+    return "guru_pattern";
+  }
+
+  if (
+    /\b(when will my spiritual growth deepen|when will i become more spiritual|when will spirituality increase|when will my spiritual life deepen|spiritual growth)\b/.test(q)
+  ) {
+    return "spiritual_growth";
+  }
+
+  if (
+    /\b(spiritual timing|when is a good time for spiritual practice|when should i deepen my practice|when should i start serious sadhana)\b/.test(q)
+  ) {
+    return "spiritual_timing";
+  }
+
+  if (timeDirection === "identity") {
+    return "spiritual_inclination";
+  }
+
+  if (timeDirection === "future") {
+    return "spiritual_growth";
+  }
+
+  return "generic";
+}
+function detectHealthEventType(
+  question: string,
+  topic: AskSarathiDomain,
+  timeDirection: TimeDirection
+): HealthEventType {
+  if (topic !== "health") {
+    return "generic";
+  }
+
+  const q =
+    question.toLowerCase().trim();
+
+  // Permanent constitution
+  if (
+    /\b(health constitution|my constitution|overall health pattern|natural health pattern|health tendency|health tendencies)\b/.test(q)
+  ) {
+    return "health_constitution";
+  }
+
+  // Permanent sensitivities
+  if (
+    /\b(health sensitivities|health sensitivity|what am i sensitive to|weak health areas|vulnerable health areas|recurring health issues|recurring health pattern)\b/.test(q)
+  ) {
+    return "health_sensitivity";
+  }
+
+  // Permanent stress pattern
+  if (
+    /\b(stress pattern|why do i get stressed|why am i stressed easily|why do i feel stressed|why do i overreact to stress|stress sensitivity)\b/.test(q)
+  ) {
+    return "stress_pattern";
+  }
+
+  // Permanent recovery capacity
+  if (
+    /\b(recovery capacity|how resilient is my health|health resilience|do i recover quickly|how well do i recover|recovery pattern)\b/.test(q)
+  ) {
+    return "recovery_capacity";
+  }
+
+  // Permanent lifestyle pattern
+  if (
+    /\b(lifestyle pattern|what lifestyle suits me|best lifestyle for my health|health routine|what routine suits my health|how should i manage my health)\b/.test(q)
+  ) {
+    return "lifestyle_pattern";
+  }
+
+  // Recovery timing
+  if (
+    /\b(when will my health improve|when will i recover|when will recovery happen|health recovery|recovery timing)\b/.test(q)
+  ) {
+    return "health_recovery";
+  }
+
+  // Check-up / caution period
+  if (
+    /\b(health checkup|should i get checked|sensitive health period|health caution period|should i be careful about my health)\b/.test(q)
+  ) {
+    return "health_checkup";
+  }
+
+  // General health timing
+  if (
+    /\b(health timing|when is my health sensitive|when will health improve|when should i be more careful about health)\b/.test(q)
+  ) {
+    return "health_timing";
+  }
+
+  if (timeDirection === "identity") {
+    return "health_constitution";
+  }
+
+  if (timeDirection === "future") {
+    return "health_timing";
+  }
+
+  return "generic";
+}
+function detectChildrenEventType(
+  question: string,
+  topic: AskSarathiDomain,
+  timeDirection: TimeDirection
+): ChildrenEventType {
+  if (topic !== "child") {
+    return "generic";
+  }
+
+  const q =
+    question.toLowerCase().trim();
+
+  // Permanent parenthood potential
+  if (
+    /\b(am i suited to parenthood|am i suitable for parenthood|would i be a good parent|parenthood potential|am i meant to be a parent|parenting potential)\b/.test(q)
+  ) {
+    return "parenthood_potential";
+  }
+
+  // Permanent parenting style
+  if (
+    /\b(what kind of parent am i|what kind of parent will i be|parenting style|how will i parent|what is my parenting style)\b/.test(q)
+  ) {
+    return "parenting_style";
+  }
+
+  // Permanent parent-child relationship pattern
+  if (
+    /\b(why is my relationship with my child difficult|why do i struggle with my child|relationship with my child|child relationship pattern|parent child relationship|parent-child relationship)\b/.test(q)
+  ) {
+    return "child_relationship_pattern";
+  }
+
+  // Child aptitude / natural strengths
+  if (
+    /\b(what are my child's strengths|what are my childs strengths|what is my child good at|what will my child be good at|child aptitude|child's natural abilities|childs natural abilities)\b/.test(q)
+  ) {
+    return "child_aptitude";
+  }
+
+  // Conception timing
+  if (
+    /\b(when will i conceive|when am i likely to conceive|when can i conceive|conception timing|when is pregnancy likely|when will i get pregnant)\b/.test(q)
+  ) {
+    return "conception_timing";
+  }
+
+  // Childbirth timing
+  if (
+    /\b(when will i have a child|when will i have children|when will childbirth happen|childbirth timing|when is childbirth likely|when will i become a parent)\b/.test(q)
+  ) {
+    return "childbirth_timing";
+  }
+
+  // Child-development timing
+  if (
+    /\b(when will my child improve|when will my child become more settled|child development timing|when will things improve for my child|when will my child's development improve|when will my childs development improve)\b/.test(q)
+  ) {
+    return "child_development_timing";
+  }
+
+  if (timeDirection === "identity") {
+    return "parenthood_potential";
+  }
+
+  if (timeDirection === "future") {
+    return "childbirth_timing";
+  }
+
+  return "generic";
+}
+function detectPropertyEventType(
+  question: string,
+  topic: AskSarathiDomain,
+  timeDirection: TimeDirection
+): PropertyEventType {
+  if (topic !== "property") {
+    return "generic";
+  }
+
+  const q =
+    question.toLowerCase().trim();
+
+  // Permanent property potential
+  if (
+    /\b(am i suited to property|am i suitable for property|do i have property potential|property potential|real estate potential|can i build property wealth)\b/.test(q)
+  ) {
+    return "property_potential";
+  }
+
+  // Permanent investment suitability
+  if (
+    /\b(am i suited to property investment|am i suitable for real estate investment|should i invest in property|property investment suitability|real estate investment suit me)\b/.test(q)
+  ) {
+    return "property_investment_suitability";
+  }
+
+  // Permanent property / home pattern
+  if (
+    /\b(property pattern|home pattern|why do i keep changing homes|why is property difficult for me|why do property matters become difficult|property issues keep repeating)\b/.test(q)
+  ) {
+    return "property_pattern";
+  }
+
+  // Permanent home stability
+  if (
+    /\b(home stability|am i likely to have a stable home|stable home pattern|settled home life|residential stability)\b/.test(q)
+  ) {
+    return "home_stability";
+  }
+
+  // Explicit selling
+  if (
+    /\b(sell|selling|dispose|exit property|sell my property|sell my house|sell my home)\b/.test(q)
+  ) {
+    return "sell_property";
+  }
+
+  // Moving home
+  if (
+    /\b(move home|move house|shift home|change home|relocate home|move residence)\b/.test(q)
+  ) {
+    return "move_home";
+  }
+
+  // Explicit timing
+  if (
+    /\b(when should i buy property|when will i buy property|when can i buy a house|when should i invest in property|property timing|when is a good time to buy property)\b/.test(q)
+  ) {
+    return "property_timing";
+  }
+
+  // Explicit purchase
+  if (
+    /\b(buy property|buy a house|buy a home|purchase property|purchase a house|purchase a home)\b/.test(q)
+  ) {
+    return "buy_property";
+  }
+
+  if (timeDirection === "identity") {
+    return "property_potential";
+  }
+
+  if (timeDirection === "future") {
+    return "property_timing";
+  }
+
+  return "generic";
+}
+function detectVehicleEventType(
+  question: string,
+  topic: AskSarathiDomain,
+  timeDirection: TimeDirection
+): VehicleEventType {
+  if (topic !== "vehicle") {
+    return "generic";
+  }
+
+  const q =
+    question.toLowerCase().trim();
+
+  // Permanent ownership potential
+  if (
+    /\b(do i have strong vehicle potential|vehicle ownership potential|am i likely to own good vehicles|vehicle potential|car ownership potential)\b/.test(q)
+  ) {
+    return "vehicle_potential";
+  }
+
+  // Permanent preference / suitability
+  if (
+    /\b(what kind of vehicle suits me|which car suits me|what car suits me|vehicle preference|what type of car suits me|which vehicle is suitable for me)\b/.test(q)
+  ) {
+    return "vehicle_preference";
+  }
+
+  // Permanent recurring pattern
+  if (
+    /\b(why do i keep changing cars|why do i change vehicles often|vehicle pattern|car pattern|why do vehicle issues repeat|why do i have repeated vehicle problems)\b/.test(q)
+  ) {
+    return "vehicle_pattern";
+  }
+
+  // Explicit upgrade
+  if (
+    /\b(upgrade my car|upgrade my vehicle|better car|bigger car|luxury car|should i upgrade|vehicle upgrade)\b/.test(q)
+  ) {
+    return "upgrade_vehicle";
+  }
+
+  // Explicit timing
+  if (
+    /\b(when should i buy a car|when should i buy a vehicle|when will i buy a car|when can i buy a car|vehicle timing|car purchase timing|when is a good time to buy a car)\b/.test(q)
+  ) {
+    return "vehicle_timing";
+  }
+
+  // Explicit purchase
+  if (
+    /\b(buy a car|buy a vehicle|purchase a car|purchase a vehicle|get a new car|get a new vehicle)\b/.test(q)
+  ) {
+    return "buy_vehicle";
+  }
+
+  if (timeDirection === "identity") {
+    return "vehicle_potential";
+  }
+
+  if (timeDirection === "future") {
+    return "vehicle_timing";
+  }
+
+  return "generic";
+}
+function detectRelocationEventType(
+  question: string,
+  topic: AskSarathiDomain,
+  timeDirection: TimeDirection
+): RelocationEventType {
+  if (topic !== "relocation") {
+    return "generic";
+  }
+
+  const q =
+    question.toLowerCase().trim();
+
+  // Permanent relocation potential
+  if (
+    /\b(am i suited to relocation|am i suitable for relocation|do i have relocation potential|relocation potential|am i likely to move often|strong relocation pattern)\b/.test(q)
+  ) {
+    return "relocation_potential";
+  }
+
+  // Permanent foreign settlement potential
+  if (
+    /\b(am i suited to living abroad|am i suitable for living abroad|foreign settlement potential|can i settle abroad|do i have foreign settlement potential|am i meant to live abroad)\b/.test(q)
+  ) {
+    return "foreign_settlement_potential";
+  }
+
+  // Permanent movement pattern
+  if (
+    /\b(why do i keep moving|why do i change places often|relocation pattern|movement pattern|why is my life so unsettled geographically|why do i keep changing cities)\b/.test(q)
+  ) {
+    return "relocation_pattern";
+  }
+
+  // Permanent location preference
+  if (
+    /\b(what kind of place suits me|which place suits me|what type of city suits me|location preference|where would i feel most settled|what environment suits me)\b/.test(q)
+  ) {
+    return "location_preference";
+  }
+
+  // Explicit foreign move
+  if (
+    /\b(move abroad|relocate abroad|foreign move|move overseas|settle abroad|go abroad|shift abroad)\b/.test(q)
+  ) {
+    return "foreign_move";
+  }
+
+  // Explicit local move
+  if (
+    /\b(move locally|move within the country|change city|shift city|local move|move to another city|relocate locally)\b/.test(q)
+  ) {
+    return "local_move";
+  }
+
+  // Explicit timing
+  if (
+    /\b(when will i relocate|when should i relocate|when will i move|when is a good time to relocate|relocation timing|when will i change location)\b/.test(q)
+  ) {
+    return "relocation_timing";
+  }
+
+  if (timeDirection === "identity") {
+    return "relocation_potential";
+  }
+
+  if (timeDirection === "future") {
+    return "relocation_timing";
+  }
+
+  return "generic";
+}
 function isCareerMovementQuestion(
   question: string,
   topic: AskSarathiDomain
@@ -4174,6 +6234,590 @@ function isCareerMovementQuestion(
   const q = question.toLowerCase().trim();
 
   return /\b(get promoted|promotion|promote|job change|change my job|switch job|switch my job|career move|role change|role shift|transfer|department change|move in my career|career change)\b/.test(q);
+}
+function detectDisputeEventType(
+  question: string,
+  topic: AskSarathiDomain,
+  timeDirection: TimeDirection
+): DisputeEventType {
+  if (topic !== "disputes") {
+    return "generic";
+  }
+
+  const q =
+    question.toLowerCase().trim();
+
+  // Permanent conflict pattern
+  if (
+    /\b(why do i keep getting into conflicts|why do disputes repeat|conflict pattern|dispute pattern|why do i attract conflict|why do arguments keep happening)\b/.test(q)
+  ) {
+    return "conflict_pattern";
+  }
+
+  // Permanent legal/dispute handling suitability
+  if (
+    /\b(am i good at handling disputes|am i suited to legal matters|am i suitable for litigation|legal suitability|dispute handling ability|am i good in conflicts)\b/.test(q)
+  ) {
+    return "legal_suitability";
+  }
+
+  // Permanent negotiation style
+  if (
+    /\b(negotiation style|how do i handle negotiation|am i good at negotiation|how do i resolve conflict|conflict resolution style)\b/.test(q)
+  ) {
+    return "negotiation_style";
+  }
+
+  // Permanent litigation tendency
+  if (
+    /\b(litigation pattern|do i have litigation in my chart|legal dispute pattern|court case tendency|do legal disputes repeat in my life)\b/.test(q)
+  ) {
+    return "litigation_pattern";
+  }
+
+  // Resolution timing
+  if (
+    /\b(when will this dispute resolve|when will the dispute end|when will conflict resolve|dispute resolution|when will this matter settle)\b/.test(q)
+  ) {
+    return "dispute_resolution";
+  }
+
+  // Legal case timing
+  if (
+    /\b(when will my court case resolve|when will my legal case end|legal case timing|court case timing|when will the case move)\b/.test(q)
+  ) {
+    return "legal_case_timing";
+  }
+
+  // Settlement timing
+  if (
+    /\b(when will settlement happen|when is settlement likely|settlement timing|when should i settle|when will we reach settlement)\b/.test(q)
+  ) {
+    return "settlement_timing";
+  }
+
+  if (timeDirection === "identity") {
+    return "conflict_pattern";
+  }
+
+  if (timeDirection === "future") {
+    return "dispute_resolution";
+  }
+
+  return "generic";
+}
+function detectParentsEventType(
+  question: string,
+  topic: AskSarathiDomain,
+  timeDirection: TimeDirection
+): ParentsEventType {
+  if (topic !== "parents") {
+    return "generic";
+  }
+
+  const q = question.toLowerCase().trim();
+
+  if (
+    /\b(relationship with my parents|parent relationship|why is my relationship with my parents difficult|why do i struggle with my parents|parent relationship pattern)\b/.test(q)
+  ) {
+    return "parent_relationship_pattern";
+  }
+
+  if (
+    /\b(relationship with my mother|mother relationship|why is my relationship with my mother difficult|mother pattern|maternal relationship)\b/.test(q)
+  ) {
+    return "mother_relationship";
+  }
+
+  if (
+    /\b(relationship with my father|father relationship|why is my relationship with my father difficult|father pattern|paternal relationship)\b/.test(q)
+  ) {
+    return "father_relationship";
+  }
+
+  if (
+    /\b(parental influence|how have my parents influenced me|parents influence|family influence|effect of my parents on me)\b/.test(q)
+  ) {
+    return "parental_influence";
+  }
+
+  if (
+    /\b(family elder pattern|relationship with family elders|elder relationship|family elders)\b/.test(q)
+  ) {
+    return "family_elder_pattern";
+  }
+
+  if (
+    /\b(when will my parents support me|when will parental support improve|parent support timing|when will family support improve)\b/.test(q)
+  ) {
+    return "parent_support_timing";
+  }
+
+  if (
+    /\b(when will responsibility for my parents increase|parent responsibility timing|when will i need to take care of my parents|when will parental responsibility increase)\b/.test(q)
+  ) {
+    return "parent_responsibility_timing";
+  }
+
+  if (timeDirection === "identity") {
+    return "parent_relationship_pattern";
+  }
+
+  if (timeDirection === "future") {
+    return "parent_support_timing";
+  }
+
+  return "generic";
+}
+function detectSiblingsEventType(
+  question: string,
+  topic: AskSarathiDomain,
+  timeDirection: TimeDirection
+): SiblingsEventType {
+  if (topic !== "siblings") {
+    return "generic";
+  }
+
+  const q = question.toLowerCase().trim();
+
+  if (
+    /\b(relationship with my siblings|sibling relationship|why is my relationship with my sibling difficult|why do i struggle with my siblings|sibling relationship pattern)\b/.test(q)
+  ) {
+    return "sibling_relationship_pattern";
+  }
+
+  if (
+    /\b(elder sibling|older sibling|older brother|older sister|elder brother|elder sister)\b/.test(q)
+  ) {
+    return "elder_sibling_pattern";
+  }
+
+  if (
+    /\b(younger sibling|younger brother|younger sister)\b/.test(q)
+  ) {
+    return "younger_sibling_pattern";
+  }
+
+  if (
+    /\b(will my sibling support me|sibling support|support from my brother|support from my sister|are my siblings supportive)\b/.test(q)
+  ) {
+    return "sibling_support";
+  }
+
+  if (
+    /\b(when will conflict with my sibling end|when will sibling conflict improve|sibling conflict timing|when will things improve with my brother|when will things improve with my sister)\b/.test(q)
+  ) {
+    return "sibling_conflict_timing";
+  }
+
+  if (
+    /\b(when will my sibling support me|when will sibling support improve|sibling support timing)\b/.test(q)
+  ) {
+    return "sibling_support_timing";
+  }
+
+  if (timeDirection === "identity") {
+    return "sibling_relationship_pattern";
+  }
+
+  if (timeDirection === "future") {
+    return "sibling_support_timing";
+  }
+
+  return "generic";
+}
+function detectTravelEventType(
+  question: string,
+  topic: AskSarathiDomain,
+  timeDirection: TimeDirection
+): TravelEventType {
+  if (topic !== "travel") {
+    return "generic";
+  }
+
+  const q = question.toLowerCase().trim();
+
+  if (
+    /\b(am i naturally inclined to travel|do i have strong travel potential|travel inclination|do i travel a lot|am i meant to travel)\b/.test(q)
+  ) {
+    return "travel_inclination";
+  }
+
+  if (
+    /\b(foreign travel pattern|do i have foreign travel|overseas travel pattern|international travel potential|am i likely to travel abroad often)\b/.test(q)
+  ) {
+    return "foreign_travel_pattern";
+  }
+
+  if (
+    /\b(why do i travel so much|why do i keep travelling|frequent travel pattern|why am i always travelling|constant travel)\b/.test(q)
+  ) {
+    return "frequent_travel_pattern";
+  }
+
+  if (
+    /\b(pilgrimage pattern|am i suited to pilgrimage|does pilgrimage suit me|spiritual travel suit me|religious travel pattern)\b/.test(q)
+  ) {
+    return "pilgrimage_pattern";
+  }
+
+  if (
+    /\b(when will i travel abroad|when will foreign travel happen|foreign travel timing|when can i travel overseas|when will i go overseas)\b/.test(q)
+  ) {
+    return "foreign_travel_timing";
+  }
+
+  if (
+    /\b(when should i go on pilgrimage|when will pilgrimage happen|pilgrimage timing|good time for pilgrimage)\b/.test(q)
+  ) {
+    return "pilgrimage_timing";
+  }
+
+  if (
+    /\b(when will i travel|when should i travel|travel timing|when is a good time to travel|when will my trip happen)\b/.test(q)
+  ) {
+    return "travel_timing";
+  }
+
+  if (timeDirection === "identity") {
+    return "travel_inclination";
+  }
+
+  if (timeDirection === "future") {
+    return "travel_timing";
+  }
+
+  return "generic";
+}
+function detectReputationEventType(
+  question: string,
+  topic: AskSarathiDomain,
+  timeDirection: TimeDirection
+): ReputationEventType {
+  if (topic !== "reputation") {
+    return "generic";
+  }
+
+  const q = question.toLowerCase().trim();
+
+  if (
+    /\b(do i have potential for recognition|do i have recognition potential|reputation potential|public recognition potential|fame potential|status potential)\b/.test(q)
+  ) {
+    return "reputation_potential";
+  }
+
+  if (
+    /\b(how am i perceived publicly|public image|how do people see me|what is my public image|how am i seen professionally|reputation pattern)\b/.test(q)
+  ) {
+    return "public_image_pattern";
+  }
+
+  if (
+    /\b(why do i struggle to get recognition|why am i not recognised|why am i not recognized|recognition pattern|why does recognition come late|why do others get credit)\b/.test(q)
+  ) {
+    return "recognition_pattern";
+  }
+
+  if (
+    /\b(am i naturally visible|am i more private or visible|visibility style|public visibility|do i like recognition|am i suited to public roles)\b/.test(q)
+  ) {
+    return "visibility_style";
+  }
+
+  if (
+    /\b(when will my reputation grow|when will my public image improve|reputation growth|when will my status improve|when will visibility increase)\b/.test(q)
+  ) {
+    return "reputation_growth";
+  }
+
+  if (
+    /\b(when will i get recognition|when will i be recognised|when will i be recognized|recognition timing|when will i get visibility|when will i get public recognition)\b/.test(q)
+  ) {
+    return "recognition_timing";
+  }
+
+  if (
+    /\b(when will my reputation recover|reputation recovery|when will my image improve|when will public perception improve|when will my name recover)\b/.test(q)
+  ) {
+    return "reputation_recovery";
+  }
+
+  if (timeDirection === "identity") {
+    return "reputation_potential";
+  }
+
+  if (timeDirection === "future") {
+    return "recognition_timing";
+  }
+
+  return "generic";
+}
+function detectDebtEventType(
+  question: string,
+  topic: AskSarathiDomain,
+  timeDirection: TimeDirection
+): DebtEventType {
+  if (topic !== "debt") {
+    return "generic";
+  }
+
+  const q = question.toLowerCase().trim();
+
+  if (
+    /\b(why do i keep getting into debt|debt pattern|why does debt keep returning|why do i struggle with debt|recurring debt)\b/.test(q)
+  ) {
+    return "debt_pattern";
+  }
+
+  if (
+    /\b(am i prone to borrowing|borrowing tendency|do i borrow too much|am i likely to take loans|loan tendency|debt tendency)\b/.test(q)
+  ) {
+    return "borrowing_tendency";
+  }
+
+  if (
+    /\b(am i good at repaying debt|repayment capacity|can i manage debt well|debt repayment ability|ability to repay loans)\b/.test(q)
+  ) {
+    return "repayment_capacity";
+  }
+
+  if (
+    /\b(liability pattern|why do liabilities keep building|why do my liabilities increase|financial liabilities pattern|why do loans accumulate)\b/.test(q)
+  ) {
+    return "liability_pattern";
+  }
+
+  if (
+    /\b(when will my debt reduce|when will debt decrease|debt reduction|when will i become debt free|when will loans reduce)\b/.test(q)
+  ) {
+    return "debt_reduction";
+  }
+
+  if (
+    /\b(when should i take a loan|when is a good time for a loan|loan timing|when can i borrow|when should i borrow)\b/.test(q)
+  ) {
+    return "loan_timing";
+  }
+
+  if (
+    /\b(when should i repay debt|when is a good time to repay|repayment timing|when will i repay my loan|when will my loan be repaid)\b/.test(q)
+  ) {
+    return "repayment_timing";
+  }
+
+  if (timeDirection === "identity") {
+    return "debt_pattern";
+  }
+
+  if (timeDirection === "future") {
+    return "debt_reduction";
+  }
+
+  return "generic";
+}
+function detectInheritanceEventType(
+  question: string,
+  topic: AskSarathiDomain,
+  timeDirection: TimeDirection
+): InheritanceEventType {
+  if (topic !== "inheritance") {
+    return "generic";
+  }
+
+  const q = question.toLowerCase().trim();
+
+  if (
+    /\b(do i have inheritance potential|inheritance potential|am i likely to receive inheritance|legacy potential|ancestral wealth potential)\b/.test(q)
+  ) {
+    return "inheritance_potential";
+  }
+
+  if (
+    /\b(ancestral pattern|ancestral family pattern|family karma around inheritance|ancestral wealth pattern|inheritance from ancestors)\b/.test(q)
+  ) {
+    return "ancestral_pattern";
+  }
+
+  if (
+    /\b(legacy pattern|family legacy|wealth legacy|what kind of legacy do i inherit|legacy influence)\b/.test(q)
+  ) {
+    return "legacy_pattern";
+  }
+
+  if (
+    /\b(why are inheritance matters difficult|inheritance conflict pattern|family dispute over inheritance|inheritance disputes|why is inheritance complicated in my family)\b/.test(q)
+  ) {
+    return "inheritance_conflict_pattern";
+  }
+
+  if (
+    /\b(when will i receive inheritance|when am i likely to receive inheritance|inheritance timing|when will inheritance come|when will ancestral property come to me)\b/.test(q)
+  ) {
+    return "inheritance_timing";
+  }
+
+  if (
+    /\b(when will inheritance settle|when will the estate settle|inheritance settlement|estate settlement timing|when will probate finish)\b/.test(q)
+  ) {
+    return "inheritance_settlement";
+  }
+
+  if (
+    /\b(when will legacy transfer happen|legacy transfer timing|when will assets be transferred|when will ancestral assets transfer)\b/.test(q)
+  ) {
+    return "legacy_transfer_timing";
+  }
+
+  if (timeDirection === "identity") {
+    return "inheritance_potential";
+  }
+
+  if (timeDirection === "future") {
+    return "inheritance_timing";
+  }
+
+  return "generic";
+}
+function detectMentalHealthEventType(
+  question: string,
+  topic: AskSarathiDomain,
+  timeDirection: TimeDirection
+): MentalHealthEventType {
+  if (topic !== "mental_health") {
+    return "generic";
+  }
+
+  const q = question.toLowerCase().trim();
+
+  if (
+    /\b(mental emotional pattern|mental pattern|emotional pattern|why do i feel mentally overwhelmed|why do i feel emotionally overwhelmed)\b/.test(q)
+  ) {
+    return "mental_emotional_pattern";
+  }
+
+  if (
+    /\b(why do i overthink|overthinking pattern|why is my mind always active|why can't i stop thinking|why can i not stop thinking|mental restlessness)\b/.test(q)
+  ) {
+    return "overthinking_pattern";
+  }
+
+  if (
+    /\b(why am i emotionally sensitive|mood sensitivity|why are my moods sensitive|why do things affect me deeply|emotional sensitivity)\b/.test(q)
+  ) {
+    return "mood_sensitivity";
+  }
+
+  if (
+    /\b(how resilient am i under stress|stress resilience|mental resilience|how do i handle stress|why does stress affect me so much)\b/.test(q)
+  ) {
+    return "stress_resilience";
+  }
+
+  if (
+    /\b(why do my moods fluctuate|emotional regulation pattern|why do my emotions fluctuate|why is it hard to regulate my emotions|emotional regulation)\b/.test(q)
+  ) {
+    return "emotional_regulation_pattern";
+  }
+
+  if (
+    /\b(when will i feel mentally better|when will my mental health improve|mental health recovery|when will i feel emotionally better|when will my mind feel calmer)\b/.test(q)
+  ) {
+    return "mental_health_recovery";
+  }
+
+  if (
+    /\b(is this a mentally sensitive period|mental health timing|when is my mind more sensitive|when should i be more careful mentally|mental sensitivity period)\b/.test(q)
+  ) {
+    return "mental_health_timing";
+  }
+
+  if (
+    /\b(when will i get more emotional support|when will support improve|support timing|when will i feel more supported)\b/.test(q)
+  ) {
+    return "support_timing";
+  }
+
+  if (timeDirection === "identity") {
+    return "mental_emotional_pattern";
+  }
+
+  if (timeDirection === "future") {
+    return "mental_health_timing";
+  }
+
+  return "generic";
+}
+function detectPetsEventType(
+  question: string,
+  topic: AskSarathiDomain
+): PetsEventType {
+  if (topic !== "pets") {
+    return "generic";
+  }
+
+  const q = question.toLowerCase().trim();
+
+  if (
+    /\b(relationship with my pet|pet relationship|bond with my pet|why am i so attached to my pet|pet bond)\b/.test(q)
+  ) {
+    return "pet_relationship_pattern";
+  }
+
+  if (
+    /\b(pet caregiving style|how do i care for pets|what kind of pet owner am i|pet owner style|caregiving with animals)\b/.test(q)
+  ) {
+    return "pet_caregiving_style";
+  }
+
+  if (
+    /\b(pet responsibility pattern|why do pets become a responsibility for me|responsibility for animals|pet responsibility)\b/.test(q)
+  ) {
+    return "pet_responsibility_pattern";
+  }
+
+  return "pet_relationship_pattern";
+}
+function detectInnerEventType(
+  question: string,
+  topic: AskSarathiDomain
+): InnerEventType {
+  if (topic !== "inner") {
+    return "generic";
+  }
+
+  const q = question.toLowerCase().trim();
+
+  if (
+    /\b(what direction should my life take|life direction|why do i feel directionless|where is my life going|what direction suits me)\b/.test(q)
+  ) {
+    return "life_direction_pattern";
+  }
+
+  if (
+    /\b(what is my purpose|life purpose|purpose pattern|what am i meant to do|what gives my life purpose)\b/.test(q)
+  ) {
+    return "purpose_pattern";
+  }
+
+  if (
+    /\b(inner conflict|why do i feel conflicted inside|why am i internally confused|inner struggle|internal conflict)\b/.test(q)
+  ) {
+    return "inner_conflict_pattern";
+  }
+
+  if (
+    /\b(understand myself|self understanding|why am i like this|what is my inner nature|who am i really)\b/.test(q)
+  ) {
+    return "self_understanding_pattern";
+  }
+
+  if (
+    /\b(meaning of my life|why does life feel meaningless|meaning pattern|what gives my life meaning|searching for meaning)\b/.test(q)
+  ) {
+    return "meaning_pattern";
+  }
+
+  return "self_understanding_pattern";
 }
 function buildTimingConfidenceNote(
   question: string,
@@ -4630,13 +7274,37 @@ function getMovementMeaning(
     return "income discussions, delayed payments, bonus movement, side-income openings, expense planning, or cash-flow improvement";
   }
 
-  if (topic === "relationships") {
-    if (eventType === "new_relationship") return "communication, emotional opening, attraction, introductions, or relationship opportunities";
-    if (eventType === "reconciliation") return "reconnection, renewed communication, emotional clarity, or relationship repair";
-    return "communication, emotional opening, attraction, reconnection, commitment talk, or clarity in an existing bond";
+if (topic === "relationships") {
+  if (eventType === "reconciliation") {
+    return "renewed contact, emotional reopening, conversation, clarification, or movement toward reconnecting";
   }
 
-  if (topic === "marriage") return "family discussions, meetings, proposal movement, commitment talks, or formal relationship decisions";
+  if (eventType === "meeting_partner") {
+    return "meeting someone significant, introductions, attraction, or early relationship development";
+  }
+
+  if (eventType === "new_relationship") {
+    return "new introductions, dating activity, attraction, communication, or movement toward a new relationship";
+  }
+
+  if (eventType === "marriage_commitment") {
+    return "commitment discussions, relationship definition, family involvement, engagement, or movement toward marriage";
+  }
+
+  return "relationship discussions, emotional clarification, new introductions, commitment development, or movement in an existing bond";
+}
+
+if (topic === "marriage") {
+  if (eventType === "marriage_timing") {
+    return "commitment discussions, family involvement, engagement, wedding planning, or movement toward marriage";
+  }
+
+  if (eventType === "marriage_commitment") {
+    return "formal commitment, engagement, family discussions, agreement, or movement toward marriage";
+  }
+
+  return "commitment development, family discussions, relationship formalisation, or movement toward marriage";
+}
   if (topic === "health") return "routine correction, symptoms becoming noticeable, recovery effort, medical checkups, or lifestyle adjustment";
   if (topic === "relocation") return eventType === "foreign_move" ? "travel planning, paperwork, visa movement, foreign opportunities, or settlement decisions" : "location discussions, paperwork, travel planning, or settlement changes";
   if (topic === "disputes") return "negotiation, legal movement, confrontation, documentation, or resolution attempts";
@@ -6099,6 +8767,14 @@ const blockers = [
       karakas: astroBundle.karakas,
       divisionalCharts: astroBundle.divisionalCharts,
       houseLordReasons: extractHouseLordReasons(astroBundle),
+      sambandhaReasons:
+    astroBundle.sambandhaAnalysis.bullets,
+
+  sambandhaVerdict:
+    astroBundle.sambandhaAnalysis.verdict,
+
+  sambandhaScore:
+    astroBundle.sambandhaAnalysis.conversionScore,
       currentDasha: astroBundle.currentDasha,
     },
    planetContributions: buildPlanetContributions(astroBundle),
@@ -6708,9 +9384,13 @@ function detectTopic(question: string): AskSarathiDomain {
   return "relationships";
 }
 
-  if (/\b(job|career|profession|promotion|promoted|work|boss|get promoted|role change|switch job|change my job)\b/.test(q)) {
-    return "career";
-  }
+  if (
+  /\b(job|career|profession|promotion|promoted|work|boss|get promoted|role change|switch job|change my job|astrologer|teacher|software engineer|software developer|banker|doctor|physician|lawyer|attorney|politician|consultant|researcher|psychologist|accountant|journalist|writer|salesperson|sales person|architect|designer|scientist|military officer|army officer|spiritual teacher)\b/.test(
+    q
+  )
+) {
+  return "career";
+}
 
   if (/\b(money|wealth|income|finance|salary|bonus)\b/.test(q)) {
     return "money";
@@ -7366,6 +10046,1242 @@ const CAREER_EVENT_RULES: Partial<
       "job stability, workload, role continuity, risk of disruption",
   },
 };
+const RELATIONSHIP_EVENT_RULES: Partial<
+  Record<
+    RelationshipEventType,
+    {
+      houses: number[];
+      supportHouses: number[];
+      karakas: string[];
+      divisionalCharts: string[];
+    }
+  >
+> = {
+  relationship_suitability: {
+    houses: [7],
+    supportHouses: [2, 4, 5, 8, 11],
+    karakas: ["Venus", "Jupiter", "Moon"],
+    divisionalCharts: ["D9"],
+  },
+
+  partner_profile: {
+    houses: [7],
+    supportHouses: [1, 5, 9, 11],
+    karakas: ["Venus", "Jupiter", "Moon"],
+    divisionalCharts: ["D9"],
+  },
+
+  relationship_pattern: {
+    houses: [7],
+    supportHouses: [1, 4, 5, 8, 12],
+    karakas: ["Venus", "Moon", "Mars", "Saturn"],
+    divisionalCharts: ["D9"],
+  },
+
+  love_vs_arranged: {
+    houses: [5, 7],
+    supportHouses: [2, 9, 11],
+    karakas: ["Venus", "Moon", "Jupiter", "Rahu"],
+    divisionalCharts: ["D9"],
+  },
+
+  new_relationship: {
+    houses: [5, 7],
+    supportHouses: [11],
+    karakas: ["Venus", "Moon", "Jupiter"],
+    divisionalCharts: ["D9"],
+  },
+
+  meeting_partner: {
+    houses: [5, 7],
+    supportHouses: [9, 11],
+    karakas: ["Venus", "Jupiter", "Moon"],
+    divisionalCharts: ["D9"],
+  },
+
+  reconciliation: {
+    houses: [5, 7],
+    supportHouses: [4, 8, 11],
+    karakas: ["Venus", "Moon", "Mercury"],
+    divisionalCharts: ["D9"],
+  },
+
+  marriage_commitment: {
+    houses: [7],
+    supportHouses: [2, 8, 11],
+    karakas: ["Venus", "Jupiter"],
+    divisionalCharts: ["D9"],
+  },
+
+  marriage_timing: {
+    houses: [7],
+    supportHouses: [2, 5, 8, 11],
+    karakas: ["Venus", "Jupiter"],
+    divisionalCharts: ["D9"],
+  },
+};
+const WEALTH_EVENT_RULES: Partial<
+  Record<
+    WealthEventType,
+    {
+      houses: number[];
+      supportHouses: number[];
+      karakas: string[];
+      divisionalCharts: string[];
+    }
+  >
+> = {
+  wealth_potential: {
+    houses: [2, 11],
+    supportHouses: [5, 9],
+    karakas: ["Jupiter", "Venus", "Mercury"],
+    divisionalCharts: ["D2"],
+  },
+
+  earning_style: {
+    houses: [2, 10, 11],
+    supportHouses: [3, 5, 6],
+    karakas: ["Mercury", "Jupiter", "Venus"],
+    divisionalCharts: ["D2", "D10"],
+  },
+
+  wealth_pattern: {
+    houses: [2, 11],
+    supportHouses: [5, 8, 12],
+    karakas: ["Jupiter", "Venus", "Saturn"],
+    divisionalCharts: ["D2"],
+  },
+
+  saving_capacity: {
+    houses: [2],
+    supportHouses: [4, 11, 12],
+    karakas: ["Jupiter", "Saturn", "Venus"],
+    divisionalCharts: ["D2"],
+  },
+
+  investment_suitability: {
+    houses: [2, 5, 8, 11],
+    supportHouses: [9],
+    karakas: ["Mercury", "Jupiter", "Rahu"],
+    divisionalCharts: ["D2"],
+  },
+
+  multiple_income: {
+    houses: [2, 3, 11],
+    supportHouses: [5, 7, 10],
+    karakas: ["Mercury", "Jupiter", "Rahu"],
+    divisionalCharts: ["D2", "D10"],
+  },
+
+  salary_increase: {
+    houses: [2, 6, 10, 11],
+    supportHouses: [9],
+    karakas: ["Jupiter", "Sun", "Mercury"],
+    divisionalCharts: ["D2", "D10"],
+  },
+
+  bonus: {
+    houses: [2, 5, 11],
+    supportHouses: [8],
+    karakas: ["Jupiter", "Venus"],
+    divisionalCharts: ["D2"],
+  },
+
+  side_income: {
+    houses: [2, 3, 7, 11],
+    supportHouses: [5, 10],
+    karakas: ["Mercury", "Jupiter", "Rahu"],
+    divisionalCharts: ["D2", "D10"],
+  },
+
+  financial_improvement: {
+    houses: [2, 11],
+    supportHouses: [5, 9, 10],
+    karakas: ["Jupiter", "Venus"],
+    divisionalCharts: ["D2"],
+  },
+
+  wealth_timing: {
+    houses: [2, 11],
+    supportHouses: [5, 9],
+    karakas: ["Jupiter", "Venus"],
+    divisionalCharts: ["D2"],
+  },
+};
+const BUSINESS_EVENT_RULES: Partial<
+  Record<
+    BusinessEventType,
+    {
+      houses: number[];
+      supportHouses: number[];
+      karakas: string[];
+      divisionalCharts: string[];
+    }
+  >
+> = {
+  business_suitability: {
+    houses: [7, 10],
+    supportHouses: [2, 3, 5, 11],
+    karakas: ["Mercury", "Mars", "Jupiter", "Saturn"],
+    divisionalCharts: ["D10"],
+  },
+
+  business_style: {
+    houses: [3, 7, 10],
+    supportHouses: [2, 5, 11],
+    karakas: ["Mercury", "Mars", "Jupiter", "Venus"],
+    divisionalCharts: ["D10"],
+  },
+
+  business_vs_job: {
+    houses: [6, 7, 10],
+    supportHouses: [2, 3, 11],
+    karakas: ["Mercury", "Mars", "Saturn", "Jupiter"],
+    divisionalCharts: ["D10"],
+  },
+
+  partnership_suitability: {
+    houses: [7],
+    supportHouses: [2, 3, 8, 11],
+    karakas: ["Mercury", "Venus", "Jupiter", "Saturn"],
+    divisionalCharts: ["D10"],
+  },
+
+  entrepreneurial_pattern: {
+    houses: [3, 7, 10],
+    supportHouses: [1, 2, 5, 11],
+    karakas: ["Mars", "Mercury", "Jupiter", "Rahu"],
+    divisionalCharts: ["D10"],
+  },
+
+  business_launch: {
+    houses: [3, 7, 10, 11],
+    supportHouses: [2, 5, 9],
+    karakas: ["Mercury", "Mars", "Jupiter"],
+    divisionalCharts: ["D10"],
+  },
+
+  business_growth: {
+    houses: [7, 10, 11],
+    supportHouses: [2, 3, 5, 9],
+    karakas: ["Jupiter", "Mercury", "Venus"],
+    divisionalCharts: ["D10"],
+  },
+
+  client_growth: {
+    houses: [7, 11],
+    supportHouses: [3, 10],
+    karakas: ["Mercury", "Venus", "Jupiter"],
+    divisionalCharts: ["D10"],
+  },
+
+  partnership_timing: {
+    houses: [7],
+    supportHouses: [2, 8, 10, 11],
+    karakas: ["Mercury", "Venus", "Jupiter", "Saturn"],
+    divisionalCharts: ["D10"],
+  },
+
+  business_timing: {
+    houses: [3, 7, 10, 11],
+    supportHouses: [2, 5, 9],
+    karakas: ["Mercury", "Mars", "Jupiter"],
+    divisionalCharts: ["D10"],
+  },
+};
+const EDUCATION_EVENT_RULES: Partial<
+  Record<
+    EducationEventType,
+    {
+      houses: number[];
+      supportHouses: number[];
+      karakas: string[];
+      divisionalCharts: string[];
+    }
+  >
+> = {
+  education_suitability: {
+    houses: [4, 5],
+    supportHouses: [2, 9],
+    karakas: ["Mercury", "Jupiter", "Moon"],
+    divisionalCharts: ["D24"],
+  },
+
+  subject_fit: {
+    houses: [2, 4, 5],
+    supportHouses: [3, 9, 10],
+    karakas: ["Mercury", "Jupiter", "Moon"],
+    divisionalCharts: ["D24"],
+  },
+
+  stream_choice: {
+    houses: [4, 5],
+    supportHouses: [2, 3, 9, 10],
+    karakas: ["Mercury", "Jupiter", "Mars", "Venus"],
+    divisionalCharts: ["D24"],
+  },
+
+  study_pattern: {
+    houses: [4, 5],
+    supportHouses: [1, 2, 3, 6],
+    karakas: ["Mercury", "Moon", "Saturn"],
+    divisionalCharts: ["D24"],
+  },
+
+  higher_education: {
+    houses: [5, 9],
+    supportHouses: [4, 12],
+    karakas: ["Jupiter", "Mercury"],
+    divisionalCharts: ["D24"],
+  },
+
+  exam_performance: {
+    houses: [4, 5, 6],
+    supportHouses: [3, 9],
+    karakas: ["Mercury", "Jupiter", "Saturn"],
+    divisionalCharts: ["D24"],
+  },
+
+  education_timing: {
+    houses: [4, 5, 9],
+    supportHouses: [3, 6],
+    karakas: ["Mercury", "Jupiter"],
+    divisionalCharts: ["D24"],
+  },
+};
+const SPIRITUAL_EVENT_RULES: Partial<
+  Record<
+    SpiritualEventType,
+    {
+      houses: number[];
+      supportHouses: number[];
+      karakas: string[];
+      divisionalCharts: string[];
+    }
+  >
+> = {
+  spiritual_inclination: {
+    houses: [5, 9, 12],
+    supportHouses: [4, 8],
+    karakas: ["Jupiter", "Ketu", "Moon"],
+    divisionalCharts: ["D20"],
+  },
+
+  spiritual_path: {
+    houses: [5, 9, 12],
+    supportHouses: [4, 8],
+    karakas: ["Jupiter", "Ketu", "Moon", "Sun"],
+    divisionalCharts: ["D20", "D9"],
+  },
+
+  devotional_style: {
+    houses: [4, 5, 9],
+    supportHouses: [12],
+    karakas: ["Moon", "Jupiter", "Venus"],
+    divisionalCharts: ["D20"],
+  },
+
+  meditation_suitability: {
+    houses: [5, 8, 12],
+    supportHouses: [4, 9],
+    karakas: ["Moon", "Ketu", "Saturn", "Jupiter"],
+    divisionalCharts: ["D20"],
+  },
+
+  mantra_suitability: {
+    houses: [2, 5, 9, 12],
+    supportHouses: [8],
+    karakas: ["Mercury", "Jupiter", "Ketu"],
+    divisionalCharts: ["D20"],
+  },
+
+  guru_pattern: {
+    houses: [5, 9],
+    supportHouses: [1, 12],
+    karakas: ["Jupiter", "Sun", "Ketu"],
+    divisionalCharts: ["D20", "D9"],
+  },
+
+  spiritual_growth: {
+    houses: [5, 9, 12],
+    supportHouses: [8],
+    karakas: ["Jupiter", "Ketu", "Saturn"],
+    divisionalCharts: ["D20"],
+  },
+
+  spiritual_timing: {
+    houses: [5, 9, 12],
+    supportHouses: [8],
+    karakas: ["Jupiter", "Ketu", "Saturn"],
+    divisionalCharts: ["D20"],
+  },
+};
+const CHILD_EVENT_RULES: Partial<
+  Record<
+    ChildrenEventType,
+    {
+      houses: number[];
+      supportHouses: number[];
+      karakas: string[];
+      divisionalCharts: string[];
+    }
+  >
+> = {
+  parenthood_potential: {
+    houses: [5],
+    supportHouses: [2, 9, 11],
+    karakas: ["Jupiter", "Moon"],
+    divisionalCharts: ["D7"],
+  },
+
+  parenting_style: {
+    houses: [5],
+    supportHouses: [1, 4, 9],
+    karakas: ["Moon", "Jupiter", "Sun"],
+    divisionalCharts: ["D7"],
+  },
+
+  child_relationship_pattern: {
+    houses: [5],
+    supportHouses: [1, 4, 9],
+    karakas: ["Moon", "Jupiter", "Mercury", "Saturn"],
+    divisionalCharts: ["D7"],
+  },
+
+  child_aptitude: {
+    houses: [5],
+    supportHouses: [2, 3, 4, 9],
+    karakas: ["Mercury", "Jupiter", "Moon"],
+    divisionalCharts: ["D7"],
+  },
+
+  conception_timing: {
+    houses: [5],
+    supportHouses: [2, 8, 9, 11],
+    karakas: ["Jupiter", "Venus", "Moon"],
+    divisionalCharts: ["D7"],
+  },
+
+  childbirth_timing: {
+    houses: [5],
+    supportHouses: [2, 8, 9, 11],
+    karakas: ["Jupiter", "Moon", "Venus"],
+    divisionalCharts: ["D7"],
+  },
+
+  child_development_timing: {
+    houses: [5],
+    supportHouses: [4, 9, 11],
+    karakas: ["Jupiter", "Moon", "Mercury"],
+    divisionalCharts: ["D7"],
+  },
+};
+const HEALTH_EVENT_RULES: Partial<
+  Record<
+    HealthEventType,
+    {
+      houses: number[];
+      supportHouses: number[];
+      karakas: string[];
+      divisionalCharts: string[];
+    }
+  >
+> = {
+  health_constitution: {
+    houses: [1, 6],
+    supportHouses: [8, 12],
+    karakas: ["Sun", "Moon", "Saturn"],
+    divisionalCharts: ["D6", "D30"],
+  },
+
+  health_sensitivity: {
+    houses: [1, 6, 8],
+    supportHouses: [12],
+    karakas: ["Moon", "Saturn", "Mars", "Rahu", "Ketu"],
+    divisionalCharts: ["D6", "D30"],
+  },
+
+  stress_pattern: {
+    houses: [1, 4, 6],
+    supportHouses: [8, 12],
+    karakas: ["Moon", "Mercury", "Saturn"],
+    divisionalCharts: ["D30"],
+  },
+
+  recovery_capacity: {
+    houses: [1, 6],
+    supportHouses: [5, 8, 11],
+    karakas: ["Sun", "Jupiter", "Mars"],
+    divisionalCharts: ["D6", "D30"],
+  },
+
+  lifestyle_pattern: {
+    houses: [1, 6],
+    supportHouses: [4, 5, 12],
+    karakas: ["Sun", "Moon", "Saturn", "Mercury"],
+    divisionalCharts: ["D6"],
+  },
+
+  health_recovery: {
+    houses: [1, 6, 8],
+    supportHouses: [5, 11],
+    karakas: ["Sun", "Jupiter", "Mars"],
+    divisionalCharts: ["D6", "D30"],
+  },
+
+  health_checkup: {
+    houses: [1, 6, 8],
+    supportHouses: [12],
+    karakas: ["Moon", "Saturn", "Mars"],
+    divisionalCharts: ["D6", "D30"],
+  },
+
+  health_timing: {
+    houses: [1, 6, 8],
+    supportHouses: [11, 12],
+    karakas: ["Sun", "Moon", "Saturn", "Jupiter"],
+    divisionalCharts: ["D6", "D30"],
+  },
+};
+const PROPERTY_EVENT_RULES: Partial<
+  Record<
+    PropertyEventType,
+    {
+      houses: number[];
+      supportHouses: number[];
+      karakas: string[];
+      divisionalCharts: string[];
+    }
+  >
+> = {
+  property_potential: {
+    houses: [4],
+    supportHouses: [2, 9, 11],
+    karakas: ["Mars", "Venus", "Moon", "Jupiter"],
+    divisionalCharts: ["D4"],
+  },
+
+  property_investment_suitability: {
+    houses: [4, 5, 11],
+    supportHouses: [2, 8, 9],
+    karakas: ["Mars", "Jupiter", "Venus", "Mercury"],
+    divisionalCharts: ["D4", "D2"],
+  },
+
+  property_pattern: {
+    houses: [4],
+    supportHouses: [2, 8, 12],
+    karakas: ["Moon", "Mars", "Saturn", "Rahu"],
+    divisionalCharts: ["D4"],
+  },
+
+  home_stability: {
+    houses: [4],
+    supportHouses: [1, 2, 9],
+    karakas: ["Moon", "Venus", "Saturn"],
+    divisionalCharts: ["D4"],
+  },
+
+  buy_property: {
+    houses: [4, 11, 12],
+    supportHouses: [2],
+    karakas: ["Mars", "Venus", "Moon"],
+    divisionalCharts: ["D4"],
+  },
+
+  sell_property: {
+    houses: [4, 8, 12],
+    supportHouses: [2, 11],
+    karakas: ["Mars", "Saturn", "Mercury"],
+    divisionalCharts: ["D4"],
+  },
+
+  move_home: {
+    houses: [4, 12],
+    supportHouses: [3, 9],
+    karakas: ["Moon", "Rahu", "Saturn"],
+    divisionalCharts: ["D4"],
+  },
+
+  property_timing: {
+    houses: [4, 11, 12],
+    supportHouses: [2, 9],
+    karakas: ["Mars", "Venus", "Jupiter"],
+    divisionalCharts: ["D4"],
+  },
+};
+const VEHICLE_EVENT_RULES: Partial<
+  Record<
+    VehicleEventType,
+    {
+      houses: number[];
+      supportHouses: number[];
+      karakas: string[];
+      divisionalCharts: string[];
+    }
+  >
+> = {
+  vehicle_potential: {
+    houses: [4],
+    supportHouses: [2, 11],
+    karakas: ["Venus", "Mars", "Moon"],
+    divisionalCharts: ["D16"],
+  },
+
+  vehicle_preference: {
+    houses: [4],
+    supportHouses: [2, 3, 11],
+    karakas: ["Venus", "Mars", "Moon", "Mercury"],
+    divisionalCharts: ["D16"],
+  },
+
+  vehicle_pattern: {
+    houses: [4],
+    supportHouses: [3, 8, 12],
+    karakas: ["Venus", "Mars", "Saturn", "Rahu"],
+    divisionalCharts: ["D16"],
+  },
+
+  buy_vehicle: {
+    houses: [4, 11, 2],
+    supportHouses: [12],
+    karakas: ["Venus", "Mars"],
+    divisionalCharts: ["D16"],
+  },
+
+  upgrade_vehicle: {
+    houses: [4, 11, 2],
+    supportHouses: [5, 12],
+    karakas: ["Venus", "Mars", "Jupiter"],
+    divisionalCharts: ["D16"],
+  },
+
+  vehicle_timing: {
+    houses: [4, 11, 2],
+    supportHouses: [12],
+    karakas: ["Venus", "Mars", "Jupiter"],
+    divisionalCharts: ["D16"],
+  },
+};
+const RELOCATION_EVENT_RULES: Partial<
+  Record<
+    RelocationEventType,
+    {
+      houses: number[];
+      supportHouses: number[];
+      karakas: string[];
+      divisionalCharts: string[];
+    }
+  >
+> = {
+  relocation_potential: {
+    houses: [4, 9, 12],
+    supportHouses: [3],
+    karakas: ["Moon", "Rahu", "Saturn"],
+    divisionalCharts: ["D4", "D9"],
+  },
+
+  foreign_settlement_potential: {
+    houses: [9, 12, 4],
+    supportHouses: [3, 7],
+    karakas: ["Rahu", "Moon", "Saturn", "Jupiter"],
+    divisionalCharts: ["D4", "D9"],
+  },
+
+  relocation_pattern: {
+    houses: [4, 12],
+    supportHouses: [3, 9],
+    karakas: ["Moon", "Rahu", "Saturn"],
+    divisionalCharts: ["D4"],
+  },
+
+  location_preference: {
+    houses: [4],
+    supportHouses: [1, 9, 12],
+    karakas: ["Moon", "Venus", "Jupiter"],
+    divisionalCharts: ["D4"],
+  },
+
+  foreign_move: {
+    houses: [12, 9, 4],
+    supportHouses: [3],
+    karakas: ["Rahu", "Moon", "Saturn"],
+    divisionalCharts: ["D4", "D9"],
+  },
+
+  local_move: {
+    houses: [4, 3],
+    supportHouses: [9, 12],
+    karakas: ["Moon", "Mercury", "Saturn"],
+    divisionalCharts: ["D4"],
+  },
+
+  relocation_timing: {
+    houses: [4, 9, 12],
+    supportHouses: [3],
+    karakas: ["Moon", "Rahu", "Saturn", "Jupiter"],
+    divisionalCharts: ["D4", "D9"],
+  },
+};
+const DISPUTE_EVENT_RULES: Partial<
+  Record<
+    DisputeEventType,
+    {
+      houses: number[];
+      supportHouses: number[];
+      karakas: string[];
+      divisionalCharts: string[];
+    }
+  >
+> = {
+  conflict_pattern: {
+    houses: [6, 8],
+    supportHouses: [3, 7, 12],
+    karakas: ["Mars", "Saturn", "Rahu", "Mercury"],
+    divisionalCharts: ["D6", "D30"],
+  },
+
+  legal_suitability: {
+    houses: [6, 7, 8],
+    supportHouses: [3, 9, 10],
+    karakas: ["Mars", "Saturn", "Mercury", "Jupiter"],
+    divisionalCharts: ["D6", "D10"],
+  },
+
+  negotiation_style: {
+    houses: [3, 7],
+    supportHouses: [6, 11],
+    karakas: ["Mercury", "Venus", "Mars", "Jupiter"],
+    divisionalCharts: ["D6"],
+  },
+
+  litigation_pattern: {
+    houses: [6, 8],
+    supportHouses: [7, 12],
+    karakas: ["Mars", "Saturn", "Rahu", "Ketu"],
+    divisionalCharts: ["D6", "D30"],
+  },
+
+  dispute_resolution: {
+    houses: [6, 8, 11],
+    supportHouses: [3, 7],
+    karakas: ["Mars", "Saturn", "Mercury", "Jupiter"],
+    divisionalCharts: ["D6"],
+  },
+
+  legal_case_timing: {
+    houses: [6, 8, 11],
+    supportHouses: [3, 7, 9],
+    karakas: ["Mars", "Saturn", "Mercury", "Jupiter"],
+    divisionalCharts: ["D6", "D30"],
+  },
+
+  settlement_timing: {
+    houses: [6, 7, 11],
+    supportHouses: [3, 8],
+    karakas: ["Mercury", "Venus", "Jupiter", "Saturn"],
+    divisionalCharts: ["D6"],
+  },
+};
+const PARENTS_EVENT_RULES: Partial<
+  Record<
+    ParentsEventType,
+    {
+      houses: number[];
+      supportHouses: number[];
+      karakas: string[];
+      divisionalCharts: string[];
+    }
+  >
+> = {
+  parent_relationship_pattern: {
+    houses: [4, 9],
+    supportHouses: [1, 10],
+    karakas: ["Sun", "Moon", "Jupiter", "Saturn"],
+    divisionalCharts: ["D12", "D9"],
+  },
+
+  mother_relationship: {
+    houses: [4],
+    supportHouses: [1, 9],
+    karakas: ["Moon", "Venus", "Jupiter"],
+    divisionalCharts: ["D12"],
+  },
+
+  father_relationship: {
+    houses: [9],
+    supportHouses: [1, 10],
+    karakas: ["Sun", "Jupiter", "Saturn"],
+    divisionalCharts: ["D12"],
+  },
+
+  parental_influence: {
+    houses: [4, 9],
+    supportHouses: [1, 10],
+    karakas: ["Sun", "Moon", "Jupiter", "Saturn"],
+    divisionalCharts: ["D12", "D9"],
+  },
+
+  family_elder_pattern: {
+    houses: [9, 10],
+    supportHouses: [4],
+    karakas: ["Sun", "Jupiter", "Saturn"],
+    divisionalCharts: ["D12"],
+  },
+
+  parent_support_timing: {
+    houses: [4, 9],
+    supportHouses: [1, 10, 11],
+    karakas: ["Sun", "Moon", "Jupiter"],
+    divisionalCharts: ["D12", "D9"],
+  },
+
+  parent_responsibility_timing: {
+    houses: [4, 9],
+    supportHouses: [6, 10, 12],
+    karakas: ["Sun", "Moon", "Saturn"],
+    divisionalCharts: ["D12"],
+  },
+};
+const SIBLINGS_EVENT_RULES: Partial<
+  Record<
+    SiblingsEventType,
+    {
+      houses: number[];
+      supportHouses: number[];
+      karakas: string[];
+      divisionalCharts: string[];
+    }
+  >
+> = {
+  sibling_relationship_pattern: {
+    houses: [3, 11],
+    supportHouses: [2, 6],
+    karakas: ["Mars", "Mercury", "Moon"],
+    divisionalCharts: ["D3"],
+  },
+
+  elder_sibling_pattern: {
+    houses: [11],
+    supportHouses: [3, 2],
+    karakas: ["Saturn", "Jupiter", "Mercury"],
+    divisionalCharts: ["D3"],
+  },
+
+  younger_sibling_pattern: {
+    houses: [3],
+    supportHouses: [11, 2],
+    karakas: ["Mars", "Mercury", "Moon"],
+    divisionalCharts: ["D3"],
+  },
+
+  sibling_support: {
+    houses: [3, 11],
+    supportHouses: [2, 6],
+    karakas: ["Mars", "Mercury", "Jupiter"],
+    divisionalCharts: ["D3"],
+  },
+
+  sibling_conflict_timing: {
+    houses: [3, 6, 11],
+    supportHouses: [8],
+    karakas: ["Mars", "Mercury", "Saturn"],
+    divisionalCharts: ["D3"],
+  },
+
+  sibling_support_timing: {
+    houses: [3, 11],
+    supportHouses: [2, 6],
+    karakas: ["Mercury", "Jupiter", "Mars"],
+    divisionalCharts: ["D3"],
+  },
+};
+const TRAVEL_EVENT_RULES: Partial<
+  Record<
+    TravelEventType,
+    {
+      houses: number[];
+      supportHouses: number[];
+      karakas: string[];
+      divisionalCharts: string[];
+    }
+  >
+> = {
+  travel_inclination: {
+    houses: [3, 9, 12],
+    supportHouses: [4],
+    karakas: ["Moon", "Rahu", "Jupiter", "Mercury"],
+    divisionalCharts: ["D9", "D4"],
+  },
+
+  foreign_travel_pattern: {
+    houses: [9, 12],
+    supportHouses: [3, 4],
+    karakas: ["Rahu", "Moon", "Jupiter"],
+    divisionalCharts: ["D9", "D4"],
+  },
+
+  frequent_travel_pattern: {
+    houses: [3, 9, 12],
+    supportHouses: [4],
+    karakas: ["Moon", "Rahu", "Mercury", "Saturn"],
+    divisionalCharts: ["D9", "D4"],
+  },
+
+  pilgrimage_pattern: {
+    houses: [9, 12],
+    supportHouses: [5],
+    karakas: ["Jupiter", "Moon", "Ketu"],
+    divisionalCharts: ["D9", "D20"],
+  },
+
+  travel_timing: {
+    houses: [3, 9, 12],
+    supportHouses: [4],
+    karakas: ["Moon", "Rahu", "Jupiter"],
+    divisionalCharts: ["D9", "D4"],
+  },
+
+  foreign_travel_timing: {
+    houses: [9, 12],
+    supportHouses: [3, 4],
+    karakas: ["Rahu", "Moon", "Jupiter"],
+    divisionalCharts: ["D9", "D4"],
+  },
+
+  pilgrimage_timing: {
+    houses: [9, 12],
+    supportHouses: [5],
+    karakas: ["Jupiter", "Moon", "Ketu"],
+    divisionalCharts: ["D9", "D20"],
+  },
+};
+const REPUTATION_EVENT_RULES: Partial<
+  Record<
+    ReputationEventType,
+    {
+      houses: number[];
+      supportHouses: number[];
+      karakas: string[];
+      divisionalCharts: string[];
+    }
+  >
+> = {
+  reputation_potential: {
+    houses: [10, 11],
+    supportHouses: [1, 5, 9],
+    karakas: ["Sun", "Jupiter", "Rahu", "Saturn"],
+    divisionalCharts: ["D10", "D9"],
+  },
+
+  public_image_pattern: {
+    houses: [1, 10],
+    supportHouses: [5, 9, 11],
+    karakas: ["Sun", "Moon", "Rahu", "Mercury"],
+    divisionalCharts: ["D10", "D9"],
+  },
+
+  recognition_pattern: {
+    houses: [10, 11],
+    supportHouses: [1, 5, 9],
+    karakas: ["Sun", "Saturn", "Jupiter", "Rahu"],
+    divisionalCharts: ["D10", "D9"],
+  },
+
+  visibility_style: {
+    houses: [1, 10, 11],
+    supportHouses: [3, 5, 9],
+    karakas: ["Sun", "Rahu", "Mercury", "Moon"],
+    divisionalCharts: ["D10"],
+  },
+
+  reputation_growth: {
+    houses: [10, 11],
+    supportHouses: [1, 5, 9],
+    karakas: ["Sun", "Jupiter", "Rahu"],
+    divisionalCharts: ["D10", "D9"],
+  },
+
+  recognition_timing: {
+    houses: [10, 11],
+    supportHouses: [1, 5, 9],
+    karakas: ["Sun", "Jupiter", "Saturn"],
+    divisionalCharts: ["D10", "D9"],
+  },
+
+  reputation_recovery: {
+    houses: [1, 10, 11],
+    supportHouses: [6, 9],
+    karakas: ["Sun", "Saturn", "Jupiter", "Mercury"],
+    divisionalCharts: ["D10", "D9"],
+  },
+};
+const DEBT_EVENT_RULES: Partial<
+  Record<
+    DebtEventType,
+    {
+      houses: number[];
+      supportHouses: number[];
+      karakas: string[];
+      divisionalCharts: string[];
+    }
+  >
+> = {
+  debt_pattern: {
+    houses: [6, 8, 12],
+    supportHouses: [2, 11],
+    karakas: ["Saturn", "Mars", "Rahu", "Mercury"],
+    divisionalCharts: ["D2", "D6"],
+  },
+
+  borrowing_tendency: {
+    houses: [6, 8, 12],
+    supportHouses: [2],
+    karakas: ["Saturn", "Rahu", "Mars", "Mercury"],
+    divisionalCharts: ["D2", "D6"],
+  },
+
+  repayment_capacity: {
+    houses: [2, 6, 11],
+    supportHouses: [8, 12],
+    karakas: ["Saturn", "Jupiter", "Mercury"],
+    divisionalCharts: ["D2", "D6"],
+  },
+
+  liability_pattern: {
+    houses: [6, 8, 12],
+    supportHouses: [2, 11],
+    karakas: ["Saturn", "Mars", "Rahu"],
+    divisionalCharts: ["D2", "D6"],
+  },
+
+  debt_reduction: {
+    houses: [2, 6, 11],
+    supportHouses: [8, 12],
+    karakas: ["Saturn", "Jupiter", "Mercury"],
+    divisionalCharts: ["D2", "D6"],
+  },
+
+  loan_timing: {
+    houses: [2, 6, 8, 11],
+    supportHouses: [12],
+    karakas: ["Saturn", "Mercury", "Jupiter"],
+    divisionalCharts: ["D2", "D6"],
+  },
+
+  repayment_timing: {
+    houses: [2, 6, 11],
+    supportHouses: [8, 12],
+    karakas: ["Saturn", "Jupiter", "Mercury"],
+    divisionalCharts: ["D2", "D6"],
+  },
+};
+const INHERITANCE_EVENT_RULES: Partial<
+  Record<
+    InheritanceEventType,
+    {
+      houses: number[];
+      supportHouses: number[];
+      karakas: string[];
+      divisionalCharts: string[];
+    }
+  >
+> = {
+  inheritance_potential: {
+    houses: [8],
+    supportHouses: [2, 4, 11],
+    karakas: ["Saturn", "Jupiter", "Ketu"],
+    divisionalCharts: ["D8", "D12"],
+  },
+
+  ancestral_pattern: {
+    houses: [8],
+    supportHouses: [2, 4, 9],
+    karakas: ["Ketu", "Saturn", "Jupiter"],
+    divisionalCharts: ["D8", "D12"],
+  },
+
+  legacy_pattern: {
+    houses: [8],
+    supportHouses: [2, 4, 9, 11],
+    karakas: ["Jupiter", "Saturn", "Ketu", "Sun"],
+    divisionalCharts: ["D8", "D12"],
+  },
+
+  inheritance_conflict_pattern: {
+    houses: [6, 8],
+    supportHouses: [2, 4, 11],
+    karakas: ["Saturn", "Mars", "Ketu", "Mercury"],
+    divisionalCharts: ["D8", "D12"],
+  },
+
+  inheritance_timing: {
+    houses: [8],
+    supportHouses: [2, 4, 11],
+    karakas: ["Saturn", "Jupiter", "Ketu"],
+    divisionalCharts: ["D8", "D12"],
+  },
+
+  inheritance_settlement: {
+    houses: [6, 8, 11],
+    supportHouses: [2, 4],
+    karakas: ["Saturn", "Mercury", "Jupiter"],
+    divisionalCharts: ["D8", "D12"],
+  },
+
+  legacy_transfer_timing: {
+    houses: [8, 11],
+    supportHouses: [2, 4],
+    karakas: ["Saturn", "Jupiter", "Mercury"],
+    divisionalCharts: ["D8", "D12"],
+  },
+};
+const MENTAL_HEALTH_EVENT_RULES: Partial<
+  Record<
+    MentalHealthEventType,
+    {
+      houses: number[];
+      supportHouses: number[];
+      karakas: string[];
+      divisionalCharts: string[];
+    }
+  >
+> = {
+  mental_emotional_pattern: {
+    houses: [1, 4, 8, 12],
+    supportHouses: [5],
+    karakas: ["Moon", "Mercury", "Saturn", "Ketu"],
+    divisionalCharts: ["D9", "D30"],
+  },
+
+  overthinking_pattern: {
+    houses: [1, 4, 8, 12],
+    supportHouses: [3, 5, 6],
+    karakas: ["Mercury", "Moon", "Saturn", "Rahu"],
+    divisionalCharts: ["D9", "D30"],
+  },
+
+  mood_sensitivity: {
+    houses: [1, 4, 8, 12],
+    supportHouses: [5],
+    karakas: ["Moon", "Venus", "Saturn", "Ketu"],
+    divisionalCharts: ["D9", "D30"],
+  },
+
+  stress_resilience: {
+    houses: [1, 4, 6],
+    supportHouses: [5, 8, 12],
+    karakas: ["Moon", "Saturn", "Mercury", "Jupiter"],
+    divisionalCharts: ["D9", "D30"],
+  },
+
+  emotional_regulation_pattern: {
+    houses: [1, 4, 8, 12],
+    supportHouses: [5, 6],
+    karakas: ["Moon", "Mercury", "Saturn", "Mars"],
+    divisionalCharts: ["D9", "D30"],
+  },
+
+  mental_health_recovery: {
+    houses: [1, 4, 6, 11],
+    supportHouses: [5, 8, 12],
+    karakas: ["Moon", "Jupiter", "Mercury", "Saturn"],
+    divisionalCharts: ["D9", "D30"],
+  },
+
+  mental_health_timing: {
+    houses: [1, 4, 8, 12],
+    supportHouses: [5, 6, 11],
+    karakas: ["Moon", "Mercury", "Saturn", "Jupiter"],
+    divisionalCharts: ["D9", "D30"],
+  },
+
+  support_timing: {
+    houses: [4, 5, 11],
+    supportHouses: [1, 7],
+    karakas: ["Moon", "Jupiter", "Venus", "Mercury"],
+    divisionalCharts: ["D9"],
+  },
+};
+const PETS_EVENT_RULES: Partial<
+  Record<
+    PetsEventType,
+    {
+      houses: number[];
+      supportHouses: number[];
+      karakas: string[];
+      divisionalCharts: string[];
+    }
+  >
+> = {
+  pet_relationship_pattern: {
+    houses: [6],
+    supportHouses: [4, 12],
+    karakas: ["Moon", "Mercury", "Ketu"],
+    divisionalCharts: ["D6", "D30"],
+  },
+
+  pet_caregiving_style: {
+    houses: [6],
+    supportHouses: [4, 12],
+    karakas: ["Moon", "Mercury", "Venus"],
+    divisionalCharts: ["D6"],
+  },
+
+  pet_responsibility_pattern: {
+    houses: [6],
+    supportHouses: [4, 12],
+    karakas: ["Saturn", "Moon", "Mercury", "Ketu"],
+    divisionalCharts: ["D6", "D30"],
+  },
+};
+
+const INNER_EVENT_RULES: Partial<
+  Record<
+    InnerEventType,
+    {
+      houses: number[];
+      supportHouses: number[];
+      karakas: string[];
+      divisionalCharts: string[];
+    }
+  >
+> = {
+  life_direction_pattern: {
+    houses: [1, 9, 12],
+    supportHouses: [8],
+    karakas: ["Jupiter", "Moon", "Ketu", "Sun"],
+    divisionalCharts: ["D9"],
+  },
+
+  purpose_pattern: {
+    houses: [1, 9, 12],
+    supportHouses: [5, 8],
+    karakas: ["Jupiter", "Sun", "Ketu", "Moon"],
+    divisionalCharts: ["D9"],
+  },
+
+  inner_conflict_pattern: {
+    houses: [8, 12],
+    supportHouses: [1, 4],
+    karakas: ["Moon", "Ketu", "Saturn", "Mercury"],
+    divisionalCharts: ["D9"],
+  },
+
+  self_understanding_pattern: {
+    houses: [1, 8, 12],
+    supportHouses: [4, 9],
+    karakas: ["Moon", "Ketu", "Jupiter", "Mercury"],
+    divisionalCharts: ["D9"],
+  },
+
+  meaning_pattern: {
+    houses: [9, 12],
+    supportHouses: [1, 5, 8],
+    karakas: ["Jupiter", "Ketu", "Moon"],
+    divisionalCharts: ["D9"],
+  },
+};
 function hasValidProfile(profile: NormalizedProfile | null): boolean {
   return !!(
     profile?.dobISO &&
@@ -7940,28 +11856,80 @@ function buildTimingWindows(
 
 function readHouseSupport(report: any, houses: number[]) {
   const bullets: string[] = [];
-  const source = report?.houses ?? report?.natal?.houses ?? {};
+
+  const source =
+    report?.houses ??
+    report?.natal?.houses ??
+    {};
 
   for (const h of houses) {
-    const keyA = `H${h}`;
-    const keyB = String(h);
-    const row = source?.[keyA] ?? source?.[keyB] ?? null;
+    let row: any = null;
+
+    // Array-shaped houses:
+    // find the actual house number instead of using
+    // the house number as a zero-based array index.
+    if (Array.isArray(source)) {
+      row =
+        source.find(
+          (item: any) =>
+            Number(item?.house) === h
+        ) ??
+        source[h - 1] ??
+        null;
+    } else {
+      // Object-shaped houses: H10 / "10"
+      row =
+        source?.[`H${h}`] ??
+        source?.[String(h)] ??
+        null;
+    }
+
     if (!row) continue;
 
-    const lord = safeStr(row?.lord);
-    const sign = safeStr(row?.sign);
-    const occupants = Array.isArray(row?.occupants) ? row.occupants.join(", ") : safeStr(row?.occupants);
+    const lord =
+      safeStr(row?.lord);
+
+    const sign =
+      safeStr(row?.sign);
+
+    const occupants =
+      Array.isArray(row?.occupants)
+        ? row.occupants.join(", ")
+        : safeStr(row?.occupants);
+
+    const lordPlacedHouse =
+      Number.isFinite(
+        Number(row?.lordPlacedHouse)
+      )
+        ? Number(row.lordPlacedHouse)
+        : null;
+
+    const lordPlacedSign =
+      safeStr(row?.lordPlacedSign);
 
     const line = [
       `House ${h}`,
-      lord ? `lord ${lord}` : "",
-      sign ? `in ${sign}` : "",
-      occupants ? `occupants: ${occupants}` : "",
+      sign
+        ? `sign ${sign}`
+        : "",
+      lord
+        ? `lord ${lord}`
+        : "",
+      lord &&
+      lordPlacedSign &&
+      lordPlacedHouse
+        ? `${lord} placed in ${lordPlacedSign} in house ${lordPlacedHouse}`
+        : "",
+      occupants
+        ? `occupants: ${occupants}`
+        : "",
     ]
       .filter(Boolean)
       .join(" • ");
 
-    if (line) bullets.push(line);
+    if (line) {
+      bullets.push(line);
+    }
   }
 
   return bullets;
@@ -8309,6 +12277,72 @@ const DIVISIONAL_PROFILES: Partial<Record<AskSarathiDomain, DivisionalSignalProf
     { chart: "D9", weight: 1.0, role: "inner dharma and maturity" },
     { chart: "D60", weight: 0.4, role: "deep karmic tone" },
   ],
+  education: [
+  { chart: "D1", weight: 0.8, role: "base learning promise" },
+  { chart: "D24", weight: 1.0, role: "education, learning and academic development" },
+  { chart: "D9", weight: 0.4, role: "supporting planetary maturity" },
+],
+
+parents: [
+  { chart: "D1", weight: 0.8, role: "base parent and family pattern" },
+  { chart: "D12", weight: 1.0, role: "parents, ancestry and inherited family pattern" },
+  { chart: "D9", weight: 0.4, role: "family dharma and maturity" },
+],
+
+siblings: [
+  { chart: "D1", weight: 0.8, role: "base sibling pattern" },
+  { chart: "D3", weight: 1.0, role: "siblings, courage and sibling dynamics" },
+],
+
+business: [
+  { chart: "D1", weight: 0.8, role: "base commercial promise" },
+  { chart: "D10", weight: 1.0, role: "professional and business execution" },
+  { chart: "D2", weight: 0.5, role: "commercial resources and financial results" },
+  { chart: "D9", weight: 0.4, role: "supporting planetary strength" },
+],
+
+travel: [
+  { chart: "D1", weight: 0.8, role: "base travel and movement pattern" },
+  { chart: "D9", weight: 0.7, role: "long-distance and dharmic movement support" },
+  { chart: "D4", weight: 0.5, role: "residential and location context" },
+  { chart: "D20", weight: 0.3, role: "spiritual travel and pilgrimage context" },
+],
+
+spiritual: [
+  { chart: "D1", weight: 0.8, role: "base spiritual inclination" },
+  { chart: "D20", weight: 1.0, role: "spiritual practice and sadhana" },
+  { chart: "D9", weight: 0.6, role: "dharma and spiritual maturity" },
+],
+
+reputation: [
+  { chart: "D1", weight: 0.8, role: "base public-image promise" },
+  { chart: "D10", weight: 1.0, role: "status, visibility and professional recognition" },
+  { chart: "D9", weight: 0.4, role: "supporting strength behind recognition" },
+],
+
+debt: [
+  { chart: "D1", weight: 0.8, role: "base liability pattern" },
+  { chart: "D2", weight: 1.0, role: "financial resources and repayment capacity" },
+  { chart: "D6", weight: 0.7, role: "debt, obstacles and financial pressure" },
+],
+
+inheritance: [
+  { chart: "D1", weight: 0.8, role: "base inheritance promise" },
+  { chart: "D8", weight: 1.0, role: "inheritance, shared assets and transformational events" },
+  { chart: "D12", weight: 0.7, role: "ancestry and family legacy" },
+],
+
+mental_health: [
+  { chart: "D1", weight: 0.8, role: "base mental and emotional constitution" },
+  { chart: "D30", weight: 1.0, role: "stress, pressure and vulnerability pattern" },
+  { chart: "D9", weight: 0.4, role: "resilience and supporting maturity" },
+],
+
+pets: [
+  { chart: "D1", weight: 0.8, role: "base pet and caregiving pattern" },
+  { chart: "D6", weight: 1.0, role: "pets, care, service and responsibility" },
+  { chart: "D30", weight: 0.4, role: "health and difficulty context involving pets" },
+],
   generic: [
     { chart: "D1", weight: 1.0, role: "base promise" },
     { chart: "D9", weight: 0.5, role: "supporting strength" },
@@ -8558,7 +12592,34 @@ function buildDivisionalLayer(
   topic: AskSarathiDomain,
   rule: TopicRule
 ): DivisionalAnalysisLayer {
-  const profile = DIVISIONAL_PROFILES[topic] ?? DIVISIONAL_PROFILES.generic ?? [];
+  const topicProfile =
+  DIVISIONAL_PROFILES[topic] ??
+  DIVISIONAL_PROFILES.generic ??
+  [];
+
+const requestedCharts =
+  Array.isArray(rule.divisionalCharts) &&
+  rule.divisionalCharts.length
+    ? rule.divisionalCharts
+    : topicProfile.map((entry) => entry.chart);
+
+const profile: DivisionalSignalProfile[] =
+  requestedCharts.map((chart) => {
+    const existing =
+      topicProfile.find(
+        (entry) => entry.chart === chart
+      );
+
+    if (existing) {
+      return existing;
+    }
+
+    return {
+      chart,
+      weight: 1.0,
+      role: `${chart} confirmation for this event`,
+    };
+  });
 
   const charts = profile.map((entry) =>
     buildDivisionalChartEvidence({
@@ -10074,6 +14135,7 @@ function buildAstrologyEvidencePacket(params: {
   rule: TopicRule;
   report: any;
   promiseLayer: AnalysisLayer;
+  sambandhaAnalysis: SambandhaAnalysis;
   divisionalLayer: DivisionalAnalysisLayer;
   karakaLayer: AnalysisLayer;
   timingLayer: AnalysisLayer;
@@ -10087,12 +14149,21 @@ function buildAstrologyEvidencePacket(params: {
     ...readHouseSupport(params.report, params.rule.houses),
     ...readHouseSupport(params.report, params.rule.supportHouses ?? []),
   ]).slice(0, 12);
+ 
+  
   const karakaEvidence = readKarakaSupport(params.report, params.rule.karakas).slice(0, 12);
 
   const support: StructuredEvidenceItem[] = [
     ...params.promiseLayer.bullets
       .filter((x) => evidenceImpactFromText(x) !== "block")
       .map((detail) => ({ source: "D1", factor: "Natal promise", detail, impact: evidenceImpactFromText(detail), weight: 1 })),
+    ...params.sambandhaAnalysis.supportiveLinks.map((relationship) => ({
+      source: "Sambandha",
+      factor: relationship.type,
+      detail: relationship.reason,
+      impact: "support" as const,
+      weight: Math.max(0.5, Math.min(1.2, relationship.score / 8)),
+    })),
     ...params.divisionalLayer.analysis.supports.map((detail) => ({ source: "Divisional", factor: "Divisional confirmation", detail, impact: "support" as const, weight: 1 })),
     ...params.karakaLayer.bullets
       .filter((x) => evidenceImpactFromText(x) !== "block")
@@ -10106,6 +14177,13 @@ function buildAstrologyEvidencePacket(params: {
     ...params.promiseLayer.bullets
       .filter((x) => evidenceImpactFromText(x) === "block")
       .map((detail) => ({ source: "D1", factor: "Natal blocker", detail, impact: "block" as const, weight: 1 })),
+    ...params.sambandhaAnalysis.missingRequiredLinks.map((detail) => ({
+      source: "Sambandha",
+      factor: "Missing event connection",
+      detail,
+      impact: "block" as const,
+      weight: 1,
+    })),
     ...params.divisionalLayer.analysis.blockers.map((detail) => ({ source: "Divisional", factor: "Divisional blocker", detail, impact: "block" as const, weight: 1 })),
     ...params.karakaLayer.bullets
       .filter((x) => evidenceImpactFromText(x) === "block")
@@ -10152,6 +14230,14 @@ function buildAstrologyEvidencePacket(params: {
       houseEvidence,
       karakaEvidence,
     },
+    sambandha: {
+      verdict: params.sambandhaAnalysis.verdict,
+      connectivityScore: params.sambandhaAnalysis.connectivityScore,
+      dashaConnectivityScore: params.sambandhaAnalysis.dashaConnectivityScore,
+      conversionScore: params.sambandhaAnalysis.conversionScore,
+      relationships: params.sambandhaAnalysis.relationships,
+      missingRequiredLinks: params.sambandhaAnalysis.missingRequiredLinks,
+    },
     divisionalAnalysis: params.divisionalLayer.analysis,
     timing: {
       currentDasha: params.currentDasha,
@@ -10171,7 +14257,8 @@ function buildAstrologyEvidencePacket(params: {
       timingStrength: params.timingLayer.verdict,
       conversionStrength,
       dominantFactor: contradictionResolution.dominantLayer,
-      instruction: "Judge promise first, divisional confirmation second, timing third, and conversion last. Resolve contradictions explicitly; never average them into a vague answer.",
+      instruction:
+        "Judge natal promise first, planetary connectivity second, divisional confirmation third, dasha activation fourth, transit triggering fifth, and final conversion last. A strong transit must not create an event that lacks natal promise or an operative sambandha chain. Resolve contradictions explicitly; never average them into a vague answer.",
     },
   };
 
@@ -10214,12 +14301,487 @@ if (topic === "career") {
     };
   }
 }
+if (
+  topic === "relationships" ||
+  topic === "marriage"
+) {
+  const relationshipEventType =
+    eventType as RelationshipEventType;
 
-  const careerInference = topic === "career" ? inferCareer(report) : null;
-  const promiseLayer = buildPromiseLayer(report, rule);
-  const divisionalLayer = buildDivisionalLayer(report, topic, rule);
-  const karakaLayer = buildKarakaLayer(report, rule);
-  const timingLayer = buildTimingLayer(report, rule, topic);
+  const relationshipRule =
+    RELATIONSHIP_EVENT_RULES[
+      relationshipEventType
+    ];
+
+  if (relationshipRule) {
+    rule = {
+      ...rule,
+      houses:
+        relationshipRule.houses,
+
+      supportHouses:
+        relationshipRule.supportHouses,
+
+      karakas:
+        relationshipRule.karakas,
+
+      divisionalCharts:
+        relationshipRule.divisionalCharts,
+    };
+  }
+}
+if (topic === "money") {
+  const wealthEventType =
+    eventType as WealthEventType;
+
+  const wealthRule =
+    WEALTH_EVENT_RULES[
+      wealthEventType
+    ];
+
+  if (wealthRule) {
+    rule = {
+      ...rule,
+
+      houses:
+        wealthRule.houses,
+
+      supportHouses:
+        wealthRule.supportHouses,
+
+      karakas:
+        wealthRule.karakas,
+
+      divisionalCharts:
+        wealthRule.divisionalCharts,
+    };
+  }
+}
+if (topic === "business") {
+  const businessEventType =
+    eventType as BusinessEventType;
+
+  const businessRule =
+    BUSINESS_EVENT_RULES[
+      businessEventType
+    ];
+
+  if (businessRule) {
+    rule = {
+      ...rule,
+
+      houses:
+        businessRule.houses,
+
+      supportHouses:
+        businessRule.supportHouses,
+
+      karakas:
+        businessRule.karakas,
+
+      divisionalCharts:
+        businessRule.divisionalCharts,
+    };
+  }
+}
+if (topic === "education") {
+  const educationEventType =
+    eventType as EducationEventType;
+
+  const educationRule =
+    EDUCATION_EVENT_RULES[
+      educationEventType
+    ];
+
+  if (educationRule) {
+    rule = {
+      ...rule,
+
+      houses:
+        educationRule.houses,
+
+      supportHouses:
+        educationRule.supportHouses,
+
+      karakas:
+        educationRule.karakas,
+
+      divisionalCharts:
+        educationRule.divisionalCharts,
+    };
+  }
+}
+if (topic === "spiritual") {
+  const spiritualEventType =
+    eventType as SpiritualEventType;
+
+  const spiritualRule =
+    SPIRITUAL_EVENT_RULES[
+      spiritualEventType
+    ];
+
+  if (spiritualRule) {
+    rule = {
+      ...rule,
+
+      houses:
+        spiritualRule.houses,
+
+      supportHouses:
+        spiritualRule.supportHouses,
+
+      karakas:
+        spiritualRule.karakas,
+
+      divisionalCharts:
+        spiritualRule.divisionalCharts,
+    };
+  }
+}
+if (topic === "health") {
+  const healthEventType =
+    eventType as HealthEventType;
+
+  const healthRule =
+    HEALTH_EVENT_RULES[
+      healthEventType
+    ];
+
+  if (healthRule) {
+    rule = {
+      ...rule,
+
+      houses:
+        healthRule.houses,
+
+      supportHouses:
+        healthRule.supportHouses,
+
+      karakas:
+        healthRule.karakas,
+
+      divisionalCharts:
+        healthRule.divisionalCharts,
+    };
+  }
+}
+if (topic === "child") {
+  const childEventType =
+    eventType as ChildrenEventType;
+
+  const childRule =
+    CHILD_EVENT_RULES[
+      childEventType
+    ];
+
+  if (childRule) {
+    rule = {
+      ...rule,
+
+      houses:
+        childRule.houses,
+
+      supportHouses:
+        childRule.supportHouses,
+
+      karakas:
+        childRule.karakas,
+
+      divisionalCharts:
+        childRule.divisionalCharts,
+    };
+  }
+}
+if (topic === "property") {
+  const propertyEventType =
+    eventType as PropertyEventType;
+
+  const propertyRule =
+    PROPERTY_EVENT_RULES[propertyEventType];
+
+  if (propertyRule) {
+    rule = {
+      ...rule,
+      houses: propertyRule.houses,
+      supportHouses: propertyRule.supportHouses,
+      karakas: propertyRule.karakas,
+      divisionalCharts: propertyRule.divisionalCharts,
+    };
+  }
+}
+if (topic === "vehicle") {
+  const vehicleEventType =
+    eventType as VehicleEventType;
+
+  const vehicleRule =
+    VEHICLE_EVENT_RULES[
+      vehicleEventType
+    ];
+
+  if (vehicleRule) {
+    rule = {
+      ...rule,
+      houses: vehicleRule.houses,
+      supportHouses: vehicleRule.supportHouses,
+      karakas: vehicleRule.karakas,
+      divisionalCharts: vehicleRule.divisionalCharts,
+    };
+  }
+}
+if (topic === "relocation") {
+  const relocationEventType =
+    eventType as RelocationEventType;
+
+  const relocationRule =
+    RELOCATION_EVENT_RULES[
+      relocationEventType
+    ];
+
+  if (relocationRule) {
+    rule = {
+      ...rule,
+      houses: relocationRule.houses,
+      supportHouses: relocationRule.supportHouses,
+      karakas: relocationRule.karakas,
+      divisionalCharts: relocationRule.divisionalCharts,
+    };
+  }
+}
+if (topic === "disputes") {
+  const disputeEventType =
+    eventType as DisputeEventType;
+
+  const disputeRule =
+    DISPUTE_EVENT_RULES[
+      disputeEventType
+    ];
+
+  if (disputeRule) {
+    rule = {
+      ...rule,
+      houses: disputeRule.houses,
+      supportHouses: disputeRule.supportHouses,
+      karakas: disputeRule.karakas,
+      divisionalCharts: disputeRule.divisionalCharts,
+    };
+  }
+}
+if (topic === "parents") {
+  const parentsEventType =
+    eventType as ParentsEventType;
+
+  const parentsRule =
+    PARENTS_EVENT_RULES[
+      parentsEventType
+    ];
+
+  if (parentsRule) {
+    rule = {
+      ...rule,
+      houses: parentsRule.houses,
+      supportHouses: parentsRule.supportHouses,
+      karakas: parentsRule.karakas,
+      divisionalCharts: parentsRule.divisionalCharts,
+    };
+  }
+}
+
+if (topic === "siblings") {
+  const siblingsEventType =
+    eventType as SiblingsEventType;
+
+  const siblingsRule =
+    SIBLINGS_EVENT_RULES[
+      siblingsEventType
+    ];
+
+  if (siblingsRule) {
+    rule = {
+      ...rule,
+      houses: siblingsRule.houses,
+      supportHouses: siblingsRule.supportHouses,
+      karakas: siblingsRule.karakas,
+      divisionalCharts: siblingsRule.divisionalCharts,
+    };
+  }
+}
+if (topic === "travel") {
+  const travelEventType =
+    eventType as TravelEventType;
+
+  const travelRule =
+    TRAVEL_EVENT_RULES[
+      travelEventType
+    ];
+
+  if (travelRule) {
+    rule = {
+      ...rule,
+      houses: travelRule.houses,
+      supportHouses: travelRule.supportHouses,
+      karakas: travelRule.karakas,
+      divisionalCharts: travelRule.divisionalCharts,
+    };
+  }
+}
+if (topic === "reputation") {
+  const reputationEventType =
+    eventType as ReputationEventType;
+
+  const reputationRule =
+    REPUTATION_EVENT_RULES[
+      reputationEventType
+    ];
+
+  if (reputationRule) {
+    rule = {
+      ...rule,
+      houses: reputationRule.houses,
+      supportHouses: reputationRule.supportHouses,
+      karakas: reputationRule.karakas,
+      divisionalCharts: reputationRule.divisionalCharts,
+    };
+  }
+}
+if (topic === "debt") {
+  const debtEventType =
+    eventType as DebtEventType;
+
+  const debtRule =
+    DEBT_EVENT_RULES[
+      debtEventType
+    ];
+
+  if (debtRule) {
+    rule = {
+      ...rule,
+      houses: debtRule.houses,
+      supportHouses: debtRule.supportHouses,
+      karakas: debtRule.karakas,
+      divisionalCharts: debtRule.divisionalCharts,
+    };
+  }
+}
+if (topic === "inheritance") {
+  const inheritanceEventType =
+    eventType as InheritanceEventType;
+
+  const inheritanceRule =
+    INHERITANCE_EVENT_RULES[
+      inheritanceEventType
+    ];
+
+  if (inheritanceRule) {
+    rule = {
+      ...rule,
+      houses: inheritanceRule.houses,
+      supportHouses: inheritanceRule.supportHouses,
+      karakas: inheritanceRule.karakas,
+      divisionalCharts: inheritanceRule.divisionalCharts,
+    };
+  }
+}
+if (topic === "mental_health") {
+  const mentalHealthEventType =
+    eventType as MentalHealthEventType;
+
+  const mentalHealthRule =
+    MENTAL_HEALTH_EVENT_RULES[
+      mentalHealthEventType
+    ];
+
+  if (mentalHealthRule) {
+    rule = {
+      ...rule,
+      houses: mentalHealthRule.houses,
+      supportHouses: mentalHealthRule.supportHouses,
+      karakas: mentalHealthRule.karakas,
+      divisionalCharts: mentalHealthRule.divisionalCharts,
+    };
+  }
+}
+if (topic === "pets") {
+  const petsEventType =
+    eventType as PetsEventType;
+
+  const petsRule =
+    PETS_EVENT_RULES[
+      petsEventType
+    ];
+
+  if (petsRule) {
+    rule = {
+      ...rule,
+      houses: petsRule.houses,
+      supportHouses: petsRule.supportHouses,
+      karakas: petsRule.karakas,
+      divisionalCharts: petsRule.divisionalCharts,
+    };
+  }
+}
+
+if (topic === "inner") {
+  const innerEventType =
+    eventType as InnerEventType;
+
+  const innerRule =
+    INNER_EVENT_RULES[
+      innerEventType
+    ];
+
+  if (innerRule) {
+    rule = {
+      ...rule,
+      houses: innerRule.houses,
+      supportHouses: innerRule.supportHouses,
+      karakas: innerRule.karakas,
+      divisionalCharts: innerRule.divisionalCharts,
+    };
+  }
+}
+ const careerInference =
+  topic === "career"
+    ? inferCareer(report)
+    : null;
+
+const promiseLayer =
+  buildPromiseLayer(
+    report,
+    rule
+  );
+
+const sambandhaAnalysis =
+  buildSambandhaAnalysis({
+    report,
+    topic,
+    eventType,
+    rule,
+    activeDasha: {
+      md: dasha.md,
+      ad: dasha.ad,
+      pd: dasha.pd,
+    },
+  });
+
+const divisionalLayer =
+  buildDivisionalLayer(
+    report,
+    topic,
+    rule
+  );
+
+const karakaLayer =
+  buildKarakaLayer(
+    report,
+    rule
+  );
+
+const timingLayer =
+  buildTimingLayer(
+    report,
+    rule,
+    topic
+  );
   const remediesLayer = buildRemediesLayer(report, rule, questionType);
 
   const timingPolicy = getTimingPolicy(
@@ -10603,6 +15165,8 @@ const finalMajorWindows =
 
     promiseLayer,
 
+    sambandhaAnalysis,
+
     divisionalLayer,
 
     karakaLayer,
@@ -10628,91 +15192,7 @@ if (
     careerEventType === "job_change"
   )
 ) {
-  console.log(
-    "[JOB CHANGE TIMING RANKING]",
-    JSON.stringify(
-      {
-        currentDate:
-          new Date().toISOString(),
-
-        activeDasha: {
-  md:
-    activeDashaForDebug
-      ?.md ??
-    null,
-
-  ad:
-    activeDashaForDebug
-      ?.ad ??
-    null,
-
-  pd:
-    activeDashaForDebug
-      ?.pd ??
-    null,
-
-  line:
-    activeDashaForDebug
-      ?.line ??
-    null,
-},
-
-        bestEventTrigger:
-          bestEventTrigger ?? null,
-
-        rankedTimingWindows:
-          rankedTimingWindows.map(
-            (window: any, index: number) => ({
-              rank: index + 1,
-
-              label:
-                window?.label ?? null,
-
-              start:
-                window?.start ??
-                window?.from ??
-                window?.startISO ??
-                null,
-
-              end:
-                window?.end ??
-                window?.to ??
-                window?.endISO ??
-                null,
-
-              peak:
-                window?.peak ?? null,
-
-              score:
-  window?.score ?? null,
-
-scoreBreakdown:
-  window?.scoreBreakdown ?? null,
-
-confidence:
-  window?.confidence ?? null,
-
-              windowClass:
-                window?.windowClass ?? null,
-
-              source:
-                window?.source ?? null,
-
-              why:
-                Array.isArray(window?.why)
-                  ? window.why
-                  : [],
-
-              practicalMeaning:
-                window?.practicalMeaning ??
-                null,
-            })
-          ),
-      },
-      null,
-      2
-    )
-  );
+  
 }
 const bestRangeWindow =
   rankedTimingWindows.find((w: any) => {
@@ -10802,21 +15282,7 @@ const selectedTimingWindow =
   strongestWindow ??
   nearestWindow ??
   null;
-console.log(
-  "[PROPERTY WINDOW DEBUG]",
-  JSON.stringify(
-    {
-      topic,
-      eventType,
 
-      nearestWindow,
-      strongestWindow,
-      bestAvailableWindow,
-    },
-    null,
-    2
-  )
-);
 const preferredTimingWindow =
   normalizeRankedTimingWindow(
     bestRangeWindow ??
@@ -10887,6 +15353,7 @@ const conversionDiagnosisV2 = buildConversionDiagnosisV2({
   topic,
   eventType,
   promiseLayer,
+  sambandhaAnalysis,
   divisionalLayer,
   karakaLayer,
   timingLayer: finalTimingLayer,
@@ -10897,16 +15364,14 @@ const promotionConversionEngine =
   topic === "career" && eventType === "promotion"
     ? buildPromotionConversionEngine({
         promiseLayer,
+        sambandhaAnalysis,
         divisionalLayer,
         karakaLayer,
         timingLayer: finalTimingLayer,
         bestAvailableWindow,
       })
     : null;
-    console.log(
-  "[PROMOTION ENGINE DEBUG]",
-  JSON.stringify(promotionConversionEngine, null, 2)
-);
+ 
 const diagnosticProfile =
   questionType === "diagnosis" ||
   questionType === "action_plan" ||
@@ -10958,6 +15423,7 @@ nearTermWindows,
     rule,
     report,
     promiseLayer,
+    sambandhaAnalysis,
     divisionalLayer,
     karakaLayer,
     timingLayer: finalTimingLayer,
@@ -11001,6 +15467,7 @@ triggerWindows,
     },
     careerInference,
     promiseLayer,
+    sambandhaAnalysis,
     divisionalLayer,
     divisionalBreakdown: divisionalLayer.chartBreakdown,
     divisionalAnalysis: divisionalLayer.analysis,
@@ -11609,6 +16076,8 @@ astroReasonMap: astroBundle.astroReasonMap ?? null,
 remediesDetailed: astroBundle.remediesDetailed,
 hiddenOpportunity: astroBundle.hiddenOpportunity,
       promiseLayer: astroBundle.promiseLayer,
+      sambandhaAnalysis: astroBundle.sambandhaAnalysis,
+      explainabilityProfile: astroBundle.explainabilityProfile ?? null,
       divisionalLayer: astroBundle.divisionalLayer,
       divisionalBreakdown: astroBundle.divisionalBreakdown ?? [],
       divisionalAnalysis:
@@ -11619,8 +16088,10 @@ hiddenOpportunity: astroBundle.hiddenOpportunity,
       reasoningInstructions: {
         hierarchy: [
           "Judge the D1 natal promise first.",
+          "Judge planetary relationships (Sambandha) second and state the exact supplied links.",
           "Use the relevant divisional chart as confirmation, not as a replacement for D1.",
-          "Use dasha and transit evidence for timing.",
+          "Use dasha activation fourth and transit triggering fifth.",
+          "Use the six-pillar explainability profile to distinguish movement from final conversion.",
           "Separate preparation, activation, movement, conversion, and stable outcome.",
           "Resolve contradictions explicitly instead of averaging them.",
         ],
@@ -11631,7 +16102,9 @@ hiddenOpportunity: astroBundle.hiddenOpportunity,
           "Do not give a sharp date when the timing packet has low confidence.",
           "Never describe a divisional chart, divisional support, or divisional confirmation as weak, poor, bad, incomplete, or insufficient in user-facing language.",
           "Translate low or unclear divisional support into holistic language such as: the broader chart picture places limited emphasis on this theme, the supporting factors do not strongly reinforce it, or its expression may be uneven.",
-          "Do not expose internal evidence labels such as divisional support, promise layer, conversion score, blocker score, or confirmation strength in the final narrative.",
+          "Do not expose implementation variable names or raw JSON labels.",
+          "Do show user-friendly headings for Natal Promise, Planetary Relationships, Divisional Confirmation, Current Dasha, Transit Trigger, and Conversion Assessment.",
+          "Do not use generic phrases such as natal and divisional charts support this when exact supplied references are available.",
         ],
         answerOrder: [
           "Direct answer",
@@ -12091,6 +16564,11 @@ function isVagueTimingFollowup(question: string): boolean {
 
 export async function POST(req: Request) {
   try {
+    const requestURL = new URL(req.url);
+
+const matcherDevMode =
+  process.env.NODE_ENV !== "production" &&
+  requestURL.searchParams.get("matcherDev") === "1";
     const supabase = await createClient();
 
     const {
@@ -12111,7 +16589,10 @@ export async function POST(req: Request) {
 
     const entitlements = await getUserEntitlements(user.id);
 
-    if (!entitlements.askSarathi.allowed) {
+    if (
+  !matcherDevMode &&
+  !entitlements.askSarathi.allowed
+) {
       return NextResponse.json(
         {
           ok: false,
@@ -12185,11 +16666,13 @@ let topic: AskSarathiDomain =
     : inferredFollowupTopic
     ? inferredFollowupTopic
     : "generic";
+    if (!matcherDevMode) {
 await logQuestionUsage({
   userId: user.id,
   question,
   topic,
 });
+}
 const questionType: AskSarathiQuestionType =
   continuation || vagueTimingFollowup ? "timing" : detectQuestionType(question);
 
@@ -12303,6 +16786,12 @@ const astroBundle = buildGenericAstroBundle(
   enrichedReport,
   careerEventType
 );
+astroBundle.canonicalChartContext =
+  buildCanonicalChartContext(enrichedReport);
+astroBundle.decision = buildAstroDecision({
+  bundle: astroBundle,
+  chartContext: astroBundle.canonicalChartContext,
+});
 astroBundle.conversationPsychology = psychology;
 if (
   questionType === "daily_outlook" ||
@@ -12350,24 +16839,58 @@ try {
  
   astroBundle.astroInterpretationPacket =
     buildAstroInterpretationPacket(astroBundle);
+
+  astroBundle.explainabilityProfile =
+    buildSixPillarExplainabilityProfile(astroBundle);
+
+  const structuredExplainabilityEvidence =
+    buildStructuredEvidence(
+      astroBundle,
+      astroBundle.explainabilityProfile
+    );
+
    astroBundle.evidenceBullets = [
   ...(astroBundle.evidenceBullets ?? []),
+  ...structuredExplainabilityEvidence,
+
+  astroBundle.decision
+    ? `Decision guidance — ${astroBundle.decision.headline} ${astroBundle.decision.rationale}`
+    : "",
 
   [astroBundle.currentDasha?.md, astroBundle.currentDasha?.ad, astroBundle.currentDasha?.pd]
-  .filter(Boolean)
-  .length
-  ? `Current dasha chain: ${[
-      astroBundle.currentDasha?.md,
-      astroBundle.currentDasha?.ad,
-      astroBundle.currentDasha?.pd,
-    ]
-      .filter(Boolean)
-      .join("–")}`
-  : "",
+    .filter(Boolean)
+    .length
+    ? `Current dasha chain: ${[
+        astroBundle.currentDasha?.md,
+        astroBundle.currentDasha?.ad,
+        astroBundle.currentDasha?.pd,
+      ]
+        .filter(Boolean)
+        .join("–")}`
+    : "",
 
   astroBundle.timingPolicy?.note
     ? `Timing policy: ${astroBundle.timingPolicy.note}`
     : "",
+
+  astroBundle.explainabilityProfile
+    ? `Astrological evidence strength: ${astroBundle.explainabilityProfile.overallScore}/100; near-term movement support: ${astroBundle.explainabilityProfile.movementScore}/100; final conversion support: ${astroBundle.explainabilityProfile.conversionScore}/100.`
+    : "",
+
+  ...(astroBundle.explainabilityProfile?.evidenceReferences ?? [])
+    .slice(0, 12)
+    .map((reference) => `Evidence reference: ${reference}`),
+
+  astroBundle.sambandhaAnalysis?.summary
+    ? `Planetary connectivity: ${astroBundle.sambandhaAnalysis.summary} Connectivity score: ${astroBundle.sambandhaAnalysis.connectivityScore}/100; dasha connectivity: ${astroBundle.sambandhaAnalysis.dashaConnectivityScore}/100.`
+    : "",
+
+  ...(astroBundle.sambandhaAnalysis?.supportiveLinks ?? [])
+    .slice(0, 4)
+    .map(
+      (relationship) =>
+        `Sambandha evidence: ${relationship.reason}`
+    ),
 
   astroBundle.divisionalLayer?.summary
     ? `Divisional support: ${astroBundle.divisionalLayer.summary}`
@@ -12418,16 +16941,40 @@ try {
     debug: true,
   });
 }
- 
+ const astroChatV2Preview =
+  tryRunAstroChatV2({
+    question,
+    bundle: astroBundle,
+  });
+
+
+const chartFactsPreview =
+  buildChartFacts(
+    astroBundle
+  );
+
+const intelligencePreview =
+  buildAstrologyIntelligenceEngine(
+    chartFactsPreview
+  );
+
+const businessIntelligenceSummary =
+  buildBusinessIntelligenceSummary(
+    intelligencePreview
+  );
+
+
        const isProfessionQuestion =
   astroBundle.careerEventType === "profession_identity";
+
+/*
 
 if (
   astroBundle.careerEventType === "profession_identity" &&
   astroBundle.careerInference
 ) {
   const answer = buildDirectProfessionAnswer(astroBundle.careerInference);
- 
+
   return okJson({
     answer,
     evidenceBullets: astroBundle.evidenceBullets,
@@ -12455,7 +17002,7 @@ if (
         confidence: astroBundle.confidence,
       },
     },
-       debug: {
+    debug: {
       topic,
       questionType,
       timeDirection: astroBundle.timeDirection,
@@ -12478,6 +17025,8 @@ if (
   });
 }
 
+*/
+
 const finalDecision = buildFinalAnswerDecision({
   topic,
   questionType,
@@ -12488,20 +17037,1552 @@ const finalDecision = buildFinalAnswerDecision({
   timingPolicy: astroBundle.timingPolicy,
   confidence: astroBundle.confidence,
 });
-
-       const natPayload = buildNaturalizePayload({
-      question,
+const domainIntelligenceContext =
+  buildDomainIntelligenceContext({
+    domain:
       topic,
-      questionType,
-      report: enrichedReport,
-      astroBundle,
-      distressed,
-      simpleGuidanceMode,
-      finalDecisionLine: finalDecision.line,
-      finalDecisionVerdict: finalDecision.verdict,
-    });
-    
-   const safeNatPayload = {
+
+    intelligence:
+      intelligencePreview,
+  });
+ 
+  const natPayload = buildNaturalizePayload({
+  question,
+  topic,
+  questionType,
+  report: enrichedReport,
+  astroBundle,
+  distressed,
+  simpleGuidanceMode,
+  finalDecisionLine: finalDecision.line,
+  finalDecisionVerdict: finalDecision.verdict,
+});
+const userContext =
+  buildUserContext(
+    enrichedReport?.birth?.dateISO ??
+    enrichedReport?.birth?.date ??
+    report?.birth?.dateISO ??
+    report?.birth?.date ??
+    null
+  );
+  console.log(
+  "[USER CONTEXT]",
+  JSON.stringify(userContext, null, 2)
+);
+const isProfessionIdentity =
+  astroBundle.careerEventType === "profession_identity";
+
+const isRelationshipPermanent =
+  (
+    astroBundle.topic === "relationships" ||
+    astroBundle.topic === "marriage"
+  ) &&
+  [
+    "relationship_suitability",
+    "partner_profile",
+    "relationship_pattern",
+    "love_vs_arranged",
+  ].includes(
+    String(astroBundle.eventType ?? "")
+  );
+const isWealthPermanent =
+  astroBundle.topic === "money" &&
+  [
+    "wealth_potential",
+    "earning_style",
+    "wealth_pattern",
+    "saving_capacity",
+    "investment_suitability",
+    "multiple_income",
+  ].includes(
+    String(astroBundle.eventType ?? "")
+  );
+const isBusinessPermanent =
+  astroBundle.topic === "business" &&
+  [
+    "business_suitability",
+    "business_style",
+    "business_vs_job",
+    "partnership_suitability",
+    "entrepreneurial_pattern",
+  ].includes(
+    String(astroBundle.eventType ?? "")
+  );
+const isEducationPermanent =
+  astroBundle.topic === "education" &&
+  [
+    "education_suitability",
+    "subject_fit",
+    "stream_choice",
+    "study_pattern",
+  ].includes(
+    String(astroBundle.eventType ?? "")
+  );
+const isSpiritualPermanent =
+  astroBundle.topic === "spiritual" &&
+  [
+    "spiritual_inclination",
+    "spiritual_path",
+    "devotional_style",
+    "meditation_suitability",
+    "mantra_suitability",
+    "guru_pattern",
+  ].includes(
+    String(astroBundle.eventType ?? "")
+  );
+const isHealthPermanent =
+  astroBundle.topic === "health" &&
+  [
+    "health_constitution",
+    "health_sensitivity",
+    "stress_pattern",
+    "recovery_capacity",
+    "lifestyle_pattern",
+  ].includes(
+    String(astroBundle.eventType ?? "")
+  );
+const isChildPermanent =
+  astroBundle.topic === "child" &&
+  [
+    "parenthood_potential",
+    "parenting_style",
+    "child_relationship_pattern",
+    "child_aptitude",
+  ].includes(
+    String(astroBundle.eventType ?? "")
+  );
+  const isPropertyPermanent =
+  astroBundle.topic === "property" &&
+  [
+    "property_potential",
+    "property_investment_suitability",
+    "property_pattern",
+    "home_stability",
+  ].includes(
+    String(astroBundle.eventType ?? "")
+  );
+  const isVehiclePermanent =
+  astroBundle.topic === "vehicle" &&
+  [
+    "vehicle_potential",
+    "vehicle_preference",
+    "vehicle_pattern",
+  ].includes(
+    String(astroBundle.eventType ?? "")
+  );
+const isRelocationPermanent =
+  astroBundle.topic === "relocation" &&
+  [
+    "relocation_potential",
+    "foreign_settlement_potential",
+    "relocation_pattern",
+    "location_preference",
+  ].includes(
+    String(astroBundle.eventType ?? "")
+  );
+const isDisputePermanent =
+  astroBundle.topic === "disputes" &&
+  [
+    "conflict_pattern",
+    "legal_suitability",
+    "negotiation_style",
+    "litigation_pattern",
+  ].includes(
+    String(astroBundle.eventType ?? "")
+  );
+const isParentsPermanent =
+  astroBundle.topic === "parents" &&
+  [
+    "parent_relationship_pattern",
+    "mother_relationship",
+    "father_relationship",
+    "parental_influence",
+    "family_elder_pattern",
+  ].includes(
+    String(astroBundle.eventType ?? "")
+  );
+
+const isSiblingsPermanent =
+  astroBundle.topic === "siblings" &&
+  [
+    "sibling_relationship_pattern",
+    "elder_sibling_pattern",
+    "younger_sibling_pattern",
+    "sibling_support",
+  ].includes(
+    String(astroBundle.eventType ?? "")
+  );
+const isTravelPermanent =
+  astroBundle.topic === "travel" &&
+  [
+    "travel_inclination",
+    "foreign_travel_pattern",
+    "frequent_travel_pattern",
+    "pilgrimage_pattern",
+  ].includes(
+    String(astroBundle.eventType ?? "")
+  );
+const isReputationPermanent =
+  astroBundle.topic === "reputation" &&
+  [
+    "reputation_potential",
+    "public_image_pattern",
+    "recognition_pattern",
+    "visibility_style",
+  ].includes(
+    String(astroBundle.eventType ?? "")
+  );  
+  const isDebtPermanent =
+  astroBundle.topic === "debt" &&
+  [
+    "debt_pattern",
+    "borrowing_tendency",
+    "repayment_capacity",
+    "liability_pattern",
+  ].includes(
+    String(astroBundle.eventType ?? "")
+  );
+const isInheritancePermanent =
+  astroBundle.topic === "inheritance" &&
+  [
+    "inheritance_potential",
+    "ancestral_pattern",
+    "legacy_pattern",
+    "inheritance_conflict_pattern",
+  ].includes(
+    String(astroBundle.eventType ?? "")
+  );
+  const isMentalHealthPermanent =
+  astroBundle.topic === "mental_health" &&
+  [
+    "mental_emotional_pattern",
+    "overthinking_pattern",
+    "mood_sensitivity",
+    "stress_resilience",
+    "emotional_regulation_pattern",
+  ].includes(
+    String(astroBundle.eventType ?? "")
+  );
+const isPetsPermanent =
+  astroBundle.topic === "pets" &&
+  [
+    "pet_relationship_pattern",
+    "pet_caregiving_style",
+    "pet_responsibility_pattern",
+  ].includes(
+    String(astroBundle.eventType ?? "")
+  );
+
+const isInnerPermanent =
+  astroBundle.topic === "inner" &&
+  [
+    "life_direction_pattern",
+    "purpose_pattern",
+    "inner_conflict_pattern",
+    "self_understanding_pattern",
+    "meaning_pattern",
+  ].includes(
+    String(astroBundle.eventType ?? "")
+  );
+const shouldSuppressTiming =
+  isProfessionIdentity ||
+  isRelationshipPermanent ||
+  isWealthPermanent ||
+  isBusinessPermanent ||
+  isEducationPermanent ||
+  isSpiritualPermanent ||
+  isHealthPermanent ||
+  isChildPermanent ||
+  isPropertyPermanent ||
+  isVehiclePermanent ||
+  isRelocationPermanent ||
+  isDisputePermanent ||
+  isParentsPermanent ||
+  isSiblingsPermanent ||
+  isTravelPermanent ||
+  isReputationPermanent ||
+  isDebtPermanent ||
+  isInheritancePermanent ||
+  isMentalHealthPermanent ||
+  isPetsPermanent ||
+  isInnerPermanent;
+
+/*
+  Profession suitability must use permanent vocational evidence only.
+  Do not pass event timing, dasha timing, transit timing, conversion,
+  trigger windows, or timing explainability into Naturalize.
+*/
+const professionCareerInference =
+  isProfessionIdentity &&
+  astroBundle?.careerInference
+    ? {
+        ...astroBundle.careerInference,
+
+        blockers:
+          Array.isArray(
+            astroBundle.careerInference.blockers
+          )
+            ? astroBundle.careerInference.blockers.filter(
+                (item: string) =>
+                  !/\b(dasha|transit|timing|window|activation)\b/i.test(
+                    item
+                  )
+              )
+            : [],
+      }
+    : astroBundle?.careerInference ?? null;
+const professionAstroFacts =
+  isProfessionIdentity
+    ? {
+        topic:
+          astroBundle?.topic ?? topic,
+
+        questionType,
+
+        eventType:
+          astroBundle?.careerEventType ?? null,
+
+        careerInference:
+  professionCareerInference,
+
+        promiseLayer:
+          astroBundle?.promiseLayer ?? null,
+
+        sambandhaAnalysis:
+          astroBundle?.sambandhaAnalysis ?? null,
+
+        divisionalLayer:
+          astroBundle?.divisionalLayer ?? null,
+
+        divisionalAnalysis:
+          astroBundle?.divisionalAnalysis ?? null,
+
+        karakaLayer:
+          astroBundle?.karakaLayer ?? null,
+
+        chartRealityProfile:
+          astroBundle?.chartRealityProfile ?? null,
+      }
+    : null;
+const relationshipAstroFacts =
+  isRelationshipPermanent
+    ? {
+        topic:
+          astroBundle?.topic ?? topic,
+
+        questionType,
+
+        eventType:
+          astroBundle?.eventType ?? null,
+
+        promiseLayer:
+          astroBundle?.promiseLayer ?? null,
+
+        sambandhaAnalysis:
+          astroBundle?.sambandhaAnalysis ?? null,
+
+        divisionalLayer:
+          astroBundle?.divisionalLayer ?? null,
+
+        divisionalAnalysis:
+          astroBundle?.divisionalAnalysis ?? null,
+
+        karakaLayer:
+          astroBundle?.karakaLayer ?? null,
+
+        chartRealityProfile:
+          astroBundle?.chartRealityProfile ?? null,
+      }
+    : null;
+const wealthAstroFacts =
+  isWealthPermanent
+    ? {
+        topic:
+          astroBundle?.topic ?? topic,
+
+        questionType,
+
+        eventType:
+          astroBundle?.eventType ?? null,
+
+        promiseLayer:
+          astroBundle?.promiseLayer ?? null,
+
+        sambandhaAnalysis:
+          astroBundle?.sambandhaAnalysis ?? null,
+
+        divisionalLayer:
+          astroBundle?.divisionalLayer ?? null,
+
+        divisionalAnalysis:
+          astroBundle?.divisionalAnalysis ?? null,
+
+        karakaLayer:
+          astroBundle?.karakaLayer ?? null,
+
+        chartRealityProfile:
+          astroBundle?.chartRealityProfile ?? null,
+      }
+    : null;
+const businessAstroFacts =
+  isBusinessPermanent
+    ? {
+        topic:
+          astroBundle?.topic ?? topic,
+
+        questionType,
+
+        eventType:
+          astroBundle?.eventType ?? null,
+
+        promiseLayer:
+          astroBundle?.promiseLayer ?? null,
+
+        sambandhaAnalysis:
+          astroBundle?.sambandhaAnalysis ?? null,
+
+        divisionalLayer:
+          astroBundle?.divisionalLayer ?? null,
+
+        divisionalAnalysis:
+          astroBundle?.divisionalAnalysis ?? null,
+
+        karakaLayer:
+          astroBundle?.karakaLayer ?? null,
+
+        chartRealityProfile:
+          astroBundle?.chartRealityProfile ?? null,
+      }
+    : null;
+const educationAstroFacts =
+  isEducationPermanent
+    ? {
+        topic:
+          astroBundle?.topic ?? topic,
+
+        questionType,
+
+        eventType:
+          astroBundle?.eventType ?? null,
+
+        promiseLayer:
+          astroBundle?.promiseLayer ?? null,
+
+        sambandhaAnalysis:
+          astroBundle?.sambandhaAnalysis ?? null,
+
+        divisionalLayer:
+          astroBundle?.divisionalLayer ?? null,
+
+        divisionalAnalysis:
+          astroBundle?.divisionalAnalysis ?? null,
+
+        karakaLayer:
+          astroBundle?.karakaLayer ?? null,
+
+        chartRealityProfile:
+          astroBundle?.chartRealityProfile ?? null,
+      }
+    : null;
+const spiritualAstroFacts =
+  isSpiritualPermanent
+    ? {
+        topic:
+          astroBundle?.topic ?? topic,
+
+        questionType,
+
+        eventType:
+          astroBundle?.eventType ?? null,
+
+        promiseLayer:
+          astroBundle?.promiseLayer ?? null,
+
+        sambandhaAnalysis:
+          astroBundle?.sambandhaAnalysis ?? null,
+
+        divisionalLayer:
+          astroBundle?.divisionalLayer ?? null,
+
+        divisionalAnalysis:
+          astroBundle?.divisionalAnalysis ?? null,
+
+        karakaLayer:
+          astroBundle?.karakaLayer ?? null,
+
+        chartRealityProfile:
+          astroBundle?.chartRealityProfile ?? null,
+      }
+    : null;
+const healthAstroFacts =
+  isHealthPermanent
+    ? {
+        topic:
+          astroBundle?.topic ?? topic,
+
+        questionType,
+
+        eventType:
+          astroBundle?.eventType ?? null,
+
+        promiseLayer:
+          astroBundle?.promiseLayer ?? null,
+
+        sambandhaAnalysis:
+          astroBundle?.sambandhaAnalysis ?? null,
+
+        divisionalLayer:
+          astroBundle?.divisionalLayer ?? null,
+
+        divisionalAnalysis:
+          astroBundle?.divisionalAnalysis ?? null,
+
+        karakaLayer:
+          astroBundle?.karakaLayer ?? null,
+
+        chartRealityProfile:
+          astroBundle?.chartRealityProfile ?? null,
+      }
+    : null;
+const childAstroFacts =
+  isChildPermanent
+    ? {
+        topic:
+          astroBundle?.topic ?? topic,
+
+        questionType,
+
+        eventType:
+          astroBundle?.eventType ?? null,
+
+        promiseLayer:
+          astroBundle?.promiseLayer ?? null,
+
+        sambandhaAnalysis:
+          astroBundle?.sambandhaAnalysis ?? null,
+
+        divisionalLayer:
+          astroBundle?.divisionalLayer ?? null,
+
+        divisionalAnalysis:
+          astroBundle?.divisionalAnalysis ?? null,
+
+        karakaLayer:
+          astroBundle?.karakaLayer ?? null,
+
+        chartRealityProfile:
+          astroBundle?.chartRealityProfile ?? null,
+      }
+    : null;
+const propertyAstroFacts =
+  isPropertyPermanent
+    ? {
+        topic:
+          astroBundle?.topic ?? topic,
+
+        questionType,
+
+        eventType:
+          astroBundle?.eventType ?? null,
+
+        promiseLayer:
+          astroBundle?.promiseLayer ?? null,
+
+        sambandhaAnalysis:
+          astroBundle?.sambandhaAnalysis ?? null,
+
+        divisionalLayer:
+          astroBundle?.divisionalLayer ?? null,
+
+        divisionalAnalysis:
+          astroBundle?.divisionalAnalysis ?? null,
+
+        karakaLayer:
+          astroBundle?.karakaLayer ?? null,
+
+        chartRealityProfile:
+          astroBundle?.chartRealityProfile ?? null,
+      }
+    : null;
+const vehicleAstroFacts =
+  isVehiclePermanent
+    ? {
+        topic:
+          astroBundle?.topic ?? topic,
+
+        questionType,
+
+        eventType:
+          astroBundle?.eventType ?? null,
+
+        promiseLayer:
+          astroBundle?.promiseLayer ?? null,
+
+        sambandhaAnalysis:
+          astroBundle?.sambandhaAnalysis ?? null,
+
+        divisionalLayer:
+          astroBundle?.divisionalLayer ?? null,
+
+        divisionalAnalysis:
+          astroBundle?.divisionalAnalysis ?? null,
+
+        karakaLayer:
+          astroBundle?.karakaLayer ?? null,
+
+        chartRealityProfile:
+          astroBundle?.chartRealityProfile ?? null,
+      }
+    : null;
+const relocationAstroFacts =
+  isRelocationPermanent
+    ? {
+        topic:
+          astroBundle?.topic ?? topic,
+
+        questionType,
+
+        eventType:
+          astroBundle?.eventType ?? null,
+
+        promiseLayer:
+          astroBundle?.promiseLayer ?? null,
+
+        sambandhaAnalysis:
+          astroBundle?.sambandhaAnalysis ?? null,
+
+        divisionalLayer:
+          astroBundle?.divisionalLayer ?? null,
+
+        divisionalAnalysis:
+          astroBundle?.divisionalAnalysis ?? null,
+
+        karakaLayer:
+          astroBundle?.karakaLayer ?? null,
+
+        chartRealityProfile:
+          astroBundle?.chartRealityProfile ?? null,
+      }
+    : null;
+const disputeAstroFacts =
+  isDisputePermanent
+    ? {
+        topic:
+          astroBundle?.topic ?? topic,
+
+        questionType,
+
+        eventType:
+          astroBundle?.eventType ?? null,
+
+        promiseLayer:
+          astroBundle?.promiseLayer ?? null,
+
+        sambandhaAnalysis:
+          astroBundle?.sambandhaAnalysis ?? null,
+
+        divisionalLayer:
+          astroBundle?.divisionalLayer ?? null,
+
+        divisionalAnalysis:
+          astroBundle?.divisionalAnalysis ?? null,
+
+        karakaLayer:
+          astroBundle?.karakaLayer ?? null,
+
+        chartRealityProfile:
+          astroBundle?.chartRealityProfile ?? null,
+      }
+    : null;
+const parentsAstroFacts =
+  isParentsPermanent
+    ? {
+        topic:
+          astroBundle?.topic ?? topic,
+
+        questionType,
+
+        eventType:
+          astroBundle?.eventType ?? null,
+
+        promiseLayer:
+          astroBundle?.promiseLayer ?? null,
+
+        sambandhaAnalysis:
+          astroBundle?.sambandhaAnalysis ?? null,
+
+        divisionalLayer:
+          astroBundle?.divisionalLayer ?? null,
+
+        divisionalAnalysis:
+          astroBundle?.divisionalAnalysis ?? null,
+
+        karakaLayer:
+          astroBundle?.karakaLayer ?? null,
+
+        chartRealityProfile:
+          astroBundle?.chartRealityProfile ?? null,
+      }
+    : null;
+
+const siblingsAstroFacts =
+  isSiblingsPermanent
+    ? {
+        topic:
+          astroBundle?.topic ?? topic,
+
+        questionType,
+
+        eventType:
+          astroBundle?.eventType ?? null,
+
+        promiseLayer:
+          astroBundle?.promiseLayer ?? null,
+
+        sambandhaAnalysis:
+          astroBundle?.sambandhaAnalysis ?? null,
+
+        divisionalLayer:
+          astroBundle?.divisionalLayer ?? null,
+
+        divisionalAnalysis:
+          astroBundle?.divisionalAnalysis ?? null,
+
+        karakaLayer:
+          astroBundle?.karakaLayer ?? null,
+
+        chartRealityProfile:
+          astroBundle?.chartRealityProfile ?? null,
+      }
+    : null;
+const travelAstroFacts =
+  isTravelPermanent
+    ? {
+        topic:
+          astroBundle?.topic ?? topic,
+
+        questionType,
+
+        eventType:
+          astroBundle?.eventType ?? null,
+
+        promiseLayer:
+          astroBundle?.promiseLayer ?? null,
+
+        sambandhaAnalysis:
+          astroBundle?.sambandhaAnalysis ?? null,
+
+        divisionalLayer:
+          astroBundle?.divisionalLayer ?? null,
+
+        divisionalAnalysis:
+          astroBundle?.divisionalAnalysis ?? null,
+
+        karakaLayer:
+          astroBundle?.karakaLayer ?? null,
+
+        chartRealityProfile:
+          astroBundle?.chartRealityProfile ?? null,
+      }
+    : null;
+const reputationAstroFacts =
+  isReputationPermanent
+    ? {
+        topic:
+          astroBundle?.topic ?? topic,
+
+        questionType,
+
+        eventType:
+          astroBundle?.eventType ?? null,
+
+        promiseLayer:
+          astroBundle?.promiseLayer ?? null,
+
+        sambandhaAnalysis:
+          astroBundle?.sambandhaAnalysis ?? null,
+
+        divisionalLayer:
+          astroBundle?.divisionalLayer ?? null,
+
+        divisionalAnalysis:
+          astroBundle?.divisionalAnalysis ?? null,
+
+        karakaLayer:
+          astroBundle?.karakaLayer ?? null,
+
+        chartRealityProfile:
+          astroBundle?.chartRealityProfile ?? null,
+      }
+    : null;
+const debtAstroFacts =
+  isDebtPermanent
+    ? {
+        topic:
+          astroBundle?.topic ?? topic,
+
+        questionType,
+
+        eventType:
+          astroBundle?.eventType ?? null,
+
+        promiseLayer:
+          astroBundle?.promiseLayer ?? null,
+
+        sambandhaAnalysis:
+          astroBundle?.sambandhaAnalysis ?? null,
+
+        divisionalLayer:
+          astroBundle?.divisionalLayer ?? null,
+
+        divisionalAnalysis:
+          astroBundle?.divisionalAnalysis ?? null,
+
+        karakaLayer:
+          astroBundle?.karakaLayer ?? null,
+
+        chartRealityProfile:
+          astroBundle?.chartRealityProfile ?? null,
+      }
+    : null;
+const inheritanceAstroFacts =
+  isInheritancePermanent
+    ? {
+        topic:
+          astroBundle?.topic ?? topic,
+
+        questionType,
+
+        eventType:
+          astroBundle?.eventType ?? null,
+
+        promiseLayer:
+          astroBundle?.promiseLayer ?? null,
+
+        sambandhaAnalysis:
+          astroBundle?.sambandhaAnalysis ?? null,
+
+        divisionalLayer:
+          astroBundle?.divisionalLayer ?? null,
+
+        divisionalAnalysis:
+          astroBundle?.divisionalAnalysis ?? null,
+
+        karakaLayer:
+          astroBundle?.karakaLayer ?? null,
+
+        chartRealityProfile:
+          astroBundle?.chartRealityProfile ?? null,
+      }
+    : null;
+const mentalHealthAstroFacts =
+  isMentalHealthPermanent
+    ? {
+        topic:
+          astroBundle?.topic ?? topic,
+
+        questionType,
+
+        eventType:
+          astroBundle?.eventType ?? null,
+
+        promiseLayer:
+          astroBundle?.promiseLayer ?? null,
+
+        sambandhaAnalysis:
+          astroBundle?.sambandhaAnalysis ?? null,
+
+        divisionalLayer:
+          astroBundle?.divisionalLayer ?? null,
+
+        divisionalAnalysis:
+          astroBundle?.divisionalAnalysis ?? null,
+
+        karakaLayer:
+          astroBundle?.karakaLayer ?? null,
+
+        chartRealityProfile:
+          astroBundle?.chartRealityProfile ?? null,
+      }
+    : null;
+const petsAstroFacts =
+  isPetsPermanent
+    ? {
+        topic:
+          astroBundle?.topic ?? topic,
+
+        questionType,
+
+        eventType:
+          astroBundle?.eventType ?? null,
+
+        promiseLayer:
+          astroBundle?.promiseLayer ?? null,
+
+        sambandhaAnalysis:
+          astroBundle?.sambandhaAnalysis ?? null,
+
+        divisionalLayer:
+          astroBundle?.divisionalLayer ?? null,
+
+        divisionalAnalysis:
+          astroBundle?.divisionalAnalysis ?? null,
+
+        karakaLayer:
+          astroBundle?.karakaLayer ?? null,
+
+        chartRealityProfile:
+          astroBundle?.chartRealityProfile ?? null,
+      }
+    : null;
+
+const innerAstroFacts =
+  isInnerPermanent
+    ? {
+        topic:
+          astroBundle?.topic ?? topic,
+
+        questionType,
+
+        eventType:
+          astroBundle?.eventType ?? null,
+
+        promiseLayer:
+          astroBundle?.promiseLayer ?? null,
+
+        sambandhaAnalysis:
+          astroBundle?.sambandhaAnalysis ?? null,
+
+        divisionalLayer:
+          astroBundle?.divisionalLayer ?? null,
+
+        divisionalAnalysis:
+          astroBundle?.divisionalAnalysis ?? null,
+
+        karakaLayer:
+          astroBundle?.karakaLayer ?? null,
+
+        chartRealityProfile:
+          astroBundle?.chartRealityProfile ?? null,
+      }
+    : null;
+const normalAstroFacts =
+  natPayload?.astroFacts ??
+  astroBundle;
+
+const normalEvidencePacket =
+  astroBundle?.astrologyEvidencePacket ??
+  natPayload?.astroFacts?.astrologyEvidencePacket ??
+  null;
+
+/*
+  Domain intelligence itself is useful for profession suitability,
+  but its generic instructions currently mention dasha/transit.
+  Replace those instructions with profession-only instructions.
+*/
+const domainIntelligenceForNaturalize =
+  domainIntelligenceContext.available
+    ? isProfessionIdentity
+      ? {
+          ...domainIntelligenceContext,
+
+          instructions: [
+            "Judge the requested profession from long-term natural suitability.",
+            "Use capability fit, natal career promise, planetary relationships, and divisional confirmation.",
+            "Explain the strongest capabilities supporting the requested profession.",
+            "Explain meaningful capability gaps or cautions.",
+            "Compare stronger alternative professions only when that comparison helps clarify the result.",
+            "Do not use current dasha, transits, timing windows, activation periods, career movement, promotion timing, or trigger dates.",
+            "Do not treat present timing as evidence for or against permanent professional suitability.",
+            "Do not expose internal engine names, JSON fields, or implementation details.",
+            "Do not expose raw internal scores unless the user explicitly asks for scoring.",
+          ],
+        }
+      : domainIntelligenceContext
+    : null;
+
+const professionReasoningInstructions = {
+  directAnswerFirst: true,
+
+  resolveContradictions: true,
+
+  neverInventAstrology: true,
+
+  onlyClaimMissingDivisionalDataWhenExplicitlyMissing:
+    true,
+
+  suitabilityOnly: true,
+
+  timingSuppressed: true,
+
+  rules: [
+    "Answer profession suitability as a long-term vocational question.",
+    "Judge enduring aptitude before any temporary timing condition.",
+    "Use only supplied natal, capability, Sambandha, karaka, and divisional evidence.",
+    "Do not discuss dasha, transit, timing windows, trigger dates, current career movement, promotion, visibility cycles, or breakthrough periods.",
+    "Do not turn a profession-suitability question into a timing or career-change answer.",
+    "If the user wants timing, wait until they explicitly ask when to study, qualify, transition, launch, or practise professionally.",
+    "Adapt practical guidance to userContext.age, userContext.lifeStage, userContext.careerStage, and userContext.adviceStyle.",
+    "For a child, discuss aptitude, subjects, reading, debate, writing, reasoning, hobbies, values, and skill development. Do not speak as though the child is already employed or making an immediate professional move.",
+    "For a student, discuss education choices, degree paths, competitions, internships, certifications, and skill development.",
+    "For an early-career adult, discuss entry routes, specialization, practical experience, and career development.",
+    "For a mid-career adult, discuss leadership, specialization, strategic transitions, entrepreneurship, or advancement where relevant.",
+    "For a late-career adult, discuss consulting, mentoring, teaching, selective work, succession, and legacy where relevant.", 
+  ],
+};
+const relationshipReasoningInstructions = {
+  directAnswerFirst: true,
+
+  resolveContradictions: true,
+
+  neverInventAstrology: true,
+
+  onlyClaimMissingDivisionalDataWhenExplicitlyMissing:
+    true,
+
+  relationshipPatternOnly: true,
+
+  timingSuppressed: true,
+
+  rules: [
+    "Answer permanent relationship and marriage-pattern questions from enduring relationship capacity and partnership style.",
+    "Judge natal promise, the 7th house and 7th lord, Venus, Moon, Jupiter, relevant Sambandha, and D9 confirmation before considering temporary timing.",
+    "Use the 5th house when romance, attraction, love marriage, or dating style is relevant.",
+    "Use the 8th house when intimacy, trust, shared vulnerability, or deeper bonding patterns are relevant.",
+    "Explain relationship strengths, emotional needs, commitment style, communication patterns, and meaningful cautions.",
+    "For partner-profile questions, describe the qualities and relationship dynamics likely to suit the native rather than predicting a specific person's identity.",
+    "For relationship-pattern questions, explain recurring tendencies without blaming the user or treating difficult placements as inevitable failure.",
+    "For love-versus-arranged questions, compare the chart's relationship pattern and family/choice dynamics without presenting one path as guaranteed.",
+    "Do not discuss current dasha, transits, timing windows, trigger dates, marriage dates, meeting dates, reconciliation timing, or activation periods unless the user explicitly asks when.",
+    "Do not convert a permanent relationship-pattern question into a marriage-timing answer.",
+    "Adapt practical guidance to userContext.age, userContext.lifeStage, and userContext.adviceStyle.",
+    "For a child, do not discuss imminent marriage, sexual relationships, adult commitment decisions, or partner-search advice. Focus on emotional development, communication, boundaries, empathy, trust, and healthy relationship skills.",
+    "For a student, keep guidance developmental and age-appropriate; do not assume immediate marriage or long-term commitment unless the user explicitly asks as an adult.",
+  ],
+};
+const wealthReasoningInstructions = {
+  directAnswerFirst: true,
+
+  resolveContradictions: true,
+
+  neverInventAstrology: true,
+
+  onlyClaimMissingDivisionalDataWhenExplicitlyMissing:
+    true,
+
+  wealthPatternOnly: true,
+
+  timingSuppressed: true,
+
+  rules: [
+    "Answer permanent wealth questions from enduring financial capacity, earning style, accumulation pattern, saving behaviour, investment temperament, and income structure.",
+    "Judge natal promise first using the 2nd and 11th houses, their lords, relevant supporting houses, Jupiter, Venus, Mercury, Saturn, Rahu where relevant, Sambandha, and D2 confirmation.",
+    "Use D10 only when the question specifically involves earning through profession, salary, work structure, or multiple income streams.",
+    "For wealth-potential questions, distinguish earning capacity from wealth retention and accumulation.",
+    "For earning-style questions, explain how the native is most naturally suited to generate income rather than predicting a specific salary or employer.",
+    "For wealth-pattern questions, explain recurring financial tendencies such as accumulation, leakage, volatility, dependence on effort, or delayed consolidation without presenting them as inevitable.",
+    "For saving-capacity questions, distinguish income generation from the ability to retain and compound wealth.",
+    "For investment-suitability questions, discuss temperament, discipline, analytical ability, risk sensitivity, and suitability for structured investing. Do not recommend specific financial products or speculative trades.",
+    "For multiple-income questions, distinguish natural capacity for diversified income from timing of when a second or third income source will begin.",
+    "Do not discuss current dasha, transits, timing windows, trigger dates, salary-rise dates, bonus dates, financial-improvement periods, or wealth-activation periods unless the user explicitly asks when.",
+    "Do not turn permanent wealth potential into a timing forecast.",
+    "Adapt practical guidance to userContext.age, userContext.lifeStage, and userContext.adviceStyle.",
+    "For a child, focus on financial habits, learning, discipline, numeracy, entrepreneurship aptitude, delayed gratification, and responsible money behaviour. Do not discuss investments, salary progression, speculative trading, or wealth targets as immediate actions.",
+    "For a student, focus on financial literacy, skill development, earning aptitude, education choices, internships, and responsible saving habits.",
+  ],
+};
+const businessReasoningInstructions = {
+  directAnswerFirst: true,
+
+  resolveContradictions: true,
+
+  neverInventAstrology: true,
+
+  onlyClaimMissingDivisionalDataWhenExplicitlyMissing:
+    true,
+
+  businessPatternOnly: true,
+
+  timingSuppressed: true,
+
+  rules: [
+    "Answer permanent business questions from enduring entrepreneurial capacity, business style, commercial temperament, partnership suitability, and execution pattern.",
+    "Judge natal promise first using the 3rd, 7th, 10th, and 11th houses as relevant, their lords, Mercury, Mars, Jupiter, Saturn, Venus, Rahu where relevant, Sambandha, and D10 confirmation.",
+    "For business-suitability questions, distinguish entrepreneurial capacity from current business timing.",
+    "For business-style questions, explain the kinds of business models, operating styles, customer relationships, and commercial roles that fit the native naturally.",
+    "For business-versus-job questions, compare independence, execution, structure, risk tolerance, responsibility, and commercial orientation without allowing current dasha or transit timing to decide permanent suitability.",
+    "For partnership-suitability questions, explain whether the native is better suited to solo ownership, equal partnership, specialist partnership, or clearly defined role-based collaboration.",
+    "For entrepreneurial-pattern questions, explain initiative, risk tolerance, persistence, commercial judgement, delegation, leadership, and adaptability.",
+    "Distinguish natural capacity for business from the timing of launch, growth, clients, or commercial conversion.",
+    "Do not discuss current dasha, transits, timing windows, trigger dates, launch dates, client-growth periods, business-growth periods, or partnership timing unless the user explicitly asks when.",
+    "Do not turn permanent business suitability into a business-launch forecast.",
+    "Adapt practical guidance to userContext.age, userContext.lifeStage, userContext.careerStage, and userContext.adviceStyle.",
+    "For a child, discuss entrepreneurial aptitude through initiative, problem-solving, creativity, responsibility, communication, small projects, teamwork, and financial literacy. Do not advise immediate business launch, capital commitment, hiring, clients, or commercial risk.",
+    "For a student, focus on entrepreneurship education, competitions, internships, projects, commercial skills, customer understanding, and experimentation before major financial commitment.",
+  ],
+};
+const educationReasoningInstructions = {
+  directAnswerFirst: true,
+
+  resolveContradictions: true,
+
+  neverInventAstrology: true,
+
+  onlyClaimMissingDivisionalDataWhenExplicitlyMissing:
+    true,
+
+  educationPatternOnly: true,
+
+  timingSuppressed: true,
+
+  rules: [
+    "Answer permanent education questions from enduring learning capacity, subject aptitude, stream suitability, study pattern, concentration style, and academic development.",
+    "Judge natal promise first using the 2nd, 4th, 5th, and 9th houses as relevant, their lords, Mercury, Jupiter, Moon, Saturn, Mars or Venus where relevant, Sambandha, and D24 confirmation.",
+    "For subject-fit questions, explain the strongest intellectual, analytical, creative, linguistic, practical, or research-oriented tendencies rather than forcing one narrow subject.",
+    "For stream-choice questions, compare the requested streams on long-term aptitude, learning style, and capability fit rather than current timing.",
+    "For study-pattern questions, explain concentration, memory, discipline, curiosity, distraction, learning pace, and preferred study structure without treating difficult placements as permanent academic failure.",
+    "Distinguish natural academic aptitude from current exam performance or temporary study pressure.",
+    "Do not discuss current dasha, transits, timing windows, exam-result dates, admission dates, higher-education timing, or academic-improvement periods unless the user explicitly asks when.",
+    "Do not turn permanent subject or stream suitability into an exam or admission forecast.",
+    "Adapt practical guidance to userContext.age, userContext.lifeStage, and userContext.adviceStyle.",
+    "For a child, focus on interests, curiosity, reading, numeracy, creativity, concentration, learning habits, confidence, and exposure to different subjects.",
+    "For a student, focus on subject selection, study methods, skill development, competitions, projects, internships, and academic planning appropriate to their stage.",
+    "For an adult, distinguish formal education, professional qualifications, reskilling, and higher study according to the user's actual life stage.",
+  ],
+};
+const spiritualReasoningInstructions = {
+  directAnswerFirst: true,
+
+  resolveContradictions: true,
+
+  neverInventAstrology: true,
+
+  onlyClaimMissingDivisionalDataWhenExplicitlyMissing:
+    true,
+
+  spiritualPatternOnly: true,
+
+  timingSuppressed: true,
+
+  rules: [
+    "Answer permanent spiritual questions from enduring spiritual inclination, devotional temperament, meditative capacity, mantra affinity, guru pattern, and deeper dharmic orientation.",
+    "Judge natal promise first using the 5th, 9th, and 12th houses as primary spiritual houses, with the 4th and 8th as supporting houses where relevant.",
+    "Use Jupiter, Ketu, Moon, Sun, Saturn, Mercury, or Venus according to the specific spiritual question, together with Sambandha and D20 confirmation.",
+    "Use D9 only when dharma, guru connection, or deeper maturity materially helps clarify the spiritual pattern.",
+    "For spiritual-path questions, compare paths such as devotion, knowledge, meditation, mantra, service, or contemplative practice without forcing one path when multiple are supported.",
+    "For devotional-style questions, explain the native's natural relationship with devotion, prayer, surrender, ritual, and emotional connection to the divine.",
+    "For meditation-suitability questions, discuss concentration, inwardness, discipline, emotional regulation, and tolerance for silence or solitude.",
+    "For mantra-suitability questions, discuss sound, repetition, discipline, devotion, concentration, and symbolic affinity without prescribing a specific mantra unless the supplied evidence explicitly supports it.",
+    "For guru-pattern questions, explain openness to guidance, teacher relationships, discernment, surrender, independence, and dharmic learning without claiming a specific guru will appear.",
+    "Do not discuss current dasha, transits, timing windows, trigger dates, spiritual activation periods, guru-arrival dates, or spiritual-growth timing unless the user explicitly asks when.",
+    "Do not convert a permanent spiritual question into a timing forecast.",
+    "Adapt practical guidance to userContext.age, userContext.lifeStage, and userContext.adviceStyle.",
+    "For a child, focus on values, kindness, reflection, prayer, discipline, gratitude, curiosity, and simple spiritual habits rather than intense sadhana or renunciation.",
+    "For a student, focus on balanced practice, study, reflection, discipline, and healthy integration with education and daily responsibilities.",
+  ],
+};
+const healthReasoningInstructions = {
+  directAnswerFirst: true,
+
+  resolveContradictions: true,
+
+  neverInventAstrology: true,
+
+  onlyClaimMissingDivisionalDataWhenExplicitlyMissing:
+    true,
+
+  healthPatternOnly: true,
+
+  timingSuppressed: true,
+
+  rules: [
+    "Answer permanent health questions as astrological health-pattern guidance, not medical diagnosis.",
+    "Judge enduring constitutional tendencies, stress patterns, recovery capacity, lifestyle sensitivity, and resilience from relevant natal houses and lords, planetary relationships, karakas, and D6/D30 confirmation.",
+    "Use the 1st house for constitution and vitality, the 6th for health challenges and routines, the 8th for deeper vulnerability and recovery themes, and the 12th for depletion, rest, isolation, or recovery context where relevant.",
+    "For health-sensitivity questions, describe tendencies or areas that may deserve attention without claiming that a specific disease is present.",
+    "For stress-pattern questions, discuss emotional load, mental overstimulation, discipline, rest, routine, and recovery without diagnosing anxiety, depression, or another condition.",
+    "For recovery-capacity questions, discuss resilience, pacing, rest, support, routine, and how recovery may be experienced without guaranteeing recovery from a specific illness.",
+    "For lifestyle-pattern questions, give general wellbeing guidance such as sleep, routine, hydration, movement, stress reduction, and consistency, but do not prescribe treatment.",
+    "Do not discuss current dasha, transits, timing windows, trigger dates, sensitive periods, recovery dates, or health-improvement timing unless the user explicitly asks when.",
+    "Do not convert a permanent health-pattern question into a disease prediction or health-timing forecast.",
+    "Never diagnose a medical condition, claim that astrology confirms or rules out disease, or recommend stopping or replacing professional medical care.",
+    "Never advise medication changes, dosage changes, medical procedures, or treatment plans based on astrology.",
+    "When the question concerns symptoms, diagnosis, treatment, medication, or urgent health concerns, clearly frame astrology as supplementary and advise appropriate professional medical evaluation.",
+    "Adapt practical guidance to userContext.age, userContext.lifeStage, and userContext.adviceStyle.",
+    "For a child, focus on healthy routines, sleep, nutrition, movement, stress management, parental support, and age-appropriate wellbeing habits. Do not predict disease or long-term medical outcomes.",
+    "For an older adult, keep guidance conservative and avoid implying that astrological resilience replaces screening, monitoring, or medical follow-up.",
+  ],
+};
+const childReasoningInstructions = {
+  directAnswerFirst: true,
+
+  resolveContradictions: true,
+
+  neverInventAstrology: true,
+
+  onlyClaimMissingDivisionalDataWhenExplicitlyMissing:
+    true,
+
+  childPatternOnly: true,
+
+  timingSuppressed: true,
+
+  rules: [
+    "Answer permanent child and parenthood questions from enduring parenthood potential, parenting style, parent-child relationship patterns, and the child's natural aptitude.",
+    "Judge natal promise first using the 5th house and 5th lord, Jupiter, Moon, relevant supporting houses, Sambandha, and D7 confirmation.",
+    "For parenthood-potential questions, distinguish emotional readiness, nurturing capacity, responsibility, and family orientation from timing of conception or childbirth.",
+    "For parenting-style questions, explain nurturing, discipline, communication, expectations, emotional responsiveness, structure, and guidance style without presenting one pattern as fixed or inevitable.",
+    "For parent-child relationship questions, explain recurring interaction patterns, communication dynamics, emotional needs, expectations, boundaries, and areas requiring patience without blaming either parent or child.",
+    "For child-aptitude questions, focus on the child's natural strengths, learning style, creativity, communication, reasoning, interests, temperament, and developmental potential.",
+    "Do not discuss current dasha, transits, timing windows, conception dates, childbirth dates, child-development windows, or family-expansion timing unless the user explicitly asks when.",
+    "Do not turn permanent parenthood or child-aptitude questions into conception or childbirth forecasts.",
+    "Do not present difficult parent-child patterns as inevitable conflict.",
+    "Adapt practical guidance to userContext.age, userContext.lifeStage, and userContext.adviceStyle.",
+    "When the subject is a child, keep guidance developmental and age-appropriate. Focus on learning, emotional support, communication, confidence, interests, routine, and healthy development rather than adult outcomes.",
+    "Do not make deterministic claims about a child's future profession, marriage, finances, health, or life outcome from a child-aptitude question.",
+  ],
+};
+const propertyReasoningInstructions = {
+  directAnswerFirst: true,
+
+  resolveContradictions: true,
+
+  neverInventAstrology: true,
+
+  onlyClaimMissingDivisionalDataWhenExplicitlyMissing:
+    true,
+
+  propertyPatternOnly: true,
+
+  timingSuppressed: true,
+
+  rules: [
+    "Answer permanent property questions from enduring property potential, home stability, ownership pattern, real-estate temperament, and asset-building capacity.",
+    "Judge natal promise first using the 4th house and 4th lord, relevant supporting houses, Mars, Venus, Moon, Jupiter, Saturn or Rahu where relevant, Sambandha, and D4 confirmation.",
+    "For property-potential questions, distinguish the capacity to own or build property assets from the timing of an actual purchase.",
+    "For property-investment-suitability questions, explain long-term suitability for real-estate ownership, asset accumulation, patience, leverage sensitivity, and decision style without recommending a specific property or transaction.",
+    "For property-pattern questions, explain recurring themes such as stability, movement, delay, attachment to home, renovation, ownership pressure, or repeated property complications without presenting them as inevitable.",
+    "For home-stability questions, explain residential stability, emotional attachment to home, settlement pattern, and need for security without predicting a specific address or location.",
+    "Do not discuss current dasha, transits, timing windows, trigger dates, purchase dates, sale dates, possession dates, relocation dates, or property-activation periods unless the user explicitly asks when.",
+    "Do not convert permanent property potential into a purchase or sale forecast.",
+    "Do not treat current timing as proof for or against permanent property potential.",
+    "Adapt practical guidance to userContext.age, userContext.lifeStage, and userContext.adviceStyle.",
+    "For a child or student, frame property themes as future attitudes toward stability, home, responsibility, and asset-building rather than immediate purchase or investment advice.",
+  ],
+};
+const vehicleReasoningInstructions = {
+  directAnswerFirst: true,
+
+  resolveContradictions: true,
+
+  neverInventAstrology: true,
+
+  onlyClaimMissingDivisionalDataWhenExplicitlyMissing:
+    true,
+
+  vehiclePatternOnly: true,
+
+  timingSuppressed: true,
+
+  rules: [
+    "Answer permanent vehicle questions from enduring vehicle ownership potential, comfort preferences, mobility pattern, attachment to vehicles, and recurring vehicle tendencies.",
+    "Judge natal promise first using the 4th house and 4th lord, relevant supporting houses, Venus, Mars, Moon, Saturn, Rahu or Jupiter where relevant, Sambandha, and D16 confirmation.",
+    "For vehicle-potential questions, distinguish long-term ownership and comfort potential from the timing of an actual purchase.",
+    "For vehicle-preference questions, describe the qualities, comfort level, practicality, performance orientation, luxury preference, or usage pattern that may suit the native rather than recommending one specific make or model.",
+    "For vehicle-pattern questions, explain recurring themes such as frequent upgrades, attachment, maintenance pressure, impulsive changes, comfort seeking, or practical mobility needs without presenting them as inevitable.",
+    "Do not discuss current dasha, transits, timing windows, trigger dates, purchase dates, upgrade periods, delivery dates, financing windows, or vehicle-activation periods unless the user explicitly asks when.",
+    "Do not convert permanent vehicle potential or preference into a purchase-timing forecast.",
+    "Do not treat temporary timing conditions as proof for or against permanent vehicle ownership potential.",
+    "Adapt practical guidance to userContext.age, userContext.lifeStage, and userContext.adviceStyle.",
+    "For a child or student, frame vehicle themes as future preferences, comfort orientation, mobility habits, responsibility, and practicality rather than immediate purchase or financing advice.",
+  ],
+};
+const relocationReasoningInstructions = {
+  directAnswerFirst: true,
+
+  resolveContradictions: true,
+
+  neverInventAstrology: true,
+
+  onlyClaimMissingDivisionalDataWhenExplicitlyMissing:
+    true,
+
+  relocationPatternOnly: true,
+
+  timingSuppressed: true,
+
+  rules: [
+    "Answer permanent relocation questions from enduring movement potential, foreign-settlement potential, residential stability, adaptability, and location preference.",
+    "Judge natal promise first using the 4th, 9th, and 12th houses as relevant, their lords, Moon, Rahu, Saturn, Jupiter or Mercury where relevant, Sambandha, and D4/D9 confirmation.",
+    "For relocation-potential questions, distinguish the native's long-term tendency to move or resettle from the timing of an actual move.",
+    "For foreign-settlement questions, explain whether living abroad or away from the place of origin is a meaningful long-term pattern without claiming that permanent settlement is guaranteed.",
+    "For relocation-pattern questions, explain recurring themes such as restlessness, repeated moves, adaptation, instability, exploration, or the need for environmental change without presenting them as inevitable.",
+    "For location-preference questions, describe the kinds of environments, cities, cultures, pace, community, or lifestyle settings that may suit the native rather than predicting one exact country or city.",
+    "Do not discuss current dasha, transits, timing windows, trigger dates, visa dates, move dates, settlement windows, or relocation-activation periods unless the user explicitly asks when.",
+    "Do not convert permanent relocation potential into a move-timing forecast.",
+    "Do not treat temporary timing conditions as proof for or against permanent foreign-settlement potential.",
+    "Adapt practical guidance to userContext.age, userContext.lifeStage, and userContext.adviceStyle.",
+    "For a child or student, frame relocation themes as adaptability, exposure to different environments, future mobility, education abroad, and cultural openness rather than immediate relocation planning.",
+  ],
+};
+const disputeReasoningInstructions = {
+  directAnswerFirst: true,
+
+  resolveContradictions: true,
+
+  neverInventAstrology: true,
+
+  onlyClaimMissingDivisionalDataWhenExplicitlyMissing:
+    true,
+
+  disputePatternOnly: true,
+
+  timingSuppressed: true,
+
+  rules: [
+    "Answer permanent dispute and legal-pattern questions from enduring conflict style, negotiation pattern, litigation tendency, strategic temperament, and resolution style.",
+    "Judge natal promise first using the 3rd, 6th, 7th, and 8th houses as relevant, their lords, Mars, Saturn, Mercury, Jupiter, Venus, Rahu or Ketu where relevant, Sambandha, and D6/D30 confirmation.",
+    "For conflict-pattern questions, explain recurring triggers, defensiveness, assertiveness, escalation tendencies, communication style, and boundary patterns without blaming the user or another person.",
+    "For legal-suitability questions, discuss analytical ability, argument, persistence, judgement, negotiation, procedure, and pressure tolerance without guaranteeing success in litigation.",
+    "For negotiation-style questions, explain whether the native tends toward direct confrontation, compromise, strategic patience, persuasion, documentation, or structured resolution.",
+    "For litigation-pattern questions, explain recurring dispute or legal-pressure tendencies without predicting that court cases are inevitable.",
+    "Do not discuss current dasha, transits, timing windows, trigger dates, court dates, settlement dates, case-resolution periods, or legal activation unless the user explicitly asks when.",
+    "Do not convert a permanent dispute-pattern question into a case-outcome or legal-timing forecast.",
+    "Never guarantee that the user will win or lose a legal matter based on astrology.",
+    "Never present astrology as a substitute for legal advice, legal representation, evidence, documentation, or procedural deadlines.",
+    "If the user is asking about an actual legal matter, clearly distinguish astrological interpretation from legal strategy and encourage appropriate professional legal advice where needed.",
+    "Adapt practical guidance to userContext.age, userContext.lifeStage, and userContext.adviceStyle.",
+    "For a child or student, frame conflict themes as communication, boundaries, fairness, negotiation, self-control, debate, and problem-solving rather than litigation or court strategy.",
+  ],
+};
+const parentsReasoningInstructions = {
+  directAnswerFirst: true,
+  resolveContradictions: true,
+  neverInventAstrology: true,
+  onlyClaimMissingDivisionalDataWhenExplicitlyMissing: true,
+  familyPatternOnly: true,
+  timingSuppressed: true,
+
+  rules: [
+    "Answer permanent parent-related questions from enduring parent-child relationship patterns, maternal and paternal influence, family expectations, emotional inheritance, responsibility, and elder dynamics.",
+    "Judge natal promise using the 4th and 9th houses and their lords, Sun, Moon, Jupiter, Saturn where relevant, Sambandha, D12, and D9 where maturity or family dharma is relevant.",
+    "For mother-relationship questions, focus primarily on the 4th house, Moon, emotional security, care, attachment, expectations, and maternal influence.",
+    "For father-relationship questions, focus primarily on the 9th house, Sun, guidance, authority, values, expectations, approval, and paternal influence.",
+    "For parental-influence questions, explain how family conditioning, values, expectations, security, authority, and responsibility may shape the native without blaming either parent.",
+    "For family-elder questions, discuss authority, tradition, guidance, duty, respect, generational expectations, and boundaries.",
+    "Do not discuss current dasha, transits, timing windows, trigger dates, parental-support periods, elder-responsibility periods, or family timing unless the user explicitly asks when.",
+    "Do not convert a permanent parent-relationship question into a prediction about a parent's future.",
+    "Adapt practical guidance to userContext.age, userContext.lifeStage, and userContext.adviceStyle.",
+    "For a child, keep the answer focused on communication, emotional security, trust, expectations, boundaries, support, and healthy family relationships.",
+  ],
+};
+
+const siblingsReasoningInstructions = {
+  directAnswerFirst: true,
+  resolveContradictions: true,
+  neverInventAstrology: true,
+  onlyClaimMissingDivisionalDataWhenExplicitlyMissing: true,
+  siblingPatternOnly: true,
+  timingSuppressed: true,
+
+  rules: [
+    "Answer permanent sibling questions from enduring sibling dynamics, communication, rivalry, support, cooperation, expectations, and family roles.",
+    "Judge natal promise using the 3rd and 11th houses and their lords, Mars, Mercury, Moon, Jupiter or Saturn where relevant, Sambandha, and D3 confirmation.",
+    "For younger-sibling questions, give primary emphasis to the 3rd house and its lord.",
+    "For elder-sibling questions, give primary emphasis to the 11th house and its lord.",
+    "For sibling-relationship questions, explain communication style, closeness, rivalry, emotional expectations, cooperation, boundaries, and recurring interaction patterns.",
+    "For sibling-support questions, distinguish emotional, practical, financial, advisory, and family support rather than treating support as one fixed outcome.",
+    "Do not discuss current dasha, transits, timing windows, trigger dates, sibling-conflict periods, or support timing unless the user explicitly asks when.",
+    "Do not convert permanent sibling dynamics into a timing forecast.",
+    "Do not present rivalry or distance as inevitable estrangement.",
+    "Adapt practical guidance to userContext.age, userContext.lifeStage, and userContext.adviceStyle.",
+    "For a child, focus on sharing, communication, rivalry, fairness, support, boundaries, teamwork, and emotional understanding.",
+  ],
+};
+const travelReasoningInstructions = {
+  directAnswerFirst: true,
+  resolveContradictions: true,
+  neverInventAstrology: true,
+  onlyClaimMissingDivisionalDataWhenExplicitlyMissing: true,
+  travelPatternOnly: true,
+  timingSuppressed: true,
+
+  rules: [
+    "Answer permanent travel questions from enduring travel inclination, foreign-travel pattern, frequency of movement, adaptability, and pilgrimage orientation.",
+    "Judge natal promise using the 3rd, 9th, and 12th houses and their lords, Moon, Rahu, Jupiter, Mercury, Saturn or Ketu where relevant, Sambandha, and D9/D4 confirmation.",
+    "Use D20 only when pilgrimage or explicitly spiritual travel is relevant.",
+    "For travel-inclination questions, distinguish natural movement and curiosity from the timing of an actual journey.",
+    "For foreign-travel questions, explain whether overseas travel is a meaningful recurring pattern without converting it into settlement or relocation unless the user specifically asks about living abroad.",
+    "For frequent-travel questions, explain mobility, restlessness, adaptability, work or learning movement, and the need for environmental change without presenting constant travel as inevitable.",
+    "For pilgrimage questions, explain affinity for sacred journeys, spiritual travel, reflection, and dharmic movement without forcing a specific pilgrimage or destination.",
+    "Do not discuss current dasha, transits, timing windows, trigger dates, visa dates, departure dates, travel windows, or pilgrimage timing unless the user explicitly asks when.",
+    "Do not convert permanent travel inclination into a travel-timing forecast.",
+    "Do not confuse travel with relocation: travel concerns journeys and movement without necessarily changing the native's residential base.",
+    "Adapt practical guidance to userContext.age, userContext.lifeStage, and userContext.adviceStyle.",
+    "For a child or student, frame travel themes as curiosity, exposure, learning, adaptability, school trips, family travel, cultural openness, and future mobility rather than independent travel planning.",
+  ],
+};
+const reputationReasoningInstructions = {
+  directAnswerFirst: true,
+  resolveContradictions: true,
+  neverInventAstrology: true,
+  onlyClaimMissingDivisionalDataWhenExplicitlyMissing: true,
+  reputationPatternOnly: true,
+  timingSuppressed: true,
+
+  rules: [
+    "Answer permanent reputation questions from enduring public-image pattern, recognition potential, visibility style, status orientation, credibility, and how the native is perceived over time.",
+    "Judge natal promise using the 1st, 10th, and 11th houses as relevant, their lords, Sun, Jupiter, Saturn, Rahu, Mercury or Moon where relevant, Sambandha, and D10/D9 confirmation.",
+    "For reputation-potential questions, distinguish the capacity for recognition, influence, credibility, or visibility from the timing of when recognition may arrive.",
+    "For public-image questions, explain how the native may naturally project authority, warmth, seriousness, intellect, ambition, unconventionality, privacy, or visibility without claiming that everyone will perceive them identically.",
+    "For recognition-pattern questions, explain recurring themes such as delayed credit, visibility before reward, responsibility before recognition, public validation, competition for status, or periodic image pressure without presenting them as inevitable.",
+    "For visibility-style questions, distinguish public-facing, selective, private, leadership-oriented, intellectual, social, or behind-the-scenes visibility patterns.",
+    "Do not discuss current dasha, transits, timing windows, trigger dates, recognition periods, reputation-growth periods, or recovery timing unless the user explicitly asks when.",
+    "Do not convert permanent reputation potential into a timing forecast.",
+    "Do not treat temporary timing conditions as proof for or against permanent recognition potential.",
+    "Adapt practical guidance to userContext.age, userContext.lifeStage, userContext.careerStage, and userContext.adviceStyle.",
+    "For a child or student, frame reputation themes as confidence, reliability, leadership, communication, responsibility, peer perception, and healthy self-expression rather than professional status or public fame.",
+  ],
+};
+const debtReasoningInstructions = {
+  directAnswerFirst: true,
+  resolveContradictions: true,
+  neverInventAstrology: true,
+  onlyClaimMissingDivisionalDataWhenExplicitlyMissing: true,
+  debtPatternOnly: true,
+  timingSuppressed: true,
+
+  rules: [
+    "Answer permanent debt questions from enduring borrowing tendencies, repayment discipline, liability patterns, financial pressure, and debt-management style.",
+    "Judge natal promise using the 2nd, 6th, 8th, 11th, and 12th houses as relevant, their lords, Saturn, Mars, Rahu, Mercury, Jupiter or Venus where relevant, Sambandha, and D2/D6 confirmation.",
+    "For debt-pattern questions, explain recurring themes such as borrowing under pressure, repayment discipline, cash-flow mismatch, overextension, dependency on future income, or difficulty closing liabilities without presenting them as inevitable.",
+    "For borrowing-tendency questions, distinguish practical use of credit from impulsive, pressured, habitual, or leveraged borrowing.",
+    "For repayment-capacity questions, distinguish income generation from repayment discipline, liquidity, consistency, and the ability to reduce liabilities over time.",
+    "For liability-pattern questions, explain how obligations may build through lifestyle, property, business, family responsibility, emergencies, or poor cash-flow structure without assuming one cause unless supported by evidence.",
+    "Do not discuss current dasha, transits, timing windows, trigger dates, loan dates, repayment dates, debt-reduction periods, or borrowing windows unless the user explicitly asks when.",
+    "Do not convert permanent debt patterns into a timing forecast.",
+    "Do not treat temporary timing conditions as proof for or against permanent repayment capacity.",
+    "Never recommend borrowing, leverage, refinancing, debt consolidation, a specific loan, credit product, interest structure, or repayment strategy based only on astrology.",
+    "If the user is dealing with actual financial distress, clearly distinguish astrological interpretation from financial advice and encourage appropriate professional financial guidance where needed.",
+    "Adapt practical guidance to userContext.age, userContext.lifeStage, and userContext.adviceStyle.",
+    "For a child or student, frame debt themes as financial literacy, delayed gratification, budgeting, responsible use of money, saving habits, and caution around future borrowing rather than actual loan decisions.",
+  ],
+};
+const inheritanceReasoningInstructions = {
+  directAnswerFirst: true,
+  resolveContradictions: true,
+  neverInventAstrology: true,
+  onlyClaimMissingDivisionalDataWhenExplicitlyMissing: true,
+  inheritancePatternOnly: true,
+  timingSuppressed: true,
+
+  rules: [
+    "Answer permanent inheritance questions from enduring inheritance potential, ancestral patterns, legacy themes, family asset dynamics, and inheritance-related conflict tendencies.",
+    "Judge natal promise using the 8th house and 8th lord, with the 2nd, 4th, 9th, and 11th houses as relevant support, together with Saturn, Jupiter, Ketu, Mars, Mercury or Sun where relevant, Sambandha, and D8/D12 confirmation.",
+    "For inheritance-potential questions, distinguish the existence of inheritance or legacy potential from whether assets will definitely be received, their value, and when transfer may occur.",
+    "For ancestral-pattern questions, explain recurring family themes around shared resources, property, legacy, responsibility, attachment, secrecy, obligation, or unresolved family matters without presenting them as unavoidable karma.",
+    "For legacy-pattern questions, distinguish material inheritance from values, responsibilities, family identity, knowledge, property, status, or other forms of legacy.",
+    "For inheritance-conflict questions, explain tendencies toward delay, disagreement, ambiguity, documentation issues, competing expectations, or family tension without assuming that litigation is inevitable.",
+    "Do not discuss current dasha, transits, timing windows, trigger dates, inheritance dates, probate timing, settlement periods, asset-transfer dates, or legacy-transfer timing unless the user explicitly asks when.",
+    "Do not convert permanent inheritance potential into a timing or monetary forecast.",
+    "Do not treat temporary timing conditions as proof that inheritance will or will not occur.",
+    "Never guarantee receipt of inheritance, a particular asset, a particular amount, estate settlement, probate outcome, or legal entitlement based on astrology.",
+    "Do not present astrology as a substitute for a will, estate planning, probate advice, legal representation, tax advice, documentation, or professional financial advice.",
+    "If the user is dealing with an actual inheritance, estate, probate, insurance, or family-property matter, clearly distinguish astrological interpretation from legal and financial advice.",
+    "Adapt practical guidance to userContext.age, userContext.lifeStage, and userContext.adviceStyle.",
+    "For a child or student, frame inheritance themes as family legacy, values, responsibility, ancestry, and attitudes toward shared resources rather than expected future assets or financial entitlement.",
+  ],
+};
+const mentalHealthReasoningInstructions = {
+  directAnswerFirst: true,
+  resolveContradictions: true,
+  neverInventAstrology: true,
+  onlyClaimMissingDivisionalDataWhenExplicitlyMissing: true,
+  mentalHealthPatternOnly: true,
+  timingSuppressed: true,
+
+  rules: [
+    "Answer permanent mental-health questions as astrological emotional and cognitive pattern guidance, not psychiatric diagnosis.",
+    "Judge enduring patterns using the 1st, 4th, 8th, and 12th houses as relevant, their lords, Moon, Mercury, Saturn, Ketu, Rahu, Mars or Jupiter where relevant, Sambandha, and D9/D30 confirmation.",
+    "For overthinking questions, discuss mental activity, rumination tendency, sensitivity, concentration, stimulation, uncertainty, and grounding without diagnosing anxiety or another disorder.",
+    "For mood-sensitivity questions, discuss emotional responsiveness, sensitivity, environmental influence, attachment, recovery, and regulation without diagnosing depression, bipolar disorder, or another psychiatric condition.",
+    "For stress-resilience questions, discuss coping style, pressure tolerance, rest, structure, support, boundaries, and recovery without claiming clinical resilience or vulnerability.",
+    "For emotional-regulation questions, explain emotional intensity, reactivity, suppression, expression, processing, and recovery patterns without labelling the native as unstable.",
+    "Do not discuss current dasha, transits, timing windows, trigger dates, sensitive periods, recovery periods, or support timing unless the user explicitly asks when.",
+    "Do not convert permanent mental or emotional patterns into psychiatric predictions.",
+    "Never diagnose depression, anxiety disorder, bipolar disorder, panic disorder, psychosis, ADHD, personality disorder, trauma disorder, or any other psychiatric condition from astrology.",
+    "Never claim that astrology confirms or rules out a psychiatric diagnosis.",
+    "Never recommend starting, stopping, changing, or avoiding psychiatric medication or therapy based on astrology.",
+    "Never present spiritual practice, mantra, remedy, fasting, meditation, or astrology as a replacement for professional mental-health care.",
+    "If the user describes severe symptoms, self-harm thoughts, suicidal thoughts, psychosis, inability to function, or immediate danger, prioritize safety and appropriate professional support rather than astrological interpretation.",
+    "Adapt practical guidance to userContext.age, userContext.lifeStage, and userContext.adviceStyle.",
+    "For a child or teenager, keep guidance developmental and supportive, focusing on emotional literacy, routine, sleep, communication, trusted adults, school support, coping skills, and healthy expression rather than psychiatric labels.",
+  ],
+};
+const petsReasoningInstructions = {
+  directAnswerFirst: true,
+  resolveContradictions: true,
+  neverInventAstrology: true,
+  onlyClaimMissingDivisionalDataWhenExplicitlyMissing: true,
+  petsPatternOnly: true,
+  timingSuppressed: true,
+
+  rules: [
+    "Answer permanent pet-related questions from enduring caregiving style, emotional bond with animals, responsibility pattern, sensitivity, service, and attachment.",
+    "Judge natal promise using the 6th house and 6th lord, with the 4th and 12th houses as relevant support, together with Moon, Mercury, Venus, Saturn or Ketu where relevant, Sambandha, and D6/D30 confirmation.",
+    "For pet-relationship questions, explain bonding, attachment, emotional comfort, companionship, sensitivity, and mutual dependence without projecting human motives onto the animal.",
+    "For caregiving-style questions, explain patience, routine, attentiveness, responsibility, emotional responsiveness, and consistency.",
+    "For responsibility-pattern questions, explain how pet care may become a source of duty, structure, emotional commitment, or practical responsibility without presenting difficulties as inevitable.",
+    "Do not discuss current dasha, transits, timing windows, illness periods, loss periods, or pet-related timing unless the user explicitly asks when.",
+    "Do not predict a pet's illness, death, lifespan, diagnosis, or medical outcome from astrology.",
+    "Do not present astrology as a substitute for veterinary advice or treatment.",
+    "Adapt practical guidance to userContext.age, userContext.lifeStage, and userContext.adviceStyle.",
+    "For a child, focus on kindness, responsibility, routine, empathy, boundaries, hygiene, and age-appropriate animal care.",
+  ],
+};
+
+const innerReasoningInstructions = {
+  directAnswerFirst: true,
+  resolveContradictions: true,
+  neverInventAstrology: true,
+  onlyClaimMissingDivisionalDataWhenExplicitlyMissing: true,
+  innerPatternOnly: true,
+  timingSuppressed: true,
+
+  rules: [
+    "Answer permanent inner-life questions from enduring purpose, meaning, self-understanding, inner conflict, values, dharma, and psychological-spiritual orientation.",
+    "Judge natal promise using the 1st, 8th, 9th, and 12th houses as relevant, their lords, Moon, Ketu, Jupiter, Sun, Saturn or Mercury where relevant, Sambandha, and D9 confirmation.",
+    "For life-direction questions, explain values, temperament, meaning, growth direction, and inner priorities rather than giving one rigid life instruction.",
+    "For purpose questions, distinguish broad purpose themes from a single profession, relationship, or achievement.",
+    "For inner-conflict questions, explain competing needs, values, fears, attachments, expectations, control, surrender, or uncertainty without diagnosing a psychiatric condition.",
+    "For self-understanding questions, explain recurring motivations, emotional needs, identity themes, values, and inner contradictions without presenting personality as fixed.",
+    "For meaning questions, explain what kinds of contribution, learning, connection, spirituality, creativity, responsibility, or service may create fulfilment.",
+    "Do not discuss current dasha, transits, timing windows, trigger dates, spiritual activation, or life-direction timing unless the user explicitly asks when.",
+    "Do not convert purpose or meaning questions into deterministic fate statements.",
+    "Do not claim that the chart reveals one compulsory destiny, one soulmate, one profession, one guru, or one unavoidable path.",
+    "Adapt practical guidance to userContext.age, userContext.lifeStage, and userContext.adviceStyle.",
+    "For a child or student, frame purpose as interests, values, curiosity, character development, learning, relationships, creativity, contribution, and gradual self-discovery.",
+  ],
+};
+const standardReasoningInstructions = {
+  ...(
+    natPayload?.astroFacts
+      ?.reasoningInstructions ??
+    {
+      directAnswerFirst: true,
+      resolveContradictions: true,
+      distinguishMovementFromOutcome: true,
+      neverInventAstrology: true,
+      onlyClaimMissingDivisionalDataWhenExplicitlyMissing:
+        true,
+    }
+  ),
+
+  domainIntelligenceInstructions:
+    domainIntelligenceContext.instructions,
+};
+
+const safeNatPayload = {
   userQuestion:
     natPayload?.userQuestion ??
     question,
@@ -12510,6 +18591,9 @@ const finalDecision = buildFinalAnswerDecision({
     natPayload?.topic ??
     astroBundle?.topic ??
     topic,
+  userContext,
+  domainIntelligence:
+    domainIntelligenceForNaturalize,
 
   questionType:
     natPayload?.questionType ??
@@ -12520,172 +18604,1041 @@ const finalDecision = buildFinalAnswerDecision({
     astroBundle?.careerEventType ??
     null,
 
-  topicCopy: getTimingTopicCopy(
-    astroBundle?.topic ?? topic,
-    astroBundle?.eventType ??
-      astroBundle?.careerEventType
-  ),
+  topicCopy:
+    isProfessionIdentity
+      ? null
+      : getTimingTopicCopy(
+          astroBundle?.topic ?? topic,
+          astroBundle?.eventType ??
+            astroBundle?.careerEventType
+        ),
 
   conversationContinuationSummary:
     conversationState?.lastAnswerSummary ??
     null,
-  tone: natPayload?.tone,
-  depth: natPayload?.depth,
-  interactionIntent: natPayload?.interactionIntent,
-  confidenceLevel: natPayload?.confidenceLevel,
-  formatTier: natPayload?.formatTier,
-  formatRules: natPayload?.formatRules,
-  distressed: natPayload?.distressed,
-  moodHint: natPayload?.moodHint,
-  simpleGuidanceMode: natPayload?.simpleGuidanceMode,
-  astroFacts: natPayload?.astroFacts ?? astroBundle,
+
+  tone:
+    natPayload?.tone,
+
+  depth:
+    natPayload?.depth,
+
+  interactionIntent:
+    natPayload?.interactionIntent,
+
+  confidenceLevel:
+    natPayload?.confidenceLevel,
+
+  formatTier:
+    natPayload?.formatTier,
+
+ formatRules:
+  isProfessionIdentity
+    ? [
+        "Answer the profession suitability question directly.",
+        "Focus on long-term natural aptitude and vocational fit.",
+        "Explain the result from capabilities, natal career promise, planetary relationships, and relevant divisional confirmation.",
+        "Do not discuss current dasha, transits, dates, timing windows, career movement, visibility cycles, promotion timing, or breakthrough periods.",
+      ].join(" ")
+    : isRelationshipPermanent
+    ? [
+        "Answer the relationship or marriage-pattern question directly.",
+        "Focus on enduring relationship capacity, partner style, emotional needs, commitment pattern, communication, and compatibility.",
+        "Use natal relationship promise, relevant houses and lords, planetary relationships, karakas, and D9 confirmation.",
+        "Do not discuss current dasha, transits, dates, marriage timing, meeting windows, reconciliation timing, or activation periods unless the user explicitly asks when.",
+        "Keep practical guidance appropriate to the user's age and life stage.",
+      ].join(" ")
+        : isWealthPermanent
+    ? [
+        "Answer the permanent wealth question directly.",
+        "Focus on enduring earning capacity, wealth accumulation, financial retention, saving behaviour, investment temperament, and income structure.",
+        "Use relevant natal houses and lords, planetary relationships, karakas, D2 confirmation, and D10 only where professional earning is relevant.",
+        "Distinguish earning potential from wealth retention and accumulation.",
+        "Do not discuss current dasha, transits, dates, salary timing, bonus timing, financial-improvement windows, or wealth activation unless the user explicitly asks when.",
+        "Keep practical guidance appropriate to the user's age and life stage.",
+      ].join(" ")
+    : isBusinessPermanent
+? [
+    "Answer the permanent business question directly.",
+    "Focus on enduring entrepreneurial capacity, business style, commercial temperament, partnership suitability, execution ability, and risk pattern.",
+    "Use relevant natal houses and lords, planetary relationships, karakas, and D10 confirmation.",
+    "Distinguish natural business capacity from current launch or growth timing.",
+    "Do not discuss current dasha, transits, dates, launch windows, client-growth periods, partnership timing, or business-growth periods unless the user explicitly asks when.",
+    "Keep practical guidance appropriate to the user's age and life stage.",
+  ].join(" ")
+: isEducationPermanent
+? [
+    "Answer the permanent education question directly.",
+    "Focus on enduring learning capacity, subject aptitude, stream suitability, study pattern, concentration style, and academic development.",
+    "Use relevant natal houses and lords, planetary relationships, karakas, and D24 confirmation.",
+    "Distinguish natural learning aptitude from current exam performance or temporary academic pressure.",
+    "Do not discuss current dasha, transits, dates, exam-result timing, admission windows, higher-education timing, or academic-improvement periods unless the user explicitly asks when.",
+    "Keep practical guidance appropriate to the user's age and life stage.",
+  ].join(" ")
+: isSpiritualPermanent
+? [
+    "Answer the permanent spiritual question directly.",
+    "Focus on enduring spiritual inclination, devotional temperament, meditative capacity, mantra affinity, guru pattern, and dharmic orientation.",
+    "Use relevant natal houses and lords, planetary relationships, karakas, D20 confirmation, and D9 only where dharma or guru maturity is relevant.",
+    "Distinguish natural spiritual inclination from temporary spiritual activation or current timing.",
+    "Do not discuss current dasha, transits, dates, spiritual-growth periods, guru-arrival timing, activation windows, or timing predictions unless the user explicitly asks when.",
+    "Keep practical guidance appropriate to the user's age and life stage.",
+  ].join(" ")
+  : isHealthPermanent
+? [
+    "Answer the permanent health-pattern question directly.",
+    "Focus on enduring constitution, resilience, stress pattern, lifestyle sensitivity, recovery capacity, and wellbeing tendencies.",
+    "Use relevant natal houses and lords, planetary relationships, karakas, and D6/D30 confirmation.",
+    "Describe astrological tendencies, not medical diagnoses.",
+    "Do not discuss current dasha, transits, dates, sensitive periods, recovery windows, or health-improvement timing unless the user explicitly asks when.",
+    "Do not recommend medication, treatment changes, procedures, or replacement of professional medical care.",
+    "Keep practical guidance appropriate to the user's age and life stage.",
+  ].join(" ")
+: isChildPermanent
+? [
+    "Answer the permanent child or parenthood question directly.",
+    "Focus on enduring parenthood potential, parenting style, parent-child dynamics, or the child's natural aptitude.",
+    "Use the 5th house and 5th lord, relevant supporting houses, Jupiter, Moon, planetary relationships, and D7 confirmation.",
+    "Distinguish permanent parenting or child-development patterns from conception, childbirth, or child-related timing.",
+    "Do not discuss current dasha, transits, dates, conception windows, childbirth timing, child-development periods, or family-expansion timing unless the user explicitly asks when.",
+    "Keep practical guidance appropriate to the age and life stage of both the user and the child being discussed.",
+  ].join(" ")
+: isPropertyPermanent
+? [
+    "Answer the permanent property question directly.",
+    "Focus on enduring property potential, home stability, ownership pattern, real-estate temperament, and asset-building capacity.",
+    "Use the 4th house and 4th lord, relevant supporting houses, planetary relationships, karakas, and D4 confirmation.",
+    "Distinguish permanent property potential from the timing of an actual purchase, sale, possession, or move.",
+    "Do not discuss current dasha, transits, dates, purchase windows, sale windows, possession dates, relocation timing, or property-activation periods unless the user explicitly asks when.",
+    "Keep practical guidance appropriate to the user's age and life stage.",
+  ].join(" ")
+: isVehiclePermanent
+? [
+    "Answer the permanent vehicle question directly.",
+    "Focus on enduring vehicle ownership potential, mobility style, comfort preference, practicality, performance orientation, and recurring vehicle patterns.",
+    "Use the 4th house and 4th lord, relevant supporting houses, planetary relationships, karakas, and D16 confirmation.",
+    "Distinguish permanent vehicle potential or preference from the timing of an actual purchase or upgrade.",
+    "Do not discuss current dasha, transits, dates, purchase windows, upgrade periods, delivery dates, financing windows, or vehicle-activation periods unless the user explicitly asks when.",
+    "Keep practical guidance appropriate to the user's age and life stage.",
+  ].join(" ")
+: isRelocationPermanent
+? [
+    "Answer the permanent relocation question directly.",
+    "Focus on enduring relocation potential, foreign-settlement potential, residential stability, adaptability, and location preference.",
+    "Use the 4th, 9th, and 12th houses and their lords as relevant, planetary relationships, karakas, and D4/D9 confirmation.",
+    "Distinguish permanent relocation or foreign-settlement potential from the timing of an actual move.",
+    "Do not discuss current dasha, transits, dates, visa timing, move windows, settlement periods, or relocation-activation periods unless the user explicitly asks when.",
+    "Keep practical guidance appropriate to the user's age and life stage.",
+  ].join(" ")
+: isDisputePermanent
+? [
+    "Answer the permanent dispute or legal-pattern question directly.",
+    "Focus on enduring conflict style, negotiation pattern, litigation tendency, strategic temperament, and resolution style.",
+    "Use the 3rd, 6th, 7th, and 8th houses and their lords as relevant, planetary relationships, karakas, and D6/D30 confirmation.",
+    "Distinguish permanent dispute or negotiation patterns from the timing or outcome of an actual legal matter.",
+    "Do not discuss current dasha, transits, dates, court timing, settlement windows, case-resolution periods, or legal activation unless the user explicitly asks when.",
+    "Do not present astrology as legal advice or guarantee a legal outcome.",
+    "Keep practical guidance appropriate to the user's age and life stage.",
+  ].join(" ")
+: isParentsPermanent
+? [
+    "Answer the permanent parent-related question directly.",
+    "Focus on enduring parent-child dynamics, maternal or paternal influence, emotional inheritance, expectations, values, authority, responsibility, and family-elder patterns.",
+    "Use the 4th and 9th houses and lords as relevant, Sun, Moon, Jupiter, Saturn, planetary relationships, D12, and D9 where relevant.",
+    "Distinguish permanent family patterns from timing of parental support or responsibility.",
+    "Do not discuss current dasha, transits, dates, parental-support periods, responsibility windows, or family timing unless explicitly asked when.",
+    "Keep practical guidance appropriate to the user's age and life stage.",
+  ].join(" ")
+
+: isSiblingsPermanent
+? [
+    "Answer the permanent sibling question directly.",
+    "Focus on enduring sibling dynamics, communication, rivalry, support, cooperation, expectations, and family roles.",
+    "Use the 3rd and 11th houses and lords as relevant, Mars, Mercury, planetary relationships, and D3 confirmation.",
+    "Distinguish permanent sibling patterns from conflict or support timing.",
+    "Do not discuss current dasha, transits, dates, sibling-conflict periods, or support windows unless explicitly asked when.",
+    "Keep practical guidance appropriate to the user's age and life stage.",
+  ].join(" ")
+  : isTravelPermanent
+? [
+    "Answer the permanent travel question directly.",
+    "Focus on enduring travel inclination, foreign-travel pattern, mobility, adaptability, frequency of movement, and pilgrimage orientation.",
+    "Use the 3rd, 9th, and 12th houses and their lords as relevant, planetary relationships, karakas, and D9/D4 confirmation.",
+    "Use D20 only when pilgrimage or explicitly spiritual travel is relevant.",
+    "Distinguish permanent travel inclination from the timing of an actual journey.",
+    "Do not discuss current dasha, transits, dates, visa timing, departure dates, travel windows, or pilgrimage timing unless the user explicitly asks when.",
+    "Keep practical guidance appropriate to the user's age and life stage.",
+  ].join(" ")
+  : isReputationPermanent
+? [
+    "Answer the permanent reputation question directly.",
+    "Focus on enduring public-image pattern, recognition potential, visibility style, credibility, influence, and status orientation.",
+    "Use the 1st, 10th, and 11th houses and their lords as relevant, planetary relationships, karakas, and D10/D9 confirmation.",
+    "Distinguish permanent recognition potential from the timing of when visibility or public acknowledgement may increase.",
+    "Do not discuss current dasha, transits, dates, recognition windows, reputation-growth periods, recovery periods, or visibility timing unless the user explicitly asks when.",
+    "Keep practical guidance appropriate to the user's age and life stage.",
+  ].join(" ")
+  : isDebtPermanent
+? [
+    "Answer the permanent debt question directly.",
+    "Focus on enduring borrowing tendency, repayment discipline, liability pattern, financial pressure, liquidity behaviour, and debt-management style.",
+    "Use the 2nd, 6th, 8th, 11th, and 12th houses and their lords as relevant, planetary relationships, karakas, and D2/D6 confirmation.",
+    "Distinguish permanent debt or repayment patterns from the timing of a loan, repayment, refinancing, or debt reduction.",
+    "Do not discuss current dasha, transits, dates, borrowing windows, repayment periods, debt-reduction timing, or loan timing unless the user explicitly asks when.",
+    "Do not present astrology as financial advice or recommend borrowing based only on the chart.",
+    "Keep practical guidance appropriate to the user's age and life stage.",
+  ].join(" ")
+  : isInheritancePermanent
+? [
+    "Answer the permanent inheritance question directly.",
+    "Focus on enduring inheritance potential, ancestral patterns, legacy themes, shared-resource dynamics, and inheritance-related family patterns.",
+    "Use the 8th house and 8th lord, relevant supporting houses, planetary relationships, karakas, and D8/D12 confirmation.",
+    "Distinguish permanent inheritance or legacy potential from the timing, value, legal entitlement, or transfer of an actual asset.",
+    "Do not discuss current dasha, transits, dates, probate timing, settlement windows, inheritance dates, or asset-transfer timing unless the user explicitly asks when.",
+    "Do not present astrology as legal, tax, estate-planning, or financial advice.",
+    "Keep practical guidance appropriate to the user's age and life stage.",
+  ].join(" ")
+  : isMentalHealthPermanent
+? [
+    "Answer the permanent mental or emotional pattern question directly.",
+    "Focus on enduring cognitive style, emotional sensitivity, stress response, regulation pattern, resilience, and coping tendencies.",
+    "Use the 1st, 4th, 8th, and 12th houses and their lords as relevant, planetary relationships, karakas, and D9/D30 confirmation.",
+    "Describe astrological tendencies, not psychiatric diagnoses.",
+    "Do not discuss current dasha, transits, dates, sensitive periods, recovery windows, or mental-health timing unless the user explicitly asks when.",
+    "Do not recommend medication or treatment changes and do not present astrology as a substitute for mental-health care.",
+    "Keep practical guidance appropriate to the user's age and life stage.",
+  ].join(" ")
+  : isPetsPermanent
+? [
+    "Answer the permanent pet-related question directly.",
+    "Focus on enduring caregiving style, emotional bond with animals, responsibility, sensitivity, attachment, and service.",
+    "Use the 6th house and lord, relevant supporting houses, planetary relationships, karakas, and D6/D30 confirmation.",
+    "Do not discuss current dasha, transits, dates, illness periods, loss periods, or pet-related timing unless the user explicitly asks when.",
+    "Do not present astrology as veterinary advice.",
+    "Keep practical guidance appropriate to the user's age and life stage.",
+  ].join(" ")
+
+: isInnerPermanent
+? [
+    "Answer the permanent inner-life question directly.",
+    "Focus on enduring purpose, meaning, self-understanding, values, inner conflict, dharma, and growth orientation.",
+    "Use the 1st, 8th, 9th, and 12th houses and lords as relevant, planetary relationships, karakas, and D9 confirmation.",
+    "Distinguish broad inner direction from one fixed destiny or compulsory life path.",
+    "Do not discuss current dasha, transits, dates, activation periods, or life-direction timing unless explicitly asked when.",
+    "Keep practical guidance appropriate to the user's age and life stage.",
+  ].join(" ")
+    : natPayload?.formatRules,
+
+  distressed:
+    natPayload?.distressed,
+
+  moodHint:
+    natPayload?.moodHint,
+
+  simpleGuidanceMode:
+    natPayload?.simpleGuidanceMode,
+
+ astroFacts:
+  isProfessionIdentity
+    ? professionAstroFacts
+    : isRelationshipPermanent
+    ? relationshipAstroFacts
+    : isWealthPermanent
+    ? wealthAstroFacts
+    : isBusinessPermanent
+    ? businessAstroFacts
+    : isEducationPermanent
+    ? educationAstroFacts
+    : isSpiritualPermanent
+    ? spiritualAstroFacts
+    : isHealthPermanent
+    ? healthAstroFacts
+    : isChildPermanent
+    ? childAstroFacts
+    : isPropertyPermanent
+    ? propertyAstroFacts
+    : isVehiclePermanent
+    ? vehicleAstroFacts
+    : isRelocationPermanent
+    ? relocationAstroFacts
+    : isDisputePermanent
+    ? disputeAstroFacts
+    : isParentsPermanent
+    ? parentsAstroFacts
+    : isSiblingsPermanent
+    ? siblingsAstroFacts
+    : isTravelPermanent
+    ? travelAstroFacts
+    : isReputationPermanent
+    ? reputationAstroFacts
+    : isDebtPermanent
+    ? debtAstroFacts
+    : isInheritancePermanent
+    ? inheritanceAstroFacts
+    : isMentalHealthPermanent
+? mentalHealthAstroFacts
+: isPetsPermanent
+? petsAstroFacts
+: isInnerPermanent
+? innerAstroFacts
+: normalAstroFacts,
+
+
   astrologyEvidencePacket:
-    astroBundle?.astrologyEvidencePacket ??
-    natPayload?.astroFacts?.astrologyEvidencePacket ??
+  shouldSuppressTiming
+    ? null
+    : normalEvidencePacket,
+
+  divisionalAnalysis:
+    astroBundle?.divisionalAnalysis ??
     null,
- divisionalAnalysis:
-  astroBundle?.divisionalAnalysis ?? null,
+
   reasoningInstructions:
-    natPayload?.astroFacts?.reasoningInstructions ??
-    {
-      directAnswerFirst: true,
-      resolveContradictions: true,
-      distinguishMovementFromOutcome: true,
-      neverInventAstrology: true,
-      onlyClaimMissingDivisionalDataWhenExplicitlyMissing: true,
-    },
+  isProfessionIdentity
+    ? professionReasoningInstructions
+    : isRelationshipPermanent
+    ? relationshipReasoningInstructions
+    : isWealthPermanent
+    ? wealthReasoningInstructions
+    : isBusinessPermanent
+    ? businessReasoningInstructions
+    : isEducationPermanent
+    ? educationReasoningInstructions
+    : isSpiritualPermanent
+? spiritualReasoningInstructions
+: isHealthPermanent
+? healthReasoningInstructions
+: isChildPermanent
+? childReasoningInstructions
+: isPropertyPermanent
+? propertyReasoningInstructions
+: isVehiclePermanent
+? vehicleReasoningInstructions
+: isRelocationPermanent
+? relocationReasoningInstructions
+: isDisputePermanent
+? disputeReasoningInstructions
+: isParentsPermanent
+? parentsReasoningInstructions
+: isSiblingsPermanent
+? siblingsReasoningInstructions
+: isTravelPermanent
+? travelReasoningInstructions
+: isReputationPermanent
+? reputationReasoningInstructions
+: isDebtPermanent
+? debtReasoningInstructions
+: isInheritancePermanent
+? inheritanceReasoningInstructions
+: isMentalHealthPermanent
+? mentalHealthReasoningInstructions
+: isPetsPermanent
+? petsReasoningInstructions
+: isInnerPermanent
+? innerReasoningInstructions
+: standardReasoningInstructions,
+
   nearestWindow:
-  astroBundle?.nearestWindow ?? null,
+    shouldSuppressTiming
+      ? null
+      : astroBundle?.nearestWindow ?? null,
 
-strongestWindow:
-  astroBundle?.strongestWindow ?? null,
+  strongestWindow:
+    shouldSuppressTiming
+      ? null
+      : astroBundle?.strongestWindow ?? null,
 
-rankedTimingWindows:
-  astroBundle?.rankedTimingWindows ?? [],
+  rankedTimingWindows:
+    shouldSuppressTiming
+      ? []
+      : astroBundle?.rankedTimingWindows ?? [],
 
-bestAvailableWindow:
-  astroBundle?.bestAvailableWindow ?? null,
+  bestAvailableWindow:
+    shouldSuppressTiming
+      ? null
+      : astroBundle?.bestAvailableWindow ?? null,
 
-selectedTimingWindow:
-  astroBundle?.selectedTimingWindow ?? null,
+  selectedTimingWindow:
+    shouldSuppressTiming
+      ? null
+      : astroBundle?.selectedTimingWindow ?? null,
 
-eventTriggers:
-  astroBundle?.eventTriggers ?? [],
+  eventTriggers:
+    shouldSuppressTiming
+      ? []
+      : astroBundle?.eventTriggers ?? [],
 
-bestEventTrigger:
-  astroBundle?.bestEventTrigger ?? null,
+  bestEventTrigger:
+    shouldSuppressTiming
+      ? null
+      : astroBundle?.bestEventTrigger ?? null,
 
-winningEvidence:
-  astroBundle?.winningEvidence ?? null,
+  winningEvidence:
+    shouldSuppressTiming
+      ? null
+      : astroBundle?.winningEvidence ?? null,
 
-whyNotNow:
-  astroBundle?.whyNotNow ?? [],
+  whyNotNow:
+    shouldSuppressTiming
+      ? []
+      : astroBundle?.whyNotNow ?? [],
 
-conversionDiagnosisV2:
-  astroBundle?.conversionDiagnosisV2 ?? null,
+  conversionDiagnosisV2:
+    shouldSuppressTiming
+      ? null
+      : astroBundle?.conversionDiagnosisV2 ?? null,
 
-astroJudgement:
-  natPayload?.astroJudgement ??
-  astroBundle?.astroJudgement ??
-  null,
-  dailyAstroContext:
-    natPayload?.dailyAstroContext ??
-    astroBundle?.dailyAstroContext ??
+  explainabilityProfile:
+    shouldSuppressTiming
+      ? null
+      : astroBundle?.explainabilityProfile ?? null,
+
+  decision:
+    shouldSuppressTiming
+      ? null
+      : astroBundle?.decision ?? null,
+
+  sambandhaAnalysis:
+    astroBundle?.sambandhaAnalysis ??
     null,
+
+  astroJudgement:
+    shouldSuppressTiming
+      ? null
+      : natPayload?.astroJudgement ??
+        astroBundle?.astroJudgement ??
+        null,
+
+  dailyAstroContext:
+    shouldSuppressTiming
+      ? null
+      : natPayload?.dailyAstroContext ??
+        astroBundle?.dailyAstroContext ??
+        null,
 
   evidenceBullets:
-    natPayload?.evidenceBullets ??
-    astroBundle?.evidenceBullets ??
-    [],
+    shouldSuppressTiming
+      ? []
+      : natPayload?.evidenceBullets ??
+        astroBundle?.evidenceBullets ??
+        [],
 
-  finalDecisionLine: natPayload?.finalDecisionLine,
-  finalDecisionVerdict: natPayload?.finalDecisionVerdict,
-  verdict: natPayload?.verdict,
-  humanReason: natPayload?.humanReason,
-  astroReason: natPayload?.astroReason,
-answerRequirements: {
-  productTier: "paid_astrology_answer",
+  finalDecisionLine:
+    shouldSuppressTiming
+      ? null
+      : natPayload?.finalDecisionLine,
 
-  minimumUsefulLength:
-    questionType === "timing"
-      ? 280
-      : 180,
+  finalDecisionVerdict:
+    shouldSuppressTiming
+      ? null
+      : natPayload?.finalDecisionVerdict,
 
-  directAnswerFirst: true,
+  verdict:
+    natPayload?.verdict,
 
- mustAnswerExactEvent:
-  astroBundle?.eventType ??
-  astroBundle?.careerEventType ??
-  topic,
+  humanReason:
+    shouldSuppressTiming
+      ? null
+      : natPayload?.humanReason,
 
-  timingRules: {
-    explainWhetherDateMeans:
-      "preparation, activation, movement, conversion, or final outcome",
+  astroReason:
+    shouldSuppressTiming
+      ? null
+      : natPayload?.astroReason,
 
-    distinguishActivationFromOutcome: true,
-    headlineMustUseRangeWhenAvailable: true,
-topicLanguageRule:
-  "Use language belonging to the detected topic and event type. Never use career, promotion, job-change, recruiter, networking, résumé, employer, professional, visibility, or workplace language unless the detected topic is career.",
+  answerRequirements: {
+    productTier:
+      "paid_astrology_answer",
 
-actionRule:
-  "Practical guidance must match the detected topic. Vehicle questions require vehicle-purchase guidance, property questions require property guidance, relationship questions require relationship guidance, and career questions require career guidance.",
-singleDateRole:
-  "A single date is only a peak or activation point inside the broader timing window, never the guaranteed event date.",
+    minimumUsefulLength:
+      questionType === "timing"
+        ? 280
+        : 180,
 
-rangePriority:
-  "When selectedTimingWindow contains different start and end dates, headline the full date range. Mention bestEventTrigger only as a supporting peak date inside that range.",
-    doNotRepeatSameDate: true,
+    directAnswerFirst:
+      true,
 
-    doNotShowRawISODate: true,
+    mustAnswerExactEvent:
+      astroBundle?.eventType ??
+      astroBundle?.careerEventType ??
+      topic,
 
-    doNotGuaranteeExactOutcome: true,
+    timingRules:
+  shouldSuppressTiming
+    ? null
+    : {
+            explainWhetherDateMeans:
+              "preparation, activation, movement, conversion, or final outcome",
 
-    describeWhatMayHappenInTheWindow: true,
+            distinguishActivationFromOutcome:
+              true,
 
-    includePracticalPreparation: true,
+            headlineMustUseRangeWhenAvailable:
+              true,
+
+            topicLanguageRule:
+              "Use language belonging to the detected topic and event type. Never use career, promotion, job-change, recruiter, networking, résumé, employer, professional, visibility, or workplace language unless the detected topic is career.",
+
+            actionRule:
+              "Practical guidance must match the detected topic. Vehicle questions require vehicle-purchase guidance, property questions require property guidance, relationship questions require relationship guidance, and career questions require career guidance.",
+
+            singleDateRole:
+              "A single date is only a peak or activation point inside the broader timing window, never the guaranteed event date.",
+
+            rangePriority:
+              "When selectedTimingWindow contains different start and end dates, headline the full date range. Mention bestEventTrigger only as a supporting peak date inside that range.",
+
+            doNotRepeatSameDate:
+              true,
+
+            doNotShowRawISODate:
+              true,
+
+            doNotGuaranteeExactOutcome:
+              true,
+
+            describeWhatMayHappenInTheWindow:
+              true,
+
+            includePracticalPreparation:
+              true,
+          },
+
+    structure:
+      questionType === "timing"
+  ? [
+      "Give the direct timing answer first.",
+      "Explain whether the selected date is the start of movement, a peak trigger, or an outcome window.",
+      "Explain what may happen in practical life during that period.",
+      "Explain why this timing has been selected using the six pillars: Natal Promise, Planetary Relationships, Divisional Confirmation, Dasha Activation, Transit Trigger, and Conversion Assessment.",
+      "Under What this is based on, cite exact supplied houses, house lords, planetary relationships, divisional charts, dasha chain, and transit triggers.",
+      "Include Confidence Drivers with supporting and limiting factors from explainabilityProfile.",
+      "Include the Astrologer's Logic Chain in plain language.",
+      "End with specific actions the user should take before and during the window.",
+    ]
+  : isProfessionIdentity
+  ? [
+      "Answer whether the requested profession is a strong, moderate, conditional, or weak long-term fit.",
+      "Explain the strongest capabilities supporting the profession.",
+      "Explain the most important capability gaps or cautions.",
+      "Support the conclusion using natal career promise, planetary relationships, and relevant divisional confirmation.",
+      "Mention stronger alternative career directions only when they materially clarify the result.",
+      "Give practical long-term developmental guidance appropriate to the question.",
+      "Do not discuss current timing unless the user explicitly asks when to pursue the profession.",
+    ]
+  : isRelationshipPermanent
+  ? [
+      "Answer the exact relationship-pattern question directly.",
+      "Explain the strongest relationship strengths and needs.",
+      "Explain the most important cautions or recurring patterns.",
+      "Support the conclusion using relevant natal houses and lords, planetary relationships, karakas, and D9 confirmation.",
+      "For partner-profile questions, describe suitable qualities and dynamics rather than predicting a specific person.",
+      "For love-versus-arranged questions, compare both patterns without claiming certainty.",
+      "Give practical age-appropriate relationship guidance.",
+      "Do not discuss timing unless the user explicitly asks when.",
+    ]
+    : isWealthPermanent
+? [
+    "Answer the exact wealth question directly.",
+    "Explain the strongest financial strengths and capacities.",
+    "Explain the most important weaknesses, leakage patterns, or cautions.",
+    "Distinguish earning capacity from saving, retention, and accumulation.",
+    "Support the conclusion using relevant natal houses and lords, planetary relationships, karakas, and D2 confirmation.",
+    "Use D10 only when professional earning or income structure is relevant.",
+    "For investment-suitability questions, discuss temperament and discipline rather than specific products or trades.",
+    "Give practical age-appropriate financial-development guidance.",
+    "Do not discuss timing unless the user explicitly asks when.",
+  ]
+  : isBusinessPermanent
+? [
+    "Answer the exact business question directly.",
+    "Explain the strongest entrepreneurial and commercial strengths.",
+    "Explain the most important execution, risk, partnership, or operational cautions.",
+    "Support the conclusion using relevant natal houses and lords, planetary relationships, karakas, and D10 confirmation.",
+    "For business-versus-job questions, compare both paths on long-term suitability rather than present timing.",
+    "For partnership-suitability questions, explain the best ownership or collaboration structure.",
+    "Give practical age-appropriate business-development guidance.",
+    "Do not discuss timing unless the user explicitly asks when.",
+  ]
+: isEducationPermanent
+? [
+    "Answer the exact education question directly.",
+    "Explain the strongest learning strengths and aptitudes.",
+    "Explain the most important concentration, discipline, memory, or learning-style cautions.",
+    "Support the conclusion using relevant natal houses and lords, planetary relationships, karakas, and D24 confirmation.",
+    "For subject-fit questions, explain the strongest suitable subject families rather than forcing one narrow choice.",
+    "For stream-choice questions, compare the requested streams on long-term aptitude.",
+    "For study-pattern questions, explain how the user learns best and what may obstruct consistency.",
+    "Give practical age-appropriate educational guidance.",
+    "Do not discuss timing unless the user explicitly asks when.",
+  ]
+  : isSpiritualPermanent
+? [
+    "Answer the exact spiritual question directly.",
+    "Explain the strongest spiritual inclinations and capacities.",
+    "Explain the most important cautions, imbalances, or developmental needs.",
+    "Support the conclusion using relevant natal houses and lords, planetary relationships, karakas, and D20 confirmation.",
+    "Use D9 only when dharma, guru connection, or spiritual maturity materially clarifies the answer.",
+    "For spiritual-path questions, compare supported paths without forcing one exclusive path.",
+    "For meditation, mantra, devotion, or guru questions, explain natural suitability and developmental style rather than timing.",
+    "Give practical age-appropriate spiritual guidance.",
+    "Do not discuss timing unless the user explicitly asks when.",
+  ]
+  : isHealthPermanent
+? [
+    "Answer the exact health-pattern question directly.",
+    "Explain the strongest constitutional or resilience factors.",
+    "Explain the most important sensitivities, stress patterns, or lifestyle cautions.",
+    "Support the conclusion using relevant natal houses and lords, planetary relationships, karakas, and D6/D30 confirmation.",
+    "Clearly distinguish astrological health tendencies from medical diagnosis.",
+    "For lifestyle questions, give only general wellbeing guidance such as routine, sleep, movement, hydration, recovery, and stress management.",
+    "If the question involves actual symptoms, diagnosis, treatment, medication, or an ongoing medical condition, advise appropriate professional medical evaluation.",
+    "Give practical age-appropriate wellbeing guidance.",
+    "Do not discuss timing unless the user explicitly asks when.",
+  ]
+  : isChildPermanent
+? [
+    "Answer the exact child or parenthood question directly.",
+    "Explain the strongest parenting, nurturing, communication, or child-development strengths.",
+    "Explain the most important emotional, behavioural, expectation, discipline, or communication cautions.",
+    "Support the conclusion using the 5th house and lord, relevant planetary relationships, karakas, and D7 confirmation.",
+    "For parenting-style questions, explain nurturing, structure, discipline, expectations, and communication style.",
+    "For parent-child relationship questions, explain interaction patterns without blaming either the parent or child.",
+    "For child-aptitude questions, describe natural strengths and developmental potential rather than fixed adult outcomes.",
+    "Give practical age-appropriate developmental guidance.",
+    "Do not discuss timing unless the user explicitly asks when.",
+  ]
+  : isPropertyPermanent
+? [
+    "Answer the exact property question directly.",
+    "Explain the strongest property, ownership, home-stability, or asset-building factors.",
+    "Explain the most important delays, volatility, leverage sensitivity, movement patterns, or property-related cautions.",
+    "Support the conclusion using the 4th house and lord, relevant planetary relationships, karakas, and D4 confirmation.",
+    "For property-investment-suitability questions, explain long-term suitability rather than recommending a specific property or transaction.",
+    "For home-stability questions, explain settlement and residential patterns without predicting a specific place.",
+    "Give practical age-appropriate long-term property guidance.",
+    "Do not discuss timing unless the user explicitly asks when.",
+  ]
+  : isVehiclePermanent
+? [
+    "Answer the exact vehicle question directly.",
+    "Explain the strongest vehicle, comfort, mobility, or ownership factors.",
+    "Explain the most important cautions such as impulsive upgrading, maintenance pressure, practicality, comfort-seeking, or repeated change.",
+    "Support the conclusion using the 4th house and lord, relevant planetary relationships, karakas, and D16 confirmation.",
+    "For vehicle-preference questions, describe suitable qualities or usage style rather than recommending a specific make or model.",
+    "For vehicle-pattern questions, explain recurring tendencies without presenting them as inevitable.",
+    "Give practical age-appropriate long-term vehicle guidance.",
+    "Do not discuss timing unless the user explicitly asks when.",
+  ]
+: isRelocationPermanent
+? [
+    "Answer the exact relocation question directly.",
+    "Explain the strongest movement, settlement, adaptability, or foreign-living factors.",
+    "Explain the most important stability, restlessness, adjustment, attachment-to-home, or relocation cautions.",
+    "Support the conclusion using the 4th, 9th, and 12th houses and lords, relevant planetary relationships, karakas, and D4/D9 confirmation.",
+    "For foreign-settlement questions, explain long-term suitability without guaranteeing permanent settlement.",
+    "For location-preference questions, describe suitable environments or lifestyle settings rather than predicting one exact city or country.",
+    "Give practical age-appropriate long-term relocation guidance.",
+    "Do not discuss timing unless the user explicitly asks when.",
+  ]
+: isDisputePermanent
+? [
+    "Answer the exact dispute or legal-pattern question directly.",
+    "Explain the strongest negotiation, strategy, persistence, communication, or conflict-resolution strengths.",
+    "Explain the most important escalation, rigidity, impulsiveness, avoidance, documentation, or boundary cautions.",
+    "Support the conclusion using the 3rd, 6th, 7th, and 8th houses and lords, relevant planetary relationships, karakas, and D6/D30 confirmation.",
+    "For legal-suitability questions, explain analytical and strategic capacity without guaranteeing litigation success.",
+    "For negotiation-style questions, explain the user's natural resolution style and where balance is needed.",
+    "If an actual legal matter is involved, distinguish astrological interpretation from legal strategy.",
+    "Give practical age-appropriate conflict-management guidance.",
+    "Do not discuss timing unless the user explicitly asks when.",
+  ]
+  : isParentsPermanent
+? [
+    "Answer the exact parent-related question directly.",
+    "Explain the strongest emotional, supportive, authority, guidance, or family-conditioning factors.",
+    "Explain the most important expectation, boundary, approval, emotional-security, responsibility, or generational cautions.",
+    "Support the conclusion using the 4th and 9th houses and lords, relevant karakas, planetary relationships, D12, and D9 where appropriate.",
+    "For mother or father questions, keep the analysis specific to that parental relationship.",
+    "Give practical age-appropriate family guidance.",
+    "Do not discuss timing unless explicitly asked when.",
+  ]
+
+: isSiblingsPermanent
+? [
+    "Answer the exact sibling question directly.",
+    "Explain the strongest communication, support, cooperation, closeness, or family-role factors.",
+    "Explain the most important rivalry, misunderstanding, distance, expectation, fairness, or boundary cautions.",
+    "Support the conclusion using the 3rd and 11th houses and lords, relevant karakas, planetary relationships, and D3 confirmation.",
+    "Distinguish elder-sibling and younger-sibling patterns when relevant.",
+    "Give practical age-appropriate sibling guidance.",
+    "Do not discuss timing unless explicitly asked when.",
+  ]
+  : isTravelPermanent
+? [
+    "Answer the exact travel question directly.",
+    "Explain the strongest movement, adaptability, curiosity, foreign-travel, or pilgrimage factors.",
+    "Explain the most important restlessness, instability, overstimulation, attachment-to-home, or travel-related cautions.",
+    "Support the conclusion using the 3rd, 9th, and 12th houses and lords, relevant planetary relationships, karakas, and D9/D4 confirmation.",
+    "Use D20 only when pilgrimage or spiritual travel is relevant.",
+    "For foreign-travel questions, keep the answer about journeys rather than permanent settlement unless the user explicitly asks about relocation.",
+    "Give practical age-appropriate travel guidance.",
+    "Do not discuss timing unless the user explicitly asks when.",
+  ]
+  : isReputationPermanent
+? [
+    "Answer the exact reputation question directly.",
+    "Explain the strongest credibility, recognition, leadership, visibility, influence, or public-image factors.",
+    "Explain the most important delayed-recognition, image-pressure, competition, privacy, inconsistency, or validation-related cautions.",
+    "Support the conclusion using the 1st, 10th, and 11th houses and lords, relevant planetary relationships, karakas, and D10/D9 confirmation.",
+    "For public-image questions, explain likely projection and perception patterns without claiming that everyone will see the native in the same way.",
+    "For recognition-pattern questions, distinguish recognition potential from how quickly recognition arrives.",
+    "Give practical age-appropriate reputation and visibility guidance.",
+    "Do not discuss timing unless the user explicitly asks when.",
+  ]
+  : isDebtPermanent
+? [
+    "Answer the exact debt question directly.",
+    "Explain the strongest repayment, discipline, liquidity, financial-management, or liability-control factors.",
+    "Explain the most important borrowing, overextension, cash-flow mismatch, obligation, or repayment cautions.",
+    "Support the conclusion using the 2nd, 6th, 8th, 11th, and 12th houses and lords, relevant planetary relationships, karakas, and D2/D6 confirmation.",
+    "For borrowing-tendency questions, distinguish responsible credit use from pressured, habitual, or leveraged borrowing.",
+    "For repayment-capacity questions, distinguish earning ability from repayment discipline and liquidity.",
+    "If an actual debt problem is involved, distinguish astrological interpretation from financial advice.",
+    "Give practical age-appropriate financial-discipline guidance.",
+    "Do not discuss timing unless the user explicitly asks when.",
+  ]
+  : isInheritancePermanent
+? [
+    "Answer the exact inheritance or legacy question directly.",
+    "Explain the strongest inheritance, legacy, ancestral, shared-resource, or family-asset factors.",
+    "Explain the most important delay, ambiguity, documentation, competing-expectation, family-conflict, or responsibility cautions.",
+    "Support the conclusion using the 8th house and lord, relevant supporting houses, planetary relationships, karakas, and D8/D12 confirmation.",
+    "For inheritance-potential questions, distinguish potential from guaranteed receipt, amount, or legal entitlement.",
+    "For ancestral-pattern questions, distinguish material inheritance from family values, responsibilities, identity, property, knowledge, or other forms of legacy.",
+    "If an actual estate, probate, inheritance, insurance, or family-property matter is involved, distinguish astrological interpretation from legal and financial advice.",
+    "Give practical age-appropriate legacy and family-resource guidance.",
+    "Do not discuss timing unless the user explicitly asks when.",
+  ]
+  : isMentalHealthPermanent
+? [
+    "Answer the exact mental or emotional pattern question directly.",
+    "Explain the strongest emotional-awareness, cognitive, coping, resilience, regulation, or support factors.",
+    "Explain the most important rumination, overstimulation, emotional-reactivity, withdrawal, stress-load, or regulation cautions.",
+    "Support the conclusion using the 1st, 4th, 8th, and 12th houses and lords, relevant planetary relationships, karakas, and D9/D30 confirmation.",
+    "Clearly distinguish astrological mental and emotional tendencies from psychiatric diagnosis.",
+    "For overthinking or mood-sensitivity questions, discuss patterns and coping needs without assigning a clinical label.",
+    "If the user describes actual symptoms, functional impairment, treatment, medication, self-harm thoughts, suicidal thoughts, psychosis, or immediate danger, prioritize appropriate professional support rather than astrological interpretation.",
+    "Give practical age-appropriate emotional wellbeing guidance.",
+    "Do not discuss timing unless the user explicitly asks when.",
+  ]
+  : isPetsPermanent
+? [
+    "Answer the exact pet-related question directly.",
+    "Explain the strongest caregiving, bonding, empathy, responsibility, companionship, or sensitivity factors.",
+    "Explain the most important routine, boundary, attachment, responsibility, or practical-care cautions.",
+    "Support the conclusion using the 6th house and lord, relevant planetary relationships, karakas, and D6/D30 confirmation.",
+    "Give practical age-appropriate pet-care guidance.",
+    "Do not discuss timing unless explicitly asked when.",
+  ]
+
+: isInnerPermanent
+? [
+    "Answer the exact inner-life question directly.",
+    "Explain the strongest purpose, meaning, values, self-understanding, dharma, or growth factors.",
+    "Explain the most important inner conflict, uncertainty, attachment, fear, control, expectation, or direction-related cautions.",
+    "Support the conclusion using the 1st, 8th, 9th, and 12th houses and lords, relevant planetary relationships, karakas, and D9 confirmation.",
+    "For purpose questions, give broad themes rather than one compulsory destiny.",
+    "For self-understanding questions, explain recurring patterns without presenting personality as fixed.",
+    "Give practical age-appropriate reflection and growth guidance.",
+    "Do not discuss timing unless explicitly asked when.",
+  ]
+  : [
+      "Answer the exact question directly.",
+      "Explain the main reason.",
+      "Give practical guidance.",
+    ],
+
+    forbiddenPatterns: [
+     ...(isProfessionIdentity
+  ? [
+      "Do not mention current dasha, antardasha, pratyantardasha, transits, timing windows, trigger dates, current career movement, promotion timing, visibility cycles, or breakthrough periods.",
+      "Do not convert a profession-suitability question into a current career-decision or timing answer.",
+      "Do not advise the user to wait for, act during, or prepare for a timing window unless the user explicitly asks when to act.",
+      "Do not treat temporary timing conditions as proof for or against permanent professional suitability.",
+      "Do not give adult workplace advice to a child or student when userContext shows they are not yet in that life stage.",
+      "Do not discuss promotions, salaries, employer changes, networking for job movement, professional visibility, client acquisition, or business launch for a child.",
+    ]
+  : isRelationshipPermanent
+  ? [
+      "Do not mention current dasha, antardasha, pratyantardasha, transits, timing windows, trigger dates, marriage dates, meeting dates, reconciliation timing, or activation periods.",
+      "Do not convert a permanent relationship-pattern question into a marriage-timing prediction.",
+      "Do not treat temporary timing conditions as proof for or against permanent relationship suitability.",
+      "Do not predict a specific future partner's identity, profession, appearance, caste, nationality, or exact circumstances unless that information is explicitly supported by supplied astrology evidence.",
+      "Do not present difficult relationship patterns as inevitable failure.",
+      "Do not give adult marriage or partner-search advice to a child.",
+    ]
+    : isWealthPermanent
+? [
+    "Do not mention current dasha, antardasha, pratyantardasha, transits, timing windows, trigger dates, salary-rise dates, bonus dates, financial-improvement periods, or wealth-activation periods.",
+    "Do not convert a permanent wealth question into a timing prediction.",
+    "Do not treat temporary timing conditions as proof for or against permanent wealth potential.",
+    "Do not equate high earning capacity with guaranteed wealth accumulation.",
+    "Do not equate weak saving capacity with inability to earn.",
+    "Do not recommend specific investments, securities, cryptocurrencies, trades, leverage, or speculative products.",
+    "Do not present financial tendencies as guaranteed financial outcomes.",
+    "Do not give adult salary, investment, trading, or wealth-target advice to a child.",
+  ]
+  : isBusinessPermanent
+? [
+    "Do not mention current dasha, antardasha, pratyantardasha, transits, timing windows, trigger dates, business-launch dates, client-growth periods, business-growth periods, or partnership timing.",
+    "Do not convert a permanent business question into a launch or growth forecast.",
+    "Do not treat temporary timing conditions as proof for or against permanent entrepreneurial capacity.",
+    "Do not equate strong business aptitude with guaranteed commercial success.",
+    "Do not recommend immediate resignation from employment solely because business suitability is strong.",
+    "Do not recommend specific capital commitments, leverage, borrowing, investments, or commercial risks based only on astrology.",
+    "Do not give adult launch, hiring, client-acquisition, funding, or capital-allocation advice to a child.",
+  ]
+  : isEducationPermanent
+? [
+    "Do not mention current dasha, antardasha, pratyantardasha, transits, timing windows, trigger dates, exam-result dates, admission timing, higher-education timing, or academic-improvement periods.",
+    "Do not convert a permanent education question into an exam, admission, or timing prediction.",
+    "Do not treat temporary timing conditions as proof for or against permanent academic ability.",
+    "Do not present difficult learning patterns as permanent intellectual weakness or academic failure.",
+    "Do not force one subject or stream when the evidence supports multiple strong directions.",
+    "Do not give adult university, career, or professional-qualification advice to a child unless it is framed as a future developmental direction.",
+  ]
+  : isSpiritualPermanent
+? [
+    "Do not mention current dasha, antardasha, pratyantardasha, transits, timing windows, trigger dates, spiritual-growth periods, guru-arrival dates, or activation periods.",
+    "Do not convert a permanent spiritual question into a timing forecast.",
+    "Do not treat temporary timing conditions as proof for or against permanent spiritual inclination.",
+    "Do not claim guaranteed enlightenment, moksha, siddhis, supernatural powers, divine selection, or spiritual superiority.",
+    "Do not predict the identity or arrival of a specific guru unless explicitly supported by supplied evidence.",
+    "Do not prescribe intense austerities, renunciation, extreme fasting, or advanced spiritual practices to a child.",
+  ]
+  : isHealthPermanent
+? [
+    "Do not mention current dasha, antardasha, pratyantardasha, transits, timing windows, trigger dates, sensitive health periods, recovery dates, or health-improvement timing.",
+    "Do not convert a permanent health-pattern question into a disease or timing prediction.",
+    "Do not diagnose or claim that the chart confirms a specific medical condition.",
+    "Do not claim that astrology rules out disease or guarantees recovery.",
+    "Do not recommend medication changes, dosage changes, medical procedures, supplements, or treatment plans based only on astrology.",
+    "Do not advise stopping or delaying professional medical care.",
+    "Do not present constitutional sensitivity as inevitable illness.",
+    "Do not predict disease, severe illness, death, or long-term medical outcomes for a child.",
+  ]
+: isChildPermanent
+? [
+    "Do not mention current dasha, antardasha, pratyantardasha, transits, timing windows, trigger dates, conception timing, childbirth timing, child-development windows, or family-expansion timing.",
+    "Do not convert a permanent parenthood or child-aptitude question into a conception or childbirth prediction.",
+    "Do not treat temporary timing conditions as proof for or against permanent parenting capacity or a child's aptitude.",
+    "Do not present difficult parent-child patterns as inevitable conflict or failure.",
+    "Do not make deterministic claims about a child's future profession, marriage, wealth, health, or life outcome.",
+    "Do not label a child negatively from astrological placements.",
+    "Do not give adult advice to a child when the question concerns the child's own development.",
+  ]
+  : isPropertyPermanent
+? [
+    "Do not mention current dasha, antardasha, pratyantardasha, transits, timing windows, trigger dates, purchase dates, sale dates, possession dates, relocation timing, or property-activation periods.",
+    "Do not convert permanent property potential into a purchase, sale, or move prediction.",
+    "Do not treat temporary timing conditions as proof for or against permanent property potential.",
+    "Do not equate strong property potential with guaranteed ownership or financial gain.",
+    "Do not recommend a specific property, location, mortgage, leverage level, investment amount, or transaction based only on astrology.",
+    "Do not give immediate property-investment advice to a child or student.",
+  ]
+: isVehiclePermanent
+? [
+    "Do not mention current dasha, antardasha, pratyantardasha, transits, timing windows, trigger dates, purchase dates, upgrade periods, delivery dates, financing windows, or vehicle-activation periods.",
+    "Do not convert permanent vehicle potential or preference into a purchase or upgrade prediction.",
+    "Do not treat temporary timing conditions as proof for or against permanent vehicle ownership potential.",
+    "Do not equate strong vehicle potential with guaranteed ownership or luxury.",
+    "Do not recommend a specific vehicle make, model, financing structure, loan amount, or purchase price based only on astrology.",
+    "Do not give immediate vehicle-purchase or financing advice to a child or student.",
+  ]
+: isRelocationPermanent
+? [
+    "Do not mention current dasha, antardasha, pratyantardasha, transits, timing windows, trigger dates, visa dates, move dates, settlement windows, or relocation-activation periods.",
+    "Do not convert permanent relocation or foreign-settlement potential into a move-timing forecast.",
+    "Do not treat temporary timing conditions as proof for or against permanent relocation potential.",
+    "Do not guarantee foreign settlement, permanent residency, citizenship, visa approval, or migration success.",
+    "Do not predict one exact city or country unless explicitly supported by supplied evidence.",
+    "Do not give immediate relocation, visa, or settlement advice to a child or student.",
+  ]
+: isDisputePermanent
+? [
+    "Do not mention current dasha, antardasha, pratyantardasha, transits, timing windows, trigger dates, court dates, settlement dates, case-resolution periods, or legal activation.",
+    "Do not convert a permanent dispute or negotiation question into a case-outcome or legal-timing forecast.",
+    "Do not treat temporary timing conditions as proof for or against permanent legal or negotiation ability.",
+    "Do not guarantee that the user will win or lose a legal matter.",
+    "Do not claim that astrology can replace legal advice, evidence, documentation, representation, or procedural deadlines.",
+    "Do not advise ignoring or delaying professional legal help when an actual legal matter requires it.",
+    "Do not frame a child or student as litigation-prone; use communication, fairness, boundaries, debate, and self-control language instead.",
+  ]
+  : isParentsPermanent
+? [
+    "Do not mention current dasha, antardasha, pratyantardasha, transits, timing windows, trigger dates, parental-support periods, elder-responsibility periods, or family timing.",
+    "Do not convert a permanent parent-relationship question into a prediction about a parent's future.",
+    "Do not present difficult parental patterns as proof that a parent does not care or that reconciliation is impossible.",
+    "Do not blame the user, mother, father, or family elder based only on astrology.",
+    "Do not predict a parent's illness, death, or major life event from a permanent relationship question.",
+  ]
+
+: isSiblingsPermanent
+? [
+    "Do not mention current dasha, antardasha, pratyantardasha, transits, timing windows, trigger dates, sibling-conflict periods, or support timing.",
+    "Do not convert permanent sibling dynamics into a timing forecast.",
+    "Do not present rivalry, distance, or disagreement as inevitable estrangement.",
+    "Do not claim a sibling will or will not provide financial or practical support as a certainty.",
+    "Do not negatively label a child or sibling from astrological placements.",
+  ]
+  : isTravelPermanent
+? [
+    "Do not mention current dasha, antardasha, pratyantardasha, transits, timing windows, trigger dates, visa dates, departure dates, travel windows, or pilgrimage timing.",
+    "Do not convert permanent travel inclination into a travel-timing forecast.",
+    "Do not treat temporary timing conditions as proof for or against permanent travel potential.",
+    "Do not confuse travel with relocation or permanent settlement.",
+    "Do not guarantee visa approval, international travel, pilgrimage completion, or a specific destination.",
+    "Do not give independent international-travel planning advice to a child.",
+  ]
+  : isReputationPermanent
+? [
+    "Do not mention current dasha, antardasha, pratyantardasha, transits, timing windows, trigger dates, recognition periods, reputation-growth periods, recovery periods, or visibility timing.",
+    "Do not convert permanent reputation or recognition potential into a timing forecast.",
+    "Do not treat temporary timing conditions as proof for or against permanent recognition potential.",
+    "Do not guarantee fame, status, public recognition, promotion, influence, or social approval.",
+    "Do not claim that all people will perceive the native in one fixed way.",
+    "Do not frame a child or student in terms of professional fame or status; use confidence, reliability, leadership, peer perception, responsibility, and self-expression instead.",
+  ]
+  : isDebtPermanent
+? [
+    "Do not mention current dasha, antardasha, pratyantardasha, transits, timing windows, trigger dates, borrowing windows, repayment dates, debt-reduction periods, or loan timing.",
+    "Do not convert a permanent debt or repayment-pattern question into a timing forecast.",
+    "Do not treat temporary timing conditions as proof for or against permanent repayment capacity.",
+    "Do not recommend taking a loan, increasing leverage, refinancing, consolidating debt, or choosing a specific financial product based only on astrology.",
+    "Do not guarantee that debt will be repaid, reduced, or eliminated.",
+    "Do not present astrology as a substitute for professional financial advice.",
+    "Do not give immediate borrowing or credit advice to a child or student.",
+  ]
+  : isInheritancePermanent
+? [
+    "Do not mention current dasha, antardasha, pratyantardasha, transits, timing windows, trigger dates, inheritance dates, probate timing, settlement periods, asset-transfer dates, or legacy-transfer timing.",
+    "Do not convert permanent inheritance potential into a timing or monetary forecast.",
+    "Do not treat temporary timing conditions as proof that inheritance will or will not occur.",
+    "Do not guarantee receipt of inheritance, a particular asset, a particular amount, probate success, estate settlement, insurance proceeds, or legal entitlement.",
+    "Do not present astrology as a substitute for legal advice, estate planning, probate advice, tax advice, documentation, or professional financial advice.",
+    "Do not encourage disputes, concealment, pressure on relatives, or assumptions of entitlement based on astrology.",
+    "Do not frame a child or student as entitled to expected future assets; use family legacy, values, responsibility, ancestry, and shared-resource language instead.",
+  ]
+  : isMentalHealthPermanent
+? [
+    "Do not mention current dasha, antardasha, pratyantardasha, transits, timing windows, trigger dates, sensitive mental-health periods, recovery dates, or support timing.",
+    "Do not convert a permanent mental or emotional pattern question into a psychiatric or timing prediction.",
+    "Do not diagnose depression, anxiety disorder, bipolar disorder, panic disorder, psychosis, ADHD, personality disorder, trauma disorder, or any other psychiatric condition from astrology.",
+    "Do not claim that astrology confirms or rules out a psychiatric diagnosis.",
+    "Do not recommend starting, stopping, changing, or avoiding psychiatric medication, therapy, or professional care based on astrology.",
+    "Do not present mantra, remedy, fasting, meditation, spiritual practice, or astrology as a replacement for mental-health treatment.",
+    "Do not label the user as unstable, mentally weak, damaged, dangerous, or permanently impaired from astrological placements.",
+    "Do not make psychiatric predictions about a child or teenager.",
+  ]
+  : isPetsPermanent
+? [
+    "Do not mention current dasha, antardasha, pratyantardasha, transits, timing windows, illness periods, loss periods, or pet-related timing.",
+    "Do not predict a pet's illness, death, lifespan, diagnosis, or medical outcome from astrology.",
+    "Do not present astrology as a substitute for veterinary examination, diagnosis, treatment, medication, or emergency care.",
+    "Do not project human motives or moral judgement onto an animal from astrological factors.",
+  ]
+
+: isInnerPermanent
+? [
+    "Do not mention current dasha, antardasha, pratyantardasha, transits, timing windows, trigger dates, spiritual activation, or life-direction timing.",
+    "Do not convert permanent purpose or meaning questions into a timing forecast.",
+    "Do not claim one compulsory destiny, one inevitable profession, one soulmate, one guru, or one unavoidable spiritual path.",
+    "Do not present temporary confusion as permanent failure, lack of purpose, or spiritual deficiency.",
+    "Do not diagnose psychiatric conditions from inner-conflict or self-understanding questions.",
+  ]
+  : [
+      "Do not combine promotion and job change unless the user asked about both.",
+      "Do not repeat the same date in two different formats.",
+      "Do not return only one or two generic sentences when timing evidence is available.",
+      "Do not say only that natal and divisional charts provide support. Name the exact supplied house, lord, Sambandha, divisional-chart, dasha, and transit references.",
+      "Do not headline one exact date when a broader start-and-end timing window is available.",
+      "Do not claim that a trigger date falls within a date range unless it is actually between the range start and end dates.",
+    ]),
+
+      "Do not copy raw technical astrology data without interpreting it.",
+
+      "Do not omit the Planetary Relationships section when sambandhaAnalysis is available.",
+
+      "Do not invent planetary placements, dashas, divisional-chart findings, or dates.",
+
+      "Do not use career terminology when the detected topic is not career.",
+
+      "Do not mention recruiters, applications, promotion, résumé, networking, employer change, professional outcomes, visibility, or workplace responsibility unless the detected topic is career.",
+    ],
   },
 
-  structure:
-    questionType === "timing"
-      ? [
-          "Give the direct timing answer first.",
-          "Explain whether the selected date is the start of movement, a peak trigger, or an outcome window.",
-          "Explain what may happen in practical life during that period.",
-          "Explain why this timing has been selected from the supplied astrology evidence.",
-          "End with specific actions the user should take before and during the window.",
-        ]
-      : [
-          "Answer the exact question directly.",
-          "Explain the main reason.",
-          "Give practical guidance.",
-        ],
-
-  forbiddenPatterns: [
-  "Do not combine promotion and job change unless the user asked about both.",
-
-  "Do not repeat the same date in two different formats.",
-
-  "Do not return only one or two generic sentences when timing evidence is available.",
-
-  "Do not copy raw technical astrology data without interpreting it.",
-
-  "Do not invent planetary placements, dashas, divisional-chart findings, or dates.",
-
-  "Do not headline one exact date when a broader start-and-end timing window is available.",
-
-  "Do not use career terminology when the detected topic is not career.",
-
-  "Do not mention recruiters, applications, promotion, résumé, networking, employer change, professional outcomes, visibility, or workplace responsibility unless the detected topic is career.",
-
-  "Do not claim that a trigger date falls within a date range unless it is actually between the range start and end dates.",
-],
-},
   // explicitly block heavy objects
-  report: null,
-  chartContext: null,
-  dataEngine: null,
-  baseChartFactors: null,
+  report:
+    null,
+
+  chartContext:
+    null,
+
+  dataEngine:
+    null,
+
+  baseChartFactors:
+    null,
 };
+const safeAstroFacts =
+  safeNatPayload.astroFacts as any;
+
+const safeEvidencePacket =
+  safeNatPayload.astrologyEvidencePacket as any;
+
+function findTextPaths(
+  value: any,
+  pattern: RegExp,
+  path = "root",
+  results: string[] = []
+): string[] {
+  if (typeof value === "string") {
+    if (pattern.test(value)) {
+      results.push(`${path}: ${value}`);
+    }
+
+    return results;
+  }
+
+  if (Array.isArray(value)) {
+    value.forEach((item, index) =>
+      findTextPaths(
+        item,
+        pattern,
+        `${path}[${index}]`,
+        results
+      )
+    );
+
+    return results;
+  }
+
+  if (value && typeof value === "object") {
+    Object.entries(value).forEach(
+      ([key, item]) =>
+        findTextPaths(
+          item,
+          pattern,
+          `${path}.${key}`,
+          results
+        )
+    );
+  }
+
+  return results;
+}
+
     const naturalizeURL =
   safeInternalURL(
     req,
@@ -12702,7 +19655,10 @@ const naturalizeTimeout =
 
 let naturalRes: Response | null =
   null;
-
+console.log(
+  "[NATURALIZE USER CONTEXT]",
+  safeNatPayload.userContext
+);
 try {
   naturalRes = await fetch(
     naturalizeURL,
@@ -12723,10 +19679,7 @@ try {
     }
   );
 } catch (error) {
-  console.error(
-    "[ASTRO_CHAT_NATURALIZE_REQUEST_FAILED]",
-    error
-  );
+ 
 } finally {
   clearTimeout(
     naturalizeTimeout
@@ -12750,67 +19703,198 @@ if (
     }
   }
 
-  console.error(
-    "[ASTRO_CHAT_NATURALIZE_FAILED]",
-    {
-      status:
-        naturalRes?.status ??
-        null,
 
-      error:
-        naturalizeErrorText ||
-        "Naturalizer request failed or timed out.",
-    }
-  );
 
-  const fallbackPremiumAnswer =
-    questionType === "timing"
-      ? buildPremiumTimingAnswer(
-          astroBundle
-        )
-      : null;
+const shouldUseFallbackSeniorResponse =
+  questionType === "timing" ||
+  questionType === "decision" ||
+  questionType === "prediction" ||
+  questionType === "comparison" ||
+  questionType === "action_plan";
 
-  const fallbackAnswer =
-    fallbackPremiumAnswer?.full ??
-    astroBundle
-      .astroJudgement
-      ?.verdict ??
-    astroBundle.answerSummary ??
-    "Sārathi could not fully refine the response, but the available chart evidence suggests taking a steady and practical approach.";
+const fallbackPremiumAnswer =
+  shouldUseFallbackSeniorResponse
+    ? buildSeniorAstrologerResponse(
+        astroBundle
+      )
+    : null;
 
-  return okJson({
-    answer:
-      polishUserFacingDates(
-        fallbackAnswer
+const fallbackAnswer =
+  fallbackPremiumAnswer?.full ??
+  astroBundle
+    .astroJudgement
+    ?.verdict ??
+  astroBundle.answerSummary ??
+  "Sārathi could not fully refine the response, but the available chart evidence suggests taking a steady and practical approach.";
+
+const fallbackShortAnswer =
+  fallbackPremiumAnswer?.short ??
+  fallbackAnswer;
+
+const fallbackFullAnswer =
+  fallbackPremiumAnswer?.full ??
+  fallbackAnswer;
+
+const fallbackDecisionDo =
+  astroBundle.decision?.do ?? [];
+
+const fallbackDecisionAvoid =
+  astroBundle.decision?.avoid ?? [];
+
+const fallbackActionAnswer =
+  fallbackPremiumAnswer?.action
+    ? fallbackPremiumAnswer.action
+    : [
+        ...fallbackDecisionDo,
+        ...fallbackDecisionAvoid.map(
+          (item: string) =>
+            `Avoid: ${item}`
+        ),
+      ].join("\n");
+
+const fallbackWhyThisWorks = [
+  astroBundle.decision?.rationale,
+  astroBundle.sambandhaAnalysis?.summary,
+  astroBundle.divisionalLayer?.summary,
+  astroBundle.timingPolicy?.note,
+]
+  .filter(
+    (
+      item: string | null | undefined
+    ): item is string =>
+      Boolean(item?.trim())
+  )
+  .filter(
+    (
+      item: string,
+      index: number,
+      items: string[]
+    ) =>
+      items.indexOf(item) === index
+  )
+  .slice(0, 4);
+
+return okJson({
+  answer:
+    polishUserFacingDates(
+      fallbackFullAnswer
+    ),
+
+  shortAnswer:
+    polishUserFacingDates(
+      fallbackShortAnswer
+    ),
+
+  fullAnswer:
+    polishUserFacingDates(
+      fallbackFullAnswer
+    ),
+
+  currentTiming:
+    astroBundle.timingPolicy?.note ||
+    astroBundle.timingLayer?.summary ||
+    "",
+
+  actionPlan: {
+    do:
+      fallbackDecisionDo.slice(0, 4),
+
+    avoid:
+      fallbackDecisionAvoid.slice(0, 3),
+  },
+
+  whyThisWorks:
+    fallbackWhyThisWorks,
+
+  decision:
+    astroBundle.decision ?? null,
+
+  guidance:
+    fallbackActionAnswer
+      .split("\n")
+      .map(
+        (item: string) =>
+          item.trim()
+      )
+      .filter(
+        (item: string) =>
+          item.length > 0
       ),
 
-    evidenceBullets:
-      astroBundle
-        .evidenceBullets ??
-      [],
+  copy: {
+    answer:
+      polishUserFacingDates(
+        fallbackShortAnswer
+      ),
 
-    distressed,
+    long:
+      polishUserFacingDates(
+        fallbackFullAnswer
+      ),
 
-    fallbackUsed: true,
-  });
+    how:
+      polishUserFacingDates(
+        fallbackActionAnswer
+      ),
+  },
+
+  evidenceBullets:
+    astroBundle
+      .evidenceBullets ??
+    [],
+
+  distressed,
+
+  fallbackUsed:
+    true,
+});
 }
 
 const naturalJson =
   await naturalRes.json();
 
+const shouldUseSeniorResponse =
+  questionType === "timing" ||
+  questionType === "decision" ||
+  questionType === "prediction" ||
+  questionType === "comparison" ||
+  questionType === "action_plan";
+const shouldShowDecisionSections =
+  questionType === "decision" ||
+  questionType === "comparison" ||
+  questionType === "action_plan";
 const premiumTimingAnswer =
-  questionType === "timing"
-    ? buildPremiumTimingAnswer(astroBundle)
+  shouldUseSeniorResponse
+    ? buildSeniorAstrologerResponse(astroBundle)
     : null;
 
-let answer =
+const naturalizedAnswer =
   safeStr(
     naturalJson?.text ??
     naturalJson?.answer ??
     naturalJson?.output
-  ) ||
-  premiumTimingAnswer?.full ||
-  astroBundle.answerSummary;
+  );
+
+
+
+const shouldPreferSeniorResponse =
+  !isProfessionIdentity &&
+  Boolean(premiumTimingAnswer) &&
+  (
+    questionType === "timing" ||
+    questionType === "decision" ||
+    questionType === "prediction" ||
+    questionType === "comparison" ||
+    questionType === "action_plan"
+  );
+
+let answer =
+  shouldPreferSeniorResponse
+    ? premiumTimingAnswer?.full ??
+      naturalizedAnswer ??
+      astroBundle.answerSummary
+    : naturalizedAnswer ||
+      astroBundle.answerSummary;
 
 answer = polishUserFacingDates(answer);
 
@@ -12972,10 +20056,13 @@ if (
   .replace(/\. This does not look like a stagnant phase/g, ".\n\nThis does not look like a stagnant phase")
   .trim();
   answer = polishUserFacingDates(answer);
-const premiumResponse = premiumTimingAnswer;
+
+const premiumResponse =
+  isProfessionIdentity
+    ? null
+    : premiumTimingAnswer;
 
 const shortAnswer =
-  questionType === "timing" &&
   premiumResponse?.short
     ? premiumResponse.short
     : answer
@@ -12985,17 +20072,87 @@ const shortAnswer =
         .join("\n\n");
 
 const fullAnswer =
-  questionType === "timing" &&
   premiumResponse?.full
     ? premiumResponse.full
     : answer;
 
+const decisionActionLines =
+  shouldShowDecisionSections
+    ? astroBundle.decision?.do ?? []
+    : [];
+
+const decisionAvoidLines =
+  shouldShowDecisionSections
+    ? astroBundle.decision?.avoid ?? []
+    : [];
+
 const actionAnswer =
-  questionType === "timing" &&
-  premiumResponse?.action
-    ? premiumResponse.action
+  shouldShowDecisionSections
+    ? premiumResponse?.action
+      ? premiumResponse.action
+      : [
+          ...decisionActionLines,
+          ...decisionAvoidLines.map(
+            (item: string) =>
+              `Avoid: ${item}`
+          ),
+        ].join("\n")
     : "";
-    const polishedShortAnswer =
+
+const shouldShowCurrentTiming =
+  !shouldSuppressTiming &&
+  (
+    questionType === "timing" ||
+    questionType === "prediction" ||
+    questionType === "decision"
+  );
+
+const currentTimingAnswer =
+  shouldShowCurrentTiming
+    ? astroBundle.decision?.eventKey === "business"
+      ? astroBundle.decision.stage === "preparation"
+        ? "The current period supports testing, client development and controlled commercial activity more strongly than rapid expansion or immediate financial dependence on the business."
+        : "The current period supports visible commercial action, but growth should still be controlled by actual demand, cash flow and execution."
+      : astroBundle.timingPolicy?.note ||
+        astroBundle.timingLayer?.summary ||
+        ""
+    : "";
+
+const whyThisWorks = shouldShowDecisionSections
+  ? astroBundle.decision?.eventKey === "business"
+    ? [
+        astroBundle.promiseLayer?.summary,
+        astroBundle.sambandhaAnalysis?.summary,
+        astroBundle.divisionalLayer?.summary,
+        astroBundle.decision?.rationale,
+      ]
+        .filter(
+          (item: string | null | undefined): item is string =>
+            Boolean(item?.trim())
+        )
+        .filter(
+          (item: string, index: number, items: string[]) =>
+            items.indexOf(item) === index
+        )
+        .slice(0, 4)
+    : [
+        astroBundle.decision?.rationale,
+        astroBundle.sambandhaAnalysis?.summary,
+        astroBundle.divisionalLayer?.summary,
+        astroBundle.timingPolicy?.note,
+      ]
+        .filter(
+          (item: string | null | undefined): item is string =>
+            Boolean(item?.trim())
+        )
+        .filter(
+          (item: string, index: number, items: string[]) =>
+            items.indexOf(item) === index
+        )
+        .slice(0, 4)
+  : [];
+
+const polishedShortAnswer =
   polishUserFacingDates(shortAnswer);
 
 const polishedFullAnswer =
@@ -13004,8 +20161,10 @@ const polishedFullAnswer =
 const polishedActionAnswer =
   polishUserFacingDates(actionAnswer);
  const responseWindowSource =
-  Array.isArray(astroBundle.rankedTimingWindows) &&
-  astroBundle.rankedTimingWindows.length
+  shouldSuppressTiming
+    ? []
+    : Array.isArray(astroBundle.rankedTimingWindows) &&
+      astroBundle.rankedTimingWindows.length
     ? astroBundle.rankedTimingWindows
     : [
         astroBundle.selectedTimingWindow,
@@ -13080,7 +20239,35 @@ const responseWindows =
   });
    return okJson({
   answer: polishedFullAnswer,
+  shortAnswer:
+  polishedShortAnswer,
 
+fullAnswer:
+  polishedFullAnswer,
+
+currentTiming:
+  currentTimingAnswer || null,
+
+actionPlan:
+  shouldShowDecisionSections
+    ? {
+        do:
+          decisionActionLines.slice(0, 4),
+
+        avoid:
+          decisionAvoidLines.slice(0, 3),
+      }
+    : null,
+
+whyThisWorks:
+  whyThisWorks.length
+    ? whyThisWorks
+    : null,
+
+decision:
+  shouldShowDecisionSections
+    ? astroBundle.decision ?? null
+    : null,
   evidenceBullets:
     astroBundle.evidenceBullets,
 

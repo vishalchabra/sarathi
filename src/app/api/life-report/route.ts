@@ -1313,7 +1313,6 @@ const planTodayISO =
           title: t?.title,
         }));
 
-      console.log("[life-report] topTransits after scoring:", topTransits.slice(0, 3));
 
       // Natal anchors (background only)
       const anchors = (enriched?.planets ?? [])

@@ -1,11 +1,18 @@
 import Link from "next/link";
 
-function Shell({ children }: { children: React.ReactNode }) {
+function Shell({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <main className="min-h-screen astro-bg text-slate-900">
       <header className="sticky top-0 z-40 border-b border-[color:var(--border)] bg-white/75 backdrop-blur-xl">
         <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-4">
-          <Link href="/sarathi" className="text-sm text-slate-700 hover:text-slate-900">
+          <Link
+            href="/sarathi"
+            className="text-sm text-slate-700 hover:text-slate-900"
+          >
             ← Back to Sārathi
           </Link>
 
@@ -28,8 +35,8 @@ function Shell({ children }: { children: React.ReactNode }) {
         </h1>
 
         <p className="mt-2 text-sm text-slate-500">
-  Last updated: 18 July 2026
-</p>
+          Last updated: 18 July 2026
+        </p>
 
         <div className="mt-8 space-y-6 rounded-2xl astro-card p-6 text-sm leading-7 text-slate-700">
           {children}
@@ -41,20 +48,17 @@ function Shell({ children }: { children: React.ReactNode }) {
               About
             </Link>
             <Link className="hover:text-slate-900" href="/sarathi/privacy">
-  Privacy
-</Link>
-
-<Link className="hover:text-slate-900" href="/sarathi/terms">
-  Terms
-</Link>
-
-<Link className="hover:text-slate-900" href="/sarathi/refund-policy">
-  Refund Policy
-</Link>
-
-<Link className="hover:text-slate-900" href="/sarathi/contact">
-  Contact
-</Link>
+              Privacy
+            </Link>
+            <Link className="hover:text-slate-900" href="/sarathi/terms">
+              Terms
+            </Link>
+            <Link className="hover:text-slate-900" href="/refund-policy">
+              Refund Policy
+            </Link>
+            <Link className="hover:text-slate-900" href="/sarathi/contact">
+              Contact
+            </Link>
           </div>
         </footer>
       </section>
@@ -212,7 +216,8 @@ export default function RefundPolicyPage() {
       <H>9. Contact</H>
 
       <P>
-        For payment, billing, refund requests, or access-related issues, please contact us before initiating a payment dispute.
+        For payment, billing, refund requests, or access-related issues, please
+        contact us before initiating a payment dispute.
       </P>
 
       <P>Please include:</P>
