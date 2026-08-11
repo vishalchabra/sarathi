@@ -1438,7 +1438,18 @@ const TOPIC_RULES: TopicRule[] = [
     divisionalCharts: ["D8", "D12"],
     remediesAllowed: true,
     timingImportant: true,
-    keywords: ["inheritance", "legacy", "will", "ancestral", "insurance settlement"],
+    keywords: [
+  "inheritance",
+  "legacy",
+  "ancestral",
+  "insurance settlement",
+  "inherit",
+  "inherited",
+  "legal will",
+  "last will",
+  "family will",
+  "testament",
+],
   },
   {
     topic: "mental_health",
@@ -5412,7 +5423,11 @@ function detectCareerEventType(
   if (topic !== "career") return "generic";
 
   const q = question.toLowerCase().trim();
-
+if (
+  /\b(what profession|which profession|what will be my profession|what could be my profession|what can be my profession|profession should i|profession can i|profession suits me|profession suit me|what career|which career|career suits me|career suit me|career direction|professional direction|what field should i|which field should i|what kind of work|which occupation|what occupation)\b/i.test(q)
+) {
+  return "profession_identity";
+}
 // profession identity / suitability first
 if (
   /\b(what is my profession|what is my current profession|what do i do|what kind of work|line of work|career type|job type|what profession suits me|which profession suits me|what career suits me|which career suits me|should i become|can i become|would i be good as|am i suited for|am i suitable for|is .* suitable for me)\b/.test(
@@ -5423,14 +5438,16 @@ if (
 }
 
   // promotion
-  if (/\b(get promoted|promotion|promote)\b/.test(q)) {
-    return "promotion";
-  }
+ if (/\b(get promoted|promotion|promotions|promote|promoted)\b/.test(q)) {
+  return "promotion";
+}
 
   // job change
-  if (/\b(job change|change my job|switch job|switch my job|new job)\b/.test(q)) {
-    return "job_change";
-  }
+if (
+  /\b(job change|change my job|change jobs|switch job|switch jobs|switch my job|new job|another job|different employer|change employer|switch employer|switch company|change company|changing companies|new employer)\b/.test(q)
+) {
+  return "job_change";
+}
 
   // internal shift
   if (/\b(role change|role shift|transfer|department change|internal move)\b/.test(q)) {
@@ -5438,17 +5455,24 @@ if (
   }
 
   // stability / check
-  if (
-    /\b(stay in my job|leave my job|quit|resign|continue in job|job stability)\b/.test(q)
-  ) {
-    return "stability_check";
-  }
+if (
+  /\b(stay in my job|stay in my current job|leave my job|leave my current job|quit|resign|resignation|continue in job|continue in my job|job stability|stuck in my career|career feels stuck|career is stuck|feeling stuck in my career)\b/.test(q)
+) {
+  return "stability_check";
+}
 
-  // fallback by time direction
-  if (timeDirection === "identity") return "profession_identity";
-  if (timeDirection === "future") return "job_change";
+// fallback by time direction
+if (timeDirection === "identity") {
+  return "profession_identity";
+}
 
-  return "generic";
+// Future tense alone does NOT imply a job change.
+// Explicit job-change wording is handled above.
+if (timeDirection === "future") {
+  return "profession_identity";
+}
+
+return "generic";
 }
 function detectRelationshipEventType(
   question: string,
@@ -5544,11 +5568,11 @@ function detectWealthEventType(
     question.toLowerCase().trim();
 
   // Permanent wealth potential
-  if (
-    /\b(am i naturally wealthy|do i have wealth potential|can i become wealthy|will i be wealthy|wealth potential|financial potential|money potential)\b/.test(q)
-  ) {
-    return "wealth_potential";
-  }
+if (
+  /\b(am i naturally wealthy|do i have wealth potential|can i become wealthy|will i be wealthy|wealth potential|financial potential|money potential|wealth strongly promised|wealth promised|wealth promised in my chart|strong wealth promise)\b/.test(q)
+) {
+  return "wealth_potential";
+}
 
   // Permanent earning style
   if (
@@ -5658,11 +5682,11 @@ function detectBusinessEventType(
   }
 
   // Permanent business vs employment
-  if (
-    /\b(business or job|job or business|business vs job|business versus job|employment or business|business or employment)\b/.test(q)
-  ) {
-    return "business_vs_job";
-  }
+if (
+  /\b(business or job|job or business|business vs job|business versus job|employment or business|business or employment|business or salary|salary or business|business versus salary|salary versus business)\b/.test(q)
+) {
+  return "business_vs_job";
+}
 
   // Permanent partnership suitability
   if (
@@ -5677,7 +5701,12 @@ function detectBusinessEventType(
   ) {
     return "entrepreneurial_pattern";
   }
-
+// Business launch / starting a business
+if (
+  /\b(should i start a business|should i start my business|can i start a business|can i start my own business|should i launch a business|should i launch my business)\b/.test(q)
+) {
+  return "business_launch";
+}
   // Explicit launch timing
   if (
     /\b(when should i start my business|when should i launch my business|when can i start a business|when is a good time to start a business|business launch|launch my business)\b/.test(q)
@@ -9365,6 +9394,11 @@ function detectTopic(question: string): AskSarathiDomain {
   const q = question.toLowerCase().trim();
 
   if (/\b(education|study|studies|exam|college|university|degree|learning)\b/.test(q)) return "education";
+  if (
+  /\b(become a father|become father|became a father|became father|become a mother|become mother|became a mother|became mother|parenthood|pregnancy|conceive|conception|have a baby|have a child)\b/.test(q)
+) {
+  return "child";
+}
   if (/\b(mother|father|parents|parent|family elder)\b/.test(q)) return "parents";
   if (/\b(brother|sister|sibling|siblings)\b/.test(q)) return "siblings";
   if (/\b(business|startup|entrepreneur|self employed|own business|partnership business)\b/.test(q)) return "business";
@@ -9372,8 +9406,29 @@ function detectTopic(question: string): AskSarathiDomain {
   if (/\b(spiritual|sadhana|mantra|meditation|moksha|guru|temple)\b/.test(q)) return "spiritual";
   if (/\b(reputation|fame|recognition|public image|status|visibility)\b/.test(q)) return "reputation";
   if (/\b(loan|debt|emi|mortgage|liability|borrowing|repayment)\b/.test(q)) return "debt";
-  if (/\b(inheritance|legacy|will|ancestral|insurance settlement)\b/.test(q)) return "inheritance";
-  if (/\b(anxiety|depression|mental health|overthinking|restless|panic|mood)\b/.test(q)) return "mental_health";
+  // Cross-domain: relocation impact on career/work
+if (
+  /\b(relocation|relocate|moving abroad|move abroad|another country|foreign move)\b/.test(q) &&
+  /\b(career|job|work|profession|employment)\b/.test(q)
+) {
+  return "relocation";
+}
+  if (
+  /\b(profession|career|occupation|vocational|vocation|professional path|career path|field of work|line of work|resign|resignation|promotion|promotions|promoted|job|employment|employer|company|work)\b/i.test(q) &&
+  !/\b(spouse|husband|wife|partner|boyfriend|girlfriend|child|son|daughter)\b/i.test(q)
+) {
+  return "career";
+}
+  if (
+  /\b(inheritance|legacy|ancestral|insurance settlement|inherit|inherited|legal will|last will|family will|testament)\b/.test(q)
+) {
+  return "inheritance";
+}
+  if (
+  /\b(anxiety|depression|mental health|overthinking|restless|panic|mood|mentally exhausted|mental exhaustion|mental fatigue|emotionally exhausted)\b/.test(q)
+) {
+  return "mental_health";
+}
   if (/\b(pet|dog|cat|animal)\b/.test(q)) return "pets";
 
   if (/\b(marriage|married|spouse|wedding)\b/.test(q)) {
@@ -9392,9 +9447,11 @@ function detectTopic(question: string): AskSarathiDomain {
   return "career";
 }
 
-  if (/\b(money|wealth|income|finance|salary|bonus)\b/.test(q)) {
-    return "money";
-  }
+ if (
+  /\b(money|wealth|income|finance|financial|finances|salary|bonus|rich|wealthy)\b/.test(q)
+) {
+  return "money";
+}
 
   if (/\b(property|house|home|flat|land|plot|real estate)\b/.test(q)) {
     return "property";
@@ -9404,13 +9461,17 @@ function detectTopic(question: string): AskSarathiDomain {
     return "relocation";
   }
 
- if (/\b(child|children|baby|pregnancy|conceive|father|mother|became a father|became father|became a mother|became mother|parenthood)\b/.test(q)) {
+if (
+  /\b(child|children|baby|pregnancy|conceive|conception|parenthood)\b/.test(q)
+) {
   return "child";
 }
 
-  if (/\b(health|body|illness|recovery|stress|sleep)\b/.test(q)) {
-    return "health";
-  }
+ if (
+  /\b(health|body|illness|recovery|stress|sleep|vitality|physical wellbeing|physical well-being)\b/.test(q)
+) {
+  return "health";
+}
 
   if (/\b(vehicle|car|bike|automobile)\b/.test(q)) {
     return "vehicle";
@@ -9420,14 +9481,12 @@ function detectTopic(question: string): AskSarathiDomain {
     return "disputes";
   }
 
-  if (/\b(purpose|meaning|inner|direction|lost|confused)\b/.test(q)) {
-    return "inner";
-  }
-  if (
-  /\bbusiness\b|\bstart a business\b|\bown business\b|\bentrepreneur\b|\bself employed\b/.test(q)
+if (
+  /\b(purpose|meaning|inner|direction|lost|confused|holding me back|holds me back|self understanding|life direction|what should i focus on|what should my focus be|focus on over the next|focus on in the next)\b/.test(q)
 ) {
-  return "career";
+  return "inner";
 }
+
   for (const rule of TOPIC_RULES) {
     if (rule.keywords.some((kw) => q.includes(kw))) return rule.topic;
   }
@@ -9739,7 +9798,9 @@ function detectQuestionType(question: string): AskSarathiQuestionType {
     /\bwhat kind of (health |career |money |relationship |property |vehicle |relocation )?(issue|issues|problem|problems|risk|risks|blockage|blockages|challenge|challenges|concern|concerns)\b/.test(q) ||
     /\b(what|which) (health )?(issue|issues|problem|problems|risk|risks|concern|concerns|blockage|blockages|challenge|challenges)\b/.test(q) ||
     /\bshould i be concerned\b|\bconcerned about\b|\bwatch out for\b|\bwhat is blocking\b|\bmain blocker\b|\bwhy am i stuck\b/.test(q) ||
-    /\bwhy is\b|\bwhy am i\b|\bwhy does\b|\bwhy stuck\b|\bwhy delayed\b|\bwhat is happening\b/.test(q)
+    /\bwhy is\b|\bwhy am i\b|\bwhy does\b|\bwhy stuck\b|\bwhy delayed\b|\bwhat is happening\b/.test(q) ||
+    /\bwhy\b.*\b(stuck|delayed|struggling|failing|not improving|not working|exhausted)\b/.test(q) ||
+    /\b(feeling stuck|feel stuck|stuck in my career|career feels stuck|career is stuck)\b/.test(q)
   ) {
     return "diagnosis";
   }
@@ -9750,12 +9811,17 @@ function detectQuestionType(question: string): AskSarathiQuestionType {
   ) {
     return "type_profile";
   }
-
-  if (
-    /\bcompare\b|\bvs\b|\bversus\b|\bor wait\b|\bor stay\b|\bor switch\b|\bstay employed\b|\bstart a business\b|\bbusiness or job\b|\bjob or business\b|\bemployment or business\b/.test(q)
-  ) {
-    return "comparison";
-  }
+// Career suitability / profession identity
+if (
+  /\b(what profession suits me|which profession suits me|what career suits me|which career suits me|what field suits me|which field suits me)\b/.test(q)
+) {
+  return "decision";
+}
+if (
+  /\bcompare\b|\bvs\b|\bversus\b|\bor wait\b|\bor stay\b|\bor switch\b|\bstay employed\b|\bbusiness or job\b|\bjob or business\b|\bemployment or business\b|\bbusiness or salary\b|\bsalary or business\b/.test(q)
+) {
+  return "comparison";
+}
 
   if (
     /\bwhen\b|\bwhich month\b|\bwhich year\b|\btiming\b|\bwindow\b|\bdate\b/.test(q)
@@ -9770,10 +9836,10 @@ function detectQuestionType(question: string): AskSarathiQuestionType {
   }
 
   if (
-    /\bwill i\b|\bwill my\b|\bis it likely\b|\bcan this happen\b/.test(q)
-  ) {
-    return "prediction";
-  }
+  /^will\b|\bwill i\b|\bwill my\b|\bis it likely\b|\bcan this happen\b/.test(q)
+) {
+  return "prediction";
+}
 
   if (
     /\bremedy\b|\bremedies\b|\bupaya\b|\bmantra\b|\bpooja\b|\bgem\b|\bstone\b|\bwear\b/.test(q)
@@ -9805,6 +9871,7 @@ function detectQuestionType(question: string): AskSarathiQuestionType {
 
   return "generic";
 }
+
 function detectTimeDirection(
   question: string,
   topic: AskSarathiDomain
@@ -9820,20 +9887,24 @@ function detectTimeDirection(
     return "identity";
   }
 
-  // past questions
-  if (
-    /\b(when did|when was|what year did|in which year did|have i already|did i already|past|earlier|previously|first job|got married|married|my first job)\b/.test(q)
-  ) {
-    return "past";
-  }
+ // past questions
+// Avoid standalone "married" because it also appears in future
+// questions such as "When will I get married?"
+// past questions
+if (
+  /\b(when did|when was|what year did|in which year did|have i already|did i already|past|earlier|previously|got married)\b/.test(q)
+) {
+  return "past";
+}
 
   // future questions
   // keep this before present so "when will" always wins
-  if (
-    /\b(will i|when will|upcoming|future|next|later|going to|get promoted|promotion|change my job|job change|switch job|switch my job)\b/.test(q)
-  ) {
-    return "future";
-  }
+ if (
+  /^will\b/.test(q) ||
+  /\b(when will|upcoming|future|next|later|going to|get promoted|promotion|change my job|job change|switch job|switch my job)\b/.test(q)
+) {
+  return "future";
+}
 
   // present questions
   if (
@@ -14274,7 +14345,13 @@ function buildGenericAstroBundle(
   questionType: AskSarathiQuestionType,
   answerMode: AnswerMode,
   report: any,
-  careerEventTypeOverride?: CareerEventType
+  careerEventTypeOverride?: CareerEventType,
+  userContext?: {
+    age?: number | null;
+    lifeStage?: string | null;
+    careerStage?: string | null;
+    adviceStyle?: string | null;
+  }
 ): GenericAstroBundle {
   let rule = resolveTopicRule(topic);
 
@@ -14283,7 +14360,17 @@ const timeDirection = detectTimeDirection(question, topic);
 const eventScale = detectEventScale(question, topic);
 
 const eventType = detectEventType(question, topic, timeDirection);
-
+console.log("[QUESTION ROUTING DEBUG]", {
+  question,
+  topic,
+  questionType,
+  timeDirection,
+  eventType,
+  careerEventTypeOverride:
+    typeof careerEventTypeOverride !== "undefined"
+      ? careerEventTypeOverride
+      : null,
+});
 const careerEventType =
   topic === "career"
     ? careerEventTypeOverride ?? (eventType as CareerEventType)
@@ -14739,8 +14826,19 @@ if (topic === "inner") {
     };
   }
 }
- const careerInference =
-  topic === "career"
+const suppressAdultCareerInference =
+  userContext?.lifeStage === "child" &&
+  topic === "career" &&
+  [
+    "job_change",
+    "promotion",
+    "internal_shift",
+    "stability_check",
+  ].includes(String(eventType ?? ""));
+
+const careerInference =
+  topic === "career" &&
+  !suppressAdultCareerInference
     ? inferCareer(report)
     : null;
 
@@ -16658,11 +16756,11 @@ const isStrongFollowup =
   /\b(that|this|same|signal|window|period|timing|above|previous)\b/i.test(question.toLowerCase());
 
 let topic: AskSarathiDomain =
-  (vagueTimingFollowup || isStrongFollowup || continuation) &&
-  conversationState.lastTopic
-    ? conversationState.lastTopic
-    : detectedTopic !== "generic"
+  detectedTopic !== "generic"
     ? detectedTopic
+    : (vagueTimingFollowup || isStrongFollowup || continuation) &&
+      conversationState.lastTopic
+    ? conversationState.lastTopic
     : inferredFollowupTopic
     ? inferredFollowupTopic
     : "generic";
@@ -16673,6 +16771,16 @@ await logQuestionUsage({
   topic,
 });
 }
+console.log("[TOPIC PRIORITY DEBUG]", {
+  question,
+  detectedTopic,
+  inferredFollowupTopic,
+  lastTopic: conversationState.lastTopic ?? null,
+  vagueTimingFollowup,
+  isStrongFollowup,
+  continuation,
+  finalTopic: topic,
+});
 const questionType: AskSarathiQuestionType =
   continuation || vagueTimingFollowup ? "timing" : detectQuestionType(question);
 
@@ -16777,14 +16885,36 @@ if (
 if (/\b(promoted|promotion|promote|get promoted)\b/i.test(question)) {
   topic = "career";
 }
-
+const userContext =
+  buildUserContext(
+    enrichedReport?.birth?.dateISO ??
+    enrichedReport?.birth?.date ??
+    report?.birth?.dateISO ??
+    report?.birth?.date ??
+    null
+  );
+  if (body.qaRoutingOnly === true) {
+  return Response.json({
+    question,
+    topic,
+    questionType,
+    timeDirection,
+    eventType,
+    userContext,
+  });
+}
+  console.log(
+  "[USER CONTEXT]",
+  JSON.stringify(userContext, null, 2)
+);
 const astroBundle = buildGenericAstroBundle(
   question,
   topic,
   questionType,
   answerMode,
   enrichedReport,
-  careerEventType
+  careerEventType,
+  userContext
 );
 astroBundle.canonicalChartContext =
   buildCanonicalChartContext(enrichedReport);
@@ -17057,18 +17187,7 @@ const domainIntelligenceContext =
   finalDecisionLine: finalDecision.line,
   finalDecisionVerdict: finalDecision.verdict,
 });
-const userContext =
-  buildUserContext(
-    enrichedReport?.birth?.dateISO ??
-    enrichedReport?.birth?.date ??
-    report?.birth?.dateISO ??
-    report?.birth?.date ??
-    null
-  );
-  console.log(
-  "[USER CONTEXT]",
-  JSON.stringify(userContext, null, 2)
-);
+
 const isProfessionIdentity =
   astroBundle.careerEventType === "profession_identity";
 
@@ -17284,6 +17403,41 @@ const isInnerPermanent =
   ].includes(
     String(astroBundle.eventType ?? "")
   );
+const isChildCareerTimingGuard =
+  userContext?.lifeStage === "child" &&
+  topic === "career" &&
+  [
+    "job_change",
+    "promotion",
+    "internal_shift",
+    "stability_check",
+  ].includes(
+    String(astroBundle?.eventType ?? eventType ?? "")
+  );
+const isChildParenthoodTimingGuard =
+  userContext?.lifeStage === "child" &&
+  topic === "child" &&
+  [
+    "conception_timing",
+    "childbirth_timing",
+    "child_development_timing",
+  ].includes(
+    String(astroBundle?.eventType ?? eventType ?? "")
+  );
+const isChildMarriageTimingGuard =
+  userContext?.lifeStage === "child" &&
+  (
+    topic === "marriage" ||
+    topic === "relationships"
+  ) &&
+  [
+    "marriage_timing",
+    "marriage_commitment",
+    "meeting_partner",
+    "new_relationship",
+  ].includes(
+    String(astroBundle?.eventType ?? eventType ?? "")
+  );
 const shouldSuppressTiming =
   isProfessionIdentity ||
   isRelationshipPermanent ||
@@ -17305,8 +17459,38 @@ const shouldSuppressTiming =
   isInheritancePermanent ||
   isMentalHealthPermanent ||
   isPetsPermanent ||
-  isInnerPermanent;
+  isInnerPermanent ||
+ isChildCareerTimingGuard ||
+  isChildParenthoodTimingGuard ||
+  isChildMarriageTimingGuard;
 
+console.log("[CHILD CAREER GUARD DEBUG]", {
+  age: userContext?.age ?? null,
+  lifeStage: userContext?.lifeStage ?? null,
+  topic,
+  eventType,
+  astroBundleEventType: astroBundle?.eventType ?? null,
+  isChildCareerTimingGuard,
+  shouldSuppressTiming,
+});
+console.log("[CHILD MARRIAGE GUARD DEBUG]", {
+  age: userContext?.age ?? null,
+  lifeStage: userContext?.lifeStage ?? null,
+  topic,
+  eventType,
+  astroBundleEventType: astroBundle?.eventType ?? null,
+  isChildMarriageTimingGuard,
+  shouldSuppressTiming,
+});
+console.log("[CHILD MARRIAGE GUARD DEBUG]", {
+  age: userContext?.age ?? null,
+  lifeStage: userContext?.lifeStage ?? null,
+  topic,
+  eventType,
+  astroBundleEventType: astroBundle?.eventType ?? null,
+  isChildMarriageTimingGuard,
+  shouldSuppressTiming,
+});
 /*
   Profession suitability must use permanent vocational evidence only.
   Do not pass event timing, dasha timing, transit timing, conversion,
@@ -18564,6 +18748,49 @@ const innerReasoningInstructions = {
     "For a child or student, frame purpose as interests, values, curiosity, character development, learning, relationships, creativity, contribution, and gradual self-discovery.",
   ],
 };
+const childCareerTimingReasoningInstructions = {
+  directAnswerFirst: true,
+  resolveContradictions: true,
+  neverInventAstrology: true,
+  timingSuppressed: true,
+
+  rules: [
+    "The user is a child, so adult employment timing is not applicable.",
+    "Do not discuss job changes, employers, recruiters, interviews, promotion, resignation, salary negotiation, networking, joining dates, or workplace movement.",
+    "Do not provide career-event timing merely because the wording asks when.",
+    "Reframe the question developmentally toward natural aptitude, interests, learning strengths, confidence, communication, creativity, reasoning, discipline, and age-appropriate skill development.",
+    "If useful, explain that meaningful profession or employment timing belongs to a later life stage.",
+    "Use the natal career promise and relevant divisional confirmation only to discuss future potential, not imminent employment.",
+  ],
+};
+const childParenthoodTimingReasoningInstructions = {
+  directAnswerFirst: true,
+  resolveContradictions: true,
+  neverInventAstrology: true,
+  timingSuppressed: true,
+
+  rules: [
+    "The user is a child, so conception, childbirth, or parenthood timing is not meaningful at this life stage.",
+    "Do not provide dates, dashas, transits, timing windows, conception periods, childbirth periods, or family-expansion predictions.",
+    "Do not speak as though the child is currently planning marriage, pregnancy, or parenthood.",
+    "Redirect toward age-appropriate development, emotional maturity, responsibility, empathy, relationships, learning, and future parenting potential only if relevant.",
+    "Explain that parenthood timing becomes meaningful only much later in life.",
+  ],
+};
+const childMarriageTimingReasoningInstructions = {
+  directAnswerFirst: true,
+  resolveContradictions: true,
+  neverInventAstrology: true,
+  timingSuppressed: true,
+
+  rules: [
+    "The user is a child, so marriage, partner-meeting, commitment, or romantic timing is not meaningful at this life stage.",
+    "Do not provide marriage dates, meeting windows, relationship timing, engagement timing, dashas, transits, or trigger periods.",
+    "Do not speak as though the child is currently dating, seeking a spouse, engaged, or planning marriage.",
+    "Redirect toward age-appropriate emotional development, friendship, communication, boundaries, empathy, self-understanding, and healthy relationship skills.",
+    "Explain that marriage and partner timing becomes meaningful only much later in life.",
+  ],
+};
 const standardReasoningInstructions = {
   ...(
     natPayload?.astroFacts
@@ -18633,7 +18860,28 @@ const safeNatPayload = {
     natPayload?.formatTier,
 
  formatRules:
-  isProfessionIdentity
+  isChildCareerTimingGuard
+    ? [
+        "Do not answer with adult career timing.",
+        "State clearly that job-change, promotion, employer, resignation, salary, or joining timing is not meaningful for a child.",
+        "Redirect the answer toward future aptitude, strengths, interests, learning style, and age-appropriate development.",
+        "Do not mention dasha, transits, dates, timing windows, recruiters, interviews, employers, promotion, resignation, or salary negotiation.",
+      ].join(" ")
+    : isChildParenthoodTimingGuard
+? [
+    "Do not answer with conception, childbirth, or parenthood timing for a child.",
+    "State clearly that parenthood timing is not meaningful at this age.",
+    "Redirect toward age-appropriate development, responsibility, empathy, relationships, and future potential.",
+    "Do not mention dasha, transits, dates, timing windows, conception, pregnancy, childbirth dates, or family-expansion periods.",
+  ].join(" ")
+: isChildMarriageTimingGuard
+? [
+    "Do not answer with marriage, partner-meeting, or relationship timing for a child.",
+    "State clearly that marriage timing is not meaningful at this age.",
+    "Redirect toward emotional maturity, friendship, communication, boundaries, empathy, and healthy relationship development.",
+    "Do not mention dasha, transits, dates, timing windows, engagement periods, marriage dates, or partner-meeting windows.",
+  ].join(" ")
+    : isProfessionIdentity
     ? [
         "Answer the profession suitability question directly.",
         "Focus on long-term natural aptitude and vocational fit.",
@@ -18893,8 +19141,14 @@ const safeNatPayload = {
     astroBundle?.divisionalAnalysis ??
     null,
 
-  reasoningInstructions:
-  isProfessionIdentity
+reasoningInstructions:
+  isChildCareerTimingGuard
+    ? childCareerTimingReasoningInstructions
+    : isChildParenthoodTimingGuard
+    ? childParenthoodTimingReasoningInstructions
+    : isChildMarriageTimingGuard
+    ? childMarriageTimingReasoningInstructions
+    : isProfessionIdentity
     ? professionReasoningInstructions
     : isRelationshipPermanent
     ? relationshipReasoningInstructions
@@ -19360,7 +19614,28 @@ const safeNatPayload = {
     ],
 
     forbiddenPatterns: [
-     ...(isProfessionIdentity
+  ...(isChildCareerTimingGuard
+    ? [
+        "Do not mention job change, employer change, recruiters, applications, interviews, promotion, resignation, joining, salary negotiation, networking, workplace visibility, or professional movement.",
+        "Do not provide adult career timing to a child.",
+        "Do not mention current dasha, antardasha, pratyantardasha, transits, timing windows, trigger dates, or employment dates.",
+        "Do not speak as though the child is currently employed.",
+      ]
+    : isChildParenthoodTimingGuard
+? [
+    "Do not provide conception, pregnancy, childbirth, or parenthood timing to a child.",
+    "Do not mention current dasha, antardasha, pratyantardasha, transits, timing windows, trigger dates, conception dates, pregnancy periods, or childbirth dates.",
+    "Do not speak as though the child is currently married, sexually active, pregnant, trying to conceive, or planning parenthood.",
+    "Do not give reproductive or family-planning advice to a child.",
+  ]
+  : isChildMarriageTimingGuard
+? [
+    "Do not provide marriage, engagement, partner-meeting, dating, or commitment timing to a child.",
+    "Do not mention current dasha, antardasha, pratyantardasha, transits, timing windows, marriage dates, engagement dates, or partner-meeting dates.",
+    "Do not speak as though the child is currently dating, engaged, seeking a spouse, or planning marriage.",
+    "Do not give adult romantic or marital advice to a child.",
+  ]
+    : isProfessionIdentity
   ? [
       "Do not mention current dasha, antardasha, pratyantardasha, transits, timing windows, trigger dates, current career movement, promotion timing, visibility cycles, or breakthrough periods.",
       "Do not convert a profession-suitability question into a current career-decision or timing answer.",
@@ -19706,11 +19981,14 @@ if (
 
 
 const shouldUseFallbackSeniorResponse =
-  questionType === "timing" ||
-  questionType === "decision" ||
-  questionType === "prediction" ||
-  questionType === "comparison" ||
-  questionType === "action_plan";
+  !shouldSuppressTiming &&
+  (
+    questionType === "timing" ||
+    questionType === "decision" ||
+    questionType === "prediction" ||
+    questionType === "comparison" ||
+    questionType === "action_plan"
+  );
 
 const fallbackPremiumAnswer =
   shouldUseFallbackSeniorResponse
@@ -19854,11 +20132,14 @@ const naturalJson =
   await naturalRes.json();
 
 const shouldUseSeniorResponse =
-  questionType === "timing" ||
-  questionType === "decision" ||
-  questionType === "prediction" ||
-  questionType === "comparison" ||
-  questionType === "action_plan";
+  !shouldSuppressTiming &&
+  (
+    questionType === "timing" ||
+    questionType === "decision" ||
+    questionType === "prediction" ||
+    questionType === "comparison" ||
+    questionType === "action_plan"
+  );
 const shouldShowDecisionSections =
   questionType === "decision" ||
   questionType === "comparison" ||
@@ -19878,6 +20159,7 @@ const naturalizedAnswer =
 
 
 const shouldPreferSeniorResponse =
+  !shouldSuppressTiming &&
   !isProfessionIdentity &&
   Boolean(premiumTimingAnswer) &&
   (
@@ -19887,7 +20169,6 @@ const shouldPreferSeniorResponse =
     questionType === "comparison" ||
     questionType === "action_plan"
   );
-
 let answer =
   shouldPreferSeniorResponse
     ? premiumTimingAnswer?.full ??
