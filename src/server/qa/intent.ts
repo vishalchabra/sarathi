@@ -4,6 +4,7 @@ export type Intent =
   | "vehicle"
   | "property"
   | "job"
+  | "business"
   | "wealth"
   | "health"
   | "relationships"
@@ -35,6 +36,11 @@ export function detectIntent(q: string): Intent {
   if (/(property|flat|apartment|house|home|land|plot|real ?estate|rent|lease|mortgage|possession|registration|handover)/.test(s)) {
     return "property";
   }
+  if (
+  /\b(business|entrepreneur|entrepreneurship|startup|start a business|start my business|launch a business|launch my business|own company|own business|self employed|self-employed|self employment|self-employment|venture|commercial)\b/.test(q)
+) {
+  return "business";
+}
  // Job / career
 if (/(job|career|switch|change\s*job|role|promotion|resign|notice|interview|offer|work|office|boss|manager)/.test(s)) {
   return "job";

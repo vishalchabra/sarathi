@@ -341,15 +341,15 @@ function scoreCareerNatalPromise(report: any): EvalResult {
   const blockers: string[] = [];
   let score = 20;
 
-  const houses = report?.houses ?? report?.natal?.houses ?? {};
+
   const houseLords = getHouseLordMap(report);
   const planets = getPlanetMap(report);
 
   // H10
-  const h10 = houses?.H10 ?? houses?.[10] ?? null;
-  const h6 = houses?.H6 ?? houses?.[6] ?? null;
-  const h2 = houses?.H2 ?? houses?.[2] ?? null;
-  const h11 = houses?.H11 ?? houses?.[11] ?? null;
+const h10 = getHouseRow(report, 10);
+const h6 = getHouseRow(report, 6);
+const h2 = getHouseRow(report, 2);
+const h11 = getHouseRow(report, 11);
 
   if (h10) {
     score += 14;
@@ -627,10 +627,21 @@ function inferCareerModeHint(
   const sun = planets?.Sun ?? planets?.sun ?? null;
   const jupiter = planets?.Jupiter ?? planets?.jupiter ?? null;
 
-  const h7Blob = JSON.stringify(houses?.H7 ?? houses?.[7] ?? {}).toLowerCase();
-  const h10Blob = JSON.stringify(houses?.H10 ?? houses?.[10] ?? {}).toLowerCase();
-  const h11Blob = JSON.stringify(houses?.H11 ?? houses?.[11] ?? {}).toLowerCase();
-  const h6Blob = JSON.stringify(houses?.H6 ?? houses?.[6] ?? {}).toLowerCase();
+  const h7Blob = JSON.stringify(
+  getHouseRow(report, 7) ?? {}
+).toLowerCase();
+
+const h10Blob = JSON.stringify(
+  getHouseRow(report, 10) ?? {}
+).toLowerCase();
+
+const h11Blob = JSON.stringify(
+  getHouseRow(report, 11) ?? {}
+).toLowerCase();
+
+const h6Blob = JSON.stringify(
+  getHouseRow(report, 6) ?? {}
+).toLowerCase();
 
   const active = Object.values(getActiveDashaAnyShape(report)).filter(
     (x) => typeof x === "string" && x
@@ -1117,9 +1128,17 @@ function inferCareerRoleStyleScores(
   const jupiter = planets?.Jupiter ?? planets?.jupiter ?? null;
   const mars = planets?.Mars ?? planets?.mars ?? null;
   const houses = report?.houses ?? report?.natal?.houses ?? {};
-const h7Blob = JSON.stringify(houses?.H7 ?? houses?.[7] ?? {}).toLowerCase();
-const h9Blob = JSON.stringify(houses?.H9 ?? houses?.[9] ?? {}).toLowerCase();
-const h10Blob = JSON.stringify(houses?.H10 ?? houses?.[10] ?? {}).toLowerCase();
+const h7Blob = JSON.stringify(
+  getHouseRow(report, 7) ?? {}
+).toLowerCase();
+
+const h9Blob = JSON.stringify(
+  getHouseRow(report, 9) ?? {}
+).toLowerCase();
+
+const h10Blob = JSON.stringify(
+  getHouseRow(report, 10) ?? {}
+).toLowerCase();
 
 if (jupiter && mercury) {
   scores.advisor_consultant += 5;
@@ -1291,6 +1310,36 @@ function roleDriver(role: CareerRoleStyle): string {
 /* --------------------------------------------------
    Utilities
 -------------------------------------------------- */
+function getHouseRow(report: any, houseNum: number): any {
+  const houses =
+    report?.houses ??
+    report?.natal?.houses ??
+    {};
+
+  // Array shape: index 0 = house 1
+  if (Array.isArray(houses)) {
+    return (
+      houses.find(
+        (row: any) =>
+          Number(row?.house) === Number(houseNum)
+      ) ??
+      houses[houseNum - 1] ??
+      null
+    );
+  }
+
+  // Object shapes: H10, "10", 10, etc.
+  return (
+    houses?.[`H${houseNum}`] ??
+    houses?.[String(houseNum)] ??
+    houses?.[houseNum] ??
+    Object.values(houses).find(
+      (row: any) =>
+        Number(row?.house) === Number(houseNum)
+    ) ??
+    null
+  );
+}
 function getPlanetsInHouse(report: any, houseNum: number): string[] {
   const planets = Object.values(getPlanetMap(report) ?? {});
   return planets
@@ -1298,17 +1347,30 @@ function getPlanetsInHouse(report: any, houseNum: number): string[] {
     .map((p: any) => safePlanetName(p?.name ?? p?.planet ?? p?.graha ?? ""))
     .filter(Boolean);
 }
-function getHouseLordMap(report: any): Record<string, any> {
-  const raw = report?.houseLords ?? report?.natal?.houseLords ?? null;
-  if (raw && Object.keys(raw).length) return raw;
+function getHouseLordMap(
+  report: any
+): Record<string, any> {
+  const raw =
+    report?.houseLords ??
+    report?.natal?.houseLords ??
+    null;
 
-  const houses = report?.houses ?? report?.natal?.houses ?? {};
+  if (raw && Object.keys(raw).length) {
+    return raw;
+  }
+
   const out: Record<string, any> = {};
 
-  for (let i = 1; i <= 12; i++) {
-    const row = houses?.[`H${i}`] ?? houses?.[String(i)] ?? houses?.[i] ?? null;
+  for (let houseNum = 1; houseNum <= 12; houseNum++) {
+    const row = getHouseRow(report, houseNum);
+
     if (!row) continue;
-    if (row?.lord) out[`H${i}`] = { lord: row.lord };
+
+    if (row?.lord) {
+      out[`H${houseNum}`] = {
+        lord: row.lord,
+      };
+    }
   }
 
   return out;
@@ -1492,12 +1554,12 @@ function collectCareerFactors(report: any): CareerFactors {
     report?.vargas?.d9 ??
     null;
 
-  const h2Obj = houses?.H2 ?? houses?.[2] ?? null;
-  const h6Obj = houses?.H6 ?? houses?.[6] ?? null;
-  const h7Obj = houses?.H7 ?? houses?.[7] ?? null;
-  const h9Obj = houses?.H9 ?? houses?.[9] ?? null;
-  const h10Obj = houses?.H10 ?? houses?.[10] ?? null;
-  const h11Obj = houses?.H11 ?? houses?.[11] ?? null;
+  const h2Obj = getHouseRow(report, 2);
+const h6Obj = getHouseRow(report, 6);
+const h7Obj = getHouseRow(report, 7);
+const h9Obj = getHouseRow(report, 9);
+const h10Obj = getHouseRow(report, 10);
+const h11Obj = getHouseRow(report, 11);
 
   const h2Blob = JSON.stringify(h2Obj || {}).toLowerCase();
   const h6Blob = JSON.stringify(h6Obj || {}).toLowerCase();

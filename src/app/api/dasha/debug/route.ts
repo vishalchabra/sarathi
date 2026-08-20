@@ -5,7 +5,11 @@ import { NextResponse } from "next/server";
 import { fetchDashaSpans, currentNowLabel, type Birth } from "@/server/qa/dasha";
 
 type Profile = { birth?: Birth };
-const cap = (s?: string) => (s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : s);
+const cap = (s?: string | null) =>
+  s
+    ? s.charAt(0).toUpperCase() +
+      s.slice(1).toLowerCase()
+    : "";
 
 export async function GET(req: Request) {
   try {

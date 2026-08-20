@@ -353,6 +353,7 @@ export default function AstroChatPage() {
         birthProfile: freshProfile,
         topic,
         report,
+        lifecycleDebugOnly: true,
       }),
     });
 

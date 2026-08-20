@@ -1902,17 +1902,51 @@ const timingStrength =
   ? []
   : core?.evidenceBullets || d?.evidenceBullets || [];
 const preferLong = intent === "when" || intent === "exact" || view === "narrative";
+console.log("CHAT RESPONSE DEBUG", {
+  answer: d?.answer,
+  timingHierarchy: d?.timingHierarchy,
+  decisionSummary: d?.decisionSummary,
+  windows: d?.windows,
+});
+const hierarchy = d?.timingHierarchy ?? null;
 
 const fallbackAnswer =
-  Array.isArray(d?.windows) && d.windows.length
+  hierarchy
     ? [
-        `Main window: ${d.windows[0]?.label || ""} (${d.windows[0]?.fromISO || ""} → ${d.windows[0]?.toISO || ""})`.trim(),
-        ...(Array.isArray(d.windows[0]?.why) ? d.windows[0].why.slice(0, 2) : []),
+        hierarchy.practicalWindow
+          ? `Main actionable window: ${hierarchy.practicalWindow.start} → ${hierarchy.practicalWindow.end}`
+          : "",
+
+        hierarchy.broaderWindow
+          ? `Broader opportunity period: ${hierarchy.broaderWindow.start} → ${hierarchy.broaderWindow.end}`
+          : "",
+
+        hierarchy.activationWindow
+          ? `Activation trigger: ${
+              hierarchy.activationWindow.peak ??
+              hierarchy.activationWindow.start ??
+              ""
+            }`
+          : "",
+
+        hierarchy.explanation ?? "",
       ]
         .filter(Boolean)
         .join("\n")
+
+    : Array.isArray(d?.windows) && d.windows.length
+    ? [
+        `Main window: ${d.windows[0]?.label || ""} (${d.windows[0]?.fromISO || ""} → ${d.windows[0]?.toISO || ""})`.trim(),
+        ...(Array.isArray(d.windows[0]?.why)
+          ? d.windows[0].why.slice(0, 2)
+          : []),
+      ]
+        .filter(Boolean)
+        .join("\n")
+
     : Array.isArray(d?.guidance) && d.guidance.length
     ? d.guidance.slice(0, 3).join("\n")
+
     : "";
 
 const longFromWindows =

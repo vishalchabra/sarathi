@@ -35,6 +35,8 @@ const NATAL: Record<string, string> = {
   vehicle: "⚠️ 4th-house strength modest; Saturn/Mars echo: go slow, inspect twice.",
   property: "⚠️ 4th/11th need steadying; prefer verified builders + clean titles.",
   job: "✨ 10th/11th activation helps outreach; avoid impulse resignations.",
+  business:
+  "✨ Business potential is judged through the 3rd, 7th, 10th and 11th houses, their lords, and the active dasha.",
   wealth: "✨ Dhan cues reward discipline; beware speculative spikes.",
   health: "⚠️ 6th-house cues: routine, sleep, and stress hygiene first.",
   relationships: "✨ 7th/5th warmth windows; speak early, not late.",
@@ -56,6 +58,11 @@ const GUIDANCE: Record<string, string[]> = {
     "Explore market in early windows, line up offers for mid/late close.",
     "Quantify wins; structure beats speed during tougher sub-periods.",
   ],
+  business: [
+  "Use the broader dasha period for building the business deliberately.",
+  "Use stronger transit triggers inside it for launch, visibility, clients, or commercial movement.",
+  "Do not depend fully on the business until demand and recurring revenue are established.",
+],
   wealth: [
     "Accumulate gradually across windows; avoid FOMO outside them.",
     "Rotate only on thesis/weights, not headlines.",
@@ -95,6 +102,11 @@ const CHECKLIST: Record<string, string[]> = {
     "Warm intros > cold applies; 10 targeted notes/week.",
     "STAR stories prepped; salary bands researched.",
   ],
+  business: [
+  "Define the customer segment and offer clearly.",
+  "Validate paying demand before committing significant capital.",
+  "Track cash flow, compliance, and recurring revenue from the beginning.",
+],
   wealth: [
     "Automate SIP/DCAs; set max risk per idea.",
     "Quarterly rebalance to target bands.",
@@ -191,6 +203,7 @@ function icon(t: string) {
   return t === "vehicle" ? "🚗" :
          t === "property" ? "🏠" :
          t === "job" ? "💼" :
+         t === "business" ? "📈" :
          t === "wealth" ? "💰" :
          t === "health" ? "🏋️‍♂️" :
          t === "relationships" ? "❤️" :
@@ -285,13 +298,14 @@ export async function handleQA(
 
   switch (intent) {
     case "vehicle":
-    case "property":
-    case "job":
-    case "wealth":
-    case "health":
-    case "relationships":
-    case "disputes":
-    case "marriage": {
+case "property":
+case "job":
+case "business":
+case "wealth":
+case "health":
+case "relationships":
+case "disputes":
+case "marriage": {
       const res = await timingForTopic({
         topic: intent as any,
         profile,
@@ -521,10 +535,15 @@ function handleGenericWeb(q: string, ctxLine?: string): QAResult {
 
 function inferTimingTopicFromText(
   q: string
-): "vehicle" | "property" | "job" | "wealth" | "health" | "relationships" | "disputes" | "marriage" | null {
+): "vehicle" | "property" | "job" | "business" | "wealth" | "health" | "relationships" | "disputes" | "marriage" | null {
   const s = q.toLowerCase();
   if (/(car|vehicle|bike|scooter|automobile|buy.*(car|vehicle|bike)|delivery|registration)/.test(s)) return "vehicle";
   if (/(property|flat|apartment|house|home|land|plot|real ?estate|rent|lease|mortgage|possession|registration|handover)/.test(s)) return "property";
+  if (
+  /(business|entrepreneur|entrepreneurship|startup|start.*business|launch.*business|own company|own business|self[- ]?employ|clients?|customers?|commercial|venture)/.test(s)
+) {
+  return "business";
+}
   if (/(job|career|offer|interview|promotion|raise|hike|switch|change role|join|resign|layoff|hiring|notice period|onsite)/.test(s)) return "job";
   if (/(wealth|invest|investment|stock|share|mutual fund|sip|dca|portfolio|money|crypto|gold|etf|options)/.test(s)) return "wealth";
   if (/(health|diet|sleep|workout|exercise|recovery|injury|stress|therapy|doctor|surgery|operation)/.test(s)) return "health";

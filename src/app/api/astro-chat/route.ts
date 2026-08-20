@@ -33,6 +33,19 @@ import {
 import {
   buildUserContext,
 } from "@/server/astro-chat/buildUserContext";
+import {
+  buildDecisionSummary,
+  type DecisionSummary,
+} from "@/server/sarathi/decisionEngine";
+import {
+  buildEventLifecycle,
+  type EventLifecycle,
+} from "@/server/sarathi/eventLifecycle";
+import { timingForTopic } from "@/server/timing/engine";
+import { fetchDashaSpans } from "@/server/qa/dasha";
+import {
+  buildTimingHierarchy,
+} from "@/server/sarathi/timingHierarchy";
 /*
   Sārathi astro chat route — simplified generic pipeline
 
@@ -5664,8 +5677,7 @@ function detectBusinessEventType(
     return "generic";
   }
 
-  const q =
-    question.toLowerCase().trim();
+  const q = question.toLowerCase().trim();
 
   // Permanent business suitability
   if (
@@ -5674,19 +5686,19 @@ function detectBusinessEventType(
     return "business_suitability";
   }
 
-  // Permanent business style
+  // Permanent business style / business type
   if (
-    /\b(what kind of business suits me|which business suits me|what type of business suits me|business style|what business should i do|best business for me)\b/.test(q)
+    /\b(what kind of business suits me|what kind of business will suit me|which business suits me|which business suits me best|what type of business suits me|business style|what business should i do|what business should i start|which business should i start|best business for me)\b/.test(q)
   ) {
     return "business_style";
   }
 
   // Permanent business vs employment
-if (
-  /\b(business or job|job or business|business vs job|business versus job|employment or business|business or employment|business or salary|salary or business|business versus salary|salary versus business)\b/.test(q)
-) {
-  return "business_vs_job";
-}
+  if (
+    /\b(business or job|job or business|business vs job|business versus job|employment or business|business or employment|business or salary|salary or business|business versus salary|salary versus business)\b/.test(q)
+  ) {
+    return "business_vs_job";
+  }
 
   // Permanent partnership suitability
   if (
@@ -5701,15 +5713,10 @@ if (
   ) {
     return "entrepreneurial_pattern";
   }
-// Business launch / starting a business
-if (
-  /\b(should i start a business|should i start my business|can i start a business|can i start my own business|should i launch a business|should i launch my business)\b/.test(q)
-) {
-  return "business_launch";
-}
-  // Explicit launch timing
+
+  // Business launch / starting a business
   if (
-    /\b(when should i start my business|when should i launch my business|when can i start a business|when is a good time to start a business|business launch|launch my business)\b/.test(q)
+    /\b(when should i start my business|when should i launch my business|when can i start a business|when can i start my business|when is a good time to start a business|will i ever start my own business|will i start my own business|will i start a business|can i start my own business|business launch|launch my business)\b/.test(q)
   ) {
     return "business_launch";
   }
@@ -5742,6 +5749,18 @@ if (
     return "business_timing";
   }
 
+  // Natural-language semantic fallback.
+  // Exact rules above still win when they match.
+  const semanticIntent = inferBusinessSemanticIntent(
+    question,
+    timeDirection
+  );
+
+  if (semanticIntent !== "generic") {
+    return semanticIntent;
+  }
+
+  // Final broad fallbacks
   if (timeDirection === "identity") {
     return "business_suitability";
   }
@@ -5752,6 +5771,165 @@ if (
 
   return "generic";
 }
+
+function inferBusinessSemanticIntent(
+  question: string,
+  timeDirection: TimeDirection
+): BusinessEventType {
+  const q = question.toLowerCase().trim();
+
+  const scores: Partial<Record<BusinessEventType, number>> = {};
+
+  const add = (
+    event: BusinessEventType,
+    points: number
+  ) => {
+    scores[event] = (scores[event] ?? 0) + points;
+  };
+
+  // --------------------------------------------------
+  // 1. Business vs employment
+  // Highest priority because these questions may also
+  // contain suitability / entrepreneurship language.
+  // --------------------------------------------------
+  const hasBusinessConcept =
+    /\b(business|entrepreneur|entrepreneurship|self employed|self-employed|work for myself|working for myself|own company|own business)\b/.test(
+      q
+    );
+
+  const hasEmploymentConcept =
+    /\b(job|employment|employed|salary|salaried|service|work for someone|working for someone)\b/.test(
+      q
+    );
+
+  if (hasBusinessConcept && hasEmploymentConcept) {
+    add("business_vs_job", 14);
+  }
+
+  // --------------------------------------------------
+  // 2. Business type / style
+  // "What business should I do?"
+  // "Which industry fits me?"
+  // --------------------------------------------------
+  if (
+    /\b(what kind|what type|which business|what business|which industry|what industry|business line|line of business|industry|sector|field|best business|business suits me|business fits me|fits my strengths|matches my strengths)\b/.test(
+      q
+    )
+  ) {
+    add("business_style", 12);
+  }
+
+  // Question asks WHAT to start rather than WHETHER to start.
+  if (
+    /\b(what|which)\b/.test(q) &&
+    /\b(business|industry|sector|venture|enterprise|company)\b/.test(q)
+  ) {
+    add("business_style", 5);
+  }
+
+  // --------------------------------------------------
+  // 3. Business suitability
+  // --------------------------------------------------
+ if (
+  /\b(suited|suitable|suit me|fit for me|right for me|good for me|good at business|good at running a business|good at running my own business|capable of running a business|entrepreneurial|entrepreneurship for me|entrepreneurship right for me|can i succeed in business)\b/.test(
+    q
+  )
+) {
+  add("business_suitability", 10);
+}
+
+  // --------------------------------------------------
+  // 4. Entrepreneurial nature / pattern
+  // --------------------------------------------------
+  if (
+    /\b(entrepreneurial nature|entrepreneurial personality|entrepreneurial style|business temperament|business personality|natural entrepreneur|entrepreneurial am i)\b/.test(
+      q
+    )
+  ) {
+    add("entrepreneurial_pattern", 11);
+  }
+
+  // --------------------------------------------------
+  // 5. Starting / launching / owning
+  // --------------------------------------------------
+  if (
+    /\b(start|starting|launch|launching|open|opening|set up|setup|begin|build my own|own business|own company|run my own company|run my own business|something of my own|venture of my own|work for myself|working for myself|self employment|self-employment)\b/.test(
+      q
+    )
+  ) {
+    add("business_launch", 10);
+  }
+
+  // --------------------------------------------------
+  // 6. Partnership suitability
+  // --------------------------------------------------
+  if (
+    /\b(business partner|partner in business|partnership|cofounder|co-founder|joint venture)\b/.test(
+      q
+    )
+  ) {
+    add("partnership_suitability", 11);
+  }
+
+  // --------------------------------------------------
+  // 7. Partnership timing
+  // --------------------------------------------------
+  if (
+    /\b(when|timing|when should|when will)\b/.test(q) &&
+    /\b(partner|partnership|cofounder|co-founder|joint venture)\b/.test(q)
+  ) {
+    add("partnership_timing", 14);
+  }
+
+  // --------------------------------------------------
+  // 8. Client/customer growth
+  // --------------------------------------------------
+ if (
+  /\b(client|clients|customer|customers|customer numbers|client numbers|customer base|client base)\b/.test(q) &&
+  /\b(more|increase|improve|improving|grow|growth|get|gain|acquire)\b/.test(q)
+) {
+  add("client_growth", 12);
+}
+
+  // --------------------------------------------------
+  // 9. Business growth
+  // --------------------------------------------------
+  if (
+    /\b(grow|growth|expand|expansion|scale|scaling|pick up|improve|bigger|successful|success|increase sales|sales improve)\b/.test(
+      q
+    )
+  ) {
+    add("business_growth", 10);
+  }
+
+  // --------------------------------------------------
+  // 10. Timing signal
+  // This deliberately gets fewer points.
+  // "Will" alone should NOT overpower the real intent.
+  // --------------------------------------------------
+  if (
+    timeDirection === "future" &&
+    /\b(will|when|future|later|soon|eventually|ever|this year|next year)\b/.test(
+      q
+    )
+  ) {
+    add("business_timing", 3);
+  }
+
+  // --------------------------------------------------
+  // Select strongest semantic intent
+  // --------------------------------------------------
+  const ranked = Object.entries(scores).sort(
+    (a, b) => Number(b[1]) - Number(a[1])
+  );
+
+  const winner = ranked[0]?.[0] as
+    | BusinessEventType
+    | undefined;
+
+  return winner ?? "generic";
+}
+
 function detectEducationEventType(
   question: string,
   topic: AskSarathiDomain,
@@ -9413,6 +9591,12 @@ if (
 ) {
   return "relocation";
 }
+// Broad business / entrepreneurship intent
+if (
+  /\b(entrepreneur|entrepreneurship|business|own company|own business|work for myself|working for myself|self employment|self-employment|self employed|self-employed|running a business|run a business|run my own company|build my own business|start something of my own|something of my own|business partner|business partnership|clients|customers|customer numbers|client numbers|customer base|client base|scale my business)\b/.test(q)
+) {
+  return "business";
+}
   if (
   /\b(profession|career|occupation|vocational|vocation|professional path|career path|field of work|line of work|resign|resignation|promotion|promotions|promoted|job|employment|employer|company|work)\b/i.test(q) &&
   !/\b(spouse|husband|wife|partner|boyfriend|girlfriend|child|son|daughter)\b/i.test(q)
@@ -9829,11 +10013,11 @@ if (
     return "timing";
   }
 
-  if (
-    /\bshould i\b|\bcan i\b|\bis it good to\b|\bis this a good time\b/.test(q)
-  ) {
-    return "decision";
-  }
+ if (
+  /\bshould i\b|\bcan i\b|\bis it good to\b|\bis this a good time\b|\bam i suited for\b|\bam i suitable for\b/.test(q)
+) {
+  return "decision";
+}
 
   if (
   /^will\b|\bwill i\b|\bwill my\b|\bis it likely\b|\bcan this happen\b/.test(q)
@@ -12102,7 +12286,7 @@ function getMarriageActivators(report: any): string[] {
   const out = new Set<string>();
 
   const houseLords = getHouseLordMap(report);
-
+console.log("Career house lords", houseLords);
   const addPlanet = (x: any) => {
     const p = safePlanetName(x);
     if (p) out.add(p);
@@ -12889,6 +13073,7 @@ function buildFinalAnswerDecision(params: {
   windows: TimingWindow[];
   timingLayer: AnalysisLayer;
   confidence: "High" | "Medium" | "Low";
+  decisionSummary?: any;
   timingPolicy?: {
     dashaStrength: "strong" | "moderate" | "mixed" | "weak";
     transitStrength: "strong" | "moderate" | "mixed" | "weak";
@@ -12900,13 +13085,25 @@ function buildFinalAnswerDecision(params: {
   topic,
   questionType,
   timeDirection,
-    careerEventType,
-    windows,
-    timingLayer,
-    timingPolicy,
-    confidence,
-  } = params;
-
+  careerEventType,
+  windows,
+  timingLayer,
+  timingPolicy,
+  confidence,
+  decisionSummary,
+} = params;
+if (
+  questionType === "timing" &&
+  decisionSummary?.headline
+) {
+  return {
+    verdict: "STRUCTURED_TIMING",
+    line:
+      decisionSummary.summary ??
+      decisionSummary.practicalMeaning ??
+      decisionSummary.headline,
+  };
+}
   const first = windows?.[0];
   const prefix = getConfidencePrefix(confidence);
 
@@ -13721,9 +13918,14 @@ function scorePredictionWindow({
 }
 type AstroTimelineWindow = {
   label: string;
-  score: number;
   confidence: "high" | "medium" | "low";
   reason: string;
+  score: number;
+
+  start?: string | null;
+  end?: string | null;
+
+  dashaLevel?: "md" | "ad" | "pd" | null;
 };
 
 function splitTimingWindows(windows: AstroTimelineWindow[]) {
@@ -13737,10 +13939,37 @@ function splitTimingWindows(windows: AstroTimelineWindow[]) {
     return new Date(`${m[1]}-${m[2]}-${m[3]}T00:00:00`);
   }
 
-  const majorWindows: AstroTimelineWindow[] = windows.filter(
-    (w) => w.score >= 70
-  );
+  const rankDashaLevel = (
+    level?: "md" | "ad" | "pd" | null
+  ) => {
+    if (level === "md") return 3;
+    if (level === "ad") return 2;
+    if (level === "pd") return 1;
+    return 0;
+  };
 
+  const majorWindows: AstroTimelineWindow[] = windows
+  .filter((w) => {
+    return w.dashaLevel === "ad";
+  })
+  .sort((a, b) => {
+    const aStart = a.start ?? "";
+    const bStart = b.start ?? "";
+
+    const dateDiff =
+      String(aStart).localeCompare(
+        String(bStart)
+      );
+
+    if (dateDiff !== 0) {
+      return dateDiff;
+    }
+
+    return (
+      Number(b.score ?? 0) -
+      Number(a.score ?? 0)
+    );
+  });
   const nearTermWindows: AstroTimelineWindow[] = windows
   .filter((w) => {
     const d = getFirstDate(w.label);
@@ -13775,8 +14004,16 @@ function splitTimingWindows(windows: AstroTimelineWindow[]) {
     return ad - bd;
   });
 
-  const triggerWindows: AstroTimelineWindow[] = windows.filter((w) => {
-    const reason = String(w.reason ?? "").toLowerCase();
+  const triggerWindows: AstroTimelineWindow[] = windows
+  .filter((w) => {
+    const reason =
+      String(
+        w.reason ??
+        ""
+      ).toLowerCase();
+
+    const isPdWindow =
+      w.dashaLevel === "pd";
 
     const isTransitTrigger =
       reason.includes("transit") ||
@@ -13784,7 +14021,32 @@ function splitTimingWindows(windows: AstroTimelineWindow[]) {
       reason.includes("retrograde") ||
       reason.includes("natal contact");
 
-    return w.score >= 25 && w.score < 70 && isTransitTrigger;
+    return (
+      isPdWindow ||
+      isTransitTrigger
+    );
+  })
+  .sort((a, b) => {
+    // Prefer stronger activation first.
+    const scoreDiff =
+      Number(b.score ?? 0) -
+      Number(a.score ?? 0);
+
+    if (scoreDiff !== 0) {
+      return scoreDiff;
+    }
+
+    const aStart =
+      a.start ??
+      "";
+
+    const bStart =
+      b.start ??
+      "";
+
+    return String(aStart).localeCompare(
+      String(bStart)
+    );
   });
 
   return {
@@ -13799,12 +14061,7 @@ function buildAstroTimelineFromSignals(
   themeSignal: GenericAstroBundle["themeSignal"],
   careerEventType?: CareerEventType
 ) {
-  const candidates: Array<{
-    label: string;
-    confidence: "high" | "medium" | "low";
-    reason: string;
-    score: number;
-  }> = [];
+ const candidates: AstroTimelineWindow[] = [];
 
   const scoreToConfidence = (score: number): "high" | "medium" | "low" => {
     if (score >= 10) return "high";
@@ -13958,10 +14215,31 @@ function buildAstroTimelineFromSignals(
     }
   }
 
-  const dashaTimeline = Array.isArray(report?.dashaTimeline)
+ const dashaTimeline =
+  Array.isArray(report?.dashaTimeline) &&
+  report.dashaTimeline.length
     ? report.dashaTimeline
-    : Array.isArray(report?.timeline)
+
+    : Array.isArray(report?.timeline) &&
+      report.timeline.length
     ? report.timeline
+
+    : Array.isArray(report?.activePeriods?.timeline) &&
+      report.activePeriods.timeline.length
+    ? report.activePeriods.timeline
+
+    : Array.isArray(report?.dasha?.timeline) &&
+      report.dasha.timeline.length
+    ? report.dasha.timeline
+
+    : Array.isArray(report?.timing?.dashaTimeline) &&
+      report.timing.dashaTimeline.length
+    ? report.timing.dashaTimeline
+
+    : Array.isArray(report?.timing?.timeline) &&
+      report.timing.timeline.length
+    ? report.timing.timeline
+
     : [];
 
   const todayISO = new Date().toISOString().slice(0, 10);
@@ -13976,35 +14254,88 @@ function buildAstroTimelineFromSignals(
   const relevantPlanets = topicPlanets[topic] ?? [];
 
   for (const row of dashaTimeline) {
-    const start = String(row?.start ?? row?.startISO ?? "").slice(0, 10);
-    const end = String(row?.end ?? row?.endISO ?? "").slice(0, 10);
+  const start = String(
+    row?.start ??
+    row?.startISO ??
+    ""
+  ).slice(0, 10);
 
-    if (!start || start < todayISO) continue;
+  const end = String(
+    row?.end ??
+    row?.endISO ??
+    ""
+  ).slice(0, 10);
 
-    const active = [row?.md, row?.ad, row?.pd]
-      .filter(Boolean)
-      .map((x: any) => String(x));
+  if (
+  !start ||
+  !end ||
+  end < todayISO
+) {
+  continue;
+}
 
-    const hits = active.filter((p) => relevantPlanets.includes(p));
+  const md =
+    row?.md ??
+    row?.mahadasha ??
+    null;
 
-    if (hits.length) {
-      const scored = scorePredictionWindow({
-  topic,
-  row,
-  report,
-  careerEventType,
-});
+  const ad =
+    row?.ad ??
+    row?.antardasha ??
+    null;
 
-      candidates.push({
-        label: `${start} to ${end}`,
-        confidence: scored.confidence,
-        reason: scored.reasons.join(". "),
-        score: scored.score,
-      });
-    }
+  const pd =
+    row?.pd ??
+    row?.pratyantardasha ??
+    null;
 
-    if (candidates.length >= 12) break;
+  const active = [md, ad, pd]
+    .filter(Boolean)
+    .map((x: any) => String(x));
+
+  const hits = active.filter(
+    (p) => relevantPlanets.includes(p)
+  );
+
+  if (hits.length) {
+    const scored = scorePredictionWindow({
+      topic,
+      row,
+      report,
+      careerEventType,
+    });
+
+    const dashaLevel: "md" | "ad" | "pd" | null =
+      pd
+        ? "pd"
+        : ad
+        ? "ad"
+        : md
+        ? "md"
+        : null;
+
+    candidates.push({
+      label: `${start} to ${end}`,
+
+      start,
+      end,
+
+      dashaLevel,
+
+      confidence: scored.confidence,
+
+      reason:
+        scored.reasons.join(". "),
+
+      score:
+        scored.score,
+    });
   }
+
+  if (candidates.length >= 12) {
+    break;
+  }
+}
   candidates.push(...transitOpportunityCandidates);
   candidates.sort((a, b) => b.score - a.score);
 
@@ -14835,7 +15166,128 @@ const suppressAdultCareerInference =
     "internal_shift",
     "stability_check",
   ].includes(String(eventType ?? ""));
+console.log("========== INFER CAREER INPUT DEBUG ==========");
 
+console.log(
+  "report.birth:",
+  JSON.stringify(report?.birth ?? null, null, 2)
+);
+
+console.log(
+  "report.ascendant:",
+  JSON.stringify(
+    report?.ascendant ??
+    report?.lagna ??
+    report?.asc ??
+    null,
+    null,
+    2
+  )
+);
+
+console.log(
+  "report.houseLords:",
+  JSON.stringify(
+    report?.houseLords ??
+    report?.lords ??
+    null,
+    null,
+    2
+  )
+);
+console.log(
+  "report.natal.houseLords:",
+  JSON.stringify(
+    report?.natal?.houseLords ?? null,
+    null,
+    2
+  )
+);
+console.log(
+  "report.natal.ascendant:",
+  JSON.stringify(
+    report?.natal?.ascendant ??
+    report?.natal?.lagna ??
+    report?.natal?.asc ??
+    null,
+    null,
+    2
+  )
+);
+console.log(
+  "report.houses.H6:",
+  JSON.stringify(
+    report?.houses?.H6 ??
+    report?.houses?.[6] ??
+    null,
+    null,
+    2
+  )
+);
+
+console.log(
+  "report.houses.H10:",
+  JSON.stringify(
+    report?.houses?.H10 ??
+    report?.houses?.[10] ??
+    null,
+    null,
+    2
+  )
+);
+console.log(
+  "report.natal.houses.H6:",
+  JSON.stringify(
+    report?.natal?.houses?.H6 ??
+    report?.natal?.houses?.[6] ??
+    null,
+    null,
+    2
+  )
+);
+
+console.log(
+  "report.natal.houses.H10:",
+  JSON.stringify(
+    report?.natal?.houses?.H10 ??
+    report?.natal?.houses?.[10] ??
+    null,
+    null,
+    2
+  )
+);
+console.log(
+  "report.chartContext ascendant:",
+  JSON.stringify(
+    report?.chartContext?.ascendant ??
+    report?.chartContext?.lagna ??
+    report?.chartContext?.asc ??
+    null,
+    null,
+    2
+  )
+);
+
+console.log(
+  "report.chartContext houseLords:",
+  JSON.stringify(
+    report?.chartContext?.houseLords ??
+    report?.chartContext?.lords ??
+    null,
+    null,
+    2
+  )
+);
+console.log(
+  "HOUSE KEY CHECK:",
+  Object.entries(report?.houses ?? {}).map(([key, value]: [string, any]) => ({
+    key,
+    actualHouse: value?.house,
+    sign: value?.sign,
+    lord: value?.lord,
+  }))
+);
+console.log("==============================================");
 const careerInference =
   topic === "career" &&
   !suppressAdultCareerInference
@@ -15200,6 +15652,21 @@ const astroTimeline = buildAstroTimelineFromSignals(
   report,
   themeSignal,
   careerEventType
+);
+console.log(
+  "========== ASTRO TIMELINE STRUCTURED =========="
+);
+
+console.log(
+  JSON.stringify(
+    astroTimeline.slice(0, 10),
+    null,
+    2
+  )
+);
+
+console.log(
+  "==============================================="
 );
 const {
   majorWindows,
@@ -16094,6 +16561,11 @@ function buildNaturalizePayload(params: {
   report: any;
   astroBundle: GenericAstroBundle;
   distressed: boolean;
+
+  decisionSummary?: any;
+  timingHierarchy?: any;
+  eventLifecycle?: any;
+
   finalDecisionLine?: string;
   finalDecisionVerdict?: string;
   simpleGuidanceMode?: boolean;
@@ -16105,6 +16577,9 @@ function buildNaturalizePayload(params: {
   simpleGuidanceMode,
   report,
   astroBundle,
+  decisionSummary, 
+  timingHierarchy,
+  eventLifecycle,
   distressed,
   finalDecisionLine,
   finalDecisionVerdict,
@@ -16112,12 +16587,27 @@ function buildNaturalizePayload(params: {
   const { tone, depth } = pickToneAndDepth(question, topic);
 
   return {
-    userQuestion: question,
-    topic,
-    questionType,
-    verdict: astroBundle.verdict ?? null,
-humanReason: astroBundle.humanReason ?? null,
-astroReason: astroBundle.astroReason ?? null,
+  userQuestion: question,
+  topic,
+  questionType,
+
+  decisionSummary:
+    decisionSummary ?? null,
+
+  timingHierarchy:
+    timingHierarchy ?? null,
+
+  eventLifecycle:
+    eventLifecycle ?? null,
+
+  verdict:
+    astroBundle.verdict ?? null,
+
+  humanReason:
+    astroBundle.humanReason ?? null,
+
+  astroReason:
+    astroBundle.astroReason ?? null,
 dailyAstroContext:
   astroBundle.dailyAstroContext ?? null,
     simpleGuidanceMode,
@@ -16721,7 +17211,11 @@ const matcherDevMode =
     const profile = normalizeProfile(rawProfile);
     const profileOk = hasValidProfile(profile);
     const resolvedProfile = profile;
-
+    console.log("[PROFILE DEBUG]", {
+  rawProfile,
+  profile,
+  profileOk,
+});
     let report: LifeReportLike | any =
       body?.report ?? body?.reportData ?? null;
 
@@ -16869,14 +17363,21 @@ if (
  const eventScale = detectEventScale(question, topic);
 
     // optional chart foundation, but no domain-specific reading builders
-    const enrichedReport = {
+    
+
+const enrichedReport: any = {
   ...(report ?? {}),
-  chartContext: sarathiContext?.chart ?? report ?? null,
+
+  chartContext:
+    sarathiContext?.chart ??
+    report ??
+    null,
 
   // Do not send full dataEngine to naturalize yet.
   // It contains DateTime objects and heavy raw structures.
   dataEngine: null,
 };
+
     const interactionIntent = detectInteractionIntent(
   question,
   questionType,
@@ -16916,6 +17417,30 @@ const astroBundle = buildGenericAstroBundle(
   careerEventType,
   userContext
 );
+
+console.log("==================================================");
+console.log("========== ASTRO BUNDLE DEBUG ==========");
+
+console.log("Topic:", astroBundle.topic);
+console.log("Event:", astroBundle.eventType);
+console.log("Career Event:", astroBundle.careerEventType);
+
+console.log(
+  "Canonical Context:",
+  JSON.stringify(astroBundle.canonicalChartContext, null, 2)
+);
+
+console.log(
+  "Career Inference:",
+  JSON.stringify(astroBundle.careerInference, null, 2)
+);
+
+console.log(
+  "Answer Summary:",
+  astroBundle.answerSummary
+);
+
+console.log("========================================");
 astroBundle.canonicalChartContext =
   buildCanonicalChartContext(enrichedReport);
 astroBundle.decision = buildAstroDecision({
@@ -16942,6 +17467,63 @@ astroBundle.astroJudgement = buildUniversalAstroJudgement(
   answerMode,
   astroBundle
 );
+console.log("========== DASHA OPPORTUNITY DEBUG ==========");
+
+console.log(
+  "Current Dasha:",
+  JSON.stringify(
+    astroBundle?.currentDasha ?? null,
+    null,
+    2
+  )
+);
+
+console.log(
+  "Timing Policy:",
+  JSON.stringify(
+    astroBundle?.timingPolicy ?? null,
+    null,
+    2
+  )
+);
+
+console.log(
+  "Major Windows:",
+  JSON.stringify(
+    astroBundle?.majorWindows ?? null,
+    null,
+    2
+  )
+);
+
+console.log(
+  "Astro Timeline:",
+  JSON.stringify(
+    astroBundle?.astroTimeline ?? null,
+    null,
+    2
+  )
+);
+
+console.log(
+  "Timing Layer:",
+  JSON.stringify(
+    astroBundle?.timingLayer ?? null,
+    null,
+    2
+  )
+);
+
+console.log(
+  "Promise Layer:",
+  JSON.stringify(
+    astroBundle?.promiseLayer ?? null,
+    null,
+    2
+  )
+);
+
+console.log("============================================");
 const judgement = buildJudgementLayer(
   topic,
   questionType,
@@ -17157,16 +17739,7 @@ if (
 
 */
 
-const finalDecision = buildFinalAnswerDecision({
-  topic,
-  questionType,
-  timeDirection,
-  careerEventType: astroBundle.careerEventType,
-  windows: astroBundle.timingWindows,
-  timingLayer: astroBundle.timingLayer,
-  timingPolicy: astroBundle.timingPolicy,
-  confidence: astroBundle.confidence,
-});
+
 const domainIntelligenceContext =
   buildDomainIntelligenceContext({
     domain:
@@ -17176,17 +17749,7 @@ const domainIntelligenceContext =
       intelligencePreview,
   });
  
-  const natPayload = buildNaturalizePayload({
-  question,
-  topic,
-  questionType,
-  report: enrichedReport,
-  astroBundle,
-  distressed,
-  simpleGuidanceMode,
-  finalDecisionLine: finalDecision.line,
-  finalDecisionVerdict: finalDecision.verdict,
-});
+  
 
 const isProfessionIdentity =
   astroBundle.careerEventType === "profession_identity";
@@ -17463,7 +18026,77 @@ const shouldSuppressTiming =
  isChildCareerTimingGuard ||
   isChildParenthoodTimingGuard ||
   isChildMarriageTimingGuard;
+const timingHierarchy =
+  buildTimingHierarchy(
+    astroBundle
+  );
+  console.log(
+  "========== TIMING HIERARCHY =========="
+);
 
+console.log(
+  JSON.stringify(
+    timingHierarchy,
+    null,
+    2
+  )
+);
+
+console.log(
+  "======================================"
+);
+const eventLifecycle =
+  buildEventLifecycle(
+    astroBundle,
+    timingHierarchy
+  );
+
+const decisionSummary =
+  buildDecisionSummary({
+    astroBundle,
+    questionType,
+    topic,
+    eventType,
+    shouldSuppressTiming,
+    eventLifecycle,
+  });
+if (body?.lifecycleDebugOnly === true) {
+  return Response.json({
+    ok: true,
+    question,
+    topic,
+    questionType,
+    timeDirection,
+    eventType,
+    eventLifecycle,
+    decisionSummary,
+  });
+}
+const finalDecision = buildFinalAnswerDecision({
+  topic,
+  questionType,
+  timeDirection,
+  careerEventType: astroBundle.careerEventType,
+  windows: astroBundle.timingWindows,
+  timingLayer: astroBundle.timingLayer,
+  timingPolicy: astroBundle.timingPolicy,
+  confidence: astroBundle.confidence,
+  decisionSummary,
+});
+  const natPayload = buildNaturalizePayload({
+  question,
+  topic,
+  questionType,
+  decisionSummary,
+  timingHierarchy,
+  eventLifecycle,
+  report: enrichedReport,
+  astroBundle,
+  distressed,
+  simpleGuidanceMode,
+  finalDecisionLine: finalDecision.line,
+  finalDecisionVerdict: finalDecision.verdict,
+});
 console.log("[CHILD CAREER GUARD DEBUG]", {
   age: userContext?.age ?? null,
   lifeStage: userContext?.lifeStage ?? null,
@@ -18282,8 +18915,7 @@ const businessReasoningInstructions = {
 
   neverInventAstrology: true,
 
-  onlyClaimMissingDivisionalDataWhenExplicitlyMissing:
-    true,
+  onlyClaimMissingDivisionalDataWhenExplicitlyMissing: true,
 
   businessPatternOnly: true,
 
@@ -18291,18 +18923,64 @@ const businessReasoningInstructions = {
 
   rules: [
     "Answer permanent business questions from enduring entrepreneurial capacity, business style, commercial temperament, partnership suitability, and execution pattern.",
+
     "Judge natal promise first using the 3rd, 7th, 10th, and 11th houses as relevant, their lords, Mercury, Mars, Jupiter, Saturn, Venus, Rahu where relevant, Sambandha, and D10 confirmation.",
+
     "For business-suitability questions, distinguish entrepreneurial capacity from current business timing.",
+
     "For business-style questions, explain the kinds of business models, operating styles, customer relationships, and commercial roles that fit the native naturally.",
+
     "For business-versus-job questions, compare independence, execution, structure, risk tolerance, responsibility, and commercial orientation without allowing current dasha or transit timing to decide permanent suitability.",
+
     "For partnership-suitability questions, explain whether the native is better suited to solo ownership, equal partnership, specialist partnership, or clearly defined role-based collaboration.",
+
     "For entrepreneurial-pattern questions, explain initiative, risk tolerance, persistence, commercial judgement, delegation, leadership, and adaptability.",
+
     "Distinguish natural capacity for business from the timing of launch, growth, clients, or commercial conversion.",
+
     "Do not discuss current dasha, transits, timing windows, trigger dates, launch dates, client-growth periods, business-growth periods, or partnership timing unless the user explicitly asks when.",
+
+    "When the user explicitly asks a timing question (for example: 'When should I start my business?', 'When should I launch?', 'When will my business grow?', 'When will I get more clients?'), always answer the timing question first.",
+
+"For timing questions, TIMING_HIERARCHY is the authoritative timing structure whenever available.",
+
+"If TIMING_HIERARCHY.practicalWindow exists, begin with the complete practicalWindow date range. This is the primary actionable answer to 'when'.",
+
+"If TIMING_HIERARCHY.broaderWindow exists, explain it as the broader dasha-backed opportunity phase surrounding the practical window.",
+
+"If TIMING_HIERARCHY.activationWindow exists, present it only as a narrower trigger, catalyst, or peak inside the timing structure. Never present it as the overall answer when practicalWindow exists.",
+
+"Do not collapse a practicalWindow date range into a single activation date.",
+
+"Use DECISION_SUMMARY to describe the conclusion, confidence, classification, and practical meaning. Do not independently re-rank timing windows.",
+
+"If practicalWindow is unavailable but broaderWindow exists, use broaderWindow as the timing answer and explain that no narrower actionable period is currently established.",
+
+"Only when TIMING_HIERARCHY is unavailable may selectedTimingWindow or other legacy timing fields be used as fallback evidence.",
+
+"Never invent dates, windows, hierarchy, or confidence. Use only timing supplied by the astrology engine.",
+
+"After answering the timing question, explain why the timing exists using natal promise, dasha support, practical sub-period support, transit activation, and relevant chart evidence.",
+"Do not merely list planets, houses, or dasha factors. Translate each important astrological factor into what it means in the user's real situation.",
+
+"For every important planet you mention, immediately explain what it means in practical human terms rather than assuming the reader understands astrology.",
+
+"For example, Mercury often relates to thinking, communication and negotiation, Mars to initiative and decisive action, Jupiter to growth and opportunity, Saturn to discipline and long-term effort, and Venus to relationships, harmony or value depending on context.",
+
+"Use astrology evidence to explain the mechanism of the prediction rather than simply proving that calculations were performed.",
+
+"Avoid repetitive phrases such as 'this timing is based on', 'relevant houses activated', or 'relevant karakas involved' in the main narrative unless they materially improve understanding.",
+
+"Keep technical astrology evidence for the evidence sections. The primary answer should read like an experienced astrologer explaining the chart to a client.",
+"Keep timing conditional when the supplied overall confidence is medium or low.",
+
     "Do not turn permanent business suitability into a business-launch forecast.",
+
     "Adapt practical guidance to userContext.age, userContext.lifeStage, userContext.careerStage, and userContext.adviceStyle.",
+
     "For a child, discuss entrepreneurial aptitude through initiative, problem-solving, creativity, responsibility, communication, small projects, teamwork, and financial literacy. Do not advise immediate business launch, capital commitment, hiring, clients, or commercial risk.",
-    "For a student, focus on entrepreneurship education, competitions, internships, projects, commercial skills, customer understanding, and experimentation before major financial commitment.",
+
+    "For a student, focus on entrepreneurship education, competitions, internships, projects, commercial skills, customer understanding, and experimentation before major financial commitment."
   ],
 };
 const educationReasoningInstructions = {
@@ -18808,7 +19486,29 @@ const standardReasoningInstructions = {
   domainIntelligenceInstructions:
     domainIntelligenceContext.instructions,
 };
-
+const timingSummary =
+  shouldSuppressTiming
+    ? null
+    : astroBundle?.selectedTimingWindow
+      ? {
+          headline:
+            astroBundle.selectedTimingWindow.label,
+          start:
+            astroBundle.selectedTimingWindow.start,
+          end:
+            astroBundle.selectedTimingWindow.end,
+          confidence:
+            astroBundle.selectedTimingWindow.confidence,
+          score:
+            astroBundle.selectedTimingWindow.score,
+          windowClass:
+            astroBundle.selectedTimingWindow.windowClass,
+          practicalMeaning:
+            astroBundle.selectedTimingWindow.practicalMeaning,
+          why:
+            astroBundle.selectedTimingWindow.why,
+        }
+      : null;
 const safeNatPayload = {
   userQuestion:
     natPayload?.userQuestion ??
@@ -18825,7 +19525,14 @@ const safeNatPayload = {
   questionType:
     natPayload?.questionType ??
     questionType,
-
+  decisionSummary:
+    natPayload?.decisionSummary ??
+    decisionSummary ??
+    null,
+    eventLifecycle:
+  natPayload?.eventLifecycle ??
+  eventLifecycle ??
+  null,
   eventType:
     astroBundle?.eventType ??
     astroBundle?.careerEventType ??
@@ -19216,7 +19923,7 @@ reasoningInstructions:
     shouldSuppressTiming
       ? null
       : astroBundle?.selectedTimingWindow ?? null,
-
+  timingSummary,
   eventTriggers:
     shouldSuppressTiming
       ? []
@@ -19340,7 +20047,10 @@ reasoningInstructions:
               "A single date is only a peak or activation point inside the broader timing window, never the guaranteed event date.",
 
             rangePriority:
-              "When selectedTimingWindow contains different start and end dates, headline the full date range. Mention bestEventTrigger only as a supporting peak date inside that range.",
+  "When TIMING_HIERARCHY.practicalWindow exists, headline its complete start-to-end range. Mention activationWindow only as a supporting trigger or peak inside the larger timing structure.",
+
+mustUseTimingHierarchy:
+  "If TIMING_HIERARCHY exists, the first paragraph MUST follow it. practicalWindow is primary, broaderWindow is context, and activationWindow is only a narrower trigger.",
 
             doNotRepeatSameDate:
               true,
@@ -19356,19 +20066,47 @@ reasoningInstructions:
 
             includePracticalPreparation:
               true,
+            
           },
 
     structure:
-      questionType === "timing"
+  questionType === "timing"
   ? [
-      "Give the direct timing answer first.",
-      "Explain whether the selected date is the start of movement, a peak trigger, or an outcome window.",
-      "Explain what may happen in practical life during that period.",
-      "Explain why this timing has been selected using the six pillars: Natal Promise, Planetary Relationships, Divisional Confirmation, Dasha Activation, Transit Trigger, and Conversion Assessment.",
-      "Under What this is based on, cite exact supplied houses, house lords, planetary relationships, divisional charts, dasha chain, and transit triggers.",
-      "Include Confidence Drivers with supporting and limiting factors from explainabilityProfile.",
-      "Include the Astrologer's Logic Chain in plain language.",
-      "End with specific actions the user should take before and during the window.",
+      "Answer the timing question directly in the first sentence.",
+
+      "TIMING_HIERARCHY is the authoritative source for timing structure whenever it is available.",
+
+      "If TIMING_HIERARCHY.practicalWindow exists, the FIRST sentence MUST state the full practicalWindow date range.",
+
+      "If TIMING_HIERARCHY.broaderWindow exists, mention it after the practical window as the broader opportunity phase.",
+
+      "If TIMING_HIERARCHY.activationWindow exists, describe it only as a narrower activation trigger, catalyst, or peak within the larger timing structure.",
+      "If activationWindow occurs materially before practicalWindow, describe it as an early signal, preparatory trigger, opening conversation, or momentum-building point rather than as a launch or completion date.",
+
+"If activationWindow falls inside practicalWindow, it may be described as a sharper peak or catalyst within the main actionable period.",
+
+"Never make the activationWindow appear more important than the practicalWindow.",
+      "Never replace a practicalWindow range with the activationWindow date.",
+
+      "Never call activationWindow the main, strongest, or overall window when practicalWindow exists.",
+
+      "Use DECISION_SUMMARY for the final timing conclusion, confidence, classification, and practical meaning.",
+
+      "If practicalWindow is null but broaderWindow exists, answer with the broaderWindow and explain that no narrower actionable period is established.",
+
+      "If TIMING_HIERARCHY is unavailable, only then use selectedTimingWindow or other supplied timing fields as fallback evidence.",
+
+      "Do not invent dates, timing windows, confidence, or astrological reasons.",
+
+      "Explain WHY the timing exists using supplied natal promise, planetary relationships, divisional confirmation, dasha support, transit activation, and conversion evidence.",
+      "Translate astrology into practical meaning. Do not merely list planets, houses or yogas.",
+
+"When mentioning planets, immediately explain what practical influence they represent in the user's life.",
+
+"Prefer explanations over terminology. Readers should understand why the chart produces the prediction, not simply which combinations were found.",
+      "Explain the likely practical developments during the actionable window.",
+
+      "Finish with practical actions appropriate before, during, and after the window."
     ]
   : isProfessionIdentity
   ? [
@@ -20148,7 +20886,60 @@ const premiumTimingAnswer =
   shouldUseSeniorResponse
     ? buildSeniorAstrologerResponse(astroBundle)
     : null;
+console.log("========== TIMING OUTPUT DEBUG ==========");
 
+console.log("Question:", question);
+console.log("Topic:", astroBundle?.topic);
+console.log("Event type:", astroBundle?.eventType);
+console.log("Question type:", questionType);
+console.log("Should suppress timing:", shouldSuppressTiming);
+
+console.log(
+  "Selected timing window:",
+  JSON.stringify(
+    astroBundle?.selectedTimingWindow ?? null,
+    null,
+    2
+  )
+);
+
+console.log(
+  "Best available window:",
+  JSON.stringify(
+    astroBundle?.bestAvailableWindow ?? null,
+    null,
+    2
+  )
+);
+
+console.log(
+  "Strongest window:",
+  JSON.stringify(
+    astroBundle?.strongestWindow ?? null,
+    null,
+    2
+  )
+);
+
+console.log(
+  "Ranked timing windows:",
+  JSON.stringify(
+    astroBundle?.rankedTimingWindows ?? null,
+    null,
+    2
+  )
+);
+
+console.log(
+  "Timing windows:",
+  JSON.stringify(
+    astroBundle?.timingWindows ?? null,
+    null,
+    2
+  )
+);
+
+console.log("=========================================");
 const naturalizedAnswer =
   safeStr(
     naturalJson?.text ??
@@ -20156,9 +20947,37 @@ const naturalizedAnswer =
     naturalJson?.output
   );
 
+console.log("========== FINAL ANSWER SOURCE DEBUG ==========");
 
+console.log(
+  "Naturalized Answer:",
+  naturalizedAnswer
+);
 
+console.log(
+  "Premium Timing Answer:",
+  premiumTimingAnswer?.full ?? premiumTimingAnswer
+);
+
+console.log(
+  "Question Type:",
+  questionType
+);
+
+console.log(
+  "Decision Summary:",
+  JSON.stringify(decisionSummary, null, 2)
+);
+
+console.log("===============================================");
+const hasDecisionSummary =
+  decisionSummary != null &&
+  (
+    Boolean(decisionSummary.headline) ||
+    Boolean(decisionSummary.summary)
+  );
 const shouldPreferSeniorResponse =
+  !hasDecisionSummary &&
   !shouldSuppressTiming &&
   !isProfessionIdentity &&
   Boolean(premiumTimingAnswer) &&
@@ -20178,7 +20997,10 @@ let answer =
       astroBundle.answerSummary;
 
 answer = polishUserFacingDates(answer);
-
+console.log(
+  "Should Prefer Senior Response:",
+  shouldPreferSeniorResponse
+);
 const answerWordCount = answer
   .split(/\s+/)
   .filter(Boolean)
@@ -20192,7 +21014,11 @@ const answerLooksTooThin =
     !/[.!?].*[.!?]/s.test(answer)
   );
 
-if (answerLooksTooThin && premiumTimingAnswer) {
+if (
+  !hasDecisionSummary &&
+  answerLooksTooThin &&
+  premiumTimingAnswer
+) {
   answer = premiumTimingAnswer.full;
 }
       const dailyMoodAnswer = buildDailyMoodAnswer(question);
@@ -20294,9 +21120,12 @@ if (
     answer = astroBundle.answerSummary || "The current chart signals are mixed, so this is better read as a gradual phase rather than a sharply defined event.";
   }
 }
-       if (!/[.!?]$/.test(answer.trim())) {
-      answer = astroBundle.answerSummary;
-    }
+   if (
+  answer.trim() &&
+  !/[.!?]$/.test(answer.trim())
+) {
+  answer = `${answer.trim()}.`;
+}
 
   if (
   answerMode === "TIMING_FIRST" &&
@@ -20339,7 +21168,7 @@ if (
   answer = polishUserFacingDates(answer);
 
 const premiumResponse =
-  isProfessionIdentity
+  hasDecisionSummary || isProfessionIdentity
     ? null
     : premiumTimingAnswer;
 
@@ -20390,48 +21219,54 @@ const shouldShowCurrentTiming =
 
 const currentTimingAnswer =
   shouldShowCurrentTiming
-    ? astroBundle.decision?.eventKey === "business"
-      ? astroBundle.decision.stage === "preparation"
-        ? "The current period supports testing, client development and controlled commercial activity more strongly than rapid expansion or immediate financial dependence on the business."
-        : "The current period supports visible commercial action, but growth should still be controlled by actual demand, cash flow and execution."
-      : astroBundle.timingPolicy?.note ||
+    ? timingHierarchy?.stage === "activation"
+      ? "You are currently inside an active timing phase. Use this period for visible action while allowing results to develop progressively."
+      : timingHierarchy?.stage === "opportunity"
+      ? "You are already inside the broader opportunity phase, with the stronger actionable period identified in the main answer."
+      : timingHierarchy?.stage === "preparation"
+      ? "You are currently in the preparation phase. Use this period to position yourself for the stronger actionable window ahead."
+      : timingHierarchy?.explanation ||
+        astroBundle.timingPolicy?.note ||
         astroBundle.timingLayer?.summary ||
         ""
     : "";
 
-const whyThisWorks = shouldShowDecisionSections
-  ? astroBundle.decision?.eventKey === "business"
+const whyThisWorks =
+  shouldShowCurrentTiming
     ? [
-        astroBundle.promiseLayer?.summary,
-        astroBundle.sambandhaAnalysis?.summary,
-        astroBundle.divisionalLayer?.summary,
-        astroBundle.decision?.rationale,
+        astroBundle.promiseLayer?.summary
+          ? astroBundle.promiseLayer.summary
+          : null,
+
+        timingHierarchy?.broaderWindow
+          ? `The broader dasha cycle creates an opportunity phase from ${fmtDateShort(
+              timingHierarchy.broaderWindow.start
+            )} to ${fmtDateShort(
+              timingHierarchy.broaderWindow.end
+            )}.`
+          : null,
+
+        timingHierarchy?.practicalWindow
+          ? `The stronger actionable sub-period runs from ${fmtDateShort(
+              timingHierarchy.practicalWindow.start
+            )} to ${fmtDateShort(
+              timingHierarchy.practicalWindow.end
+            )}.`
+          : null,
+
+        timingHierarchy?.activationWindow
+          ? `A narrower activation signal appears around ${fmtDateShort(
+              timingHierarchy.activationWindow.peak ??
+                timingHierarchy.activationWindow.start
+            )}.`
+          : null,
       ]
         .filter(
           (item: string | null | undefined): item is string =>
             Boolean(item?.trim())
         )
-        .filter(
-          (item: string, index: number, items: string[]) =>
-            items.indexOf(item) === index
-        )
         .slice(0, 4)
-    : [
-        astroBundle.decision?.rationale,
-        astroBundle.sambandhaAnalysis?.summary,
-        astroBundle.divisionalLayer?.summary,
-        astroBundle.timingPolicy?.note,
-      ]
-        .filter(
-          (item: string | null | undefined): item is string =>
-            Boolean(item?.trim())
-        )
-        .filter(
-          (item: string, index: number, items: string[]) =>
-            items.indexOf(item) === index
-        )
-        .slice(0, 4)
-  : [];
+    : [];
 
 const polishedShortAnswer =
   polishUserFacingDates(shortAnswer);
@@ -20525,6 +21360,11 @@ const responseWindows =
 
 fullAnswer:
   polishedFullAnswer,
+ timingHierarchy,
+
+  decisionSummary,
+
+  eventLifecycle,
 
 currentTiming:
   currentTimingAnswer || null,

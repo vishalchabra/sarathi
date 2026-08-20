@@ -113,10 +113,58 @@ function windowsForJob(spans: Array<DashaSpan & { s: Date; e: Date }>) {
   }
   return out;
 }
+function windowsForBusiness(
+  spans: Array<DashaSpan & { s: Date; e: Date }>
+) {
+  const out: NonNullable<TimingResult["windows"]> = [];
 
+  for (const sp of spans) {
+    const days = Math.max(
+      1,
+      Math.round((+sp.e - +sp.s) / 86400000)
+    );
+
+    const score = Math.max(
+      0.45,
+      Math.min(0.9, days / 420)
+    );
+
+    out.push({
+      fromISO: safeISO(sp.s),
+      toISO: safeISO(sp.e),
+      tag:
+        days >= 120
+          ? "build + launch + consolidate"
+          : days >= 60
+          ? "validate + launch"
+          : "test + activate",
+      why: [
+        "Dasha alignment supports entrepreneurial movement",
+        `Span: ${safeISO(sp.s)} → ${safeISO(sp.e)}`,
+      ],
+      do: [
+        "Validate demand before scaling",
+        "Build clients and revenue progressively",
+        "Use stronger transit triggers inside this dasha window for visible launch activity",
+      ],
+      score,
+    });
+  }
+
+  return out;
+}
 /* main */
 export async function timingForTopic(args: {
-  topic: "vehicle" | "property" | "job" | "wealth" | "health" | "relationships" | "disputes" | "marriage";
+ topic:
+  | "vehicle"
+  | "property"
+  | "job"
+  | "business"
+  | "wealth"
+  | "health"
+  | "relationships"
+  | "disputes"
+  | "marriage";
   profile: Profile;
   horizonDays?: number;
   dashaSpans?: DashaSpan[];
@@ -140,9 +188,15 @@ export async function timingForTopic(args: {
     }
 
     let windows: NonNullable<TimingResult["windows"]>;
-    if (topic === "marriage") windows = windowsForMarriage(spans);
-    else if (topic === "job") windows = windowsForJob(spans);
-    else windows = windowsForJob(spans);
+    if (topic === "marriage") {
+  windows = windowsForMarriage(spans);
+} else if (topic === "job") {
+  windows = windowsForJob(spans);
+} else if (topic === "business") {
+  windows = windowsForBusiness(spans);
+} else {
+  windows = windowsForJob(spans);
+}
 
     const safeWins = (windows || []).filter((w) => w.fromISO && w.toISO);
 
@@ -153,8 +207,10 @@ export async function timingForTopic(args: {
         ? { lead: "Momentum via structured outreach; expect quality spikes.", nuance: "10th/11th activation helps outreach; avoid impulse resignations." }
       : topic === "marriage"
         ? { lead: "Marriage lands best when dasha & 7th-house cues align; use the strongest window(s) for formal steps.", nuance: "" }
+      : topic === "business"
+        ? { lead: "Use the broader dasha window for business development and the stronger transit triggers inside it for visible launch steps.", nuance: "Treat the dasha span as the opportunity season, not as a guaranteed commercial outcome." }
       : { lead: "Use the windows deliberately; patience between them helps.", nuance: "" };
-
+      
     return {
       ok: true,
       source: "engine",

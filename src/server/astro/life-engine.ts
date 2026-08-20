@@ -706,28 +706,30 @@ if (Array.isArray(dashaTimeline) && dashaTimeline.length > 0 && fullDashaTimelin
   astroDebug("[HOUSE DEBUG ASC]", { ascDeg, ascSign });
  
   return {
-    meta: {
-      name: input.name,
-      birthDateISO: input.birthDateISO,
-      birthTime: input.birthTime,
-      birthTz: input.birthTz,
-      birthLat: input.lat,
-      birthLon: input.lon,
-    },
+  meta: {
+    name: input.name,
+    birthDateISO: input.birthDateISO,
+    birthTime: input.birthTime,
+    birthTz: input.birthTz,
+    birthLat: input.lat,
+    birthLon: input.lon,
+  },
 
+  ascDeg: houseData.ascDeg,
+  ascSign: houseData.ascSign,
+
+  core: {
     ascDeg: houseData.ascDeg,
     ascSign: houseData.ascSign,
-    core: {
-      ascDeg: houseData.ascDeg,
-      ascSign: houseData.ascSign,
-      houses: houseData.houses,
-    },
+    houses: houseData.houses,
+  },
 
-    planets: planetsWholeSign,
+  planets: planetsWholeSign,
 
-    aspects,
+  aspects,
 
-   panchang: {
+ 
+  panchang: {
   ...birthPanchang,
 
   tithiName: birthPanchang.tithiName || birthPanchang.tithi?.name || null,
@@ -909,22 +911,34 @@ if (Array.isArray(dashaTimeline) && dashaTimeline.length > 0 && fullDashaTimelin
       tip: fullPanchang.tip || null,
     },
 
-dashaTimeline:
-  fullDashaTimeline.length > 0
-    ? fullDashaTimeline
-    : dashaTimeline.map((row: any) => ({
-        start: row.startISO,
-        end: row.endISO,
-        md: row.planet,
-        ad: null,
-        pd: null,
-      })),
-activePeriods,
-houseLords,
-divisionalCharts: vargas,
-vargas,
-lifeMilestones,
-foodToday,
+    // --------------------------------------------------
+    // Authoritative Vimshottari data
+    // --------------------------------------------------
+
+    dashaTimeline:
+      fullDashaTimeline.length > 0
+        ? fullDashaTimeline
+        : dashaTimeline.map((row: any) => ({
+            start: row.startISO,
+            end: row.endISO,
+            md: row.planet,
+            ad: null,
+            pd: null,
+          })),
+
+    mahadashaTimeline: dashaTimeline,
+
+    activePeriods,
+
+    houseLords,
+
+    divisionalCharts: vargas,
+
+    vargas,
+
+    lifeMilestones,
+
+    foodToday,
 
     version: "sarathi-v1.0",
   };
