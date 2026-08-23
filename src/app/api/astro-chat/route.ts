@@ -46,6 +46,9 @@ import { fetchDashaSpans } from "@/server/qa/dasha";
 import {
   buildTimingHierarchy,
 } from "@/server/sarathi/timingHierarchy";
+import {
+  buildPlanetReasoning,
+} from "@/server/sarathi/planetReasoning";
 /*
   Sārathi astro chat route — simplified generic pipeline
 
@@ -16565,7 +16568,7 @@ function buildNaturalizePayload(params: {
   decisionSummary?: any;
   timingHierarchy?: any;
   eventLifecycle?: any;
-
+  planetReasoning?: any;
   finalDecisionLine?: string;
   finalDecisionVerdict?: string;
   simpleGuidanceMode?: boolean;
@@ -16580,6 +16583,7 @@ function buildNaturalizePayload(params: {
   decisionSummary, 
   timingHierarchy,
   eventLifecycle,
+  planetReasoning,
   distressed,
   finalDecisionLine,
   finalDecisionVerdict,
@@ -16599,6 +16603,8 @@ function buildNaturalizePayload(params: {
 
   eventLifecycle:
     eventLifecycle ?? null,
+   planetReasoning:
+    planetReasoning ?? null,
 
   verdict:
     astroBundle.verdict ?? null,
@@ -18072,6 +18078,19 @@ if (body?.lifecycleDebugOnly === true) {
     decisionSummary,
   });
 }
+const planetReasoning =
+  buildPlanetReasoning({
+    planets:
+      astroBundle?.karakas ?? [],
+
+    primaryPlanets:
+      Array.isArray(astroBundle?.karakas)
+        ? astroBundle.karakas.slice(0, 2)
+        : [],
+
+    source:
+      "event karakas and active timing factors",
+  });
 const finalDecision = buildFinalAnswerDecision({
   topic,
   questionType,
@@ -18090,6 +18109,7 @@ const finalDecision = buildFinalAnswerDecision({
   decisionSummary,
   timingHierarchy,
   eventLifecycle,
+  planetReasoning,
   report: enrichedReport,
   astroBundle,
   distressed,
@@ -19523,20 +19543,33 @@ const safeNatPayload = {
     domainIntelligenceForNaturalize,
 
   questionType:
-    natPayload?.questionType ??
-    questionType,
-  decisionSummary:
-    natPayload?.decisionSummary ??
-    decisionSummary ??
-    null,
-    eventLifecycle:
+  natPayload?.questionType ??
+  questionType,
+
+decisionSummary:
+  natPayload?.decisionSummary ??
+  decisionSummary ??
+  null,
+
+timingHierarchy:
+  natPayload?.timingHierarchy ??
+  timingHierarchy ??
+  null,
+
+eventLifecycle:
   natPayload?.eventLifecycle ??
   eventLifecycle ??
   null,
-  eventType:
-    astroBundle?.eventType ??
-    astroBundle?.careerEventType ??
-    null,
+
+planetReasoning:
+  natPayload?.planetReasoning ??
+  planetReasoning ??
+  null,
+
+eventType:
+  astroBundle?.eventType ??
+  astroBundle?.careerEventType ??
+  null,
 
   topicCopy:
     isProfessionIdentity
@@ -20651,7 +20684,40 @@ function findTextPaths(
 
   return results;
 }
+console.log(
+  "========== V3.5 NATURALIZE PAYLOAD CHECK =========="
+);
 
+console.log(
+  "Planet Reasoning:",
+  JSON.stringify(
+    planetReasoning ?? null,
+    null,
+    2
+  )
+);
+
+console.log(
+  "Timing Hierarchy:",
+  JSON.stringify(
+    timingHierarchy ?? null,
+    null,
+    2
+  )
+);
+
+console.log(
+  "Decision Summary:",
+  JSON.stringify(
+    decisionSummary ?? null,
+    null,
+    2
+  )
+);
+
+console.log(
+  "==================================================="
+);
     const naturalizeURL =
   safeInternalURL(
     req,

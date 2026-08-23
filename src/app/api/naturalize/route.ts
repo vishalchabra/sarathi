@@ -103,6 +103,21 @@ if (
 ) {
   return true;
 }
+if (
+  /\b(in practical|in practical terms|practically|in real life|in real terms)\.?$/i.test(
+    t
+  )
+) {
+  return true;
+}
+
+if (
+  /\b(if you act|if you use|if you prepare|if you move|the practical takeaway|the key takeaway)\s+[a-z\s]{0,40}$/i.test(
+    t
+  )
+) {
+  return true;
+}
 return false;
 }
 
@@ -624,7 +639,8 @@ function buildStructuredPrompt(body: any): string {
   const confidenceLevel = safeStr(body?.confidenceLevel || body?.confidence);
   const voiceBrief = buildVoiceBrief(body);
   const signatureBrief = buildSarathiSignature(body);
-
+  const isTimingPrompt =
+  questionType === "timing";
   const astroFacts = body?.astroFacts ?? {};
   const domainIntelligence =
   body?.domainIntelligence ??
@@ -671,6 +687,8 @@ const timingHierarchy =
 
 const eventLifecycle =
   body?.eventLifecycle ?? null;
+const planetReasoning =
+  body?.planetReasoning ?? null;
   console.log("========== EVENT LIFECYCLE ==========");
 console.log(JSON.stringify(eventLifecycle, null, 2));
 console.log("=====================================");
@@ -820,6 +838,18 @@ if (eventLifecycle) {
   lines.push(
     `\nEVENT_LIFECYCLE:\n${JSON.stringify(
       eventLifecycle,
+      null,
+      2
+    )}`
+  );
+}
+if (
+  Array.isArray(planetReasoning) &&
+  planetReasoning.length
+) {
+  lines.push(
+    `\nPLANET_REASONING:\n${JSON.stringify(
+      planetReasoning,
       null,
       2
     )}`
@@ -1010,7 +1040,10 @@ if (
 ) {
   
 }
-if (astroInterpretationPacketForPrompt) {
+if (
+  !isTimingPrompt &&
+  astroInterpretationPacketForPrompt
+) {
   lines.push(
     `\nASTRO_INTERPRETATION_PACKET:\n${JSON.stringify(
       removeStaleTimingText(astroInterpretationPacketForPrompt),
@@ -1035,7 +1068,10 @@ if (astroInterpretationPacketForPrompt) {
     ? removeStaleTimingText(astroReasonMap)
     : astroReasonMap;
 
-if (astroReasonMapForPrompt) {
+if (
+  !isTimingPrompt &&
+  astroReasonMapForPrompt
+) {
   lines.push(
     `\nASTRO_REASON_MAP:\n${JSON.stringify(
       astroReasonMapForPrompt,
@@ -1083,7 +1119,10 @@ if (astroReasonMapForPrompt) {
     );
   }
 
-  if (pastActivationProfile) {
+  if (
+  !isTimingPrompt &&
+  pastActivationProfile
+) {
     lines.push(
       `\nPAST_ACTIVATION_PROFILE:\n${JSON.stringify(
         pastActivationProfile,
@@ -1135,29 +1174,106 @@ if (safeAstroReason) lines.push(`\nASTRO_REASON:\n${safeAstroReason}`);
     }
   }
 
-  const astroFactsForPrompt =
-  selectedTimingWindow || bestAvailableWindow
-    ? removeStaleTimingText({
-        ...astroFacts,
-        timingWindows: [],
-        majorWindows: [],
-        nearTermWindows: [],
-        astroTimeline: [],
-        rankedTimingWindows: [],
-        nearestWindow: null,
-        strongestWindow: null,
+  
+
+const astroFactsForPrompt =
+  isTimingPrompt
+    ? {
+        topic:
+          astroFacts?.topic ?? null,
+
+        questionType:
+          astroFacts?.questionType ?? null,
+
+        timeDirection:
+          astroFacts?.timeDirection ?? null,
+
+        eventType:
+          astroFacts?.eventType ?? null,
+
+        careerEventType:
+          astroFacts?.careerEventType ?? null,
+
+        eventScale:
+          astroFacts?.eventScale ?? null,
+
+        focusHouses:
+          Array.isArray(astroFacts?.focusHouses)
+            ? astroFacts.focusHouses
+            : [],
+
+        supportHouses:
+          Array.isArray(astroFacts?.supportHouses)
+            ? astroFacts.supportHouses
+            : [],
+
+        karakas:
+          Array.isArray(astroFacts?.karakas)
+            ? astroFacts.karakas
+            : [],
+
+        divisionalCharts:
+          Array.isArray(
+            astroFacts?.divisionalCharts
+          )
+            ? astroFacts.divisionalCharts
+            : [],
+
+        currentDasha:
+          astroFacts?.currentDasha ?? null,
+
+        promiseLayer:
+          astroFacts?.promiseLayer ?? null,
+
+        sambandhaAnalysis:
+          astroFacts?.sambandhaAnalysis
+            ? {
+                summary:
+                  astroFacts.sambandhaAnalysis
+                    .summary ?? null,
+
+                connectivityScore:
+                  astroFacts.sambandhaAnalysis
+                    .connectivityScore ?? null,
+
+                dashaConnectivityScore:
+                  astroFacts.sambandhaAnalysis
+                    .dashaConnectivityScore ??
+                  null,
+
+                supportiveLinks:
+                  Array.isArray(
+                    astroFacts.sambandhaAnalysis
+                      .supportiveLinks
+                  )
+                    ? astroFacts.sambandhaAnalysis
+                        .supportiveLinks
+                        .slice(0, 4)
+                    : [],
+              }
+            : null,
+
+        divisionalLayer:
+          astroFacts?.divisionalLayer ?? null,
+
+        karakaLayer:
+          astroFacts?.karakaLayer ?? null,
+
+        timingPolicy:
+          astroFacts?.timingPolicy ?? null,
+
         selectedTimingWindow:
-          selectedTimingWindow ?? astroFacts?.selectedTimingWindow ?? null,
-        bestAvailableWindow:
-          selectedTimingWindow
-            ? null
-            : bestAvailableWindow ?? astroFacts?.bestAvailableWindow ?? null,
-      })
+          selectedTimingWindow ?? null,
+      }
     : astroFacts;
 
-  lines.push(
-    `\nASTRO_FACTS_JSON:\n${JSON.stringify(astroFactsForPrompt ?? {}, null, 2)}`
-  );
+lines.push(
+  `\nASTRO_FACTS_JSON:\n${JSON.stringify(
+    astroFactsForPrompt ?? {},
+    null,
+    2
+  )}`
+);
 
   if (eventTriggers.length && !selectedTimingWindow && !bestAvailableWindow) {
     lines.push(
@@ -1169,7 +1285,34 @@ if (safeAstroReason) lines.push(`\nASTRO_REASON:\n${safeAstroReason}`);
     lines.push(`\nSTYLE_GUIDE_JSON:\n${JSON.stringify(styleGuide, null, 2)}`);
   }
 const finalPrompt = lines.join("\n");
+console.log(
+  "========== NATURALIZER V3.5 PROMPT CHECK =========="
+);
 
+console.log(
+  "Has PLANET_REASONING:",
+  finalPrompt.includes(
+    "PLANET_REASONING:"
+  )
+);
+
+console.log(
+  "Planet Reasoning:",
+  JSON.stringify(
+    planetReasoning ?? null,
+    null,
+    2
+  )
+);
+
+console.log(
+  "Prompt length:",
+  finalPrompt.length
+);
+
+console.log(
+  "===================================================="
+);
 const staleNeedles = [
   "The major structural property purchase window",
   "Major windows:",
@@ -1214,6 +1357,7 @@ function buildStructuredSystemPrompt(): string {
       "DECISION_SUMMARY",
       "TIMING_HIERARCHY",
       "EVENT_LIFECYCLE",
+      "PLANET_REASONING",
       "DOMAIN_INTELLIGENCE",
       "PROMOTION_CONVERSION_ENGINE",
       "CONVERSION_DIAGNOSIS_V2",
@@ -1360,6 +1504,16 @@ Additional hard rules:
 - A transit date may be described as an activation point, trigger, peak, or movement date, but not as a guaranteed completion date unless explicitly supplied as such.
 - If a lifecycle stage is null, do not invent it.
 - Translate technical astrology into real-life consequences.
+- When PLANET_REASONING is provided, use it as the authoritative explanation of why the planets support or weaken the prediction. Do not invent alternative planetary reasoning.
+- Do not merely list planets, houses or dasha factors.
+- Explain what each important planet means in the user's real-life situation.
+- For example, instead of saying Mercury, Mars and Jupiter are active, explain that Mercury supports thinking, communication or commercial judgement, Mars adds initiative and execution, and Jupiter expands opportunity or growth.
+- Use astrology evidence to explain the mechanism behind the prediction rather than simply proving calculations were performed.
+- Avoid repetitive phrases such as "relevant houses activated", "relevant karakas involved" or "this timing is based on" unless the user specifically requests technical reasoning.
+- Keep technical evidence in supporting explanations, while the main narrative should read like an experienced astrologer speaking to a client.
+- If activationWindow occurs before the practicalWindow, describe it as an early signal, preparatory trigger, opening conversation or momentum-building point rather than as the launch date.
+- If activationWindow falls inside the practicalWindow, describe it as a catalyst or sharper peak within the main actionable period.
+- Never make the activationWindow appear more important than the practicalWindow.
 - Answer the user's actual question first.
 - Return only the final user-facing answer.
 - For major-event timing, TIMING_HIERARCHY.practicalWindow is the direct answer whenever present.
@@ -1593,10 +1747,10 @@ export async function POST(req: Request) {
     const formatTier = safeStr(body?.formatTier || body?.tier).toLowerCase();
         const maxTokens =
   formatTier === "micro"
-    ? 250
+    ? 350
     : formatTier === "deep"
-    ? 1400
-    : 1200;
+    ? 2200
+    : 1800;
 
     try {
       const client = getOpenAIClient();
@@ -1616,7 +1770,19 @@ export async function POST(req: Request) {
           },
         ],
       });
+const finishReason =
+  completion.choices[0]?.finish_reason ??
+  null;
 
+console.log(
+  "[NATURALIZE COMPLETION]",
+  {
+    finishReason,
+    outputLength:
+      completion.choices[0]?.message?.content?.length ?? 0,
+    maxTokens,
+  }
+);
                const textRaw = completion.choices[0]?.message?.content ?? raw;
  
 
@@ -1625,7 +1791,13 @@ export async function POST(req: Request) {
         .replace(/\n{3,}/g, "\n\n")
         .trim();
 
-  if (useStructuredPrompt && looksTruncated(text)) {
+  if (
+  useStructuredPrompt &&
+  (
+    finishReason === "length" ||
+    looksTruncated(text)
+  )
+) {
   const insight = body?.astroFacts?.insightProfile;
   const diagnosticProfile = body?.astroFacts?.diagnosticProfile;
 
@@ -1635,7 +1807,11 @@ export async function POST(req: Request) {
     const retry = await client.chat.completions.create({
       model: GPT_MODEL,
       temperature: 0.25,
-      max_tokens: maxTokens,
+      max_tokens:
+  Math.max(
+    maxTokens,
+    2000
+  ),
       messages: [
         {
           role: "system",
@@ -1649,12 +1825,16 @@ export async function POST(req: Request) {
         },
       ],
     });
-
+   const retryFinishReason =
+  retry.choices[0]?.finish_reason ??
+  null;
     const retryText = String(retry.choices[0]?.message?.content ?? "").trim();
 
-    text = !looksTruncated(retryText)
-  ? retryText
-  : buildFallbackStructuredAnswer(body);
+    text =
+  retryFinishReason !== "length" &&
+  !looksTruncated(retryText)
+    ? retryText
+    : buildFallbackStructuredAnswer(body);
 
 if (looksTruncated(text)) {
   text =
