@@ -48,7 +48,16 @@ import {
 } from "@/server/sarathi/timingHierarchy";
 import {
   buildPlanetReasoning,
-} from "@/server/sarathi/planetReasoning";
+  buildHouseReasoning,
+  buildEventReasoning,
+  buildDashaReasoning,
+  buildSequenceReasoning,
+  buildRiskReasoning,
+  buildActionReasoning,
+  buildStoryReasoning,
+  buildThoughtProcess,
+} from "@/server/sarathi/reasoning";
+
 /*
   Sārathi astro chat route — simplified generic pipeline
 
@@ -402,8 +411,9 @@ type CareerEventType =
   | "career_movement"
   | "internal_shift"
   | "stability_check"
+  | "employment_risk"
   | "generic";
-  type RelationshipEventType =
+ type RelationshipEventType =
   | "relationship_suitability"
   | "partner_profile"
   | "relationship_pattern"
@@ -413,8 +423,9 @@ type CareerEventType =
   | "reconciliation"
   | "marriage_commitment"
   | "marriage_timing"
+  | "relationship_breakdown_risk"
   | "generic";
-  type WealthEventType =
+type WealthEventType =
   | "wealth_potential"
   | "earning_style"
   | "wealth_pattern"
@@ -426,6 +437,7 @@ type CareerEventType =
   | "side_income"
   | "financial_improvement"
   | "wealth_timing"
+  | "financial_loss_risk"
   | "generic";
   type BusinessEventType =
   | "business_suitability"
@@ -593,6 +605,7 @@ type InnerEventType =
   | "generic";
 type AskSarathiEventType =
   | CareerEventType
+  | WealthEventType
   | ParentsEventType
   | SiblingsEventType
   | TravelEventType
@@ -602,6 +615,7 @@ type AskSarathiEventType =
   | MentalHealthEventType
   | PetsEventType
   | InnerEventType
+  | RelationshipEventType
   // Property
   | "buy_property"
   | "sell_property"
@@ -1573,6 +1587,30 @@ const EVENT_CONVERSION_RULES: Partial<
     divisionalCharts: ["D30"],
     language: "health recovery, routine correction, diagnosis clarity, improvement",
   },
+  employment_risk: {
+  houses: [6, 10, 8, 12],
+  supportHouses: [2, 11],
+  karakas: ["Saturn", "Rahu", "Sun"],
+  divisionalCharts: ["D10"],
+  language:
+    "employment pressure, organizational disruption, instability, separation risk, role discontinuity, or change in employment status",
+},
+financial_loss_risk: {
+  houses: [2, 8, 12],
+  supportHouses: [5, 11],
+  karakas: ["Saturn", "Rahu", "Mars"],
+  divisionalCharts: ["D2"],
+  language:
+    "financial pressure, resource depletion, unexpected expenses, loss exposure, capital erosion, or deterioration in financial stability",
+},
+relationship_breakdown_risk: {
+  houses: [7, 8, 12],
+  supportHouses: [2, 4, 11],
+  karakas: ["Venus", "Saturn", "Rahu"],
+  divisionalCharts: ["D9"],
+  language:
+    "relationship strain, disruption, emotional distance, instability, separation risk, breakdown of partnership continuity, or change in relationship status",
+},
 };
 /* --------------------------------------------------
    Small helpers
@@ -5469,7 +5507,12 @@ if (
   if (/\b(role change|role shift|transfer|department change|internal move)\b/.test(q)) {
     return "internal_shift";
   }
-
+// employment risk / involuntary job loss
+if (
+  /\b(lose my job|lose my current job|job loss|employment risk|job at risk|is my job at risk|could i lose my job|will i lose my job|risk of losing my job|termination|terminated|be terminated|fired|be fired|laid off|layoff|lay off|redundancy|made redundant|employment instability|job instability)\b/.test(q)
+) {
+  return "employment_risk";
+}
   // stability / check
 if (
   /\b(stay in my job|stay in my current job|leave my job|leave my current job|quit|resign|resignation|continue in job|continue in my job|job stability|stuck in my career|career feels stuck|career is stuck|feeling stuck in my career)\b/.test(q)
@@ -5528,7 +5571,11 @@ function detectRelationshipEventType(
   ) {
     return "love_vs_arranged";
   }
-
+  if (
+  /\b(relationship breakdown|serious relationship breakdown|breakup|break up|separation|separate|relationship ending|relationship end|end of relationship|divorce|risk of separation|risk of breakup|risk of relationship breakdown|could we separate|will we separate|could we break up|will we break up|relationship at risk|marriage at risk)\b/.test(q)
+) {
+  return "relationship_breakdown_risk";
+}
   if (
     /\b(reconcile|reconciliation|patch up|get back together|come back|return to me|ex return|ex come back|former partner return)\b/.test(q)
   ) {
@@ -5659,7 +5706,11 @@ if (
   ) {
     return "wealth_timing";
   }
-
+if (
+  /\b(major financial loss|financial loss|lose money|losing money|risk of losing money|money loss|wealth loss|loss of wealth|financial setback|financial damage|financial risk|could i lose money|will i lose money|risk of major financial loss)\b/.test(q)
+) {
+  return "financial_loss_risk";
+}
   // Fallback by time direction
   if (timeDirection === "identity") {
     return "wealth_potential";
@@ -6201,10 +6252,10 @@ function detectChildrenEventType(
 
   // Childbirth timing
   if (
-    /\b(when will i have a child|when will i have children|when will childbirth happen|childbirth timing|when is childbirth likely|when will i become a parent)\b/.test(q)
-  ) {
-    return "childbirth_timing";
-  }
+  /\b(when will i have a child|when will i have children|when will childbirth happen|childbirth timing|when is childbirth likely|when will i become a parent|when is a good time for having a child|good time for having a child|when is a good time to have a child|good time to have a child|when should i have a child|when should we have a child|expanding the family|expand the family|family expansion)\b/.test(q)
+) {
+  return "childbirth_timing";
+}
 
   // Child-development timing
   if (
@@ -6486,18 +6537,18 @@ function detectDisputeEventType(
   }
 
   // Resolution timing
-  if (
-    /\b(when will this dispute resolve|when will the dispute end|when will conflict resolve|dispute resolution|when will this matter settle)\b/.test(q)
-  ) {
-    return "dispute_resolution";
-  }
+ if (
+  /\b(when will this dispute resolve|when will the dispute end|when will conflict resolve|dispute resolution|when will this matter settle|when is a good time for resolving a dispute|good time for resolving a dispute|when is a good time to resolve a dispute|when should i resolve a dispute|resolving a legal dispute|resolve a legal dispute|legal dispute resolution)\b/.test(q)
+) {
+  return "dispute_resolution";
+}
 
   // Legal case timing
-  if (
-    /\b(when will my court case resolve|when will my legal case end|legal case timing|court case timing|when will the case move)\b/.test(q)
-  ) {
-    return "legal_case_timing";
-  }
+ if (
+  /\b(when will my court case resolve|when will my legal case end|legal case timing|court case timing|when will the case move|good time for resolving a court case|when is a good time to resolve a court case|resolving a court case)\b/.test(q)
+) {
+  return "legal_case_timing";
+}
 
   // Settlement timing
   if (
@@ -13076,155 +13127,581 @@ function buildFinalAnswerDecision(params: {
   windows: TimingWindow[];
   timingLayer: AnalysisLayer;
   confidence: "High" | "Medium" | "Low";
-  decisionSummary?: any;
+
   timingPolicy?: {
-    dashaStrength: "strong" | "moderate" | "mixed" | "weak";
-    transitStrength: "strong" | "moderate" | "mixed" | "weak";
+    dashaStrength:
+      | "strong"
+      | "moderate"
+      | "mixed"
+      | "weak";
+
+    transitStrength:
+      | "strong"
+      | "moderate"
+      | "mixed"
+      | "weak";
+
     allowSharpWindow: boolean;
+
     note: string;
   };
+
+  decisionSummary?: any;
+  timingHierarchy?: any;
 }) {
   const {
-  topic,
-  questionType,
-  timeDirection,
-  careerEventType,
-  windows,
-  timingLayer,
-  timingPolicy,
-  confidence,
-  decisionSummary,
-} = params;
-if (
-  questionType === "timing" &&
-  decisionSummary?.headline
-) {
-  return {
-    verdict: "STRUCTURED_TIMING",
-    line:
-      decisionSummary.summary ??
-      decisionSummary.practicalMeaning ??
-      decisionSummary.headline,
-  };
-}
-  const first = windows?.[0];
-  const prefix = getConfidencePrefix(confidence);
+    topic,
+    questionType,
+    timeDirection,
+    careerEventType,
+    windows,
+    timingLayer,
+    timingPolicy,
+    confidence,
+    decisionSummary,
+    timingHierarchy,
+  } = params;
+
+  const first =
+    Array.isArray(windows) &&
+    windows.length
+      ? windows[0]
+      : null;
+
+  const normalizedConfidence =
+    String(confidence ?? "")
+      .toLowerCase();
 
   const isCareerMovement =
     topic === "career" &&
-    ["promotion", "job_change", "internal_shift", "stability_check"].includes(
+    [
+      "promotion",
+      "job_change",
+      "internal_shift",
+      "stability_check",
+    ].includes(
       careerEventType ?? ""
     );
+   if (
+  questionType === "timing" &&
+  timingHierarchy?.practicalWindow
+) {
+  const practicalWindow =
+    timingHierarchy.practicalWindow;
 
-  if (timeDirection === "identity") {
+  const broaderWindow =
+    timingHierarchy?.broaderWindow ?? null;
+
+  return {
+    verdict: "STRUCTURED_TIMING",
+    explanationKey: "use_v4_timing_hierarchy",
+    stage:
+      timingHierarchy?.stage ??
+      "opportunity",
+    confidence:
+      timingHierarchy?.overallConfidence ??
+      normalizedConfidence ??
+      null,
+    confidenceScore:
+      timingHierarchy?.confidenceScore ??
+      null,
+    headline:
+      `${practicalWindow.start} to ${practicalWindow.end}`,
+    summary:
+      `The main actionable period runs from ${practicalWindow.start} to ${practicalWindow.end}.`,
+    practicalMeaning:
+      broaderWindow
+        ? `This sits within the broader opportunity phase from ${broaderWindow.start} to ${broaderWindow.end}.`
+        : "This is the main actionable timing window.",
+    evidence: [],
+  };
+}
+  /*
+   * --------------------------------------------
+   * DecisionSummary already represents the V3
+   * authoritative conclusion.
+   *
+   * If present, FinalAnswerDecision should not
+   * attempt to independently reinterpret timing.
+   * --------------------------------------------
+   */
+
+  if (
+  questionType === "timing" &&
+  decisionSummary
+) {
+  const hasTimingWindow =
+    Array.isArray(windows) &&
+    windows.length > 0;
+
+  const decisionSummarySaysNoWindow =
+    /no reliable timing window|no clear timing window|no timing window/i.test(
+      String(decisionSummary?.summary ?? "")
+    );
+
+  if (
+    !hasTimingWindow ||
+    !decisionSummarySaysNoWindow
+  ) {
     return {
-      verdict: "IDENTITY",
-      line: "This question is showing more as a profession-pattern reading than a timing question.",
+      verdict: "STRUCTURED_TIMING",
+
+      explanationKey:
+        "use_decision_summary",
+
+      stage:
+        decisionSummary?.classification ??
+        null,
+
+      confidence:
+        decisionSummary?.confidence ??
+        normalizedConfidence ??
+        null,
+
+      confidenceScore:
+        decisionSummary?.confidenceScore ??
+        null,
+
+      headline:
+        decisionSummary?.headline ??
+        null,
+
+      summary:
+        decisionSummary?.summary ??
+        null,
+
+      practicalMeaning:
+        decisionSummary?.practicalMeaning ??
+        null,
+
+      evidence:
+        Array.isArray(
+          decisionSummary?.evidence
+        )
+          ? decisionSummary.evidence
+          : [],
+    };
+  }
+}
+
+  /*
+   * --------------------------------------------
+   * Identity / permanent pattern
+   * --------------------------------------------
+   */
+
+  if (
+    timeDirection === "identity"
+  ) {
+    return {
+      verdict:
+        "IDENTITY",
+
+      explanationKey:
+        "identity_pattern",
+
+      stage:
+        null,
+
+      confidence:
+        normalizedConfidence,
+
+      confidenceScore:
+        null,
+
+      headline:
+        null,
+
+      summary:
+        null,
+
+      practicalMeaning:
+        null,
+
+      evidence: [],
     };
   }
 
-  if (timeDirection === "present") {
-    if (timingLayer.verdict === "strong" || timingLayer.verdict === "moderate") {
-      return {
-        verdict: "ACTIVE_NOW",
-        line: "This area is active now and is already showing through the current phase.",
-      };
-    }
+  /*
+   * --------------------------------------------
+   * Comparison
+   * --------------------------------------------
+   */
 
+  if (
+    questionType ===
+    "comparison"
+  ) {
     return {
-      verdict: "NOT_ACTIVE_NOW",
-      line: "This area is not showing a strong event pattern right now, but there may still be background movement or buildup.",
+      verdict:
+        "COMPARISON",
+
+      explanationKey:
+        "comparison_required",
+
+      stage:
+        null,
+
+      confidence:
+        normalizedConfidence,
+
+      confidenceScore:
+        null,
+
+      headline:
+        null,
+
+      summary:
+        null,
+
+      practicalMeaning:
+        null,
+
+      evidence: [],
     };
   }
 
-  if (timeDirection === "future" && isCareerMovement) {
-    if (timingPolicy?.dashaStrength === "strong") {
-      if (first?.label) {
-        return {
-          verdict: "YES_PHASE",
-          line: `This is a career-movement phase around ${first.label}, but it is better read as a broader career shift than as a guaranteed instant promotion.`,
-        };
-      }
+  /*
+   * --------------------------------------------
+   * Present timing
+   * --------------------------------------------
+   */
 
+  if (
+    timeDirection === "present"
+  ) {
+    const activeNow =
+      timingLayer?.verdict ===
+        "strong" ||
+      timingLayer?.verdict ===
+        "moderate";
+
+    return {
+      verdict:
+        activeNow
+          ? "ACTIVE_NOW"
+          : "NOT_ACTIVE_NOW",
+
+      explanationKey:
+        activeNow
+          ? "present_activation"
+          : "present_not_strong",
+
+      stage:
+        activeNow
+          ? "activation"
+          : "preparation",
+
+      confidence:
+        normalizedConfidence,
+
+      confidenceScore:
+        null,
+
+      headline:
+        first?.label ??
+        null,
+
+      summary:
+        null,
+
+      practicalMeaning:
+        null,
+
+      evidence: [],
+    };
+  }
+
+  /*
+   * --------------------------------------------
+   * Future career movement
+   * --------------------------------------------
+   */
+
+  if (
+    timeDirection === "future" &&
+    isCareerMovement
+  ) {
+    if (
+      timingPolicy
+        ?.dashaStrength ===
+      "strong"
+    ) {
       return {
-        verdict: "YES_PHASE",
-        line: "This is a career-movement phase, but not a sharply timed promotion window.",
+        verdict:
+          "YES_PHASE",
+
+        explanationKey:
+          "career_movement_supported",
+
+        stage:
+          "opportunity",
+
+        confidence:
+          normalizedConfidence,
+
+        confidenceScore:
+          null,
+
+        headline:
+          first?.label ??
+          null,
+
+        summary:
+          null,
+
+        practicalMeaning:
+          null,
+
+        evidence: [],
       };
     }
 
     if (
-      timingPolicy?.dashaStrength === "moderate" ||
-      timingPolicy?.dashaStrength === "mixed"
+      timingPolicy
+        ?.dashaStrength ===
+        "moderate" ||
+      timingPolicy
+        ?.dashaStrength ===
+        "mixed"
     ) {
       return {
-        verdict: "MOVEMENT_PHASE",
-        line: `${prefix} career movement, but not a clean promotion or job-change signal yet.`,
+        verdict:
+          "MOVEMENT_PHASE",
+
+        explanationKey:
+          "career_movement_mixed",
+
+        stage:
+          "preparation",
+
+        confidence:
+          normalizedConfidence,
+
+        confidenceScore:
+          null,
+
+        headline:
+          first?.label ??
+          null,
+
+        summary:
+          null,
+
+        practicalMeaning:
+          null,
+
+        evidence: [],
       };
     }
 
     return {
-      verdict: "NO_PHASE",
-      line: "Current timing is stronger for visibility-building and responsibility expansion than immediate external elevation.",
+      verdict:
+        "NO_PHASE",
+
+      explanationKey:
+        "career_movement_not_ready",
+
+      stage:
+        "preparation",
+
+      confidence:
+        normalizedConfidence,
+
+      confidenceScore:
+        null,
+
+      headline:
+        null,
+
+      summary:
+        null,
+
+      practicalMeaning:
+        null,
+
+      evidence: [],
     };
   }
 
-  if (timeDirection === "future") {
-    if (first?.label && timingPolicy?.allowSharpWindow) {
+  /*
+   * --------------------------------------------
+   * Generic future timing fallback
+   * --------------------------------------------
+   */
+
+  if (
+    timeDirection === "future"
+  ) {
+    if (
+      first?.label &&
+      timingPolicy
+        ?.allowSharpWindow
+    ) {
       return {
-        verdict: "SHARP_WINDOW",
-        line: `A usable future window is active around ${first.label}.`,
+        verdict:
+          "SHARP_WINDOW",
+
+        explanationKey:
+          "future_sharp_window",
+
+        stage:
+          "activation",
+
+        confidence:
+          normalizedConfidence,
+
+        confidenceScore:
+          null,
+
+        headline:
+          first.label,
+
+        summary:
+          null,
+
+        practicalMeaning:
+          null,
+
+        evidence: [],
       };
     }
 
     if (first?.label) {
-      const broadLine =
-        topic === "relationships" || topic === "marriage"
-          ? "Your relationship area is opening up over the coming weeks or months, but this is better read as a broader phase than as a sharply timed event."
-          : topic === "money"
-          ? "Your money area is entering a more supportive phase over the coming weeks or months, but this is better read as gradual improvement than as a sharply timed jump."
-          : topic === "health"
-          ? "Your health pattern is entering a more noticeable phase over the coming weeks or months, but this is better read as a broader trend than as a sharply timed event."
-          : topic === "property"
-          ? "Your property area is entering a more active phase over the coming weeks or months, but this is better read as preparation and movement than as a sharply timed closure."
-          : "This area is opening up over the coming weeks or months, but it is better read as a broader phase than as a sharply timed event.";
-
       return {
-        verdict: "BROAD_PHASE",
-        line: broadLine,
+        verdict:
+          "BROAD_PHASE",
+
+        explanationKey:
+          "future_broad_phase",
+
+        stage:
+          "opportunity",
+
+        confidence:
+          normalizedConfidence,
+
+        confidenceScore:
+          null,
+
+        headline:
+          first.label,
+
+        summary:
+          null,
+
+        practicalMeaning:
+          null,
+
+        evidence: [],
       };
     }
 
     return {
-      verdict: "NO_WINDOW",
-      line: "No clear future timing window is visible from the current scan.",
+      verdict:
+        "NO_WINDOW",
+
+      explanationKey:
+        "future_no_window",
+
+      stage:
+        "preparation",
+
+      confidence:
+        normalizedConfidence,
+
+      confidenceScore:
+        null,
+
+      headline:
+        null,
+
+      summary:
+        null,
+
+      practicalMeaning:
+        null,
+
+      evidence: [],
     };
   }
 
-  if (timeDirection === "past") {
-    if (first?.label) {
-      return {
-        verdict: "PAST_WINDOW",
-        line: `The most likely past period for this area falls around ${first.label}.`,
-      };
-    }
+  /*
+   * --------------------------------------------
+   * Past timing
+   * --------------------------------------------
+   */
 
-   return {
-  verdict: "PAST_UNCLEAR",
-  line: "The strongest past indicators are being judged from historical dasha activation and supporting chart factors.",
-};
+  if (
+    timeDirection === "past"
+  ) {
+    return {
+      verdict:
+        first?.label
+          ? "PAST_WINDOW"
+          : "PAST_UNCLEAR",
+
+      explanationKey:
+        first?.label
+          ? "past_window_found"
+          : "past_window_unclear",
+
+      stage:
+        null,
+
+      confidence:
+        normalizedConfidence,
+
+      confidenceScore:
+        null,
+
+      headline:
+        first?.label ??
+        null,
+
+      summary:
+        null,
+
+      practicalMeaning:
+        null,
+
+      evidence: [],
+    };
   }
 
-if (questionType === "comparison") {
+  /*
+   * --------------------------------------------
+   * Generic fallback
+   * --------------------------------------------
+   */
+
   return {
-    verdict: "COMPARISON",
-    line: "",
-  };
-}
+    verdict:
+      "GENERIC",
 
-return {
-  verdict: "GENERIC",
-  line: "The current scan does not show a clear timing verdict yet.",
-};
+    explanationKey:
+      "generic_decision",
+
+    stage:
+      null,
+
+    confidence:
+      normalizedConfidence,
+
+    confidenceScore:
+      null,
+
+    headline:
+      null,
+
+    summary:
+      null,
+
+    practicalMeaning:
+      null,
+
+    evidence: [],
+  };
 }
 function buildDailyMoodAnswer(question: string) {
   const q = question.toLowerCase();
@@ -13300,7 +13777,10 @@ function buildAnswerSummary(
   }.`;
 }
   if (timeDirection === "identity") {
-    return decision.line;
+    return decision.summary ??
+decision.practicalMeaning ??
+decision.headline ??
+"";
   }
 
  if (timeDirection === "past") {
@@ -13323,10 +13803,16 @@ function buildAnswerSummary(
 
   if (timeDirection === "present") {
     if (decision.verdict === "ACTIVE_NOW") {
-      return `${decision.line} This is already showing up in lived reality, not just as background potential.`;
+      return `${decision.summary ??
+decision.practicalMeaning ??
+decision.headline ??
+""} This is already showing up in lived reality, not just as background potential.`;
     }
 
-    return `${decision.line} What is active here looks subtle, gradual, or background-led rather than sharply event-driven right now.`;
+    return `${decision.summary ??
+decision.practicalMeaning ??
+decision.headline ??
+""} What is active here looks subtle, gradual, or background-led rather than sharply event-driven right now.`;
   }
 
   const isCareerMovement =
@@ -13338,17 +13824,26 @@ function buildAnswerSummary(
   if (timeDirection === "future") {
     if (isCareerMovement) {
       if (decision.verdict === "YES_PHASE") {
-        return `${decision.line}${
+        return `${decision.summary ??
+decision.practicalMeaning ??
+decision.headline ??
+""}${
           first?.peak ? ` The strongest momentum looks closer to ${first.peak}.` : ""
         }`;
       }
 
      if (decision.verdict === "MOVEMENT_PHASE") {
-  return decision.line;
+  return decision.summary ??
+decision.practicalMeaning ??
+decision.headline ??
+"";
 }
 
       if (decision.verdict === "NO_PHASE") {
-        return decision.line;
+        return decision.summary ??
+decision.practicalMeaning ??
+decision.headline ??
+"";
       }
     }
 
@@ -13357,15 +13852,24 @@ function buildAnswerSummary(
     }
 
     if (decision.verdict === "BROAD_PHASE") {
-      return decision.line;
+      return decision.summary ??
+decision.practicalMeaning ??
+decision.headline ??
+"";
     }
 
     if (decision.verdict === "NO_WINDOW") {
-      return decision.line;
+      return decision.summary ??
+decision.practicalMeaning ??
+decision.headline ??
+"";
     }
   }
 
-  return decision.line;
+  return decision.summary ??
+decision.practicalMeaning ??
+decision.headline ??
+"";
 }
 function normalizeWorkTypeLabel(workType: string | null | undefined): string {
   const t = String(workType ?? "").trim().toLowerCase();
@@ -14256,7 +14760,25 @@ function buildAstroTimelineFromSignals(
 
   const relevantPlanets = topicPlanets[topic] ?? [];
 
-  for (const row of dashaTimeline) {
+  /*
+ * ------------------------------------------------
+ * STRUCTURAL DASHA WINDOWS
+ *
+ * Important V4 rule:
+ *
+ * MD / AD / PD structure must be preserved even
+ * when a parent period is not itself one of the
+ * strongest topic-specific scoring windows.
+ *
+ * Topic relevance affects score/reason.
+ * It must NOT decide whether the structural
+ * dasha row exists in astroTimeline.
+ * ------------------------------------------------
+ */
+
+const structuralDashaCandidates: AstroTimelineWindow[] = [];
+
+for (const row of dashaTimeline) {
   const start = String(
     row?.start ??
     row?.startISO ??
@@ -14270,12 +14792,12 @@ function buildAstroTimelineFromSignals(
   ).slice(0, 10);
 
   if (
-  !start ||
-  !end ||
-  end < todayISO
-) {
-  continue;
-}
+    !start ||
+    !end ||
+    end < todayISO
+  ) {
+    continue;
+  }
 
   const md =
     row?.md ??
@@ -14292,73 +14814,226 @@ function buildAstroTimelineFromSignals(
     row?.pratyantardasha ??
     null;
 
-  const active = [md, ad, pd]
+  /*
+   * Prefer explicit dashaLevel supplied by the
+   * Data Engine. Fall back only for legacy rows.
+   */
+  const dashaLevel:
+    | "md"
+    | "ad"
+    | "pd"
+    | null =
+    row?.dashaLevel === "md" ||
+    row?.dashaLevel === "ad" ||
+    row?.dashaLevel === "pd"
+      ? row.dashaLevel
+      : pd
+      ? "pd"
+      : ad
+      ? "ad"
+      : md
+      ? "md"
+      : null;
+
+  if (!dashaLevel) {
+    continue;
+  }
+
+  const activePlanets = [
+    md,
+    ad,
+    pd,
+  ]
     .filter(Boolean)
-    .map((x: any) => String(x));
+    .map(
+      (x: any) =>
+        String(x)
+    );
 
-  const hits = active.filter(
-    (p) => relevantPlanets.includes(p)
-  );
+  const relevantHits =
+    activePlanets.filter(
+      (planet) =>
+        relevantPlanets.includes(
+          planet
+        )
+    );
 
-  if (hits.length) {
-    const scored = scorePredictionWindow({
+  /*
+   * Score the row when possible.
+   *
+   * Even if topic relevance is weak, retain AD/MD
+   * rows because they may be structural parents of
+   * a stronger PD.
+   */
+  const scored =
+    scorePredictionWindow({
       topic,
       row,
       report,
       careerEventType,
     });
 
-    const dashaLevel: "md" | "ad" | "pd" | null =
-      pd
-        ? "pd"
-        : ad
-        ? "ad"
-        : md
-        ? "md"
-        : null;
+  const hasTopicRelevance =
+    relevantHits.length > 0;
 
-    candidates.push({
-      label: `${start} to ${end}`,
+  /*
+   * Structural parent periods should remain
+   * available even with weak relevance.
+   */
+  const structuralScore =
+    hasTopicRelevance
+      ? Number(
+          scored.score ?? 0
+        )
+      : dashaLevel === "ad"
+      ? Math.max(
+          1,
+          Number(
+            scored.score ?? 0
+          )
+        )
+      : dashaLevel === "md"
+      ? Math.max(
+          1,
+          Number(
+            scored.score ?? 0
+          )
+        )
+      : Number(
+          scored.score ?? 0
+        );
 
-      start,
-      end,
-
-      dashaLevel,
-
-      confidence: scored.confidence,
-
-      reason:
-        scored.reasons.join(". "),
-
-      score:
-        scored.score,
-    });
+  /*
+   * PD remains topic-sensitive.
+   *
+   * We don't need every irrelevant PD in the
+   * event-ranking layer.
+   */
+  if (
+    dashaLevel === "pd" &&
+    !hasTopicRelevance
+  ) {
+    continue;
   }
 
-  if (candidates.length >= 12) {
-    break;
-  }
+  structuralDashaCandidates.push({
+    label:
+      row?.label ??
+      `${start} to ${end}`,
+
+    start,
+    end,
+
+    dashaLevel,
+
+    confidence:
+      scored.confidence,
+
+    reason:
+      hasTopicRelevance
+        ? scored.reasons.join(". ")
+        : dashaLevel === "ad"
+        ? `Structural Antardasha parent period retained for timing hierarchy. ${
+            scored.reasons?.length
+              ? scored.reasons.join(". ")
+              : ""
+          }`.trim()
+        : `Structural Mahadasha parent period retained for timing hierarchy. ${
+            scored.reasons?.length
+              ? scored.reasons.join(". ")
+              : ""
+          }`.trim(),
+
+    score:
+      structuralScore,
+  });
 }
-  candidates.push(...transitOpportunityCandidates);
-  candidates.sort((a, b) => b.score - a.score);
+  /*
+ * ------------------------------------------------
+ * FINAL ASTRO TIMELINE
+ *
+ * Keep structural dasha hierarchy separate from
+ * scored miscellaneous signal candidates.
+ * ------------------------------------------------
+ */
 
+const signalCandidates =
+  candidates
+    .filter((c) => {
+      const r =
+        String(
+          c.reason ?? ""
+        ).toLowerCase();
 
+      return !(
+        r.includes("ingress") ||
+        r.includes("retrograde") ||
+        r.includes("natal contact") ||
+        r.includes("transit")
+      );
+    })
+    .sort(
+      (a, b) =>
+        Number(b.score ?? 0) -
+        Number(a.score ?? 0)
+    )
+    .slice(0, 6);
 
-const topDashaCandidates = candidates
-  .filter((c) => {
-    const r = String(c.reason ?? "").toLowerCase();
-    return !(
-      r.includes("ingress") ||
-      r.includes("retrograde") ||
-      r.includes("natal contact") ||
-      r.includes("transit")
-    );
-  })
-  .slice(0, 8);
+const topTransitCandidates =
+  transitOpportunityCandidates
+    .sort(
+      (a, b) =>
+        Number(b.score ?? 0) -
+        Number(a.score ?? 0)
+    )
+    .slice(0, 6);
 
-const topTransitCandidates = transitOpportunityCandidates.slice(0, 6);
+/*
+ * Remove duplicate structural rows.
+ */
+const uniqueStructuralDasha =
+  structuralDashaCandidates.filter(
+    (
+      row,
+      index,
+      rows
+    ) =>
+      rows.findIndex(
+        (candidate) =>
+          candidate.dashaLevel ===
+            row.dashaLevel &&
+          candidate.start ===
+            row.start &&
+          candidate.end ===
+            row.end
+      ) === index
+  );
 
-return [...topDashaCandidates, ...topTransitCandidates];
+/*
+ * Critical:
+ *
+ * Never score-sort structural dasha rows before
+ * hierarchy construction.
+ *
+ * Keep them chronological so parent/child periods
+ * remain visible.
+ */
+uniqueStructuralDasha.sort(
+  (a, b) =>
+    String(
+      a.start ?? ""
+    ).localeCompare(
+      String(
+        b.start ?? ""
+      )
+    )
+);
+
+return [
+  ...uniqueStructuralDasha,
+  ...signalCandidates,
+  ...topTransitCandidates,
+];
 }
 function buildThemeSignal(
   topic: AskSarathiDomain,
@@ -14694,17 +15369,7 @@ const timeDirection = detectTimeDirection(question, topic);
 const eventScale = detectEventScale(question, topic);
 
 const eventType = detectEventType(question, topic, timeDirection);
-console.log("[QUESTION ROUTING DEBUG]", {
-  question,
-  topic,
-  questionType,
-  timeDirection,
-  eventType,
-  careerEventTypeOverride:
-    typeof careerEventTypeOverride !== "undefined"
-      ? careerEventTypeOverride
-      : null,
-});
+
 const careerEventType =
   topic === "career"
     ? careerEventTypeOverride ?? (eventType as CareerEventType)
@@ -15169,139 +15834,56 @@ const suppressAdultCareerInference =
     "internal_shift",
     "stability_check",
   ].includes(String(eventType ?? ""));
-console.log("========== INFER CAREER INPUT DEBUG ==========");
 
-console.log(
-  "report.birth:",
-  JSON.stringify(report?.birth ?? null, null, 2)
-);
-
-console.log(
-  "report.ascendant:",
-  JSON.stringify(
-    report?.ascendant ??
-    report?.lagna ??
-    report?.asc ??
-    null,
-    null,
-    2
-  )
-);
-
-console.log(
-  "report.houseLords:",
-  JSON.stringify(
-    report?.houseLords ??
-    report?.lords ??
-    null,
-    null,
-    2
-  )
-);
-console.log(
-  "report.natal.houseLords:",
-  JSON.stringify(
-    report?.natal?.houseLords ?? null,
-    null,
-    2
-  )
-);
-console.log(
-  "report.natal.ascendant:",
-  JSON.stringify(
-    report?.natal?.ascendant ??
-    report?.natal?.lagna ??
-    report?.natal?.asc ??
-    null,
-    null,
-    2
-  )
-);
-console.log(
-  "report.houses.H6:",
-  JSON.stringify(
-    report?.houses?.H6 ??
-    report?.houses?.[6] ??
-    null,
-    null,
-    2
-  )
-);
-
-console.log(
-  "report.houses.H10:",
-  JSON.stringify(
-    report?.houses?.H10 ??
-    report?.houses?.[10] ??
-    null,
-    null,
-    2
-  )
-);
-console.log(
-  "report.natal.houses.H6:",
-  JSON.stringify(
-    report?.natal?.houses?.H6 ??
-    report?.natal?.houses?.[6] ??
-    null,
-    null,
-    2
-  )
-);
-
-console.log(
-  "report.natal.houses.H10:",
-  JSON.stringify(
-    report?.natal?.houses?.H10 ??
-    report?.natal?.houses?.[10] ??
-    null,
-    null,
-    2
-  )
-);
-console.log(
-  "report.chartContext ascendant:",
-  JSON.stringify(
-    report?.chartContext?.ascendant ??
-    report?.chartContext?.lagna ??
-    report?.chartContext?.asc ??
-    null,
-    null,
-    2
-  )
-);
-
-console.log(
-  "report.chartContext houseLords:",
-  JSON.stringify(
-    report?.chartContext?.houseLords ??
-    report?.chartContext?.lords ??
-    null,
-    null,
-    2
-  )
-);
-console.log(
-  "HOUSE KEY CHECK:",
-  Object.entries(report?.houses ?? {}).map(([key, value]: [string, any]) => ({
-    key,
-    actualHouse: value?.house,
-    sign: value?.sign,
-    lord: value?.lord,
-  }))
-);
-console.log("==============================================");
 const careerInference =
   topic === "career" &&
   !suppressAdultCareerInference
     ? inferCareer(report)
     : null;
 
-const promiseLayer =
-  buildPromiseLayer(
-    report,
+const promiseConversionRule =
+  resolveEventConversionRule(
+    topic,
+    eventType,
     rule
   );
+
+const promiseRule: TopicRule = {
+  ...rule,
+  houses: promiseConversionRule.houses,
+  supportHouses:
+    promiseConversionRule.supportHouses,
+};
+
+const rawPromiseLayer =
+  buildPromiseLayer(
+    report,
+    promiseRule
+  );
+
+const promiseLayer =
+  eventType === "employment_risk"
+    ? {
+        ...rawPromiseLayer,
+        verdict: "mixed" as const,
+        summary:
+          "The relevant employment and disruption houses are present for assessment, but house relevance alone does not establish a strong promise of job loss.",
+      }
+    : eventType === "financial_loss_risk"
+    ? {
+        ...rawPromiseLayer,
+        verdict: "mixed" as const,
+        summary:
+          "The relevant financial, disruption, and outflow houses are present for assessment, but house relevance alone does not establish a strong promise of major financial loss.",
+      }
+      : eventType === "relationship_breakdown_risk"
+? {
+    ...rawPromiseLayer,
+    verdict: "mixed" as const,
+    summary:
+      "The relevant relationship, disruption, and separation houses are present for assessment, but house relevance alone does not establish a strong promise of relationship breakdown or separation.",
+  }
+    : rawPromiseLayer;
 
 const sambandhaAnalysis =
   buildSambandhaAnalysis({
@@ -15355,7 +15937,10 @@ const eventTriggers = buildUniversalEventTriggers({
   karakaLayer,
 });
 
-const bestEventTrigger = eventTriggers[0] ?? null;
+const bestEventTrigger =
+  timingPolicy.allowSharpWindow
+    ? eventTriggers[0] ?? null
+    : null;
 
   const eventHints = buildEventHints(
     topic,
@@ -16569,6 +17154,8 @@ function buildNaturalizePayload(params: {
   timingHierarchy?: any;
   eventLifecycle?: any;
   planetReasoning?: any;
+  thoughtProcess?: any;
+  finalDecision?: any;
   finalDecisionLine?: string;
   finalDecisionVerdict?: string;
   simpleGuidanceMode?: boolean;
@@ -16584,36 +17171,59 @@ function buildNaturalizePayload(params: {
   timingHierarchy,
   eventLifecycle,
   planetReasoning,
+  thoughtProcess,
+  finalDecision,
   distressed,
   finalDecisionLine,
   finalDecisionVerdict,
 } = params;
   const { tone, depth } = pickToneAndDepth(question, topic);
-
+const hasV4Reasoning =
+  Boolean(thoughtProcess);
   return {
   userQuestion: question,
   topic,
   questionType,
 
   decisionSummary:
-    decisionSummary ?? null,
+  hasV4Reasoning
+    ? null
+    : decisionSummary ?? null,
 
-  timingHierarchy:
-    timingHierarchy ?? null,
+timingHierarchy:
+  hasV4Reasoning
+    ? null
+    : timingHierarchy ?? null,
 
-  eventLifecycle:
-    eventLifecycle ?? null,
-   planetReasoning:
-    planetReasoning ?? null,
+eventLifecycle:
+  hasV4Reasoning
+    ? null
+    : eventLifecycle ?? null,
 
-  verdict:
-    astroBundle.verdict ?? null,
+planetReasoning:
+  hasV4Reasoning
+    ? null
+    : planetReasoning ?? null,
 
-  humanReason:
-    astroBundle.humanReason ?? null,
+thoughtProcess:
+  thoughtProcess ?? null,
 
-  astroReason:
-    astroBundle.astroReason ?? null,
+finalDecision:
+  finalDecision ?? null,
+ verdict:
+  hasV4Reasoning
+    ? null
+    : astroBundle.verdict ?? null,
+
+humanReason:
+  hasV4Reasoning
+    ? null
+    : astroBundle.humanReason ?? null,
+
+astroReason:
+  hasV4Reasoning
+    ? null
+    : astroBundle.astroReason ?? null,
 dailyAstroContext:
   astroBundle.dailyAstroContext ?? null,
     simpleGuidanceMode,
@@ -16622,7 +17232,9 @@ dailyAstroContext:
     conversationPsychology:
   astroBundle.conversationPsychology ?? null,
    astroJudgement:
-    astroBundle.astroJudgement ?? null,
+  hasV4Reasoning
+    ? null
+    : astroBundle.astroJudgement ?? null,
     distressed,
     finalDecisionLine,
     finalDecisionVerdict,
@@ -16637,7 +17249,20 @@ dailyAstroContext:
     formatRules: buildFormatRules(questionType),
 
     // generic structured payload only
-    astroFacts: {
+   astroFacts: hasV4Reasoning
+  ? {
+      topic: astroBundle.topic,
+      questionType: astroBundle.questionType,
+      timeDirection: astroBundle.timeDirection,
+      eventType: astroBundle.eventType ?? null,
+
+      safetyLayer:
+        buildAstrologySafetyLayer(
+          astroBundle.topic,
+          question
+        ),
+    }
+  : {
       topic: astroBundle.topic,
       questionType: astroBundle.questionType,
       timeDirection: astroBundle.timeDirection,
@@ -16657,28 +17282,39 @@ dailyAstroContext:
       chartRealityProfile: astroBundle.chartRealityProfile ?? null,
       pastActivationProfile: astroBundle.pastActivationProfile ?? null,
       evidenceNarrative:
-  astroBundle.evidenceNarrative ?? null,
+        astroBundle.evidenceNarrative ?? null,
       themeSignal: astroBundle.themeSignal,
       phasePsychology: astroBundle.phasePsychology,
       astroInterpretationPacket:
-  astroBundle.astroInterpretationPacket ?? null,
-  astroJudgement: astroBundle.astroJudgement ?? null,
-  dailyAstroContext:
-  astroBundle.dailyAstroContext ?? null,
-strategy: astroBundle.strategy,
-astroReasonMap: astroBundle.astroReasonMap ?? null,
-remediesDetailed: astroBundle.remediesDetailed,
-hiddenOpportunity: astroBundle.hiddenOpportunity,
-      promiseLayer: astroBundle.promiseLayer,
-      sambandhaAnalysis: astroBundle.sambandhaAnalysis,
-      explainabilityProfile: astroBundle.explainabilityProfile ?? null,
-      divisionalLayer: astroBundle.divisionalLayer,
-      divisionalBreakdown: astroBundle.divisionalBreakdown ?? [],
+        astroBundle.astroInterpretationPacket ?? null,
+      astroJudgement:
+        astroBundle.astroJudgement ?? null,
+      dailyAstroContext:
+        astroBundle.dailyAstroContext ?? null,
+      strategy: astroBundle.strategy,
+      astroReasonMap:
+        astroBundle.astroReasonMap ?? null,
+      remediesDetailed:
+        astroBundle.remediesDetailed,
+      hiddenOpportunity:
+        astroBundle.hiddenOpportunity,
+      promiseLayer:
+        astroBundle.promiseLayer,
+      sambandhaAnalysis:
+        astroBundle.sambandhaAnalysis,
+      explainabilityProfile:
+        astroBundle.explainabilityProfile ?? null,
+      divisionalLayer:
+        astroBundle.divisionalLayer,
+      divisionalBreakdown:
+        astroBundle.divisionalBreakdown ?? [],
       divisionalAnalysis:
-  astroBundle.divisionalAnalysis ??
-  astroBundle.divisionalLayer ??
-  null,
-      astrologyEvidencePacket: astroBundle.astrologyEvidencePacket ?? null,
+        astroBundle.divisionalAnalysis ??
+        astroBundle.divisionalLayer ??
+        null,
+      astrologyEvidencePacket:
+        astroBundle.astrologyEvidencePacket ?? null,
+
       reasoningInstructions: {
         hierarchy: [
           "Judge the D1 natal promise first.",
@@ -16708,35 +17344,76 @@ hiddenOpportunity: astroBundle.hiddenOpportunity,
           "Practical guidance and caution",
         ],
       },
-      karakaLayer: astroBundle.karakaLayer,
-      timingLayer: astroBundle.timingLayer,
-      remediesLayer: astroBundle.remediesLayer,
-      timingWindows: astroBundle.timingWindows,
-astroTimeline: astroBundle.astroTimeline ?? [],
-majorWindows: astroBundle.majorWindows ?? [],
-winningEvidence: astroBundle.winningEvidence ?? null,
-whyNotNow: astroBundle.whyNotNow ?? [],
-strongestSupport: astroBundle.winningEvidence?.strongestSupport ?? null,
-strongestBlocker: astroBundle.winningEvidence?.strongestBlocker ?? null,
-conversionDiagnosisV2: astroBundle.conversionDiagnosisV2 ?? null,
-promotionConversionEngine: astroBundle.promotionConversionEngine ?? null,
-rankedTimingWindows: astroBundle.rankedTimingWindows ?? [],
-nearestWindow: astroBundle.nearestWindow ?? null,
-strongestWindow: astroBundle.strongestWindow ?? null,
-bestAvailableWindow: astroBundle.bestAvailableWindow ?? null,
-selectedTimingWindow: astroBundle.selectedTimingWindow ?? null,
-eventTriggers: astroBundle.eventTriggers ?? [],
-bestEventTrigger: astroBundle.bestEventTrigger ?? null,
-nearTermWindows: astroBundle.nearTermWindows ?? [],
-triggerWindows: astroBundle.triggerWindows ?? [],
-timingConfidenceNote: astroBundle.timingConfidenceNote,
-      natal: report?.natal ?? null,
-      houseLords: report?.houseLords ?? report?.natal?.houseLords ?? null,
-      baseChartFactors: report?.baseChartFactors ?? null,
-chartContext: buildNaturalizeChartSnapshot(report),
-dataEngine: null,
-safetyLayer: buildAstrologySafetyLayer(astroBundle.topic, question),
-      timingPolicy: astroBundle.timingPolicy,
+
+      karakaLayer:
+        astroBundle.karakaLayer,
+      timingLayer:
+        astroBundle.timingLayer,
+      remediesLayer:
+        astroBundle.remediesLayer,
+      timingWindows:
+        astroBundle.timingWindows,
+      astroTimeline:
+        astroBundle.astroTimeline ?? [],
+      majorWindows:
+        astroBundle.majorWindows ?? [],
+      winningEvidence:
+        astroBundle.winningEvidence ?? null,
+      whyNotNow:
+        astroBundle.whyNotNow ?? [],
+      strongestSupport:
+        astroBundle.winningEvidence?.strongestSupport ?? null,
+      strongestBlocker:
+        astroBundle.winningEvidence?.strongestBlocker ?? null,
+      conversionDiagnosisV2:
+        astroBundle.conversionDiagnosisV2 ?? null,
+      promotionConversionEngine:
+        astroBundle.promotionConversionEngine ?? null,
+      rankedTimingWindows:
+        astroBundle.rankedTimingWindows ?? [],
+      nearestWindow:
+        astroBundle.nearestWindow ?? null,
+      strongestWindow:
+        astroBundle.strongestWindow ?? null,
+      bestAvailableWindow:
+        astroBundle.bestAvailableWindow ?? null,
+      selectedTimingWindow:
+        astroBundle.selectedTimingWindow ?? null,
+      eventTriggers:
+        astroBundle.eventTriggers ?? [],
+      bestEventTrigger:
+        astroBundle.bestEventTrigger ?? null,
+      nearTermWindows:
+        astroBundle.nearTermWindows ?? [],
+      triggerWindows:
+        astroBundle.triggerWindows ?? [],
+      timingConfidenceNote:
+        astroBundle.timingConfidenceNote,
+
+      natal:
+        report?.natal ?? null,
+
+      houseLords:
+        report?.houseLords ??
+        report?.natal?.houseLords ??
+        null,
+
+      baseChartFactors:
+        report?.baseChartFactors ?? null,
+
+      chartContext:
+        buildNaturalizeChartSnapshot(report),
+
+      dataEngine: null,
+
+      safetyLayer:
+        buildAstrologySafetyLayer(
+          astroBundle.topic,
+          question
+        ),
+
+      timingPolicy:
+        astroBundle.timingPolicy,
     },
 interactionIntent: detectInteractionIntent(
   question,
@@ -17037,7 +17714,8 @@ function applyThemeTimelinePolish(
 if (
   topic === "career" ||
   astroBundle.selectedTimingWindow ||
-  astroBundle.bestAvailableWindow
+  astroBundle.bestAvailableWindow ||
+  astroBundle.timingWindows?.length
 ) {
   return cleanedAnswer || answer;
 }
@@ -18078,19 +18756,895 @@ if (body?.lifecycleDebugOnly === true) {
     decisionSummary,
   });
 }
+const planetContexts =
+  (
+    astroBundle?.promiseLayer?.bullets ??
+    []
+  ).reduce<
+    Record<
+      string,
+      {
+        explanation: string;
+        practicalMeaning: string;
+      }
+    >
+  >((acc, bullet) => {
+    const text = String(bullet ?? "");
+
+    const match = text.match(
+      /House\s+(\d+).*?lord\s+([A-Za-z]+).*?\2\s+placed\s+in\s+([A-Za-z]+)\s+in\s+house\s+(\d+)/i
+    );
+
+    if (!match) {
+      return acc;
+    }
+
+    const [
+      ,
+      house,
+      rawPlanet,
+      placedSign,
+      placedHouse,
+    ] = match;
+
+    const planet =
+      rawPlanet.charAt(0).toUpperCase() +
+      rawPlanet.slice(1).toLowerCase();
+
+    const existing =
+      acc[planet];
+
+    const lordshipStatement =
+      `${planet} rules house ${house}`;
+
+    const placementStatement =
+      `${planet} is placed in ${placedSign} in house ${placedHouse}`;
+
+    if (existing) {
+      const alreadyHasPlacement =
+        existing.explanation.includes(
+          placementStatement
+        );
+
+      acc[planet] = {
+        explanation:
+          `${existing.explanation}; ${lordshipStatement}` +
+          (
+            alreadyHasPlacement
+              ? ""
+              : `; ${placementStatement}`
+          ),
+
+        practicalMeaning:
+          `${planet}'s relevance comes from its direct connection to the houses involved in this ${topic} question, rather than from its natural significations alone.`,
+      };
+
+      return acc;
+    }
+
+    acc[planet] = {
+      explanation:
+        `${lordshipStatement}; ${placementStatement}`,
+
+      practicalMeaning:
+        `${planet}'s relevance comes from its direct connection to the houses involved in this ${topic} question, rather than from its natural significations alone.`,
+    };
+
+    return acc;
+  }, {});
+const natalPlanetSource =
+  report?.natal?.planets ??
+  report?.planets ??
+  {};
+
+for (
+  const rawPlanet of
+    Array.isArray(astroBundle?.karakas)
+      ? astroBundle.karakas
+      : []
+) {
+  const planet =
+    String(rawPlanet ?? "").trim();
+
+  if (!planet) {
+    continue;
+  }
+
+  // Keep the stronger house-lord context
+  // when it already exists.
+  if (planetContexts[planet]) {
+    continue;
+  }
+
+  let row: any = null;
+
+  if (Array.isArray(natalPlanetSource)) {
+    row =
+      natalPlanetSource.find(
+        (item: any) =>
+          String(
+            item?.planet ??
+              item?.name ??
+              ""
+          ).toLowerCase() ===
+          planet.toLowerCase()
+      ) ?? null;
+  } else {
+    row =
+      natalPlanetSource?.[planet] ??
+      natalPlanetSource?.[
+        planet.toLowerCase()
+      ] ??
+      null;
+  }
+
+  if (!row) {
+    continue;
+  }
+
+  const sign =
+    String(row?.sign ?? "").trim();
+
+  const house =
+    Number.isFinite(
+      Number(row?.house)
+    )
+      ? Number(row.house)
+      : null;
+
+  const dignity =
+    String(
+      row?.dignity ?? ""
+    ).trim();
+
+  const retrograde =
+    Boolean(row?.retrograde);
+
+  const placementParts = [
+    sign
+      ? `${planet} is placed in ${sign}`
+      : `${planet}'s natal placement is available`,
+
+    house
+      ? `in house ${house}`
+      : "",
+
+    dignity
+      ? `with ${dignity} dignity`
+      : "",
+
+    retrograde
+      ? "and is retrograde"
+      : "",
+  ].filter(Boolean);
+
+  const activeDashaRoles: string[] = [];
+
+  if (
+    String(
+      astroBundle?.currentDasha?.md ??
+        ""
+    ).toLowerCase() ===
+    planet.toLowerCase()
+  ) {
+    activeDashaRoles.push(
+      "Mahadasha lord"
+    );
+  }
+
+  if (
+    String(
+      astroBundle?.currentDasha?.ad ??
+        ""
+    ).toLowerCase() ===
+    planet.toLowerCase()
+  ) {
+    activeDashaRoles.push(
+      "Antardasha lord"
+    );
+  }
+
+  if (
+    String(
+      astroBundle?.currentDasha?.pd ??
+        ""
+    ).toLowerCase() ===
+    planet.toLowerCase()
+  ) {
+    activeDashaRoles.push(
+      "Pratyantar Dasha lord"
+    );
+  }
+
+  planetContexts[planet] = {
+    explanation:
+      placementParts.join(" "),
+
+    practicalMeaning:
+      activeDashaRoles.length > 0
+        ? `${planet} is also active as the ${activeDashaRoles.join(
+            " and "
+          )}, so its natal placement has direct relevance to the current ${topic} period.`
+        : `${planet}'s relevance to this ${topic} question is anchored to its actual natal placement rather than being judged from natural significations alone.`,
+  };
+}
+const karakaPlanets =
+  Array.isArray(astroBundle?.karakas)
+    ? astroBundle.karakas
+    : [];
+
+const activeDashaPlanets = [
+  astroBundle?.currentDasha?.md,
+  astroBundle?.currentDasha?.ad,
+  astroBundle?.currentDasha?.pd,
+]
+  .map((planet) =>
+    String(planet ?? "").trim()
+  )
+  .filter(Boolean);
+const sambandhaRelationships =
+  Array.isArray(
+    astroBundle?.sambandhaAnalysis
+      ?.relationships
+  )
+    ? astroBundle.sambandhaAnalysis
+        .relationships
+    : [];
+const chartPrimaryPlanets = [
+  ...new Set(
+    karakaPlanets.filter(
+      (rawPlanet) => {
+        const planet =
+          String(rawPlanet ?? "").trim();
+
+        if (!planet) {
+          return false;
+        }
+
+        const context =
+          planetContexts[planet];
+
+        const focusHouses =
+  Array.isArray(
+    astroBundle?.focusHouses
+  )
+    ? astroBundle.focusHouses
+    : [];
+
+const rulesFocusHouse =
+  focusHouses.some(
+    (house: number) =>
+      context?.explanation?.includes(
+        `rules house ${house}`
+      )
+  );
+
+const isActiveDashaPlanet =
+  activeDashaPlanets.some(
+    (activePlanet) =>
+      activePlanet.toLowerCase() ===
+      planet.toLowerCase()
+  );
+
+const hasFocusSambandha =
+  sambandhaRelationships.some(
+    (relationship: any) => {
+      const planetA =
+        String(
+          relationship?.planetA ?? ""
+        ).toLowerCase();
+
+      const planetB =
+        String(
+          relationship?.planetB ?? ""
+        ).toLowerCase();
+
+      const involvesPlanet =
+        planetA ===
+          planet.toLowerCase() ||
+        planetB ===
+          planet.toLowerCase();
+
+      const touchesFocusHouse =
+        Array.isArray(
+          relationship?.relatedHouses
+        ) &&
+        relationship.relatedHouses.some(
+          (house: number) =>
+            focusHouses.includes(house)
+        );
+
+      return (
+        involvesPlanet &&
+        relationship?.impact ===
+          "support" &&
+        touchesFocusHouse
+      );
+    }
+  );
+
+return rulesFocusHouse;
+      }
+    )
+  ),
+];
+
+
+for (const rawPlanet of karakaPlanets) {
+  const planet =
+    String(rawPlanet ?? "").trim();
+
+  if (!planet) {
+    continue;
+  }
+
+  const context =
+    planetContexts[planet];
+
+  const focusHouses =
+    Array.isArray(
+      astroBundle?.focusHouses
+    )
+      ? astroBundle.focusHouses
+      : [];
+
+  const rulesFocusHouse =
+    focusHouses.some(
+      (house: number) =>
+        context?.explanation?.includes(
+          `rules house ${house}`
+        )
+    );
+
+  const isActiveDashaPlanet =
+    activeDashaPlanets.some(
+      (activePlanet) =>
+        activePlanet.toLowerCase() ===
+        planet.toLowerCase()
+    );
+
+  const matchingFocusLinks =
+    sambandhaRelationships.filter(
+      (relationship: any) => {
+        const planetA =
+          String(
+            relationship?.planetA ?? ""
+          ).toLowerCase();
+
+        const planetB =
+          String(
+            relationship?.planetB ?? ""
+          ).toLowerCase();
+
+        const involvesPlanet =
+          planetA ===
+            planet.toLowerCase() ||
+          planetB ===
+            planet.toLowerCase();
+
+        const touchesFocusHouse =
+          Array.isArray(
+            relationship?.relatedHouses
+          ) &&
+          relationship.relatedHouses.some(
+            (house: number) =>
+              focusHouses.includes(house)
+          );
+
+        return (
+          involvesPlanet &&
+          relationship?.impact ===
+            "support" &&
+          touchesFocusHouse
+        );
+      }
+    );
+
+  console.log({
+    planet,
+    focusHouses,
+    rulesFocusHouse,
+    isActiveDashaPlanet,
+
+    matchingFocusLinks:
+      matchingFocusLinks.map(
+        (link: any) => ({
+          reason:
+            link?.reason,
+          relatedHouses:
+            link?.relatedHouses,
+          score:
+            link?.score,
+        })
+      ),
+
+    selectedPrimary:
+      chartPrimaryPlanets.some(
+        (selectedPlanet) =>
+          String(
+            selectedPlanet
+          ).toLowerCase() ===
+          planet.toLowerCase()
+      ),
+  });
+}
+
+console.log(
+  "=========================================="
+);
+
+for (const rawPlanet of karakaPlanets) {
+  const planet =
+    String(rawPlanet ?? "").trim();
+
+  if (!planet) {
+    continue;
+  }
+
+  const context =
+    planetContexts[planet];
+
+  if (!context) {
+    continue;
+  }
+
+  const relevantLinks =
+    sambandhaRelationships
+      .filter((relationship: any) => {
+        const planetA =
+          String(
+            relationship?.planetA ?? ""
+          ).toLowerCase();
+
+        const planetB =
+          String(
+            relationship?.planetB ?? ""
+          ).toLowerCase();
+
+        return (
+          relationship?.impact ===
+            "support" &&
+          (
+            planetA ===
+              planet.toLowerCase() ||
+            planetB ===
+              planet.toLowerCase()
+          ) &&
+          Array.isArray(
+            relationship?.relatedHouses
+          ) &&
+          relationship.relatedHouses
+            .some((house: number) =>
+              [
+                ...(
+                  astroBundle?.focusHouses ??
+                  []
+                ),
+                ...(
+                  astroBundle?.supportHouses ??
+                  []
+                ),
+              ].includes(house)
+            )
+        );
+      })
+     .sort((a: any, b: any) => {
+  const focusHouses =
+    Array.isArray(
+      astroBundle?.focusHouses
+    )
+      ? astroBundle.focusHouses
+      : [];
+
+  const aFocusMatches =
+    Array.isArray(a?.relatedHouses)
+      ? a.relatedHouses.filter(
+          (house: number) =>
+            focusHouses.includes(house)
+        ).length
+      : 0;
+
+  const bFocusMatches =
+    Array.isArray(b?.relatedHouses)
+      ? b.relatedHouses.filter(
+          (house: number) =>
+            focusHouses.includes(house)
+        ).length
+      : 0;
+
+  if (
+    aFocusMatches !==
+    bFocusMatches
+  ) {
+    return (
+      bFocusMatches -
+      aFocusMatches
+    );
+  }
+
+  return (
+    Number(b?.score ?? 0) -
+    Number(a?.score ?? 0)
+  );
+})
+      .slice(0, 2);
+
+  if (relevantLinks.length === 0) {
+    continue;
+  }
+
+  const relationshipReasons =
+  relevantLinks
+    .map((relationship: any) =>
+      String(
+        relationship?.reason ?? ""
+      )
+        .trim()
+        .replace(/[.;]+$/, "")
+    )
+    .filter(Boolean);
+
+  if (relationshipReasons.length === 0) {
+    continue;
+  }
+const focusHouses =
+  Array.isArray(
+    astroBundle?.focusHouses
+  )
+    ? astroBundle.focusHouses
+    : [];
+
+const ruledFocusHouses =
+  focusHouses.filter(
+    (house: number) =>
+      planetContexts[
+        planet
+      ]?.explanation?.includes(
+        `rules house ${house}`
+      )
+  );
+
+const connectedFocusHouses = [
+  ...new Set(
+    relevantLinks.flatMap(
+      (relationship: any) =>
+        Array.isArray(
+          relationship?.relatedHouses
+        )
+          ? relationship.relatedHouses.filter(
+              (house: number) =>
+                focusHouses.includes(
+                  house
+                )
+            )
+          : []
+    )
+  ),
+];
+
+const otherConnectedPlanets = [
+  ...new Set(
+    relevantLinks
+      .map((relationship: any) => {
+        const planetA =
+          String(
+            relationship?.planetA ?? ""
+          );
+
+        const planetB =
+          String(
+            relationship?.planetB ?? ""
+          );
+
+        if (
+          planetA.toLowerCase() ===
+          planet.toLowerCase()
+        ) {
+          return planetB;
+        }
+
+        if (
+          planetB.toLowerCase() ===
+          planet.toLowerCase()
+        ) {
+          return planetA;
+        }
+
+        return "";
+      })
+      .filter(Boolean)
+  ),
+];
+let chartSpecificPracticalMeaning =
+  `${planet} supports this ${topic} question through its chart-specific connections.`;
+
+if (ruledFocusHouses.length > 0) {
+  const houseText =
+    ruledFocusHouses.join(", ");
+
+  chartSpecificPracticalMeaning =
+    `${planet} is a primary structural factor because it directly rules ${
+      ruledFocusHouses.length === 1
+        ? `house ${houseText}`
+        : `houses ${houseText}`
+    } relevant to this ${topic} question.`;
+
+  if (
+    otherConnectedPlanets.length > 0
+  ) {
+    chartSpecificPracticalMeaning +=
+      ` Its connection with ${otherConnectedPlanets.join(
+        " and "
+      )} further links it to the event structure.`;
+  }
+} else if (
+  connectedFocusHouses.length > 0
+) {
+  chartSpecificPracticalMeaning =
+    `${planet} acts as a supporting factor through its connection to ${
+      connectedFocusHouses.length === 1
+        ? `house ${connectedFocusHouses[0]}`
+        : `houses ${connectedFocusHouses.join(
+            ", "
+          )}`
+    } relevant to this ${topic} question.`;
+
+  if (
+    otherConnectedPlanets.length > 0
+  ) {
+    chartSpecificPracticalMeaning +=
+      ` This connection operates through ${otherConnectedPlanets.join(
+        " and "
+      )}.`;
+  }
+}
+  planetContexts[planet] = {
+    ...context,
+
+    explanation:
+      `${context.explanation}; ${relationshipReasons.join(
+        "; "
+      )}`,
+
+    practicalMeaning:
+  chartSpecificPracticalMeaning,
+  };
+}
 const planetReasoning =
   buildPlanetReasoning({
     planets:
       astroBundle?.karakas ?? [],
 
     primaryPlanets:
-      Array.isArray(astroBundle?.karakas)
-        ? astroBundle.karakas.slice(0, 2)
-        : [],
+  chartPrimaryPlanets.length > 0
+    ? chartPrimaryPlanets
+    : karakaPlanets.slice(0, 2),
+
+    planetContexts,
 
     source:
       "event karakas and active timing factors",
   });
+const houseConversionRule =
+  resolveEventConversionRule(
+    topic,
+    eventType
+  );
+ const houseContexts =
+  (
+    astroBundle?.promiseLayer?.bullets ??
+    []
+  ).reduce<
+    Record<
+      number,
+      {
+        explanation: string;
+        practicalMeaning: string;
+        eventLanguage?: string;
+      }
+    >
+  >((acc, bullet) => {
+    const text =
+      String(bullet ?? "");
+
+    const match =
+      text.match(
+        /House\s+(\d+).*?sign\s+([A-Za-z]+).*?lord\s+([A-Za-z]+).*?\3\s+placed\s+in\s+([A-Za-z]+)\s+in\s+house\s+(\d+)/i
+      );
+
+    if (!match) {
+      return acc;
+    }
+
+    const [
+      ,
+      rawHouse,
+      sign,
+      rawLord,
+      lordSign,
+      rawLordHouse,
+    ] = match;
+
+    const house =
+      Number(rawHouse);
+
+    if (!Number.isFinite(house)) {
+      return acc;
+    }
+
+    const lord =
+      rawLord.charAt(0).toUpperCase() +
+      rawLord.slice(1).toLowerCase();
+
+    const lordHouse =
+      Number(rawLordHouse);
+
+    const isFocusHouse =
+  Array.isArray(
+    houseConversionRule?.houses
+  ) &&
+  houseConversionRule.houses.includes(
+    house
+  );
+const eventLanguage =
+  String(
+    houseConversionRule?.language ?? ""
+  ).trim();
+  
+    acc[house] = {
+  explanation:
+    `House ${house} falls in ${sign} and is ruled by ${lord}. ` +
+    `${lord} is placed in ${lordSign} in house ${lordHouse}.`,
+
+  eventLanguage,
+
+  practicalMeaning:
+    isFocusHouse
+      ? `House ${house} is a primary structural house for this ${topic} event.`
+      : `House ${house} is a supporting structural house for this ${topic} event.`,
+};
+
+    return acc;
+  }, {});
+  const houseReasoning =
+  buildHouseReasoning({
+    houses: [
+      ...(Array.isArray(
+        houseConversionRule?.houses
+      )
+        ? houseConversionRule.houses
+        : []),
+
+      ...(Array.isArray(
+        houseConversionRule?.supportHouses
+      )
+        ? houseConversionRule.supportHouses
+        : []),
+    ],
+
+    primaryHouses:
+      Array.isArray(
+        houseConversionRule?.houses
+      )
+        ? houseConversionRule.houses
+        : [],
+
+    houseContexts,
+
+    source:
+      "event focus houses and supporting houses",
+  });
+  const eventReasoning =
+  buildEventReasoning({
+    topic,
+    eventType,
+
+    planetReasoning,
+    houseReasoning,
+
+    source:
+      "planet and house reasoning synthesis",
+  });
+  const dashaReasoning =
+  buildDashaReasoning({
+    topic,
+    eventType,
+
+    timingHierarchy,
+
+    currentDasha:
+      astroBundle?.currentDasha ??
+      null,
+
+    planetContexts,
+
+    source:
+      "current dasha chain and timing hierarchy",
+  });
+  const sequenceReasoning =
+  buildSequenceReasoning({
+  topic,
+  eventType,
+  source: "expected event progression",
+});
+  const riskReasoning =
+  buildRiskReasoning({
+    topic,
+    eventType,
+    timing: timingHierarchy,
+    source: "event-specific risk assessment",
+  });
+  const actionReasoning =
+  buildActionReasoning({
+    topic,
+    eventType,
+    timing:
+      timingHierarchy,
+
+    sequence:
+      sequenceReasoning,
+
+    risks:
+      riskReasoning,
+
+    source:
+      "timing, sequence and risk synthesis",
+  });
+  const storyReasoning =
+  buildStoryReasoning({
+    topic,
+    eventType,
+
+    promise:
+      astroBundle?.promiseLayer ?? null,
+
+    timing:
+      timingHierarchy,
+
+    reasoning: [
+      planetReasoning,
+      houseReasoning,
+      eventReasoning,
+      dashaReasoning,
+    ],
+
+    sequence:
+      sequenceReasoning,
+
+    risks:
+      riskReasoning,
+
+    actions:
+      actionReasoning,
+
+    source:
+      "structured reasoning synthesis",
+  });
+  const thoughtProcess =
+  buildThoughtProcess({
+    promise:
+      astroBundle?.promiseLayer ?? null,
+
+    timing:
+      timingHierarchy ?? null,
+
+    reasoning: [
+      planetReasoning,
+      houseReasoning,
+      eventReasoning,
+      dashaReasoning,
+    ],
+
+    sequence:
+  sequenceReasoning,
+
+    risks: riskReasoning,
+
+    actions: actionReasoning,
+
+    story: storyReasoning,
+  });
+
 const finalDecision = buildFinalAnswerDecision({
   topic,
   questionType,
@@ -18101,7 +19655,19 @@ const finalDecision = buildFinalAnswerDecision({
   timingPolicy: astroBundle.timingPolicy,
   confidence: astroBundle.confidence,
   decisionSummary,
+  timingHierarchy,
 });
+if (body?.thoughtProcessDebugOnly === false) {
+  return Response.json({
+    ok: true,
+    question,
+    topic,
+    questionType,
+    eventType,
+    thoughtProcess,
+    finalDecision,
+  });
+}
   const natPayload = buildNaturalizePayload({
   question,
   topic,
@@ -18110,12 +19676,19 @@ const finalDecision = buildFinalAnswerDecision({
   timingHierarchy,
   eventLifecycle,
   planetReasoning,
+  thoughtProcess,
+  finalDecision,
   report: enrichedReport,
   astroBundle,
   distressed,
   simpleGuidanceMode,
-  finalDecisionLine: finalDecision.line,
+  finalDecisionLine:
+  finalDecision.summary ??
+  finalDecision.practicalMeaning ??
+  finalDecision.headline ??
+  "",
   finalDecisionVerdict: finalDecision.verdict,
+  
 });
 console.log("[CHILD CAREER GUARD DEBUG]", {
   age: userContext?.age ?? null,
@@ -19565,7 +21138,14 @@ planetReasoning:
   natPayload?.planetReasoning ??
   planetReasoning ??
   null,
-
+thoughtProcess:
+  natPayload?.thoughtProcess ??
+  thoughtProcess ??
+  null,
+finalDecision:
+  natPayload?.finalDecision ??
+  finalDecision ??
+  null,
 eventType:
   astroBundle?.eventType ??
   astroBundle?.careerEventType ??
@@ -21216,12 +22796,7 @@ if (
   questionType !== "type_profile" &&
   questionType !== "comparison"
 ) {
-  answer = applyThemeTimelinePolish(
-    answer,
-    topic,
-    astroBundle,
-    eventType
-  );
+  answer = cleanContradictoryFallbackText(answer);
 }
 
     answer = answer

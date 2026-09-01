@@ -689,6 +689,10 @@ const eventLifecycle =
   body?.eventLifecycle ?? null;
 const planetReasoning =
   body?.planetReasoning ?? null;
+const thoughtProcess =
+  body?.thoughtProcess ?? null;
+const finalDecision =
+  body?.finalDecision ?? null;
   console.log("========== EVENT LIFECYCLE ==========");
 console.log(JSON.stringify(eventLifecycle, null, 2));
 console.log("=====================================");
@@ -844,12 +848,33 @@ if (eventLifecycle) {
   );
 }
 if (
-  Array.isArray(planetReasoning) &&
-  planetReasoning.length
+  planetReasoning &&
+  Array.isArray(
+    planetReasoning.items
+  ) &&
+  planetReasoning.items.length
 ) {
   lines.push(
     `\nPLANET_REASONING:\n${JSON.stringify(
       planetReasoning,
+      null,
+      2
+    )}`
+  );
+}
+if (thoughtProcess) {
+  lines.push(
+    `\nASTROLOGER_THOUGHT_PROCESS:\n${JSON.stringify(
+      thoughtProcess,
+      null,
+      2
+    )}`
+  );
+}
+if (finalDecision) {
+  lines.push(
+    `\nFINAL_DECISION:\n${JSON.stringify(
+      finalDecision,
       null,
       2
     )}`
@@ -1309,7 +1334,22 @@ console.log(
   "Prompt length:",
   finalPrompt.length
 );
-
+console.log(
+  "THOUGHT PROCESS:",
+  JSON.stringify(
+    thoughtProcess,
+    null,
+    2
+  )
+);
+console.log(
+  "FINAL DECISION:",
+  JSON.stringify(
+    finalDecision,
+    null,
+    2
+  )
+);
 console.log(
   "===================================================="
 );
@@ -1354,21 +1394,23 @@ function buildStructuredSystemPrompt(): string {
     },
 
     authority: [
-      "DECISION_SUMMARY",
-      "TIMING_HIERARCHY",
-      "EVENT_LIFECYCLE",
-      "PLANET_REASONING",
-      "DOMAIN_INTELLIGENCE",
-      "PROMOTION_CONVERSION_ENGINE",
-      "CONVERSION_DIAGNOSIS_V2",
-      "WINNING_EVIDENCE",
-      "MANDATORY_CHART_EVIDENCE",
-      "SELECTED_TIMING_WINDOW",
-      "BEST_EVENT_TRIGGER",
-      "BEST_AVAILABLE_WINDOW",
-      "ASTRO_INTERPRETATION_PACKET",
-      "ASTRO_FACTS_JSON",
-    ],
+  "FINAL_DECISION",
+  "ASTROLOGER_THOUGHT_PROCESS",
+  "TIMING_HIERARCHY",
+  "DECISION_SUMMARY",
+  "EVENT_LIFECYCLE",
+  "PLANET_REASONING",
+  "DOMAIN_INTELLIGENCE",
+  "PROMOTION_CONVERSION_ENGINE",
+  "CONVERSION_DIAGNOSIS_V2",
+  "WINNING_EVIDENCE",
+  "MANDATORY_CHART_EVIDENCE",
+  "SELECTED_TIMING_WINDOW",
+  "BEST_EVENT_TRIGGER",
+  "BEST_AVAILABLE_WINDOW",
+  "ASTRO_INTERPRETATION_PACKET",
+  "ASTRO_FACTS_JSON",
+],
 
     timingHierarchy: {
   authority:
@@ -1432,17 +1474,17 @@ function buildStructuredSystemPrompt(): string {
       ],
 
       chartLogic: [
-        "Natal promise establishes whether the event is structurally supported.",
-        "Dasha establishes whether the theme is active.",
-        "Planetary relationships explain how the theme operates.",
-        "Divisional charts confirm or qualify the promise.",
-        "Transits act as triggers.",
-        "Conversion analysis distinguishes movement from durable outcome.",
-      ],
+  "Use natal promise only to the extent explicitly described in ASTROLOGER_THOUGHT_PROCESS.",
+  "Use dasha activation only with the specific role or effect supplied in ASTROLOGER_THOUGHT_PROCESS.",
+  "Use planetary relationships only when their specific meaning is explicitly supplied in ASTROLOGER_THOUGHT_PROCESS.",
+  "Use divisional confirmation only at the strength and meaning explicitly supplied in ASTROLOGER_THOUGHT_PROCESS.",
+  "Use transit triggers only when explicitly supplied in ASTROLOGER_THOUGHT_PROCESS.",
+  "Use conversion analysis only when explicitly supplied in ASTROLOGER_THOUGHT_PROCESS.",
+],
 
       rules: [
         "Do not merely list planets or houses.",
-        "Explain why each cited factor matters.",
+        "Explain why a cited factor matters only when that reason is explicitly supplied by ASTROLOGER_THOUGHT_PROCESS or FINAL_DECISION. Otherwise, state the supplied factor without interpreting it.",
         "Use exact supplied chart evidence when available.",
         "Do not invent placements, dignities, yogas, aspects, or dates.",
       ],
@@ -1497,18 +1539,25 @@ ${JSON.stringify(contract, null, 2)}
 
 Additional hard rules:
 
-- DECISION_SUMMARY is the final authoritative conclusion when present.
+- FINAL_DECISION is the final authoritative conclusion when present.
+- ASTROLOGER_THOUGHT_PROCESS is the authoritative structured reasoning behind that conclusion.
+- DECISION_SUMMARY and TIMING_HIERARCHY are supporting authoritative structures and must not contradict FINAL_DECISION or ASTROLOGER_THOUGHT_PROCESS.
+- When FINAL_DECISION or ASTROLOGER_THOUGHT_PROCESS is present, lower-priority astrology fields may only be used to explain those supplied conclusions. Never use them to derive a different conclusion.
+- If ASTROLOGER_THOUGHT_PROCESS.timing.practicalWindow exists, you MUST state that practical window as the direct timing answer. Never say that no reliable, usable, or actionable timing window exists.
+- Never independently downgrade or upgrade natal promise, divisional confirmation, dasha support, transit strength, timing confidence, or event likelihood beyond what ASTROLOGER_THOUGHT_PROCESS and FINAL_DECISION explicitly state.
+- Do not describe a divisional chart as weak, strong, insufficient, or contradictory unless that exact conclusion is explicitly present in ASTROLOGER_THOUGHT_PROCESS or FINAL_DECISION.
 - Never override a higher-priority source using a lower-priority source.
 - Do not perform independent astrology reasoning when the engine has already supplied the conclusion.
 - For major life-event timing, broader dasha-backed opportunity periods outrank isolated transit dates.
 - A transit date may be described as an activation point, trigger, peak, or movement date, but not as a guaranteed completion date unless explicitly supplied as such.
 - If a lifecycle stage is null, do not invent it.
 - Translate technical astrology into real-life consequences.
-- When PLANET_REASONING is provided, use it as the authoritative explanation of why the planets support or weaken the prediction. Do not invent alternative planetary reasoning.
-- Do not merely list planets, houses or dasha factors.
-- Explain what each important planet means in the user's real-life situation.
-- For example, instead of saying Mercury, Mars and Jupiter are active, explain that Mercury supports thinking, communication or commercial judgement, Mars adds initiative and execution, and Jupiter expands opportunity or growth.
-- Use astrology evidence to explain the mechanism behind the prediction rather than simply proving calculations were performed.
+- When PLANET_REASONING is provided, use only the specific planetary roles and conclusions explicitly stated in PLANET_REASONING or ASTROLOGER_THOUGHT_PROCESS.
+- Do not merely list planets, houses, or dasha factors.
+- When a planet is named in ASTROLOGER_THOUGHT_PROCESS or FINAL_DECISION, preserve only the specific role explicitly assigned to that planet. Do not expand, translate, embellish, or infer additional planetary meanings from general astrological knowledge.
+- For example, if the supplied reasoning says "Rahu gives secondary support for business matters", you may say that Rahu provides secondary support for business matters. You must NOT reinterpret this as Rahu bringing ambition, innovation, unconventional thinking, growth, risk-taking, foreign connections, or any other generic Rahu meaning unless that exact role is explicitly supplied.
+- Apply this rule equally to every planet, house, sign, nakshatra, dasha, transit, yoga, and divisional chart.
+- Paraphrase supplied astrology evidence only within its stated meaning. Do not turn a technical activation statement into a broader astrological interpretation.
 - Avoid repetitive phrases such as "relevant houses activated", "relevant karakas involved" or "this timing is based on" unless the user specifically requests technical reasoning.
 - Keep technical evidence in supporting explanations, while the main narrative should read like an experienced astrologer speaking to a client.
 - If activationWindow occurs before the practicalWindow, describe it as an early signal, preparatory trigger, opening conversation or momentum-building point rather than as the launch date.
@@ -1521,6 +1570,13 @@ Additional hard rules:
 - TIMING_HIERARCHY.activationWindow is only a trigger or peak inside the practical window.
 - Never reduce a practical date range to a single activation date.
 - Never call the activation date the main window when a practical window exists.
+- Every astrological claim in the response must be directly supported by FINAL_DECISION or ASTROLOGER_THOUGHT_PROCESS. You may simplify, combine, or explain supplied reasoning, but you must not create new astrological reasoning.
+
+- Do not assign generic meanings, effects, or roles to planets, houses, signs, nakshatras, dashas, transits, yogas, or divisional charts unless that specific interpretation is explicitly supplied in FINAL_DECISION or ASTROLOGER_THOUGHT_PROCESS.
+
+- Do not independently infer that a planet supports ambition, communication, wealth, marriage, business, career, growth, discipline, delay, opportunity, or any other outcome merely from general astrological knowledge. State such a role only when the supplied structured reasoning establishes it.
+
+- Treat yourself as the communication layer, not the astrology reasoning layer. Your task is to translate the supplied structured conclusions into clear natural language without adding, removing, upgrading, downgrading, or reinterpreting astrological evidence.
 `.trim();
 }
 function buildCleanerSystemPrompt(): string {

@@ -108,12 +108,18 @@ const mdRows =
     : [];
 
 const adRows =
-  Array.isArray(dashaTimelines.ad)
+  Array.isArray(dashaTimelines.adInCurrentMd) &&
+  dashaTimelines.adInCurrentMd.length
+    ? dashaTimelines.adInCurrentMd
+    : Array.isArray(dashaTimelines.ad)
     ? dashaTimelines.ad
     : [];
 
 const pdRows =
-  Array.isArray(dashaTimelines.pd)
+  Array.isArray(dashaTimelines.pdInCurrentAd) &&
+  dashaTimelines.pdInCurrentAd.length
+    ? dashaTimelines.pdInCurrentAd
+    : Array.isArray(dashaTimelines.pd)
     ? dashaTimelines.pd
     : [];
 

@@ -1245,6 +1245,7 @@ const payload: any = {
   history: buildHistory(messages, query),
   profile: finalProfile,
   birthProfile: finalProfile,
+  thoughtProcessDebugOnly: true,
   reportData: (() => {
   try {
     const raw =
