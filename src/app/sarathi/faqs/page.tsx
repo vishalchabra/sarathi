@@ -1,52 +1,60 @@
 import Link from "next/link";
 import { createSEO } from "@/lib/seo";
 export const metadata = createSEO({
-  title: "Frequently Asked Questions | Sārathi",
+  title: "Frequently Asked Questions About Sārathi",
   description:
-    "Find answers about Sārathi, AI-powered Vedic astrology, Life Reports, Ask Sārathi, the Astrologer Data Engine, pricing, privacy and how the platform works.",
+    "Find answers about Sārathi, personalised Vedic astrology guidance, Life Reports, Ask Sārathi, the Astrologer Data Engine, privacy and how the platform works.",
   path: "/sarathi/faqs",
   keywords: [
-    "Astrology FAQ",
+    "Sārathi FAQ",
     "Vedic Astrology Questions",
     "Life Report FAQ",
-    "Ask Sarathi",
-    "AI Astrology FAQ",
+    "Ask Sārathi",
     "Astrologer Data Engine",
     "Birth Chart Questions",
+    "Vedic Astrology Guidance",
   ],
 });
 const faqs = [
   {
     q: "What is Sārathi?",
-    a: "Sārathi is an astrology-based guidance platform that helps individuals understand life timing and helps astrologers organize chart data in one place.",
+    a: "Sārathi is a Vedic astrology guidance platform designed around clarity, timing and practical interpretation. Individuals can explore their birth chart through personalised Life Reports and Ask Sārathi, while professional astrologers can use the Astrologer Data Engine for deeper chart analysis.",
   },
   {
     q: "Is Sārathi only for individuals?",
-    a: "No. Sārathi has two journeys: one for individuals through Life Report and Ask Sārathi, and one for astrologers through the Astrologer Data Engine.",
+    a: "No. Sārathi has two distinct journeys. Individuals can use Life Reports and Ask Sārathi for personal guidance, while professional astrologers can use the Astrologer Data Engine to bring chart data, dashas, transits, vargas, Panchang and other analytical layers into one workspace.",
   },
   {
     q: "Does Sārathi predict my future?",
-    a: "Sārathi gives timing, tendencies, themes and guidance. It does not remove free will or claim absolute certainty.",
+    a: "Sārathi does not treat astrology as absolute certainty. It interprets planetary periods, transits, chart patterns and timing to highlight tendencies, themes and periods of greater or lesser activation. The purpose is to help you understand the phase you are moving through while keeping choice and free will at the centre.",
   },
   {
-    q: "Is this fear-based astrology?",
-    a: "No. Sārathi is designed to avoid fear, doom language and emotional pressure. The aim is clarity, not anxiety.",
+    q: "Is Sārathi fear-based astrology?",
+    a: "No. Sārathi is deliberately designed to avoid doom language, panic-driven predictions and emotional pressure. Difficult periods can still be discussed honestly, but the emphasis remains on understanding the situation, recognising what requires attention and identifying practical ways to navigate it.",
   },
   {
-    q: "What is the Life Report?",
-    a: "The Life Report explains your chart, major timing cycles, current phase, strengths, challenges and practical guidance in simple language.",
+    q: "What is a Sārathi Life Report?",
+    a: "The Life Report is a personalised interpretation of your Vedic birth chart. It brings together important chart patterns, strengths, challenges, major life themes, current planetary periods and timing to help you understand both your broader journey and the phase you are experiencing now.",
   },
   {
     q: "What is Ask Sārathi?",
-    a: "Ask Sārathi is a chat experience where you can ask specific questions about career, money, relationships, property, health, timing and inner growth.",
+    a: "Ask Sārathi lets you explore a specific question through the context of your birth chart and current timing. Questions can relate to areas such as career, money, relationships, marriage, property, relocation, health, children or personal growth. The aim is to provide focused guidance rather than a generic horoscope.",
   },
   {
     q: "What is the Astrologer Data Engine?",
-    a: "It is a professional workspace for astrologers that organizes chart data, dashas, transits, vargas, Panchang, strengths, utilities and judgment layers.",
+    a: "The Astrologer Data Engine is a professional workspace built for astrologers. It brings together chart foundations, dashas, transits, vargas, Panchang, strength systems, aspects and supporting calculation layers so astrologers can spend less time moving between tools and more time interpreting the chart.",
+  },
+  {
+    q: "What birth details do I need?",
+    a: "For personalised chart analysis, you should provide your date of birth, accurate time of birth and place of birth. Birth time is particularly important because it determines the ascendant and house structure and can affect several timing and divisional-chart calculations.",
+  },
+  {
+    q: "What is the difference between a Life Report and Ask Sārathi?",
+    a: "The Life Report gives you a broader view of your chart, life themes and important timing periods. Ask Sārathi is designed for focused questions about a particular situation or area of life. The Life Report helps you understand the larger picture; Ask Sārathi lets you explore a specific question within that context.",
   },
   {
     q: "Is my birth data private?",
-    a: "Yes. Birth details are sensitive, and Sārathi is being built with privacy and account-based access in mind.",
+    a: "Birth details are personal information and Sārathi is designed around account-based access and responsible handling of user data. You can read more about how information is handled in the Sārathi Privacy Policy.",
   },
 ];
 const faqSchema = {

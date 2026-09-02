@@ -1,4 +1,12 @@
+import type { Metadata } from "next";
 import SarathiAuthPage from "@/components/auth/SarathiAuthPage";
+export const metadata: Metadata = {
+  title: "Astrologer Login",
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 
 export default function AstrologerLoginPage() {
   return (

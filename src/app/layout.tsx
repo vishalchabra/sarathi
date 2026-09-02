@@ -3,33 +3,35 @@ import type { Metadata } from "next";
 import "./globals.css";
 import ServiceWorkerRegister from "@/components/pwa/ServiceWorkerRegister";
 import { GoogleAnalytics } from "@next/third-parties/google";
+
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.sarathiyourguide.com"),
 
   title: {
-    default: "Sārathi | AI-Powered Vedic Astrology",
+    default: "Sārathi | Personalised Vedic Astrology Guidance",
     template: "%s | Sārathi",
   },
 
   description:
-    "Discover personalised Vedic astrology insights with AI. Generate detailed Life Reports, ask astrology questions, explore advanced chart analysis and understand your karmic journey with Sārathi.",
+    "Discover personalised Vedic astrology guidance with Sārathi. Understand your birth chart, dashas, planetary transits and important life phases through detailed Life Reports, focused guidance and professional chart analysis.",
 
   keywords: [
     "Vedic Astrology",
-    "AI Astrology",
     "Birth Chart",
     "Kundli",
     "Life Report",
     "Ask Sarathi",
     "Vedic Horoscope",
-    "Career Prediction",
-    "Marriage Prediction",
+    "Career Astrology",
+    "Marriage Astrology",
     "Planetary Transits",
     "Dasha Analysis",
     "Nakshatra",
     "Moon Sign",
     "Ascendant",
     "Jyotish",
+    "Vedic Birth Chart",
+    "Personalised Astrology",
   ],
 
   authors: [
@@ -62,48 +64,48 @@ export const metadata: Metadata = {
     locale: "en_US",
     url: "https://www.sarathiyourguide.com",
     siteName: "Sārathi",
-    title: "Sārathi | AI-Powered Vedic Astrology",
+    title: "Sārathi | Personalised Vedic Astrology Guidance",
     description:
-      "Personalised Vedic astrology powered by AI. Life Reports, Ask Sārathi, planetary analysis and professional astrology tools.",
+      "Understand your birth chart, planetary timing and important life phases through personalised Vedic astrology guidance with Sārathi.",
     images: [
       {
         url: "/sarathi-logo.png",
         width: 1024,
         height: 1024,
-        alt: "Sārathi",
+        alt: "Sārathi Vedic Astrology",
       },
     ],
   },
 
   twitter: {
     card: "summary_large_image",
-    title: "Sārathi | AI-Powered Vedic Astrology",
+    title: "Sārathi | Personalised Vedic Astrology Guidance",
     description:
-      "Discover personalised Vedic astrology with AI-powered insights.",
+      "Understand your birth chart, planetary timing and important life phases through personalised Vedic astrology guidance.",
     images: ["/sarathi-logo.png"],
   },
 
   icons: {
-  icon: [
-    {
-      url: "/icons/icon-192-v2.png",
-      sizes: "192x192",
-      type: "image/png",
-    },
-    {
-      url: "/icons/icon-512-v2.png",
-      sizes: "512x512",
-      type: "image/png",
-    },
-  ],
-  apple: [
-    {
-      url: "/apple-touch-icon-v2.png",
-      sizes: "180x180",
-      type: "image/png",
-    },
-  ],
-},
+    icon: [
+      {
+        url: "/icons/icon-192-v2.png",
+        sizes: "192x192",
+        type: "image/png",
+      },
+      {
+        url: "/icons/icon-512-v2.png",
+        sizes: "512x512",
+        type: "image/png",
+      },
+    ],
+    apple: [
+      {
+        url: "/apple-touch-icon-v2.png",
+        sizes: "180x180",
+        type: "image/png",
+      },
+    ],
+  },
 };
 
 const organizationSchema = {
@@ -113,14 +115,16 @@ const organizationSchema = {
   name: "Sārathi",
   alternateName: "Sarathi",
   url: "https://www.sarathiyourguide.com",
+
   logo: {
     "@type": "ImageObject",
     url: "https://www.sarathiyourguide.com/sarathi-logo.png",
     width: 1024,
     height: 1024,
   },
+
   description:
-    "Sārathi is an AI-powered Vedic astrology platform offering personalised Life Reports, astrology guidance, professional chart analysis and personal consultations.",
+    "Sārathi is a Vedic astrology platform offering personalised Life Reports, astrology guidance, detailed chart interpretation and professional astrology tools.",
 };
 
 const websiteSchema = {
@@ -130,40 +134,41 @@ const websiteSchema = {
   url: "https://www.sarathiyourguide.com",
   name: "Sārathi",
   alternateName: "Sarathi",
+
   description:
-    "Personalised AI-powered Vedic astrology guidance, Life Reports and professional astrology tools.",
+    "Personalised Vedic astrology guidance, Life Reports, planetary timing analysis and professional astrology tools.",
+
   publisher: {
     "@id": "https://www.sarathiyourguide.com/#organization",
   },
+
   inLanguage: "en",
 };
+
 const softwareApplicationSchema = {
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
   "@id": "https://www.sarathiyourguide.com/#software",
+
   name: "Sārathi",
   alternateName: "Sarathi",
   url: "https://www.sarathiyourguide.com/sarathi",
+
   applicationCategory: "LifestyleApplication",
   applicationSubCategory: "Vedic Astrology",
   operatingSystem: "Web",
   browserRequirements: "Requires a modern web browser",
+
   description:
-    "Sārathi is an AI-powered Vedic astrology platform offering personalised Life Reports, astrology question-and-answer guidance, focused reports and professional chart-analysis tools.",
+    "Sārathi is a Vedic astrology platform for personalised Life Reports, astrology question-and-answer guidance, focused reports, planetary timing analysis and professional chart interpretation.",
+
   image: "https://www.sarathiyourguide.com/sarathi-logo.png",
+
   publisher: {
     "@id": "https://www.sarathiyourguide.com/#organization",
   },
-  offers: {
-    "@type": "AggregateOffer",
-    priceCurrency: "INR",
-    lowPrice: "0",
-    highPrice: "1499",
-    offerCount: "6",
-    availability: "https://schema.org/InStock",
-    url: "https://www.sarathiyourguide.com/sarathi/individual",
-  },
 };
+
 function serializeJsonLd(data: object) {
   return JSON.stringify(data).replace(/</g, "\\u003c");
 }
@@ -189,14 +194,18 @@ export default function RootLayout({
             __html: serializeJsonLd(websiteSchema),
           }}
         />
+
         <script
-  type="application/ld+json"
-  dangerouslySetInnerHTML={{
-    __html: serializeJsonLd(softwareApplicationSchema),
-  }}
-/>
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: serializeJsonLd(softwareApplicationSchema),
+          }}
+        />
+
         <ServiceWorkerRegister />
+
         {children}
+
         <GoogleAnalytics gaId="G-WKFJ595D05" />
       </body>
     </html>

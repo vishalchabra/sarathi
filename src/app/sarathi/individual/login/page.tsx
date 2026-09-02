@@ -1,8 +1,15 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import SarathiAuthPage from "@/components/auth/SarathiAuthPage";
 import { createClient } from "@/lib/supabase/server";
-
+export const metadata: Metadata = {
+  title: "Individual Login",
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 type Props = {
   searchParams: Promise<{
     next?: string;

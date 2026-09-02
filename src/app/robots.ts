@@ -4,22 +4,15 @@ export default function robots(): MetadataRoute.Robots {
   const baseUrl = "https://www.sarathiyourguide.com";
 
   return {
-    rules: [
-      {
-        userAgent: "*",
-        allow: "/",
-        disallow: [
-          "/api/",
-          "/sarathi/console/",
-          "/sarathi/data-engine/clients/",
-          "/sarathi/login",
-          "/sarathi/individual/login",
-          "/sarathi/astrologers/login",
-          "/sarathi/forgot-password",
-          "/sarathi/reset-password",
-        ],
-      },
-    ],
+    rules: {
+      userAgent: "*",
+      allow: "/",
+      disallow: [
+        "/api/",
+        "/sarathi/console/",
+        "/sarathi/predict-debug/",
+      ],
+    },
     sitemap: `${baseUrl}/sitemap.xml`,
     host: baseUrl,
   };

@@ -1,5 +1,14 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import CheckoutButton from "./CheckoutButton";
+
+export const metadata: Metadata = {
+  title: "Upgrade",
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 
 type Props = {
   searchParams: Promise<{
@@ -226,9 +235,9 @@ function ProSubscriptionCard() {
       </h2>
 
       <p className="mt-3 text-sm leading-6 text-slate-700">
-        Get ongoing access to Sārathi’s AI guidance and advanced astrology
-        tools through one monthly subscription.
-      </p>
+  Get ongoing access to Ask Sārathi and advanced Vedic astrology
+  tools through one monthly subscription.
+</p>
 
       <ul className="mt-6 space-y-3 text-sm text-slate-800">
         <li>✓ Unlimited Ask Sārathi questions</li>

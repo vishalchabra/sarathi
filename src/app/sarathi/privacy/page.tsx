@@ -1,5 +1,14 @@
-// FILE: src/app/sarathi/privacy/page.tsx
+import type { Metadata } from "next";
 import Link from "next/link";
+
+export const metadata: Metadata = {
+  title: "Privacy Policy",
+  description:
+    "Read the Sārathi Privacy Policy and learn how account information, birth details, usage data and other personal information are collected, used, protected and handled.",
+  alternates: {
+    canonical: "/sarathi/privacy",
+  },
+};
 
 const supportEmail = "support@sarathiyourguide.com";
 
@@ -12,7 +21,7 @@ function Shell({ children }: { children: React.ReactNode }) {
             ← Back to Sārathi
           </Link>
           <Link
-            href="/sarathi/login?next=/sarathi/life-report"
+            href="/sarathi/individual/login?next=/sarathi/life-report"
             className="rounded-full bg-[#6E4BC6] px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#5F3FB0]"
           >
             Get your Life Report
@@ -30,7 +39,7 @@ function Shell({ children }: { children: React.ReactNode }) {
         </h1>
 
         <p className="mt-2 text-sm text-slate-500">
-  Last updated: 18 July 2026
+  Last updated: 1 September 2026
 </p>
 
         <div className="mt-8 space-y-6 rounded-2xl astro-card p-6 text-sm leading-7 text-slate-700">
@@ -90,7 +99,10 @@ export default function PrivacyPage() {
       <P>We may use information for the following purposes:</P>
       <UL>
         <li>To create and manage your account.</li>
-        <li>To generate astrology reports, chart insights, responses, and related guidance.</li>
+        <li>
+  To calculate and interpret astrology charts, generate reports, respond
+  to questions, and provide related guidance.
+</li>
         <li>To provide, maintain, improve, secure, and personalize the service.</li>
         <li>To process subscriptions, payments, trials, and account access where applicable.</li>
         <li>To respond to support requests and communicate service-related updates.</li>
@@ -117,12 +129,14 @@ export default function PrivacyPage() {
       <P>We may also disclose information if required to do so by law, regulation, court order, legal process, or to protect rights, safety, security, and integrity.</P>
 
       <H>5. Third-party services</H>
-      <P>
-        Sārathi may use third-party providers for hosting, authentication,
-        database services, analytics, communications, payments, AI processing,
-        and technical infrastructure. These providers may process information
-        according to their own terms and privacy policies.
-      </P>
+<P>
+  Sārathi may use third-party service providers for hosting,
+  authentication, database services, analytics, communications,
+  payments, computational processing and technical infrastructure.
+  These providers may process limited information where necessary to
+  deliver their services, subject to their applicable terms, privacy
+  obligations and contractual arrangements.
+</P>
 
       <H>6. Data storage and retention</H>
       <P>

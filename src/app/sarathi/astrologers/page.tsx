@@ -29,17 +29,19 @@ export default function AstrologersPage() {
       For professional astrologers
     </div>
 
-    <h1 className="mt-6 max-w-4xl text-4xl font-semibold leading-tight md:text-6xl">
-      Your astrology workspace,{" "}
-      <span className="text-[color:var(--primary)]">simplified.</span>
-    </h1>
+   <h1 className="mt-6 max-w-4xl text-4xl font-semibold leading-tight md:text-6xl">
+  A complete Vedic astrology workspace,{" "}
+  <span className="text-[color:var(--primary)]">
+    built for astrologers.
+  </span>
+</h1>
 
-    <p className="mt-5 max-w-3xl text-base leading-relaxed astro-text-soft md:text-lg">
-      Sārathi’s Astrologer Data Engine brings chart data, dashas,
-      transits, vargas, Panchang, strengths and client-ready structure
-      into one clean place — so you spend less time calculating and more
-      time interpreting.
-    </p>
+   <p className="mt-5 max-w-3xl text-base leading-relaxed astro-text-soft md:text-lg">
+  Sārathi’s Astrologer Data Engine brings charts, dashas, transits,
+  vargas, Panchang, planetary strengths and advanced calculation layers
+  into one structured workspace — giving you more time to interpret the
+  chart and focus on the consultation.
+</p>
 
     <div className="mt-8 flex flex-wrap gap-3">
       <Link
@@ -125,10 +127,10 @@ export default function AstrologersPage() {
         title="Utilities"
         text="Panchang, Hora, planet transit timeline, date-based calculations and quick reference tools."
       />
-      <Feature
-        title="Dedicated astrology chatbot"
-        text="Ask for placements, varga positions, dasha context, transit meaning or chart data without manually searching."
-      />
+     <Feature
+  title="Chart Query"
+  text="Quickly retrieve placements, varga positions, dasha context, transit information and chart data without manually searching across multiple sections."
+/>
     </div>
   </section>
 </div>

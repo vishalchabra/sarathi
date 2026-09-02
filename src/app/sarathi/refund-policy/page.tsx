@@ -1,4 +1,14 @@
+import type { Metadata } from "next";
 import Link from "next/link";
+
+export const metadata: Metadata = {
+  title: "Refund Policy",
+  description:
+    "Read the Sārathi Refund Policy covering Life Reports, Ask Sārathi question packs, Data Engine subscriptions, duplicate payments, failed access and exceptional refund cases.",
+  alternates: {
+    canonical: "/sarathi/refund-policy",
+  },
+};
 
 function Shell({
   children,
@@ -35,7 +45,7 @@ function Shell({
         </h1>
 
         <p className="mt-2 text-sm text-slate-500">
-          Last updated: 18 July 2026
+          Last updated: 1 September 2026
         </p>
 
         <div className="mt-8 space-y-6 rounded-2xl astro-card p-6 text-sm leading-7 text-slate-700">
@@ -53,7 +63,7 @@ function Shell({
             <Link className="hover:text-slate-900" href="/sarathi/terms">
               Terms
             </Link>
-            <Link className="hover:text-slate-900" href="/refund-policy">
+            <Link className="hover:text-slate-900" href="/sarathi/refund-policy">
               Refund Policy
             </Link>
             <Link className="hover:text-slate-900" href="/sarathi/contact">
@@ -210,7 +220,8 @@ export default function RefundPolicyPage() {
 
       <P>
         Any refund approved outside the circumstances expressly covered by this
-        policy remains at Sārathi&apos;s discretion.
+Policy will be considered on a case-by-case basis and remains at Sārathi&apos;s
+discretion, subject to applicable law.
       </P>
 
       <H>9. Contact</H>

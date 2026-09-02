@@ -2,17 +2,17 @@
 import Link from "next/link";
 import { createSEO } from "@/lib/seo";
 export const metadata = createSEO({
-  title: "About Sārathi — Calm, Practical Vedic Astrology Guidance",
+  title: "About Sārathi — Practical Vedic Astrology Guidance",
   description:
-    "Learn why Sārathi was created, the meaning behind its name, and its mission to make Vedic astrology clear, practical, non-fatalistic and useful in everyday life.",
+    "Discover why Sārathi was created, the meaning behind its name, and its approach to Vedic astrology — practical, non-fatalistic guidance for greater clarity, self-awareness and better decisions.",
   path: "/sarathi/about",
   keywords: [
     "About Sārathi",
     "Vedic Astrology Guidance",
-    "Practical Astrology",
-    "AI Vedic Astrology",
+    "Practical Vedic Astrology",
     "Non-Fatalistic Astrology",
     "Jyotish Guidance",
+    "Personalised Astrology",
   ],
 });
 function PageShell({
@@ -56,13 +56,13 @@ function PageShell({
               FAQs
             </Link>
             <Link
-              href="/sarathi/login?next=/sarathi/chat"
+              href="/sarathi/individual/login?next=/sarathi/chat"
               className="hidden text-sm text-slate-900 hover:text-slate-900 md:inline"
             >
               Ask Sārathi
             </Link>
             <Link
-              href="/sarathi/login?next=/sarathi/life-report"
+              href="/sarathi/individual/login?next=/sarathi/life-report"
               className="rounded-full bg-[#6E4BC6] px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#5F3FB0]"
             >
               Get your Life Report
@@ -221,13 +221,13 @@ export default function AboutPage() {
   </p>
   <div className="mt-5 flex flex-wrap gap-3">
     <Link
-      href="/sarathi/login?next=/sarathi/life-report"
+      href="/sarathi/individual/login?next=/sarathi/life-report"
       className="rounded-full bg-[#6E4BC6] px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#5F3FB0]"
     >
       Start with your Life Report
     </Link>
     <Link
-      href="/sarathi/login?next=/sarathi/chat"
+      href="/sarathi/individual/login?next=/sarathi/chat"
       className="rounded-full astro-card px-4 py-2 text-sm font-semibold text-slate-900/90 hover:bg-white/80 hover:shadow-md"
     >
       Ask Sārathi

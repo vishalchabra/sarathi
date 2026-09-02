@@ -2,18 +2,21 @@
 import Link from "next/link";
 import { createSEO } from "@/lib/seo";
 export const metadata = createSEO({
-  title: "AI-Powered Vedic Astrology Platform | Sārathi",
+  title: "Personalised Vedic Astrology Guidance",
   description:
-    "Discover personalised Vedic astrology with AI. Generate detailed Life Reports, ask unlimited astrology questions, explore advanced chart analysis and receive accurate Vedic guidance with Sārathi.",
+    "Explore Vedic astrology with Sārathi through personalised Life Reports, dasha and transit analysis, practical guidance, professional astrology tools and one-to-one consultations.",
   path: "/sarathi",
   keywords: [
-    "AI Astrology",
     "Vedic Astrology",
+    "Personalised Vedic Astrology",
     "Birth Chart",
     "Kundli",
     "Life Report",
     "Jyotish",
-    "Ask Astrology Questions",
+    "Dasha Analysis",
+    "Planetary Transits",
+    "Astrology Guidance",
+    "Vedic Astrology Software",
   ],
 });
 export default function SarathiHome() {
@@ -87,11 +90,12 @@ export default function SarathiHome() {
             </span>
           </h1>
 
-          <p className="mt-5 text-base leading-relaxed astro-text-soft md:text-lg">
-            Whether you are looking for personal clarity or you are an astrologer
-            serving clients, Sārathi helps convert complex astrology into clear,
-            useful direction.
-          </p>
+         <p className="mt-5 text-base leading-relaxed astro-text-soft md:text-lg">
+  Whether you are seeking personal clarity or you are a professional
+  astrologer working with clients, Sārathi brings the depth of Vedic
+  astrology into a clear, structured experience — helping you understand
+  the chart, the timing and what matters now.
+</p>
         </div>
 
         <div className="mt-12 grid gap-6 lg:grid-cols-2">

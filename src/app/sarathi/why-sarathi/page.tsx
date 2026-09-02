@@ -3,15 +3,15 @@ import { createSEO } from "@/lib/seo";
 export const metadata = createSEO({
   title: "Why Choose Sārathi for Vedic Astrology Guidance",
   description:
-    "Discover how Sārathi makes Vedic astrology practical, personalised and non-fatalistic through clear timing, useful guidance and responsible chart analysis.",
+    "Discover how Sārathi approaches Vedic astrology through personalised chart analysis, clear timing, practical guidance and a non-fatalistic philosophy.",
   path: "/sarathi/why-sarathi",
   keywords: [
     "Why Sārathi",
     "Practical Vedic Astrology",
     "Personalised Astrology Guidance",
     "Non-Fatalistic Astrology",
-    "AI Astrology Platform",
     "Astrology Timing Guidance",
+    "Vedic Astrology Guidance",
   ],
 });
 export default function WhySarathiPage() {
@@ -33,10 +33,11 @@ export default function WhySarathiPage() {
           </h1>
 
           <p className="mt-5 max-w-3xl text-base leading-relaxed text-slate-700 md:text-lg">
-            Sārathi was created because most astrology experiences are either too
-            vague, too scary, or too complicated. We are building a calmer,
-            more practical way to use astrology for real life.
-          </p>
+  Astrology can become difficult to use when the guidance feels vague,
+  fear-driven or buried under too much complexity. Sārathi was created
+  to offer a calmer, more practical way to understand your chart,
+  your timing and the choices in front of you.
+</p>
         </div>
 
         <section className="mt-10 grid gap-5 md:grid-cols-3">
@@ -61,9 +62,9 @@ export default function WhySarathiPage() {
 
           <div className="mt-6 grid gap-4 md:grid-cols-2">
             <Feature
-              title="We combine depth with simplicity"
-              text="Sārathi uses serious astrological layers, dashas, transits, vargas, Panchang and chart context, but presents them in language you can actually use."
-            />
+  title="We combine depth with simplicity"
+  text="Sārathi brings together multiple astrological layers — including dashas, transits, vargas, Panchang and chart context — and presents them in language you can actually use."
+/>
             <Feature
               title="We focus on decisions"
               text="The goal is not entertainment. The goal is to help you understand your phase and make better choices in career, money, relationships, health and growth."

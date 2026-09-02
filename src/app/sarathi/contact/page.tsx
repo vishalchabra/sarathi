@@ -92,7 +92,7 @@ export default function ContactPage() {
 
           <div className="mt-6 flex flex-wrap gap-3">
             <Link
-              href="/sarathi/login?next=/sarathi/chat"
+              href="/sarathi/individual/login?next=/sarathi/chat"
               className="inline-flex rounded-full bg-[#6E4BC6] px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#5F3FB0]"
             >
               Ask Sārathi →

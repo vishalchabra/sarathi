@@ -1,5 +1,14 @@
-// FILE: src/app/sarathi/terms/page.tsx
+import type { Metadata } from "next";
 import Link from "next/link";
+
+export const metadata: Metadata = {
+  title: "Terms of Use",
+  description:
+    "Read the Sārathi Terms of Use covering account responsibilities, astrology guidance, payments, acceptable use, intellectual property, privacy and use of the Sārathi services.",
+  alternates: {
+    canonical: "/sarathi/terms",
+  },
+};
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
@@ -11,7 +20,7 @@ function Shell({ children }: { children: React.ReactNode }) {
           </Link>
 
           <Link
-            href="/sarathi/login?next=/sarathi/life-report"
+            href="/sarathi/individual/login?next=/sarathi/life-report"
             className="rounded-full bg-[#6E4BC6] px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#5F3FB0]"
           >
             Get your Life Report
@@ -29,7 +38,7 @@ function Shell({ children }: { children: React.ReactNode }) {
         </h1>
 
         <p className="mt-2 text-sm text-slate-500">
-  Last updated: 18 July 2026
+ Last updated: 1 September 2026
 </p>
 
         <div className="mt-8 space-y-6 rounded-2xl astro-card p-6 text-sm leading-7 text-slate-700">
@@ -201,10 +210,18 @@ export default function TermsPage() {
 
       <H>10. Privacy</H>
 
-      <P>
-        Your use of the Service is also governed by the Privacy Policy, which
-        forms part of these Terms.
-      </P>
+      <H>10. Privacy</H>
+
+<P>
+  Your use of the Service is also governed by our{" "}
+  <Link
+    href="/sarathi/privacy"
+    className="font-medium text-[color:var(--primary)] hover:underline"
+  >
+    Privacy Policy
+  </Link>
+  , which forms part of these Terms.
+</P>
 
       <H>11. Termination or restriction</H>
 

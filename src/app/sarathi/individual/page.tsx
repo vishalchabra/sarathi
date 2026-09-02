@@ -1,21 +1,40 @@
+import type { Metadata } from "next";
 import Link from "next/link";
-import { createSEO } from "@/lib/seo";
-export const metadata = createSEO({
-  title: "Personalised Vedic Astrology Guidance for Individuals",
+
+export const metadata: Metadata = {
+  title: "Personalised Vedic Astrology Life Report & Guidance",
+
   description:
-    "Explore your birth chart, current dasha, transits and timing windows with Sārathi. Generate a personalised Life Report and ask clear astrology questions about career, relationships, money, health and life direction.",
-  path: "/sarathi/individual",
-  keywords: [
-    "Personalised Vedic Astrology",
-    "Birth Chart Guidance",
-    "Vedic Life Report",
-    "Ask Astrology Questions",
-    "Career Astrology",
-    "Marriage Astrology",
-    "Dasha Analysis",
-    "Jyotish Guidance",
-  ],
-});
+    "Understand your birth chart, current dasha, planetary transits and important life phases with Sārathi. Generate a personalised Vedic astrology Life Report and explore guidance around timing, decisions and life themes.",
+
+  alternates: {
+    canonical: "/sarathi/individual",
+  },
+
+  openGraph: {
+    title: "Personalised Vedic Astrology Life Report & Guidance | Sārathi",
+    description:
+      "Understand your birth chart, current timing and important life phases through personalised Vedic astrology guidance.",
+    url: "/sarathi/individual",
+    type: "website",
+    images: [
+      {
+        url: "/sarathi-logo.png",
+        width: 1024,
+        height: 1024,
+        alt: "Sārathi Vedic Astrology",
+      },
+    ],
+  },
+
+  twitter: {
+    card: "summary_large_image",
+    title: "Personalised Vedic Astrology Life Report & Guidance | Sārathi",
+    description:
+      "Understand your birth chart, current timing and important life phases through personalised Vedic astrology guidance.",
+    images: ["/sarathi-logo.png"],
+  },
+};
 export default function IndividualPage() {
   return (
     <main className="astro-bg min-h-screen text-foreground">
@@ -30,15 +49,16 @@ export default function IndividualPage() {
           </div>
 
           <h1 className="mt-6 max-w-4xl text-4xl font-semibold leading-tight md:text-6xl">
-            Understand your life phase,{" "}
-            <span className="text-[color:var(--primary)]">then move with clarity.</span>
-          </h1>
+  Understand your life through Vedic astrology,{" "}
+  <span className="text-[color:var(--primary)]">then move with clarity.</span>
+</h1>
 
-          <p className="mt-5 max-w-3xl text-base leading-relaxed astro-text-soft md:text-lg">
-            Sārathi helps you read your birth chart, current dasha, transits and
-            timing windows in simple language — so you can make better decisions
-            without fear or confusion.
-          </p>
+         <p className="mt-5 max-w-3xl text-base leading-relaxed astro-text-soft md:text-lg">
+  Sārathi brings together your Vedic birth chart, current dasha,
+  planetary transits and timing windows in clear language — helping you
+  understand the phase you are moving through and make decisions with
+  greater clarity.
+</p>
 
           <div className="mt-8 flex flex-wrap gap-3">
             <Link

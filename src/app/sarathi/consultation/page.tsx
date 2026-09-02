@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
@@ -6,7 +7,15 @@ import { supabaseAdmin } from "@/lib/supabase/admin";
 import TopNav from "../TopNav";
 import ConsultationForm from "./consultation-form";
 import ConsultationPurchaseButton from "./consultation-purchase-button";
-
+export const metadata: Metadata = {
+  title: "Personal Astrology Consultation",
+  description:
+    "Access your Sārathi consultation booking and submit your birth details, preferred schedule and consultation question.",
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 export default async function ConsultationPage() {
   const supabase = await createClient();
 

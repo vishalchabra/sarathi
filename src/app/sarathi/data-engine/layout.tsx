@@ -1,19 +1,19 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Daily Guide",
+  title: "Astrologer Data Engine",
   description:
-    "Access personalised daily Vedic astrology guidance based on your birth details, planetary periods and current timing.",
+    "Professional Vedic astrology chart analysis workspace for Sārathi astrologers.",
   robots: {
     index: false,
     follow: false,
   },
 };
 
-export default function DailyGuideLayout({
+export default function DataEngineLayout({
   children,
-}: {
+}: Readonly<{
   children: React.ReactNode;
-}) {
+}>) {
   return children;
 }
