@@ -1,6 +1,7 @@
 // FILE: src/app/sarathi/page.tsx
 import Link from "next/link";
 import { createSEO } from "@/lib/seo";
+import TopNav from "./TopNav";
 export const metadata = createSEO({
   title: "Personalised Vedic Astrology Guidance",
   description:
@@ -28,54 +29,7 @@ export default function SarathiHome() {
         <div className="absolute right-[10%] top-[55%] h-[380px] w-[520px] rounded-full bg-fuchsia-200/20 blur-[130px]" />
       </div>
 
-      <header className="sticky top-0 z-40 border-b border-[color:var(--border)] bg-white/75 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-7xl items-center justify-start gap-12 px-4 py-4">
-          <Link href="/sarathi" className="flex items-center gap-3">
-            <div className="grid h-10 w-10 place-items-center rounded-xl astro-card">
-              <span className="text-lg">✧</span>
-            </div>
-            <div className="leading-tight">
-              <div className="font-semibold">Sārathi</div>
-              <div className="text-xs astro-text-muted">
-                The charioteer of your journey within
-              </div>
-            </div>
-          </Link>
-
-         <nav className="hidden items-center gap-5 text-sm text-foreground/75 lg:flex">
-  <Link className="hover:text-foreground" href="/sarathi/about">
-    About Us
-  </Link>
-
-  <Link className="hover:text-foreground" href="/sarathi/why-sarathi">
-    Why Sārathi
-  </Link>
-
-  <Link
-    className="font-medium text-[color:var(--primary)] hover:opacity-80"
-    href="/sarathi/consultation"
-  >
-    Consultation
-  </Link>
-
-  <Link className="hover:text-foreground" href="/sarathi/faqs">
-    FAQs
-  </Link>
-
-  <Link className="hover:text-foreground" href="/sarathi/contact">
-    Contact
-  </Link>
-
-  <Link className="hover:text-foreground" href="/sarathi/privacy">
-    Privacy
-  </Link>
-
-  <Link className="hover:text-foreground" href="/sarathi/terms">
-    Terms
-  </Link>
-</nav>
-        </div>
-      </header>
+      <TopNav />
 
       <section className="mx-auto max-w-7xl px-4 pb-16 pt-12 md:pt-16">
         <div className="mx-auto max-w-3xl text-center">
