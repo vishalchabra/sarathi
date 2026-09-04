@@ -180,9 +180,9 @@ const libraryTopics = [
     href: "/sarathi/learn/astrology/transits-gochar-vedic-astrology",
   },
   {
-    label: "Yogas",
-    href: null,
-  },
+  label: "Yogas",
+  href: "/sarathi/learn/astrology/yogas-vedic-astrology",
+},
   {
     label: "Chart Interpretation",
     href: "/sarathi/learn/astrology/reading-d1-birth-chart-vedic-astrology",

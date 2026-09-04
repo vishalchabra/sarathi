@@ -93,7 +93,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "monthly",
       priority: 0.8,
     },
-
+    {
+  url: `${baseUrl}/sarathi/learn/astrology/yogas-vedic-astrology`,
+  changeFrequency: "monthly",
+  priority: 0.8,
+},
     // Question-based Knowledge Centre articles
     {
       url: `${baseUrl}/sarathi/learn/questions/when-will-i-get-a-job`,
