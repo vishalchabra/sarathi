@@ -104,7 +104,31 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "monthly",
       priority: 0.8,
     },
-
+    {
+  url: `${baseUrl}/sarathi/learn/questions/when-will-i-get-married`,
+  changeFrequency: "monthly",
+  priority: 0.8,
+},
+{
+  url: `${baseUrl}/sarathi/learn/questions/when-will-my-finances-improve`,
+  changeFrequency: "monthly",
+  priority: 0.8,
+},
+{
+  url: `${baseUrl}/sarathi/learn/questions/when-will-i-buy-a-house`,
+  changeFrequency: "monthly",
+  priority: 0.8,
+},
+{
+  url: `${baseUrl}/sarathi/learn/questions/when-will-i-have-a-child`,
+  changeFrequency: "monthly",
+  priority: 0.8,
+},
+{
+  url: `${baseUrl}/sarathi/learn/questions/will-i-settle-abroad`,
+  changeFrequency: "monthly",
+  priority: 0.8,
+},
     // Main public pages
     {
       url: `${baseUrl}/sarathi/individual`,

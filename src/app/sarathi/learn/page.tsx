@@ -26,31 +26,42 @@ const questionTopics = [
     href: "/sarathi/learn/questions/when-will-i-get-a-job",
     article: "When will I get a job?",
   },
+ {
+  title: "Marriage & Relationships",
+  description:
+    "Learn how marriage timing, relationship patterns, delays and partnership themes are studied in a Vedic birth chart.",
+  href: "/sarathi/learn/questions/when-will-i-get-married",
+  article: "When will I get married?",
+},
   {
-    title: "Marriage & Relationships",
-    description:
-      "Learn how marriage timing, relationship patterns, delays and partnership themes are studied in a Vedic birth chart.",
-  },
-  {
-    title: "Money & Wealth",
-    description:
-      "Explore the houses, planets and planetary periods connected with income, savings, financial growth and changing money patterns.",
-  },
-  {
-    title: "Property & Home",
-    description:
-      "Understand how property, home, relocation, vehicles and important domestic changes are examined astrologically.",
-  },
-  {
-    title: "Children & Family",
-    description:
-      "Learn the traditional principles used to understand children, family developments and related timing.",
-  },
-  {
-    title: "Foreign Travel & Settlement",
-    description:
-      "Explore the combinations associated with travel, relocation, overseas opportunities and living away from one's birthplace.",
-  },
+  title: "Money & Wealth",
+  description:
+    "Understand financial improvement, income growth, savings, wealth patterns and periods when financial conditions may become stronger.",
+  href: "/sarathi/learn/questions/when-will-my-finances-improve",
+  article: "When will my finances improve?",
+},
+{
+  title: "Property & Home",
+  description:
+    "Learn how property purchase, home ownership, relocation and property timing are studied through the birth chart.",
+  href: "/sarathi/learn/questions/when-will-i-buy-a-house",
+  article: "When will I buy a house?",
+},
+{
+  title: "Children & Family",
+  description:
+    "Learn how child-related timing and family expansion are traditionally studied through the 5th house, Saptamsa, Dasha and transits.",
+  href: "/sarathi/learn/questions/when-will-i-have-a-child",
+  article: "When will I have a child?",
+},
+{
+  title: "Foreign Travel & Settlement",
+  description:
+    "Understand how foreign travel, relocation and long-term settlement are studied through movement, residence, Dasha and transit factors.",
+  href: "/sarathi/learn/questions/will-i-settle-abroad",
+  article: "Will I settle abroad?",
+},
+  
 ];
 
 const learningSteps = [
