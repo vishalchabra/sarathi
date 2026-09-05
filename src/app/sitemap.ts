@@ -194,6 +194,21 @@ export default function sitemap(): MetadataRoute.Sitemap {
   changeFrequency: "monthly",
   priority: 0.8,
 },
+{
+  url: `${baseUrl}/sarathi/learn/questions/when-will-i-go-abroad`,
+  changeFrequency: "monthly",
+  priority: 0.8,
+},
+{
+  url: `${baseUrl}/sarathi/learn/questions/foreign-settlement-yoga-in-kundli`,
+  changeFrequency: "monthly",
+  priority: 0.8,
+},
+{
+  url: `${baseUrl}/sarathi/learn/questions/which-house-shows-foreign-travel-vedic-astrology`,
+  changeFrequency: "monthly",
+  priority: 0.8,
+},
     // Main public pages
     {
       url: `${baseUrl}/sarathi/individual`,

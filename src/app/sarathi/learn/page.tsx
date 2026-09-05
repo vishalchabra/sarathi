@@ -129,11 +129,26 @@ const questionTopics = [
 {
   title: "Foreign Travel & Settlement",
   description:
-    "Understand how foreign travel, relocation and long-term settlement are studied through movement, residence, Dasha and transit factors.",
-  href: "/sarathi/learn/questions/will-i-settle-abroad",
-  article: "Will I settle abroad?",
+    "Explore foreign travel, relocation, long-term settlement, the 3rd, 9th, 12th and 4th houses, relevant house lords, Rahu, Dashas and transits.",
+  articles: [
+    {
+      label: "Will I settle abroad?",
+      href: "/sarathi/learn/questions/will-i-settle-abroad",
+    },
+    {
+      label: "When will I go abroad?",
+      href: "/sarathi/learn/questions/when-will-i-go-abroad",
+    },
+    {
+  label: "Do I have Foreign Settlement Yoga in my Kundli?",
+  href: "/sarathi/learn/questions/foreign-settlement-yoga-in-kundli",
 },
-  
+{
+  label: "Which house shows foreign travel and settlement?",
+  href: "/sarathi/learn/questions/which-house-shows-foreign-travel-vedic-astrology",
+},
+  ],
+},
 ];
 
 const learningSteps = [
@@ -469,7 +484,7 @@ export default function KnowledgeCentrePage() {
         href={topic.href}
         className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-[#6b315c] transition hover:opacity-70"
       >
-        {topic.article}
+        {topic.articles}
         <span aria-hidden="true">→</span>
       </Link>
     ) : (
