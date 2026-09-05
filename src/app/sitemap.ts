@@ -105,7 +105,32 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.8,
     },
     {
+  url: `${baseUrl}/sarathi/learn/questions/when-will-i-change-jobs`,
+  changeFrequency: "monthly",
+  priority: 0.8,
+},
+{
+  url: `${baseUrl}/sarathi/learn/questions/when-will-i-get-promoted`,
+  changeFrequency: "monthly",
+  priority: 0.8,
+},
+{
+  url: `${baseUrl}/sarathi/learn/questions/which-career-is-right-for-me`,
+  changeFrequency: "monthly",
+  priority: 0.8,
+},
+    {
   url: `${baseUrl}/sarathi/learn/questions/when-will-i-get-married`,
+  changeFrequency: "monthly",
+  priority: 0.8,
+},
+{
+  url: `${baseUrl}/sarathi/learn/questions/why-is-my-marriage-delayed`,
+  changeFrequency: "monthly",
+  priority: 0.8,
+},
+{
+  url: `${baseUrl}/sarathi/learn/questions/love-marriage-or-arranged-marriage`,
   changeFrequency: "monthly",
   priority: 0.8,
 },

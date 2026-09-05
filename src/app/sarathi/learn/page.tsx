@@ -20,18 +20,46 @@ export const metadata: Metadata = {
 
 const questionTopics = [
   {
-    title: "Career & Job",
-    description:
-      "Understand career timing, job changes, promotions, professional direction and periods of career growth or uncertainty.",
-    href: "/sarathi/learn/questions/when-will-i-get-a-job",
-    article: "When will I get a job?",
-  },
+  title: "Career & Job",
+  description:
+    "Understand career timing, job changes, promotions, professional direction and periods of career growth or uncertainty.",
+  articles: [
+    {
+      label: "When will I get a job?",
+      href: "/sarathi/learn/questions/when-will-i-get-a-job",
+    },
+    {
+      label: "When will I change jobs?",
+      href: "/sarathi/learn/questions/when-will-i-change-jobs",
+    },
+    {
+  label: "When will I get promoted?",
+  href: "/sarathi/learn/questions/when-will-i-get-promoted",
+},
+{
+  label: "Which career is right for me?",
+  href: "/sarathi/learn/questions/which-career-is-right-for-me",
+},
+  ],
+},
  {
   title: "Marriage & Relationships",
   description:
     "Learn how marriage timing, relationship patterns, delays and partnership themes are studied in a Vedic birth chart.",
-  href: "/sarathi/learn/questions/when-will-i-get-married",
-  article: "When will I get married?",
+  articles: [
+    {
+      label: "When will I get married?",
+      href: "/sarathi/learn/questions/when-will-i-get-married",
+    },
+    {
+      label: "Why is my marriage delayed?",
+      href: "/sarathi/learn/questions/why-is-my-marriage-delayed",
+    },
+  ],
+},
+{
+  label: "Love marriage or arranged marriage?",
+  href: "/sarathi/learn/questions/love-marriage-or-arranged-marriage",
 },
   {
   title: "Money & Wealth",
@@ -369,31 +397,45 @@ export default function KnowledgeCentrePage() {
 
         <div className="mt-10 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
           {questionTopics.map((topic) => (
-            <div
-              key={topic.title}
-              className="rounded-2xl border border-[#e7daca] bg-white p-6 shadow-sm"
-            >
-              <h3 className="text-xl font-semibold">{topic.title}</h3>
+  <div
+    key={topic.title}
+    className="rounded-2xl border border-[#e7daca] bg-white p-6 shadow-sm"
+  >
+    <h3 className="text-xl font-semibold">{topic.title}</h3>
 
-              <p className="mt-3 leading-7 text-[#6c6070]">
-                {topic.description}
-              </p>
+    <p className="mt-3 leading-7 text-[#6c6070]">
+      {topic.description}
+    </p>
 
-              {"href" in topic && topic.href ? (
-                <Link
-                  href={topic.href}
-                  className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-[#6b315c] transition hover:opacity-70"
-                >
-                  {topic.article}
-                  <span aria-hidden="true">→</span>
-                </Link>
-              ) : (
-                <p className="mt-5 text-sm font-semibold text-[#9b8d99]">
-                  Articles coming soon
-                </p>
-              )}
-            </div>
-          ))}
+    {"articles" in topic && topic.articles ? (
+      <div className="mt-5 flex flex-col gap-3">
+        {topic.articles.map((article) => (
+          <Link
+            key={article.href}
+            href={article.href}
+            className="inline-flex items-center gap-2 text-sm font-semibold text-[#6b315c] transition hover:opacity-70"
+          >
+            {article.label}
+            <span aria-hidden="true">→</span>
+          </Link>
+        ))}
+      </div>
+    ) : "href" in topic && topic.href ? (
+      <Link
+        href={topic.href}
+        className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-[#6b315c] transition hover:opacity-70"
+      >
+        {topic.article}
+        <span aria-hidden="true">→</span>
+      </Link>
+    ) : (
+      <p className="mt-5 text-sm font-semibold text-[#9b8d99]">
+        Articles coming soon
+      </p>
+    )}
+  </div>
+))}
+
         </div>
       </section>
 
