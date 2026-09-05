@@ -55,11 +55,11 @@ const questionTopics = [
       label: "Why is my marriage delayed?",
       href: "/sarathi/learn/questions/why-is-my-marriage-delayed",
     },
-  ],
-},
-{
+    {
   label: "Love marriage or arranged marriage?",
   href: "/sarathi/learn/questions/love-marriage-or-arranged-marriage",
+},
+  ],
 },
   {
   title: "Money & Wealth",
@@ -484,7 +484,7 @@ export default function KnowledgeCentrePage() {
         href={topic.href}
         className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-[#6b315c] transition hover:opacity-70"
       >
-        {topic.articles}
+        {topic.articles?.length === 1 && topic.articles[0].label}
         <span aria-hidden="true">→</span>
       </Link>
     ) : (
