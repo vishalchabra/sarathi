@@ -106,9 +106,25 @@ const questionTopics = [
 {
   title: "Children & Family",
   description:
-    "Learn how child-related timing and family expansion are traditionally studied through the 5th house, Saptamsa, Dasha and transits.",
-  href: "/sarathi/learn/questions/when-will-i-have-a-child",
-  article: "When will I have a child?",
+    "Explore childbirth timing, Santaan Yoga, the 5th house, Jupiter, D7 or Saptamsha and the wider chart factors used to study children-related questions.",
+  articles: [
+    {
+      label: "When will I have a child?",
+      href: "/sarathi/learn/questions/when-will-i-have-a-child",
+    },
+    {
+      label: "Do I have Santaan Yoga in my Kundli?",
+      href: "/sarathi/learn/questions/santaan-yoga-in-kundli",
+    },
+    {
+  label: "Why is childbirth delayed?",
+  href: "/sarathi/learn/questions/why-is-childbirth-delayed",
+},
+{
+  label: "Which house shows children in Vedic astrology?",
+  href: "/sarathi/learn/questions/which-house-shows-children-vedic-astrology",
+},
+  ],
 },
 {
   title: "Foreign Travel & Settlement",

@@ -175,6 +175,21 @@ export default function sitemap(): MetadataRoute.Sitemap {
   priority: 0.8,
 },
 {
+  url: `${baseUrl}/sarathi/learn/questions/santaan-yoga-in-kundli`,
+  changeFrequency: "monthly",
+  priority: 0.8,
+},
+{
+  url: `${baseUrl}/sarathi/learn/questions/why-is-childbirth-delayed`,
+  changeFrequency: "monthly",
+  priority: 0.8,
+},
+{
+  url: `${baseUrl}/sarathi/learn/questions/which-house-shows-children-vedic-astrology`,
+  changeFrequency: "monthly",
+  priority: 0.8,
+},
+{
   url: `${baseUrl}/sarathi/learn/questions/will-i-settle-abroad`,
   changeFrequency: "monthly",
   priority: 0.8,
