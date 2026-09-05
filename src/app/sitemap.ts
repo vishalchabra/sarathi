@@ -140,7 +140,32 @@ export default function sitemap(): MetadataRoute.Sitemap {
   priority: 0.8,
 },
 {
+  url: `${baseUrl}/sarathi/learn/questions/will-i-become-rich`,
+  changeFrequency: "monthly",
+  priority: 0.8,
+},
+{
+  url: `${baseUrl}/sarathi/learn/questions/why-am-i-facing-financial-problems`,
+  changeFrequency: "monthly",
+  priority: 0.8,
+},
+{
+  url: `${baseUrl}/sarathi/learn/questions/dhana-yoga-explained`,
+  changeFrequency: "monthly",
+  priority: 0.8,
+},
+{
   url: `${baseUrl}/sarathi/learn/questions/when-will-i-buy-a-house`,
+  changeFrequency: "monthly",
+  priority: 0.8,
+},
+{
+  url: `${baseUrl}/sarathi/learn/questions/property-yoga-in-kundli`,
+  changeFrequency: "monthly",
+  priority: 0.8,
+},
+{
+  url: `${baseUrl}/sarathi/learn/questions/which-house-shows-property-vedic-astrology`,
   changeFrequency: "monthly",
   priority: 0.8,
 },

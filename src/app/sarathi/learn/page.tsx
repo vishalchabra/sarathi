@@ -64,16 +64,44 @@ const questionTopics = [
   {
   title: "Money & Wealth",
   description:
-    "Understand financial improvement, income growth, savings, wealth patterns and periods when financial conditions may become stronger.",
-  href: "/sarathi/learn/questions/when-will-my-finances-improve",
-  article: "When will my finances improve?",
+    "Explore financial timing, wealth potential, income, gains, savings and the broader money patterns seen in a Vedic birth chart.",
+  articles: [
+    {
+      label: "When will my finances improve?",
+      href: "/sarathi/learn/questions/when-will-my-finances-improve",
+    },
+    {
+      label: "Will I become rich?",
+      href: "/sarathi/learn/questions/will-i-become-rich",
+    },
+    {
+  label: "Why am I facing financial problems?",
+  href: "/sarathi/learn/questions/why-am-i-facing-financial-problems",
+},
+{
+  label: "Dhana Yoga explained",
+  href: "/sarathi/learn/questions/dhana-yoga-explained",
+},
+  ],
 },
 {
   title: "Property & Home",
   description:
-    "Learn how property purchase, home ownership, relocation and property timing are studied through the birth chart.",
-  href: "/sarathi/learn/questions/when-will-i-buy-a-house",
-  article: "When will I buy a house?",
+    "Understand property timing, home ownership, Property Yoga, the 4th house and the chart factors used to study real-estate potential.",
+  articles: [
+    {
+      label: "When will I buy a house?",
+      href: "/sarathi/learn/questions/when-will-i-buy-a-house",
+    },
+    {
+      label: "Do I have Property Yoga in my Kundli?",
+      href: "/sarathi/learn/questions/property-yoga-in-kundli",
+    },
+    {
+  label: "Which house shows property in Vedic astrology?",
+  href: "/sarathi/learn/questions/which-house-shows-property-vedic-astrology",
+},
+  ],
 },
 {
   title: "Children & Family",
