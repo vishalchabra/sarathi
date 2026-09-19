@@ -405,13 +405,14 @@ insightProfile?: InsightProfile;
 };
 
 type CareerEventType =
-  | "profession_identity"
   | "promotion"
   | "job_change"
+  | "job_search"
   | "career_movement"
   | "internal_shift"
   | "stability_check"
   | "employment_risk"
+  | "profession_identity"
   | "generic";
  type RelationshipEventType =
   | "relationship_suitability"
@@ -1539,7 +1540,14 @@ const EVENT_CONVERSION_RULES: Partial<
     divisionalCharts: ["D10"],
     language: "applications, interviews, resignation thinking, offer movement, employer change",
   },
-
+job_search: {
+  houses: [6, 10, 11],
+  supportHouses: [2],
+  karakas: ["Saturn", "Sun", "Mercury", "Jupiter"],
+  divisionalCharts: ["D10"],
+  language:
+    "job search, applications, interviews, employment opportunity, offer conversion, joining, and return to structured employment",
+},
   buy_property: {
     houses: [4, 11, 12],
     supportHouses: [2],
@@ -2852,44 +2860,61 @@ function getTimingTopicCopy(
       };
     case "career":
   return {
-        eventName:
-          eventType === "job_change"
-            ? "job-change"
-            : eventType === "promotion"
-            ? "promotion"
-            : "career",
+    eventName:
+      eventType === "job_search"
+        ? "employment search"
+        : eventType === "job_change"
+        ? "job-change"
+        : eventType === "promotion"
+        ? "promotion"
+        : "career",
 
-        outcomeName:
-          eventType === "job_change"
-            ? "job change"
-            : eventType === "promotion"
-            ? "promotion"
-            : "career outcome",
+    outcomeName:
+      eventType === "job_search"
+        ? "employment"
+        : eventType === "job_change"
+        ? "job change"
+        : eventType === "promotion"
+        ? "promotion"
+        : "career outcome",
 
-        movementName: "career movement",
+    movementName:
+      eventType === "job_search"
+        ? "job-search movement"
+        : "career movement",
 
-        activationMeaning:
-          getMovementMeaning(topic, eventType),
+    activationMeaning:
+      getMovementMeaning(topic, eventType),
 
-        conversionMeaning:
-          eventType === "job_change"
-            ? "a confirmed offer, resignation, employer change, or joining"
-            : eventType === "promotion"
-            ? "formal approval, title change, salary revision, or announced promotion"
-            : "a confirmed professional outcome",
+    conversionMeaning:
+      eventType === "job_search"
+        ? "a confirmed offer, offer acceptance, joining, or return to structured employment"
+        : eventType === "job_change"
+        ? "a confirmed offer, resignation, employer change, or joining"
+        : eventType === "promotion"
+        ? "formal approval, title change, salary revision, or announced promotion"
+        : "a confirmed professional outcome",
 
-        weakOpening:
-          "An immediate career outcome is not strongly indicated from the current signals.",
+    weakOpening:
+      eventType === "job_search"
+        ? "Immediate employment conversion is not strongly indicated from the current signals."
+        : "An immediate career outcome is not strongly indicated from the current signals.",
 
-        preparationAction:
-          "Use the preparation phase to strengthen your profile, visibility, network, and evidence of performance.",
+    preparationAction:
+      eventType === "job_search"
+        ? "Use the preparation phase to strengthen your CV and positioning, widen your search, activate your network, and prepare seriously for applications and interviews."
+        : "Use the preparation phase to strengthen your profile, visibility, network, and evidence of performance.",
 
-        activationAction:
-          "During the active window, pursue conversations, applications, interviews, and internal opportunities actively.",
+    activationAction:
+      eventType === "job_search"
+        ? "During the active window, pursue applications, recruiter conversations, interviews, referrals, and viable employment opportunities actively."
+        : "During the active window, pursue conversations, applications, interviews, and internal opportunities actively.",
 
-        caution:
-          "Avoid making an irreversible career decision until the practical outcome is confirmed.",
-      };
+    caution:
+      eventType === "job_search"
+        ? "Treat interview or recruiter activity as movement rather than confirmed employment until an offer and joining path are established."
+        : "Avoid making an irreversible career decision until the practical outcome is confirmed.",
+  };
       default:
   return {
     eventName: "event",
@@ -3952,14 +3977,7 @@ const dashaRows = [
             row?.lord
         );
 
-  if (!planet || !relevantPlanets.includes(planet)) continue;
-
-  // Temporary focused debug only for Jan-Feb 2027.
-  // Remove after confirming dasha row accuracy.
-  const isJanFeb2027Window =
-    startKey >= "2027-01-01" && startKey <= "2027-02-28";
-
-  
+  if (!planet || !relevantPlanets.includes(planet)) continue;  
 
   // Avoid using very broad MD rows when nearer AD/PD rows already exist.
   if (row?._level === "md" && out.length > 0) continue;
@@ -4293,7 +4311,7 @@ const selectedDashaText =
   let primaryReason: string | null = selectedWindow?.label
     ? `This window stands out as the strongest available ${params.topic} timing period: ${selectedWindow.label}.`
     : null;
-
+  
   if (params.topic === "career" && params.eventType === "promotion") {
     primaryReason = selectedWindow?.label
   ? `This period stands out because the ${selectedDashaChain} window is more supportive for recognition, title movement, and salary review than the periods immediately before it: ${selectedWindow.label}.`
@@ -4313,7 +4331,15 @@ const selectedDashaText =
       "The selected period is more relevant for applications, recruiter contact, interviews, or employer movement than the current phase."
     );
   }
+  if (params.topic === "career" && params.eventType === "job_search") {
+  primaryReason = selectedWindow?.label
+    ? `This period stands out because it shows stronger employment-search and job-conversion potential than the surrounding periods: ${selectedWindow.label}.`
+    : "This period stands out because it shows stronger employment-search and job-conversion potential than the surrounding periods.";
 
+  supportingReasons.push(
+    "The selected period is more relevant for applications, recruiter contact, interviews, shortlisting, offers, and movement back into structured employment than the current phase."
+  );
+}
   if (params.topic === "vehicle" && params.eventType === "buy_vehicle") {
     primaryReason = selectedWindow?.label
       ? `This period stands out because it shows stronger vehicle-related movement than the surrounding periods: ${selectedWindow.label}.`
@@ -4791,7 +4817,8 @@ const hasModerateOutcomeSupport =
   const isJobChange =
     eventType === "job_change" ||
     eventType === "career_movement";
-
+  const isJobSearch =
+  eventType === "job_search";
   if (
   strong &&
   hasOutcomeSupport &&
@@ -4800,10 +4827,12 @@ const hasModerateOutcomeSupport =
     return {
       windowClass: "outcome",
       practicalMeaning: isPromotion
-        ? "This can support formal promotion conversion such as title elevation, recognition, salary increment, or role upgrade."
-        : isJobChange
-        ? "This can support external job movement such as interviews, offer movement, resignation thinking, or employer change."
-        : "This can support formal career conversion such as promotion, title change, role upgrade, or recognized movement.",
+  ? "This can support formal promotion conversion such as title elevation, recognition, salary increment, or role upgrade."
+  : isJobSearch
+  ? "This can support employment conversion such as a serious opportunity becoming an offer, offer acceptance, joining, or return to structured employment."
+  : isJobChange
+  ? "This can support external job movement such as interviews, offer movement, resignation thinking, or employer change."
+  : "This can support formal career conversion such as promotion, title change, role upgrade, or recognized movement.",
     };
   }
 
@@ -4811,10 +4840,12 @@ const hasModerateOutcomeSupport =
     return {
       windowClass: "movement",
       practicalMeaning: isPromotion
-        ? "This can support promotion movement such as recognition, title discussion, salary review, responsibility increase, or promotion consideration."
-        : isJobChange
-        ? "This can support interviews, recruiter activity, internal transfer, role discussion, or employer movement."
-        : "This can support meaningful career movement and should not be treated as a purely passive review period.",
+  ? "This can support promotion movement such as recognition, title discussion, salary review, responsibility increase, or promotion consideration."
+  : isJobSearch
+  ? "This can support active employment movement such as applications progressing, recruiter contact, interviews, shortlisting, or serious opportunity development."
+  : isJobChange
+  ? "This can support interviews, recruiter activity, internal transfer, role discussion, or employer movement."
+  : "This can support meaningful career movement and should not be treated as a purely passive review period.",
     };
   }
 
@@ -4822,20 +4853,24 @@ const hasModerateOutcomeSupport =
     return {
       windowClass: "review",
       practicalMeaning: isPromotion
-        ? "This can bring visibility and recognition signals, but timing support remains incomplete."
-        : isJobChange
-        ? "This can bring applications, recruiter contact, or role-change discussion, but timing support remains incomplete."
-        : "This can bring review, visibility, added responsibility, or internal movement, but timing support remains incomplete.",
+  ? "This can bring visibility and recognition signals, but timing support remains incomplete."
+  : isJobSearch
+  ? "This can bring job-search activity such as applications, recruiter contact, networking, or early interview movement, but support for actual employment conversion remains incomplete."
+  : isJobChange
+  ? "This can bring applications, recruiter contact, or role-change discussion, but timing support remains incomplete."
+  : "This can bring review, visibility, added responsibility, or internal movement, but timing support remains incomplete.",
     };
   }
 
   return {
     windowClass: "visibility",
     practicalMeaning: isPromotion
-      ? "This is better for visibility, responsibility-building, and positioning than final promotion."
-      : isJobChange
-      ? "This is better for preparing, applying quietly, and testing the market than final job change."
-      : "This is better for visibility, responsibility-building, and positioning than final career conversion.",
+  ? "This is better for visibility, responsibility-building, and positioning than final promotion."
+  : isJobSearch
+  ? "This is better for preparing applications, strengthening positioning, networking, and widening the job search than expecting immediate employment conversion."
+  : isJobChange
+  ? "This is better for preparing, applying quietly, and testing the market than final job change."
+  : "This is better for visibility, responsibility-building, and positioning than final career conversion.",
   };
 }
 
@@ -5477,61 +5512,92 @@ function detectCareerEventType(
   if (topic !== "career") return "generic";
 
   const q = question.toLowerCase().trim();
-if (
-  /\b(what profession|which profession|what will be my profession|what could be my profession|what can be my profession|profession should i|profession can i|profession suits me|profession suit me|what career|which career|career suits me|career suit me|career direction|professional direction|what field should i|which field should i|what kind of work|which occupation|what occupation)\b/i.test(q)
-) {
-  return "profession_identity";
-}
-// profession identity / suitability first
-if (
-  /\b(what is my profession|what is my current profession|what do i do|what kind of work|line of work|career type|job type|what profession suits me|which profession suits me|what career suits me|which career suits me|should i become|can i become|would i be good as|am i suited for|am i suitable for|is .* suitable for me)\b/.test(
-    q
-  )
-) {
-  return "profession_identity";
-}
 
-  // promotion
- if (/\b(get promoted|promotion|promotions|promote|promoted)\b/.test(q)) {
-  return "promotion";
-}
+  // Profession identity / career suitability
+  if (
+    /\b(what profession|which profession|what will be my profession|what could be my profession|what can be my profession|profession should i|profession can i|profession suits me|profession suit me|what career|which career|career suits me|career suit me|career direction|professional direction|what field should i|which field should i|what kind of work|which occupation|what occupation)\b/i.test(
+      q
+    )
+  ) {
+    return "profession_identity";
+  }
 
-  // job change
-if (
-  /\b(job change|change my job|change jobs|switch job|switch jobs|switch my job|new job|another job|different employer|change employer|switch employer|switch company|change company|changing companies|new employer)\b/.test(q)
-) {
-  return "job_change";
-}
+  if (
+    /\b(what is my profession|what is my current profession|what do i do|what kind of work|line of work|career type|job type|what profession suits me|which profession suits me|what career suits me|which career suits me|should i become|can i become|would i be good as|am i suited for|am i suitable for|is .* suitable for me)\b/.test(
+      q
+    )
+  ) {
+    return "profession_identity";
+  }
 
-  // internal shift
-  if (/\b(role change|role shift|transfer|department change|internal move)\b/.test(q)) {
+  // Promotion
+  if (
+    /\b(get promoted|promotion|promotions|promote|promoted)\b/.test(q)
+  ) {
+    return "promotion";
+  }
+
+  // Job search / unemployed -> employed
+  // Keep this separate from job_change because the native is not
+  // necessarily moving from one employer to another.
+  if (
+    /\b(unemployed|unemployment|jobless|out of work|without a job|without employment|not employed|currently unemployed|looking for a job|looking for work|searching for a job|searching for work|seeking a job|seeking employment|seeking work|find a job|find work|find employment|get a job|get employed|be employed|become employed|start working|return to work|back to work)\b/.test(
+      q
+    )
+  ) {
+    return "job_search";
+  }
+
+  // Job change: employed -> different job / employer
+  if (
+    /\b(job change|change my job|change jobs|switch job|switch jobs|switch my job|new job|another job|different employer|change employer|switch employer|switch company|change company|changing companies|new employer)\b/.test(
+      q
+    )
+  ) {
+    return "job_change";
+  }
+
+  // Internal shift
+  if (
+    /\b(role change|role shift|transfer|department change|internal move)\b/.test(
+      q
+    )
+  ) {
     return "internal_shift";
   }
-// employment risk / involuntary job loss
-if (
-  /\b(lose my job|lose my current job|job loss|employment risk|job at risk|is my job at risk|could i lose my job|will i lose my job|risk of losing my job|termination|terminated|be terminated|fired|be fired|laid off|layoff|lay off|redundancy|made redundant|employment instability|job instability)\b/.test(q)
-) {
-  return "employment_risk";
-}
-  // stability / check
-if (
-  /\b(stay in my job|stay in my current job|leave my job|leave my current job|quit|resign|resignation|continue in job|continue in my job|job stability|stuck in my career|career feels stuck|career is stuck|feeling stuck in my career)\b/.test(q)
-) {
-  return "stability_check";
-}
 
-// fallback by time direction
-if (timeDirection === "identity") {
-  return "profession_identity";
-}
+  // Employment risk / involuntary job loss
+  if (
+    /\b(lose my job|lose my current job|job loss|employment risk|job at risk|is my job at risk|could i lose my job|will i lose my job|risk of losing my job|termination|terminated|be terminated|fired|be fired|laid off|layoff|lay off|redundancy|made redundant|employment instability|job instability)\b/.test(
+      q
+    )
+  ) {
+    return "employment_risk";
+  }
 
-// Future tense alone does NOT imply a job change.
-// Explicit job-change wording is handled above.
-if (timeDirection === "future") {
-  return "profession_identity";
-}
+  // Stability / staying or leaving an existing role
+  if (
+    /\b(stay in my job|stay in my current job|leave my job|leave my current job|quit|resign|resignation|continue in job|continue in my job|job stability|stuck in my career|career feels stuck|career is stuck|feeling stuck in my career)\b/.test(
+      q
+    )
+  ) {
+    return "stability_check";
+  }
 
-return "generic";
+  // Identity questions can safely fall back to profession identity.
+  if (timeDirection === "identity") {
+    return "profession_identity";
+  }
+
+  // IMPORTANT:
+  // Future-oriented career wording by itself does not tell us whether
+  // the user means promotion, job search, job change, or profession.
+  // Do not force future questions into profession_identity.
+  if (timeDirection === "future") {
+    return "generic";
+  }
+
+  return "generic";
 }
 function detectRelationshipEventType(
   question: string,
@@ -7106,7 +7172,13 @@ function buildTimingConfidenceNote(
 
     if (
     topic === "career" &&
-    ["promotion", "job_change", "internal_shift", "stability_check"].includes(careerEventType ?? "")
+    [
+  "promotion",
+  "job_change",
+  "job_search",
+  "internal_shift",
+  "stability_check",
+].includes(careerEventType ?? "")
   ) {
     if (timingPolicy.dashaStrength === "strong") {
       return "Career movement is supported, but it should still be read as a broader professional phase first. Short-term triggers only refine timing; they do not guarantee the event by themselves.";
@@ -7115,7 +7187,9 @@ function buildTimingConfidenceNote(
     if (timingPolicy.dashaStrength === "moderate") {
       return "This looks more like a phase of movement, visibility, review, or repositioning than a clean guaranteed career shift.";
     }
-
+    if (careerEventType === "job_search") {
+  return "The current period is not strong enough for me to call immediate employment, but a more supportive phase for applications, interviews, offers, and employment conversion is approaching.";
+}
     if (careerEventType === "job_change") {
   return "The current period is not strong enough for me to call an immediate job change, but a more supportive career-movement phase is approaching.";
 }
@@ -7245,11 +7319,52 @@ function getTimingPolicy(
   const dashaStrength = getDashaTimingStrength(report, [...rule.houses, ...(rule.supportHouses ?? [])], rule.karakas);
   const transitStrength = getTransitTimingStrength(report, topic);
 
-  const isCareerMovement =
-    topic === "career" &&
-    ["promotion", "job_change", "internal_shift"].includes(careerEventType ?? "");
+const isCareerMovement =
+  topic === "career" &&
+  [
+    "promotion",
+    "job_change",
+    "job_search",
+    "internal_shift",
+  ].includes(careerEventType ?? "");
 
   if (isCareerMovement) {
+    if (careerEventType === "job_search") {
+  if (
+    dashaStrength === "strong" &&
+    (transitStrength === "strong" ||
+      transitStrength === "moderate")
+  ) {
+    return {
+      dashaStrength,
+      transitStrength,
+      allowSharpWindow: false,
+      note:
+        "Employment timing is meaningfully supported. The period can support applications, interviews, offers, and movement back into structured employment, but it should be presented as a broader employment window rather than a guaranteed single-date outcome.",
+    };
+  }
+
+  if (
+    dashaStrength === "moderate" ||
+    dashaStrength === "mixed"
+  ) {
+    return {
+      dashaStrength,
+      transitStrength,
+      allowSharpWindow: false,
+      note:
+        "This period supports job-search movement such as applications, recruiter contact, interviews, and opportunity development, but the evidence is not strong enough to treat employment conversion as guaranteed.",
+    };
+  }
+
+  return {
+    dashaStrength,
+    transitStrength,
+    allowSharpWindow: false,
+    note:
+      "Dasha-period support is not strong enough to present this as a reliable employment-conversion window, even if some job-search activity or transit triggers are present.",
+  };
+}
     if (dashaStrength === "strong" && (transitStrength === "strong" || transitStrength === "moderate")) {
       return {
         dashaStrength,
@@ -7258,7 +7373,7 @@ function getTimingPolicy(
         note: "Career movement is supported, but it should still be presented as a broader phase rather than a guaranteed short-term event.",
       };
     }
-
+    
     if (dashaStrength === "moderate" || dashaStrength === "mixed") {
       return {
         dashaStrength,
@@ -7343,7 +7458,8 @@ function getEventInterpretation(eventType?: AskSarathiEventType) {
   switch (eventType) {
     case "promotion":
       return "This period is more likely to build promotion conditions first — higher visibility, leadership responsibility, and recognition — with formal title elevation becoming stronger as the window matures.";
-
+    case "job_search":
+  return "This period can support job-search movement through applications, recruiter contact, referrals, interviews, shortlisting, and serious employment opportunities. Stronger conversion signals can develop into an offer, acceptance, joining, or return to structured employment.";
     case "job_change":
       return "This period can bring recruiter activity, interviews, employer-change discussions, or a shift in work environment.";
 
@@ -7403,6 +7519,7 @@ function getEventInterpretation(eventType?: AskSarathiEventType) {
 function getEventLabel(topic: AskSarathiDomain, eventType?: AskSarathiEventType): string {
   const eventLabelByType: Record<string, string> = {
     promotion: "promotion",
+    job_search: "employment search",
     job_change: "career-change",
     internal_shift: "internal role-shift",
     stability_check: "career stability",
@@ -7511,11 +7628,20 @@ function getMovementMeaning(
   eventType?: AskSarathiEventType
 ): string {
   if (topic === "career") {
-    if (eventType === "promotion") return "visibility, leadership responsibility, recognition, title discussions, or decision-maker attention";
-    if (eventType === "job_change") return "recruiter contact, interviews, employer-change discussions, networking, or role-market movement";
-    if (eventType === "internal_shift") return "team movement, responsibility expansion, restructuring, or internal repositioning";
-    return "role change, responsibility expansion, visibility, interviews, recruiter contact, or internal discussions";
-  }
+  if (eventType === "promotion")
+    return "visibility, leadership responsibility, recognition, title discussions, or decision-maker attention";
+
+  if (eventType === "job_search")
+    return "applications, recruiter contact, referrals, networking, interviews, shortlisting, and development of serious employment opportunities";
+
+  if (eventType === "job_change")
+    return "recruiter contact, interviews, employer-change discussions, networking, or role-market movement";
+
+  if (eventType === "internal_shift")
+    return "team movement, responsibility expansion, restructuring, or internal repositioning";
+
+  return "role change, responsibility expansion, visibility, interviews, recruiter contact, or internal discussions";
+}
 
   if (topic === "vehicle") {
     if (eventType === "upgrade_vehicle") return "research, comparison, exchange-value checks, financing discussions, dealership contact, or movement toward an upgrade";
@@ -9778,11 +9904,20 @@ function extractConversationState(historyInput: any = []): ConversationState {
         lastAnswerMode: "TIMING_FIRST",
       };
     }
-
-    if (/\b(job change|change my job|switch job|switch my job|new job|external move|employer change|interview|recruiter|offer|resign|resignation)\b/.test(t)) {
+    if (
+  /\b(unemployed|unemployment|jobless|out of work|without a job|without employment|not employed|currently unemployed|looking for a job|looking for work|searching for a job|searching for work|seeking a job|seeking employment|seeking work|find a job|find work|find employment|get a job|get employed|be employed|become employed|start working|return to work|back to work)\b/.test(t)
+) {
+  return {
+    lastTopic: "career",
+    lastEventType: "job_search",
+    lastCareerEventType: "job_search",
+    lastAnswerMode: "TIMING_FIRST",
+  };
+}
+    if (/\b(job change|change my job|switch job|switch my job|external move|employer change|resign|resignation)\b/.test(t)) {
       return {
         lastTopic: "career",
-        lastEventType: "generic_event",
+        lastEventType: "job_change",
         lastCareerEventType: "job_change",
         lastAnswerMode: "TIMING_FIRST",
       };
@@ -9862,14 +9997,27 @@ function extractConversationState(historyInput: any = []): ConversationState {
       };
     }
 
-    if (/\bjob change|external move|employer change|interview|recruiter|offer movement|resignation\b/.test(t)) {
-      return {
-        lastTopic: "career",
-        lastEventType: "generic_event",
-        lastCareerEventType: "job_change",
-        lastAnswerMode: "TIMING_FIRST",
-      };
-    }
+   if (
+  /\bemployment search|job search|unemployed|unemployment|jobless|looking for a job|looking for work|seeking employment|return to work|back to work|employment opportunity|employment conversion|return to structured employment\b/.test(t)
+) {
+  return {
+    lastTopic: "career",
+    lastEventType: "job_search",
+    lastCareerEventType: "job_search",
+    lastAnswerMode: "TIMING_FIRST",
+  };
+}
+
+if (
+  /\bjob change|career-change|external move|employer change|resignation\b/.test(t)
+) {
+  return {
+    lastTopic: "career",
+    lastEventType: "job_change",
+    lastCareerEventType: "job_change",
+    lastAnswerMode: "TIMING_FIRST",
+  };
+}
 
     if (/\bvehicle purchase|car purchase|buying a car|buy a car\b/.test(t)) {
       return {
@@ -10167,11 +10315,15 @@ function getFuturePhaseStrength(
 ): FuturePhaseStrength {
   if (!timingPolicy) return "weak";
 
-  const isCareerMovement =
-    topic === "career" &&
-    ["promotion", "job_change", "internal_shift", "stability_check"].includes(
-      careerEventType ?? ""
-    );
+ const isCareerMovement =
+  topic === "career" &&
+  [
+    "promotion",
+    "job_change",
+    "job_search",
+    "internal_shift",
+    "stability_check",
+  ].includes(careerEventType ?? "");
 
   if (isCareerMovement) {
     if (timingPolicy.dashaStrength === "strong" && timingPolicy.transitStrength !== "weak") {
@@ -10338,7 +10490,13 @@ const CAREER_EVENT_RULES: Partial<
     windowLanguage:
       "applications, recruiter contact, interviews, resignation thinking, offer movement, employer change",
   },
- 
+ job_search: {
+  houses: [6, 10, 11],
+  supportHouses: [2],
+  karakas: ["Saturn", "Sun", "Mercury", "Jupiter"],
+  windowLanguage:
+    "applications, interviews, recruiter movement, employment opportunities, offer conversion, joining, and return to structured work",
+},
   internal_shift: {
     houses: [6, 10, 11],
     supportHouses: [3],
@@ -12137,10 +12295,14 @@ function buildTimingWindows(
   }
 
   const isCareerMovement =
-    topic === "career" &&
-    ["promotion", "job_change", "internal_shift", "stability_check"].includes(
-      careerEventType ?? ""
-    );
+  topic === "career" &&
+  [
+    "promotion",
+    "job_change",
+    "job_search",
+    "internal_shift",
+    "stability_check",
+  ].includes(careerEventType ?? "");
 
   if (timeDirection === "future") {
     if (isCareerMovement) {
@@ -13173,15 +13335,16 @@ function buildFinalAnswerDecision(params: {
       .toLowerCase();
 
   const isCareerMovement =
-    topic === "career" &&
-    [
-      "promotion",
-      "job_change",
-      "internal_shift",
-      "stability_check",
-    ].includes(
-      careerEventType ?? ""
-    );
+  topic === "career" &&
+  [
+    "promotion",
+    "job_search",
+    "job_change",
+    "internal_shift",
+    "stability_check",
+  ].includes(
+    careerEventType ?? ""
+  );
    if (
   questionType === "timing" &&
   timingHierarchy?.practicalWindow
@@ -13817,9 +13980,9 @@ decision.headline ??
 
   const isCareerMovement =
     topic === "career" &&
-    ["promotion", "job_change", "internal_shift", "stability_check"].includes(
-      careerEventType ?? ""
-    );
+    ["promotion", "job_search", "job_change", "internal_shift", "stability_check"].includes(
+  careerEventType ?? ""
+);
 
   if (timeDirection === "future") {
     if (isCareerMovement) {
@@ -14392,7 +14555,52 @@ function scorePredictionWindow({
         reasons.push("Work-structure change support is present through Saturn activation");
       }
     }
+    if (careerEventType === "job_search") {
+  if (ad === "Mercury" || pd === "Mercury") {
+    score += 8;
+    reasons.push(
+      "Mercury sub-period supports applications, interviews, communication, and employment movement"
+    );
+  } else if (md === "Mercury") {
+    score += 4;
+    reasons.push(
+      "Mercury Mahadasha gives background support for employment search and professional movement"
+    );
+  }
 
+  if (ad === "Jupiter" || pd === "Jupiter") {
+    score += 8;
+    reasons.push(
+      "Jupiter sub-period supports professional opportunity, growth, and employment expansion"
+    );
+  } else if (md === "Jupiter") {
+    score += 4;
+    reasons.push(
+      "Jupiter Mahadasha gives background support for professional opportunity and growth"
+    );
+  }
+
+  if (active.includes("Saturn")) {
+    score += 6;
+    reasons.push(
+      "Saturn activation supports work, responsibility, and re-entry into structured employment"
+    );
+  }
+
+  if (active.includes("Sun")) {
+    score += 5;
+    reasons.push(
+      "Sun activation supports professional role, visibility, and employment status"
+    );
+  }
+
+  if (ad === "Rahu" || pd === "Rahu") {
+    score += 4;
+    reasons.push(
+      "Rahu sub-period can open unconventional or unexpected employment opportunities"
+    );
+  }
+}
     if (careerEventType === "internal_shift") {
       if (active.includes("Mercury")) {
         score += 7;
@@ -15829,11 +16037,12 @@ const suppressAdultCareerInference =
   userContext?.lifeStage === "child" &&
   topic === "career" &&
   [
-    "job_change",
-    "promotion",
-    "internal_shift",
-    "stability_check",
-  ].includes(String(eventType ?? ""));
+  "job_change",
+  "job_search",
+  "promotion",
+  "internal_shift",
+  "stability_check",
+].includes(String(eventType ?? ""));
 
 const careerInference =
   topic === "career" &&
@@ -16338,13 +16547,7 @@ const strongestWindow =
   rankedTimingWindows.length > 0
     ? rankedTimingWindows[0]
     : null;
-if (
-  topic === "career" &&
-  (
-    eventType === "job_change" ||
-    careerEventType === "job_change"
-  )
-) {
+{
   
 }
 const bestRangeWindow =

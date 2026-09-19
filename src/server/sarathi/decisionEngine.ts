@@ -117,6 +117,7 @@ const MAJOR_LIFE_EVENTS = new Set([
   "buy_vehicle",
   "vehicle_timing",
 
+  "job_search",
   "job_change",
   "promotion",
   "internal_shift",
