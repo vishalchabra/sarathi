@@ -628,9 +628,15 @@ function removeStaleTimingText(value: any): any {
 }
 function buildStructuredPrompt(body: any): string {
   const userQuestion = safeStr(body?.userQuestion);
-  const topic = safeStr(body?.topic);
-  const history = safeStr(body?.history);
-  const questionType = safeStr(body?.questionType);
+const topic = safeStr(body?.topic);
+const history = safeStr(body?.history);
+const questionType = safeStr(body?.questionType);
+const currentDate = safeStr(body?.currentDate);
+const multiIntentAnalysis =
+  body?.multiIntentAnalysis &&
+  typeof body.multiIntentAnalysis === "object"
+    ? body.multiIntentAnalysis
+    : null;
   const tone = safeStr(body?.tone);
   const depth = safeStr(body?.depth);
   const interactionIntent = safeStr(body?.interactionIntent);
@@ -772,6 +778,16 @@ console.log("======================================");
   const whyChain = astroInterpretationPacket?.whyChain ?? null;
 
   if (userQuestion) lines.push(`USER_QUESTION:\n${userQuestion}`);
+  if (multiIntentAnalysis?.isMultiIntent) {
+  lines.push(
+    `\nMULTI_INTENT_ANALYSIS:\n${JSON.stringify(
+      multiIntentAnalysis,
+      null,
+      2
+    )}`
+  );
+}
+  if (currentDate) lines.push(`\nCURRENT_DATE:\n${currentDate}`);
   if (topic) lines.push(`\nTOPIC:\n${topic}`);
   if (questionType) lines.push(`\nQUESTION_TYPE:\n${questionType}`);
   if (careerEventType) lines.push(`\nCAREER_EVENT_TYPE:\n${careerEventType}`);
@@ -1544,6 +1560,7 @@ Additional hard rules:
 - DECISION_SUMMARY and TIMING_HIERARCHY are supporting authoritative structures and must not contradict FINAL_DECISION or ASTROLOGER_THOUGHT_PROCESS.
 - When FINAL_DECISION or ASTROLOGER_THOUGHT_PROCESS is present, lower-priority astrology fields may only be used to explain those supplied conclusions. Never use them to derive a different conclusion.
 - If ASTROLOGER_THOUGHT_PROCESS.timing.practicalWindow exists, you MUST state that practical window as the direct timing answer. Never say that no reliable, usable, or actionable timing window exists.
+- Date-state wording is mandatory: compare CURRENT_DATE with the start and end of every selected timing window. If CURRENT_DATE is between start and end inclusive, explicitly describe the window as active now, currently active, or already underway. Never call such a window upcoming, approaching, or say the user is entering it. If CURRENT_DATE is before start, it may be called upcoming. If CURRENT_DATE is after end, describe it as past. When a window is already active, practical guidance must refer to the remaining part of the window.
 - Never independently downgrade or upgrade natal promise, divisional confirmation, dasha support, transit strength, timing confidence, or event likelihood beyond what ASTROLOGER_THOUGHT_PROCESS and FINAL_DECISION explicitly state.
 - Do not describe a divisional chart as weak, strong, insufficient, or contradictory unless that exact conclusion is explicitly present in ASTROLOGER_THOUGHT_PROCESS or FINAL_DECISION.
 - Never override a higher-priority source using a lower-priority source.
@@ -1570,8 +1587,12 @@ Additional hard rules:
 - TIMING_HIERARCHY.activationWindow is only a trigger or peak inside the practical window.
 - Never reduce a practical date range to a single activation date.
 - Never call the activation date the main window when a practical window exists.
+- UNIVERSAL EVIDENCE BOUNDARY: For every user question and every sub-intent in MULTI_INTENT_ANALYSIS, answer only at the level of specificity explicitly supported by FINAL_DECISION, ASTROLOGER_THOUGHT_PROCESS, ASTRO_FACTS, or other structured evidence supplied in this request. This rule applies across all life areas, including career, marriage, relationships, children, money, wealth, business, property, vehicles, relocation, travel, education, health, disputes, inheritance, parents, siblings, reputation, spirituality, and inner life. Do not convert broad astrological support into a more specific factual prediction. In particular, do not invent or infer an exact quantity, amount, profession, industry, salary level, partner attribute, meeting place or method, location, country, city, institution, business type, property type, vehicle type, educational field, rank, result, diagnosis, legal outcome, financial amount, public status, event count, or other categorical detail unless that specific detail is established by the supplied structured evidence. Generic planetary, house, sign, nakshatra, karaka, dasha, or transit meanings may explain supplied conclusions, but they must not be used to manufacture a new conclusion that the structured evidence did not establish. When evidence supports the broader theme but not the requested specific detail, answer the supported broader theme and state clearly that the supplied chart evidence does not establish the more specific detail. Never fill an evidence gap with examples phrased as possibilities such as "could be", "may be", "for example", "such as", or "this might mean" when those examples introduce unsupported predictions.
 - Every astrological claim in the response must be directly supported by FINAL_DECISION or ASTROLOGER_THOUGHT_PROCESS. You may simplify, combine, or explain supplied reasoning, but you must not create new astrological reasoning.
-
+- If MULTI_INTENT_ANALYSIS is supplied and isMultiIntent is true, treat every listed intent as a separate part of the user's question that should be addressed. Answer each intent only from evidence explicitly available in FINAL_DECISION or ASTROLOGER_THOUGHT_PROCESS. Do not ignore an intent merely because QUESTION_TYPE represents only one part of the question. If the supplied evidence does not establish an answer for a particular intent, say so briefly and clearly rather than inventing or inferring an unsupported answer.
+- For MULTI_INTENT_ANALYSIS, each sub-intent has its own evidence boundary. For a career work_profile sub-intent, if ASTRO_FACTS.careerInference is supplied, ASTRO_FACTS.careerInference is the authoritative and exclusive source for naming work types, industries, professions, role styles, employment modes, or career categories. You may explain those supplied categories in plain language, but you MUST NOT derive, add, suggest, or list any additional occupations or industries from planetary reasoning, house reasoning, karakas, dashas, domain intelligence, generic astrological meanings, or your own knowledge. For salary, compensation, wealth, or income sub-intents, do not characterize the level as high, low, average, fair, respectable, stable, exceptional, strong, weak, or similar unless FINAL_DECISION or ASTROLOGER_THOUGHT_PROCESS explicitly establishes that level. Evidence of gains, responsibility, visibility, reward, compensation movement, negotiation, or professional recognition does NOT establish salary level. When salary level is not established, say directly that the supplied chart evidence does not establish how high or low the salary will be, while separately explaining any supported compensation movement or negotiation potential.
+- For relationship or marriage MULTI_INTENT_ANALYSIS, treat each requested partner attribute separately. For where or how the user will meet a partner, name a meeting place, channel, circumstance, intermediary, environment, or method only when FINAL_DECISION, ASTROLOGER_THOUGHT_PROCESS, or ASTRO_FACTS explicitly supplies that information. Do not generate examples such as family introductions, friends, social circles, workplace, travel, online platforms, education, religious settings, professional networks, or chance encounters from generic house, planet, sign, nakshatra, karaka, or dasha meanings. If the supplied evidence does not establish where or how the meeting occurs, say directly that the chart evidence provided does not establish the meeting setting or method and stop there. Do not follow that limitation with speculative possibilities.
+- Never invent a numeric, categorical, or specific outcome merely to answer a part of the user's question. This includes number of children, number of marriages, exact salary or wealth amount, exact rank, exact score, exact age, exact event count, or similar quantities. State such an outcome only when FINAL_DECISION or ASTROLOGER_THOUGHT_PROCESS explicitly supplies it. If the user asks for a quantity that is not supplied, say that the available chart analysis does not establish that quantity, then answer any other supported part of the question normally.
 - Do not assign generic meanings, effects, or roles to planets, houses, signs, nakshatras, dashas, transits, yogas, or divisional charts unless that specific interpretation is explicitly supplied in FINAL_DECISION or ASTROLOGER_THOUGHT_PROCESS.
 
 - Do not independently infer that a planet supports ambition, communication, wealth, marriage, business, career, growth, discipline, delay, opportunity, or any other outcome merely from general astrological knowledge. State such a role only when the supplied structured reasoning establishes it.

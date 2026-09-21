@@ -150,6 +150,28 @@ type AnswerMode =
   | "PROFILE_FIRST"
   | "STRATEGY_FIRST"
   | "DAILY_GUIDANCE";
+type QuestionIntent = {
+  topic: AskSarathiDomain;
+  intent: string;
+  ask:
+    | "timing"
+    | "outcome"
+    | "nature"
+    | "where"
+    | "how"
+    | "quantity"
+    | "reason"
+    | "suitability"
+    | "status"
+    | "general";
+  text: string;
+};
+
+type MultiIntentAnalysis = {
+  isMultiIntent: boolean;
+  primaryTopic: AskSarathiDomain;
+  intents: QuestionIntent[];
+};
 type TimeDirection = "past" | "present" | "future" | "identity" | "mixed";
 type EventScale = "major" | "medium" | "micro";
 
@@ -5352,8 +5374,23 @@ function detectEventType(
   return "career_movement";
 }
   if (topic === "career") {
-    return detectCareerEventType(question, topic, timeDirection ?? "mixed") ?? "generic_event";
+  const hasExplicitJobSearchLanguage =
+    /\b(get a job|get employed|find a job|find work|find employment|start working|return to work|back to work|job interview|interview|job offer|offer letter|joining)\b/i.test(
+      question
+    );
+
+  if (hasExplicitJobSearchLanguage) {
+    return "job_search";
   }
+
+  return (
+    detectCareerEventType(
+      question,
+      topic,
+      timeDirection ?? "mixed"
+    ) ?? "generic_event"
+  );
+}
 if (topic === "business") {
   return detectBusinessEventType(
     question,
@@ -5538,15 +5575,17 @@ function detectCareerEventType(
   }
 
   // Job search / unemployed -> employed
-  // Keep this separate from job_change because the native is not
-  // necessarily moving from one employer to another.
-  if (
-    /\b(unemployed|unemployment|jobless|out of work|without a job|without employment|not employed|currently unemployed|looking for a job|looking for work|searching for a job|searching for work|seeking a job|seeking employment|seeking work|find a job|find work|find employment|get a job|get employed|be employed|become employed|start working|return to work|back to work)\b/.test(
-      q
-    )
-  ) {
-    return "job_search";
-  }
+// Includes active recruitment processes such as applications,
+// interviews, recruiter responses, offers and joining.
+// Keep this separate from job_change because the native is not
+// necessarily moving from one employer to another.
+if (
+  /\b(unemployed|unemployment|jobless|out of work|without a job|without employment|not employed|currently unemployed|looking for a job|looking for work|searching for a job|searching for work|seeking a job|seeking employment|seeking work|find a job|find work|find employment|get a job|get employed|be employed|become employed|start working|return to work|back to work|interview|interviews|interviewed|job interview|gave interview|attended interview|interview result|interview outcome|interview response|recruiter|recruitment|hiring process|selection process|selected for job|job offer|offer letter|joining date)\b/.test(
+    q
+  )
+) {
+  return "job_search";
+}
 
   // Job change: employed -> different job / employer
   if (
@@ -9778,7 +9817,7 @@ if (
   return "business";
 }
   if (
-  /\b(profession|career|occupation|vocational|vocation|professional path|career path|field of work|line of work|resign|resignation|promotion|promotions|promoted|job|employment|employer|company|work)\b/i.test(q) &&
+  /\b(profession|career|occupation|vocational|vocation|professional path|career path|field of work|line of work|resign|resignation|promotion|promotions|promoted|job|employment|employer|company|work|interview|interviews|interviewed|recruiter|recruitment|job offer|offer letter|joining|hiring|hired)\b/i.test(q) &&
   !/\b(spouse|husband|wife|partner|boyfriend|girlfriend|child|son|daughter)\b/i.test(q)
 ) {
   return "career";
@@ -9810,7 +9849,13 @@ if (
 ) {
   return "career";
 }
-
+// Strong spouse / future-partner intent must take priority over
+// secondary attributes such as rich, wealthy, successful, or famous.
+if (
+  /\b(future husband|future wife|future spouse|future partner|my husband|my wife|my spouse|meet my husband|meet my wife|meet my spouse|meet my future husband|meet my future wife|meet my future spouse|meet my future partner)\b/i.test(q)
+) {
+  return "marriage";
+}
  if (
   /\b(money|wealth|income|finance|financial|finances|salary|bonus|rich|wealthy)\b/.test(q)
 ) {
@@ -9826,7 +9871,7 @@ if (
   }
 
 if (
-  /\b(child|children|baby|pregnancy|conceive|conception|parenthood)\b/.test(q)
+  /\b(child|children|bacha|bache|bachche|baccha|bacche|baby|pregnancy|conceive|conception|parenthood)\b/.test(q)
 ) {
   return "child";
 }
@@ -10174,6 +10219,147 @@ function detectAnswerMode(
   }
 
   return "TIMING_FIRST";
+}
+function detectMultiIntent(
+  question: string,
+  primaryTopic: AskSarathiDomain
+): MultiIntentAnalysis {
+  const q = question.toLowerCase().trim();
+  const intents: QuestionIntent[] = [];
+
+  const addIntent = (
+    intent: string,
+    ask: QuestionIntent["ask"],
+    text: string,
+    topic: AskSarathiDomain = primaryTopic
+  ) => {
+    if (
+      !intents.some(
+        (item) =>
+          item.intent === intent &&
+          item.ask === ask &&
+          item.topic === topic
+      )
+    ) {
+      intents.push({
+        topic,
+        intent,
+        ask,
+        text,
+      });
+    }
+  };
+
+  // Timing
+  if (
+    /\b(when|what time|which year|what year|timeframe|time frame|how soon|by when)\b/i.test(
+      q
+    )
+  ) {
+    addIntent("timing", "timing", question);
+  }
+
+  // Outcome / whether something will happen
+  if (
+    /\b(will i|will my|will we|will it|can i|can we|whether|result|outcome|pass|selected|selection)\b/i.test(
+      q
+    )
+  ) {
+    addIntent("outcome", "outcome", question);
+  }
+
+  // Nature / characteristics
+  if (
+    /\b(nature|personality|character|what kind|what type|how will .* be|qualities|traits)\b/i.test(
+      q
+    )
+  ) {
+    addIntent("profile", "nature", question);
+  }
+  // Career / work profile
+if (
+  /\b(what kind of work|what type of work|kind of job|type of job|what kind of job|what type of job|which field|what field|career field|job profile|role profile|what role|which role|nature of work)\b/i.test(
+    q
+  )
+) {
+  addIntent("work_profile", "nature", question, "career");
+}
+
+// Salary / compensation
+if (
+  /\b(salary|pay|compensation|package|ctc|remuneration|income from job|earn from job|earning from job)\b/i.test(
+    q
+  )
+) {
+  addIntent("compensation", "status", question, "career");
+}
+  // Where
+  if (
+    /\b(where|which place|what place|location)\b/i.test(q)
+  ) {
+    addIntent("context", "where", question);
+  }
+
+  // How / circumstances
+  if (
+    /\b(how will|how do|how can|through whom|through what|circumstances)\b/i.test(
+      q
+    )
+  ) {
+    addIntent("context", "how", question);
+  }
+
+  // Quantity
+  if (
+    /\b(how many|number of|kitne|kitni|kitna)\b/i.test(q)
+  ) {
+    addIntent("quantity", "quantity", question);
+  }
+
+  // Reason / diagnosis
+  if (
+    /\b(why|reason|because of what|what is causing|cause of)\b/i.test(q)
+  ) {
+    addIntent("reason", "reason", question);
+  }
+
+  // Suitability
+  if (
+    /\b(suitable|suit me|good for me|right for me|best for me|should i)\b/i.test(
+      q
+    )
+  ) {
+    addIntent("suitability", "suitability", question);
+  }
+
+  // Wealth / financial status as a requested characteristic
+  if (
+    /\b(rich|wealthy|financially strong|financial status|well off|well-off)\b/i.test(
+      q
+    )
+  ) {
+    addIntent("financial_profile", "status", question);
+  }
+
+  // Fame / public status
+  if (
+    /\b(famous|well known|well-known|celebrity|public figure|high status|powerful|influential)\b/i.test(
+      q
+    )
+  ) {
+    addIntent("public_status", "status", question);
+  }
+
+  // A simple question still gets one general intent.
+  if (intents.length === 0) {
+    addIntent("general", "general", question);
+  }
+
+  return {
+    isMultiIntent: intents.length > 1,
+    primaryTopic,
+    intents,
+  };
 }
 function detectQuestionType(question: string): AskSarathiQuestionType {
   const q = question.toLowerCase().trim();
@@ -15568,7 +15754,8 @@ function buildGenericAstroBundle(
     lifeStage?: string | null;
     careerStage?: string | null;
     adviceStyle?: string | null;
-  }
+  },
+  hasTimingIntent: boolean = false
 ): GenericAstroBundle {
   let rule = resolveTopicRule(topic);
 
@@ -16470,9 +16657,10 @@ const {
   nearTermWindows,
   triggerWindows,
 } = splitTimingWindows(astroTimeline);
+
 const needsNextLogicalWindow =
-  questionType === "timing" &&
-  timeDirection === "future" &&
+  (questionType === "timing" || hasTimingIntent) &&
+  (timeDirection === "future" || hasTimingIntent) &&
   timingWindows.length === 0 &&
   majorWindows.length === 0 &&
   triggerWindows.length === 0;
@@ -16497,8 +16685,26 @@ const fallbackTimingWindows =
     ? logicalTimingWindows
     : broadFutureWindows;
 
-const finalTimingWindows =
-  timingWindows.length > 0 ? timingWindows : fallbackTimingWindows;
+const triggerTimingWindows: TimingWindow[] =
+  hasTimingIntent
+    ? triggerWindows.map((window) => ({
+        start: window.start,
+        end: window.end,
+        label: window.label,
+        confidence: window.confidence,
+        score: window.score,
+        why: window.reason
+          ? [window.reason]
+          : [],
+      }))
+    : [];
+
+const finalTimingWindows: TimingWindow[] =
+  timingWindows.length > 0
+    ? timingWindows
+    : triggerTimingWindows.length > 0
+    ? triggerTimingWindows
+    : fallbackTimingWindows;
 
 const finalMajorWindows =
   majorWindows.length > 0
@@ -16512,27 +16718,49 @@ const finalMajorWindows =
         score: 35,
       }));
       const rankedTimingWindows =
-  rankTimingWindows({
-    windows:
-      finalTimingWindows,
-
-    topic,
-
-    eventType,
-
-    activeDasha:
-      dashaSource ?? null,
-
-    timingPolicy,
-
-    promiseLayer,
-
-    sambandhaAnalysis,
-
-    divisionalLayer,
-
-    karakaLayer,
-  });
+  timingWindows.length === 0 &&
+  hasTimingIntent &&
+  triggerWindows.length > 0
+    ? triggerWindows.map((window) => ({
+        start: window.start,
+        end: window.end,
+        label: window.label,
+        confidence: window.confidence,
+        score: window.score,
+        why: window.reason
+          ? [window.reason]
+          : [],
+        windowClass:
+          window.confidence === "high"
+            ? "movement" as const
+            : "movement" as const,
+        practicalMeaning:
+          window.reason,
+        scoreBreakdown: {
+          baseScore: window.score,
+          natalPromise: 0,
+          sambandhaSupport: 0,
+          divisionalSupport: 0,
+          dashaSupport: 0,
+          transitSupport: 0,
+          karakaSupport: 0,
+          eventSupport: 0,
+          confidenceBonus: 0,
+          penalties: 0,
+        },
+      }))
+    : rankTimingWindows({
+        windows: finalTimingWindows,
+        topic,
+        eventType,
+        activeDasha:
+          dashaSource ?? null,
+        timingPolicy,
+        promiseLayer,
+        sambandhaAnalysis,
+        divisionalLayer,
+        karakaLayer,
+      });
 const activeDashaForDebug =
   dashaSource ??
   getActiveDashaAnyShape(
@@ -18098,11 +18326,7 @@ const matcherDevMode =
     const profile = normalizeProfile(rawProfile);
     const profileOk = hasValidProfile(profile);
     const resolvedProfile = profile;
-    console.log("[PROFILE DEBUG]", {
-  rawProfile,
-  profile,
-  profileOk,
-});
+
     let report: LifeReportLike | any =
       body?.report ?? body?.reportData ?? null;
 
@@ -18145,6 +18369,12 @@ let topic: AskSarathiDomain =
     : inferredFollowupTopic
     ? inferredFollowupTopic
     : "generic";
+  const multiIntentAnalysis = detectMultiIntent(
+  question,
+  topic
+);
+
+
     if (!matcherDevMode) {
 await logQuestionUsage({
   userId: user.id,
@@ -18152,16 +18382,7 @@ await logQuestionUsage({
   topic,
 });
 }
-console.log("[TOPIC PRIORITY DEBUG]", {
-  question,
-  detectedTopic,
-  inferredFollowupTopic,
-  lastTopic: conversationState.lastTopic ?? null,
-  vagueTimingFollowup,
-  isStrongFollowup,
-  continuation,
-  finalTopic: topic,
-});
+
 const questionType: AskSarathiQuestionType =
   continuation || vagueTimingFollowup ? "timing" : detectQuestionType(question);
 
@@ -18198,12 +18419,24 @@ const eventType: AskSarathiEventType =
     ? conversationState.lastEventType
     : detectEventType(question, topic, timeDirection);
 
+const hasExplicitJobSearchIntent =
+  topic === "career" &&
+  multiIntentAnalysis.intents.some(
+    (intent) =>
+      intent.intent === "timing" &&
+      /\b(get a job|get employed|find a job|find work|find employment|start working|return to work|back to work|job interview|interview|job offer|offer letter|joining)\b/i.test(
+        intent.text
+      )
+  );
+
 const careerEventType: CareerEventType | undefined =
   (vagueTimingFollowup || continuation) &&
   conversationState.lastCareerEventType
     ? conversationState.lastCareerEventType
     : topic === "career"
-    ? detectCareerEventType(question, topic, timeDirection)
+    ? hasExplicitJobSearchIntent
+      ? "job_search"
+      : detectCareerEventType(question, topic, timeDirection)
     : undefined;
 const hasHistoricalDashaTimeline =
   (Array.isArray(report?.dashaTimeline) && report.dashaTimeline.length > 0) ||
@@ -18302,32 +18535,13 @@ const astroBundle = buildGenericAstroBundle(
   answerMode,
   enrichedReport,
   careerEventType,
-  userContext
+  userContext,
+  multiIntentAnalysis.intents.some(
+    (intent) => intent.ask === "timing"
+  )
 );
 
-console.log("==================================================");
-console.log("========== ASTRO BUNDLE DEBUG ==========");
 
-console.log("Topic:", astroBundle.topic);
-console.log("Event:", astroBundle.eventType);
-console.log("Career Event:", astroBundle.careerEventType);
-
-console.log(
-  "Canonical Context:",
-  JSON.stringify(astroBundle.canonicalChartContext, null, 2)
-);
-
-console.log(
-  "Career Inference:",
-  JSON.stringify(astroBundle.careerInference, null, 2)
-);
-
-console.log(
-  "Answer Summary:",
-  astroBundle.answerSummary
-);
-
-console.log("========================================");
 astroBundle.canonicalChartContext =
   buildCanonicalChartContext(enrichedReport);
 astroBundle.decision = buildAstroDecision({
@@ -18354,63 +18568,7 @@ astroBundle.astroJudgement = buildUniversalAstroJudgement(
   answerMode,
   astroBundle
 );
-console.log("========== DASHA OPPORTUNITY DEBUG ==========");
 
-console.log(
-  "Current Dasha:",
-  JSON.stringify(
-    astroBundle?.currentDasha ?? null,
-    null,
-    2
-  )
-);
-
-console.log(
-  "Timing Policy:",
-  JSON.stringify(
-    astroBundle?.timingPolicy ?? null,
-    null,
-    2
-  )
-);
-
-console.log(
-  "Major Windows:",
-  JSON.stringify(
-    astroBundle?.majorWindows ?? null,
-    null,
-    2
-  )
-);
-
-console.log(
-  "Astro Timeline:",
-  JSON.stringify(
-    astroBundle?.astroTimeline ?? null,
-    null,
-    2
-  )
-);
-
-console.log(
-  "Timing Layer:",
-  JSON.stringify(
-    astroBundle?.timingLayer ?? null,
-    null,
-    2
-  )
-);
-
-console.log(
-  "Promise Layer:",
-  JSON.stringify(
-    astroBundle?.promiseLayer ?? null,
-    null,
-    2
-  )
-);
-
-console.log("============================================");
 const judgement = buildJudgementLayer(
   topic,
   questionType,
@@ -19893,33 +20051,7 @@ if (body?.thoughtProcessDebugOnly === false) {
   finalDecisionVerdict: finalDecision.verdict,
   
 });
-console.log("[CHILD CAREER GUARD DEBUG]", {
-  age: userContext?.age ?? null,
-  lifeStage: userContext?.lifeStage ?? null,
-  topic,
-  eventType,
-  astroBundleEventType: astroBundle?.eventType ?? null,
-  isChildCareerTimingGuard,
-  shouldSuppressTiming,
-});
-console.log("[CHILD MARRIAGE GUARD DEBUG]", {
-  age: userContext?.age ?? null,
-  lifeStage: userContext?.lifeStage ?? null,
-  topic,
-  eventType,
-  astroBundleEventType: astroBundle?.eventType ?? null,
-  isChildMarriageTimingGuard,
-  shouldSuppressTiming,
-});
-console.log("[CHILD MARRIAGE GUARD DEBUG]", {
-  age: userContext?.age ?? null,
-  lifeStage: userContext?.lifeStage ?? null,
-  topic,
-  eventType,
-  astroBundleEventType: astroBundle?.eventType ?? null,
-  isChildMarriageTimingGuard,
-  shouldSuppressTiming,
-});
+
 /*
   Profession suitability must use permanent vocational evidence only.
   Do not pass event timing, dasha timing, transit timing, conversion,
@@ -20580,8 +20712,20 @@ const innerAstroFacts =
       }
     : null;
 const normalAstroFacts =
-  natPayload?.astroFacts ??
-  astroBundle;
+  natPayload?.astroFacts
+    ? {
+        ...natPayload.astroFacts,
+
+        careerInference:
+          topic === "career" &&
+          multiIntentAnalysis.intents.some(
+            (intent) =>
+              intent.intent === "work_profile"
+          )
+            ? astroBundle?.careerInference ?? null
+            : natPayload.astroFacts?.careerInference ?? null,
+      }
+    : astroBundle;
 
 const normalEvidencePacket =
   astroBundle?.astrologyEvidencePacket ??
@@ -20893,7 +21037,7 @@ const childReasoningInstructions = {
     "For parent-child relationship questions, explain recurring interaction patterns, communication dynamics, emotional needs, expectations, boundaries, and areas requiring patience without blaming either parent or child.",
     "For child-aptitude questions, focus on the child's natural strengths, learning style, creativity, communication, reasoning, interests, temperament, and developmental potential.",
     "Do not discuss current dasha, transits, timing windows, conception dates, childbirth dates, child-development windows, or family-expansion timing unless the user explicitly asks when.",
-    "Do not turn permanent parenthood or child-aptitude questions into conception or childbirth forecasts.",
+    "Do not state or estimate the number of children unless an explicit child-count result is supplied in the astrology evidence. If no child-count result is supplied, say that the available analysis does not establish an exact number.",
     "Do not present difficult parent-child patterns as inevitable conflict.",
     "Adapt practical guidance to userContext.age, userContext.lifeStage, and userContext.adviceStyle.",
     "When the subject is a child, keep guidance developmental and age-appropriate. Focus on learning, emotional support, communication, confidence, interests, routine, and healthy development rather than adult outcomes.",
@@ -21309,6 +21453,10 @@ const safeNatPayload = {
   userQuestion:
     natPayload?.userQuestion ??
     question,
+  multiIntentAnalysis:
+  multiIntentAnalysis,
+  currentDate:
+    getTodayISOForTiming(enrichedReport),
 
   topic:
     natPayload?.topic ??
@@ -21893,7 +22041,17 @@ mustUseTimingHierarchy:
       "TIMING_HIERARCHY is the authoritative source for timing structure whenever it is available.",
 
       "If TIMING_HIERARCHY.practicalWindow exists, the FIRST sentence MUST state the full practicalWindow date range.",
+      "Before describing any timing window, compare its start and end dates with the currentDate supplied in the payload.",
 
+"If CURRENT_DATE falls between practicalWindow.start and practicalWindow.end, explicitly describe the practical window as ACTIVE NOW or CURRENTLY ACTIVE.",
+
+"If the practical window is currently active, never describe it as upcoming, later, not immediate, or something the user must wait for.",
+
+"If CURRENT_DATE is before practicalWindow.start, describe the practical window as upcoming.",
+
+"If CURRENT_DATE is after practicalWindow.end, describe that practical window as past and do not present it as a future opportunity.",
+
+"When the practical window is active now, answer near-term questions such as interview response, offer, decision, communication, or movement as occurring within the REMAINING portion of the active window, not from the already-passed start date.",
       "If TIMING_HIERARCHY.broaderWindow exists, mention it after the practical window as the broader opportunity phase.",
 
       "If TIMING_HIERARCHY.activationWindow exists, describe it only as a narrower activation trigger, catalyst, or peak within the larger timing structure.",
@@ -22735,60 +22893,47 @@ const premiumTimingAnswer =
   shouldUseSeniorResponse
     ? buildSeniorAstrologerResponse(astroBundle)
     : null;
-console.log("========== TIMING OUTPUT DEBUG ==========");
-
-console.log("Question:", question);
+console.log("========== TIMING CHECK ==========");
 console.log("Topic:", astroBundle?.topic);
 console.log("Event type:", astroBundle?.eventType);
 console.log("Question type:", questionType);
 console.log("Should suppress timing:", shouldSuppressTiming);
 
 console.log(
-  "Selected timing window:",
-  JSON.stringify(
-    astroBundle?.selectedTimingWindow ?? null,
-    null,
-    2
-  )
+  "Selected:",
+  astroBundle?.selectedTimingWindow ?? null
 );
 
 console.log(
-  "Best available window:",
-  JSON.stringify(
-    astroBundle?.bestAvailableWindow ?? null,
-    null,
-    2
-  )
+  "Best:",
+  astroBundle?.bestAvailableWindow ?? null
 );
 
 console.log(
-  "Strongest window:",
-  JSON.stringify(
-    astroBundle?.strongestWindow ?? null,
-    null,
-    2
-  )
-);
-
-console.log(
-  "Ranked timing windows:",
-  JSON.stringify(
-    astroBundle?.rankedTimingWindows ?? null,
-    null,
-    2
-  )
+  "Strongest:",
+  astroBundle?.strongestWindow ?? null
 );
 
 console.log(
   "Timing windows:",
-  JSON.stringify(
-    astroBundle?.timingWindows ?? null,
-    null,
-    2
-  )
+  astroBundle?.timingWindows?.slice(0, 3) ?? []
 );
 
-console.log("=========================================");
+console.log("==================================");
+console.log("========== MULTI INTENT EVIDENCE CHECK ==========");
+console.log(
+  "Career inference:",
+  JSON.stringify(astroBundle?.careerInference ?? null, null, 2)
+);
+console.log(
+  "Final decision:",
+  JSON.stringify(finalDecision ?? null, null, 2)
+);
+console.log(
+  "Thought process:",
+  JSON.stringify(thoughtProcess ?? null, null, 2)
+);
+console.log("=================================================");
 const naturalizedAnswer =
   safeStr(
     naturalJson?.text ??
@@ -22796,29 +22941,7 @@ const naturalizedAnswer =
     naturalJson?.output
   );
 
-console.log("========== FINAL ANSWER SOURCE DEBUG ==========");
 
-console.log(
-  "Naturalized Answer:",
-  naturalizedAnswer
-);
-
-console.log(
-  "Premium Timing Answer:",
-  premiumTimingAnswer?.full ?? premiumTimingAnswer
-);
-
-console.log(
-  "Question Type:",
-  questionType
-);
-
-console.log(
-  "Decision Summary:",
-  JSON.stringify(decisionSummary, null, 2)
-);
-
-console.log("===============================================");
 const hasDecisionSummary =
   decisionSummary != null &&
   (
@@ -22899,7 +23022,10 @@ if (
     "\n\nTry to keep the day simple, steady, and mentally uncluttered.",
   ]);
 }
-if (questionType === "type_profile") {
+if (
+  questionType === "type_profile" &&
+  !multiIntentAnalysis.isMultiIntent
+) {
   answer = buildTypeProfileAnswer(topic, question, report);
 }
 if (questionType === "transit_analysis") {
@@ -23114,7 +23240,14 @@ const whyThisWorks =
 
 const polishedShortAnswer =
   polishUserFacingDates(shortAnswer);
-
+console.log("========== ANSWER CHECK ==========");
+console.log("Naturalized:", naturalizedAnswer);
+console.log("Answer before polishing:", answer);
+console.log(
+  "Multi-intent:",
+  multiIntentAnalysis.isMultiIntent
+);
+console.log("==================================");
 const polishedFullAnswer =
   polishUserFacingDates(fullAnswer);
 
