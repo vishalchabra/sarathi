@@ -650,7 +650,11 @@ function ordinalSuffix(value: number): string {
       return "th";
   }
 }
-export default function DailyGuidanceShell() {
+export default function DailyGuidanceShell({
+  compact = false,
+}: {
+  compact?: boolean;
+}) {
   const [profiles, setProfiles] =
     useState<SavedProfile[]>([]);
 
@@ -788,8 +792,65 @@ const [dailyFocus, setDailyFocus] =
 }, []);
 
 useEffect(() => {
-  void loadProfiles();
-}, [loadProfiles]);
+  async function initializeGuidance() {
+    let handoff: {
+      profileId?: string;
+      currentPlace?: CurrentPlace;
+      selectedCity?: {
+        name: string;
+        lat: number;
+        lon: number;
+      } | null;
+      selectedDateISO?: string;
+      prediction?: DailyPrediction;
+      dailyFocus?: DailyFocus | null;
+      snapshot?: AstrologicalSnapshotData | null;
+    } | null = null;
+
+    if (!compact) {
+      try {
+        const saved = sessionStorage.getItem(
+          "sarathi:daily-guidance-handoff"
+        );
+
+        if (saved) {
+          handoff = JSON.parse(saved);
+          sessionStorage.removeItem(
+            "sarathi:daily-guidance-handoff"
+          );
+        }
+      } catch {
+        sessionStorage.removeItem(
+          "sarathi:daily-guidance-handoff"
+        );
+      }
+    }
+
+    await loadProfiles(handoff?.profileId);
+
+    if (!handoff) return;
+
+    if (handoff.currentPlace) {
+      setCurrentPlace(handoff.currentPlace);
+    }
+
+    if (handoff.selectedCity) {
+      setSelectedCity(handoff.selectedCity);
+    }
+
+    if (handoff.selectedDateISO) {
+      setSelectedDateISO(handoff.selectedDateISO);
+    }
+
+    if (handoff.prediction) {
+      setPrediction(handoff.prediction);
+      setDailyFocus(handoff.dailyFocus ?? null);
+      setSnapshot(handoff.snapshot ?? null);
+    }
+  }
+
+  void initializeGuidance();
+}, [loadProfiles, compact]);
 
   const generateGuidance =
     useCallback(async () => {
@@ -1055,7 +1116,7 @@ setSnapshot(null);
       {prediction ? (
         <>
 
-<section>
+{!compact && <section>
   <div className="text-sm font-semibold astro-text-muted">
     {formatDate(selectedDateISO)}
   </div>
@@ -1071,30 +1132,51 @@ setSnapshot(null);
       your main guidance and today&apos;s focus below.
     </p>
   </div>
-</section>
+</section>}
 
-          {primary ? (
-            <section>
-              <div className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] astro-text-muted">
-                Your Guidance
-              </div>
+         {primary ? (
+  <section>
+    <div className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] astro-text-muted">
+      {compact ? "Today's Highlights" : "Your Guidance"}
+    </div>
 
-              {prediction.primaryTheme && (
-  <MainGuidanceCards
-    primary={prediction.primaryTheme}
-    dailyFocus={dailyFocus}
-  />
-)}
-                        </section>
-          ) : null}
+    {compact ? (
+      <div className="rounded-3xl border border-[color:var(--border)] bg-white/80 p-5">
+        <p className="text-xs font-semibold uppercase tracking-wider astro-text-muted">
+          Your main theme
+        </p>
 
-          {primary && prediction.explanation && (
+        <h2 className="mt-2 text-2xl font-semibold">
+          {titleCase(primary.area) || "Your Day"}
+        </h2>
+
+        {dailyFocus?.area && (
+          <p className="mt-3 text-sm leading-6 astro-text-soft">
+            Today's focus: {titleCase(dailyFocus.area)}
+          </p>
+        )}
+
+        <p className="mt-3 text-sm leading-6 astro-text-soft">
+          Explore your personalised predictions, suggested actions
+          and planetary insights in your full guidance.
+        </p>
+      </div>
+    ) : (
+      <MainGuidanceCards
+        primary={primary}
+        dailyFocus={dailyFocus}
+      />
+    )}
+  </section>
+) : null}
+
+          {!compact && primary && prediction.explanation && (
             <WhyThisGuidance
               explanation={prediction.explanation}
             />
           )}
 
-          {secondary.length ? (
+          {!compact && secondary.length ? (
             <section>
               <div className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] astro-text-muted">
                 Also Active Today
@@ -1139,11 +1221,40 @@ setSnapshot(null);
             </section>
           ) : null}
 
-          {snapshot && (
+                   {!compact && snapshot && (
             <AstrologicalSnapshot
               snapshot={snapshot}
               selectedDateISO={selectedDateISO}
             />
+          )}
+
+          {compact && (
+            <div className="flex justify-end">
+             <a
+  href="/sarathi/daily-guidance"
+  onClick={() => {
+    if (!selectedProfile || !currentPlace || !prediction) {
+      return;
+    }
+
+    sessionStorage.setItem(
+      "sarathi:daily-guidance-handoff",
+      JSON.stringify({
+        profileId: selectedProfileId,
+        currentPlace,
+        selectedCity,
+        selectedDateISO,
+        prediction,
+        dailyFocus,
+        snapshot,
+      })
+    );
+  }}
+  className="inline-flex rounded-full bg-[color:var(--primary)] px-6 py-3 text-sm font-semibold text-primary-foreground hover:opacity-90"
+>
+  View Full Guidance
+</a>
+            </div>
           )}
         </>
       ) : null}
