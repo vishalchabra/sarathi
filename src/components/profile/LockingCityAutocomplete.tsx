@@ -2,50 +2,34 @@
 
 import React from "react";
 import { Input } from "@/components/ui/input";
+import tzlookup from "tz-lookup";
 const cityCache = new Map<
   string,
   Array<{ name: string; lat: number; lon: number }>
 >();
 
-function expectedTzForPlaceName(name: string): string | null {
-  const s = name.toLowerCase();
 
-  if (s.includes("dubai") || s.includes("united arab emirates")) {
-    return "Asia/Dubai";
-  }
-
-  if (s.includes("india")) {
-    return "Asia/Kolkata";
-  }
-
-  if (s.includes("london") || s.includes("united kingdom")) {
-    return "Europe/London";
-  }
-
-  if (s.includes("new york")) {
-    return "America/New_York";
-  }
-
-  if (s.includes("singapore")) {
-    return "Asia/Singapore";
-  }
-
-  return null;
-}
 export default function LockingCityAutocomplete({
   value,
-  onSelect,
+    onSelect,
+   onTimezoneResolved,
+  broadcastTimezone = true,
   placeholder = "Start typing a city",
   disabled = false,
   error,
 }: {
   value: { name: string; lat: number; lon: number } | null;
   onSelect: (p: { name: string; lat: number; lon: number } | null) => void;
+   onTimezoneResolved?: (
+  timezone: string | null,
+  place: { name: string; lat: number; lon: number } | null
+) => void;
+  broadcastTimezone?: boolean;
   placeholder?: string;
   disabled?: boolean;
   error?: boolean;
 }) {
-    
+
     const [q, setQ] = React.useState(value?.name ?? "");
     const [open, setOpen] = React.useState(false);
     const [loading, setLoading] = React.useState(false);
@@ -54,7 +38,7 @@ export default function LockingCityAutocomplete({
     >([]);
     const inputRef = React.useRef<HTMLInputElement>(null);
     const timerRef = React.useRef<number | null>(null);
-    
+
     // keep input in sync if parent changes value
   React.useEffect(() => {
     if (value?.name && value.name !== q) {
@@ -143,31 +127,44 @@ export default function LockingCityAutocomplete({
         if (timerRef.current) window.clearTimeout(timerRef.current);
       };
     }, [q]);
+const commit = (it: {
+  name: string;
+  lat: number;
+  lon: number;
+}) => {
+  setQ(it.name);
+  setItems([]);
+  setOpen(false);
+  onSelect(it);
 
-    const commit = (it: { name: string; lat: number; lon: number }) => {
-      setQ(it.name);
-      setItems([]);
-      setOpen(false);
-      onSelect(it);
+  let timezone: string | null = null;
 
-      // guess timezone and broadcast
-      try {
-        const expTz = expectedTzForPlaceName(it.name);
-        if (expTz) {
-          window.dispatchEvent(new CustomEvent("sarathi:set-tz", { detail: expTz }));
-        }
-      } catch {}
+try {
+  timezone = tzlookup(it.lat, it.lon);
+} catch {
+  timezone = null;
+}
 
-      try {
-        inputRef.current?.blur();
-      } catch {}
-    };
+  onTimezoneResolved?.(timezone, it);
+
+  // Preserve the existing birth-profile behaviour.
+   if (broadcastTimezone && timezone) {
+    window.dispatchEvent(
+      new CustomEvent("sarathi:set-tz", {
+        detail: timezone,
+      })
+    );
+  }
+
+  inputRef.current?.blur();
+};
 
     const clearAll = () => {
       setQ("");
       setItems([]);
       setOpen(false);
       onSelect(null);
+onTimezoneResolved?.(null, null);
       try {
         inputRef.current?.focus();
       } catch {}

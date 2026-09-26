@@ -29,7 +29,7 @@ export function buildAscendantNarrative(
     whatMightHappen: buildWhatMightHappen(judgement, topSignals),
     cautions: buildCautions(judgement),
     bestUse: judgement.practicalAdvice,
-    why: judgement.reasons.slice(0, 5),
+    why: buildWhy(judgement, topSignals),
     dominantAreas: judgement.dominantAreas,
   };
 }
@@ -119,7 +119,99 @@ function buildCautions(judgement: AscendantJudgement): string[] {
 
   return dedupe(cautions).slice(0, 2);
 }
+function buildWhy(
+  judgement: AscendantJudgement,
+  topSignals: JudgementSignal[]
+): string[] {
+  const reasons: string[] = [];
 
+  // Keep the core Moon lordship explanation.
+  reasons.push(...judgement.reasons.slice(0, 4));
+  const moonHouseSignal = [
+  ...judgement.opportunities,
+  ...judgement.cautions,
+  ...judgement.mixedThemes,
+].find(
+  (signal) => signal.source === "moon_house"
+);
+
+if (moonHouseSignal) {
+  const moonDignityReasons =
+    moonHouseSignal.reasons.filter(
+      (reason) =>
+        (
+          reason.startsWith("Moon is ") &&
+          reason.includes("dignity strength")
+        ) ||
+        reason.startsWith(
+          "The planet operates"
+        ) ||
+        reason.startsWith(
+          "The planet has strong capacity"
+        ) ||
+        reason.startsWith(
+          "The planet may find it harder"
+        ) ||
+        reason.startsWith(
+          "The planet operates in an environment"
+        )
+    );
+
+  if (moonDignityReasons.length > 0) {
+  reasons.push(moonDignityReasons[0]);
+}
+}
+  // Add the strongest non-Moon planetary placement explanation.
+  const planetHouseSignal = topSignals.find(
+    (signal) => signal.source === "planet_house"
+  );
+
+  if (planetHouseSignal) {
+    reasons.push(...planetHouseSignal.reasons);
+  }
+  if (planetHouseSignal) {
+  const planetName = planetHouseSignal.id
+    .replace(`${judgement.ascendant}_`, "")
+    .split("_")[0];
+
+  const planetLordshipSignals = [
+  ...judgement.opportunities,
+  ...judgement.cautions,
+  ...judgement.mixedThemes,
+].filter(
+  (signal) =>
+    signal.source === "planet_lordship" &&
+    signal.id.startsWith(
+      `${judgement.ascendant}_${planetName}_`
+    )
+);
+
+if (planetLordshipSignals.length > 0) {
+  const ruledHouseLabels = planetLordshipSignals
+    .map((signal) => {
+      const match = signal.reasons[0]?.match(
+        /rules the (\d+(?:st|nd|rd|th)) house/
+      );
+
+      return match?.[1];
+    })
+    .filter((house): house is string => Boolean(house));
+
+  if (ruledHouseLabels.length > 0) {
+    const formattedHouses = ruledHouseLabels.join(" and ");
+
+    reasons.push(
+      `${planetName.charAt(0).toUpperCase() + planetName.slice(1)} rules the ${formattedHouses} houses for ${judgement.ascendant}.`
+    );
+  }
+
+  for (const signal of planetLordshipSignals) {
+    reasons.push(...signal.reasons.slice(2));
+  }
+}
+}
+  return dedupe(reasons).slice(0, 13);
+}
 function dedupe(items: string[]): string[] {
   return [...new Set(items)];
 }

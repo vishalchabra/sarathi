@@ -6,7 +6,7 @@ export type DailyMoonBirth = {
   // natal birth (used for “house from Moon” reference)
   dateISO: string;
   time: string;
-
+  birthTz?: string;
   // optional explicit natal fields (if you prefer these names)
   birthDateISO?: string;
   birthTime?: string;
@@ -162,7 +162,7 @@ export async function computeMoonNakshatraNow(
   // use real “now” instant
   const now = new Date();
   const jdUt = await jdFromUtcDate(now, constants.SE_GREG_CAL);
-  
+
   const moonTropRes = await sweCall<any>("swe_calc_ut", jdUt, constants.SE_MOON, flagsTropical);
   const lonTrop = extractLongitude(moonTropRes);
 
@@ -214,7 +214,13 @@ export async function computeDailyMoonNakshatras(
   }
 
   // 1) Natal Moon sign (sidereal) — reference point for “houseFromMoon”
-  const natalUtc = makeUtcInstant(natalDateISO, natalTime, birth.tz);
+  const natalTimezone = (birth as any).birthTz ?? birth.tz;
+
+const natalUtc = makeUtcInstant(
+  natalDateISO,
+  natalTime,
+  natalTimezone
+);
   const jdNatal = await jdFromUtcDate(natalUtc, constants.SE_GREG_CAL);
 
   const natalMoonTropRes = await sweCall<any>(
@@ -235,7 +241,7 @@ export async function computeDailyMoonNakshatras(
     typeof natalMoonLonSid === "number" ? Math.floor(natalMoonLonSid / 30) : null;
 
   if (process.env.NODE_ENV !== "production") {
-    
+
   }
 
   // 2) Series start date: use baseDateISO
@@ -274,7 +280,7 @@ export async function computeDailyMoonNakshatras(
     }
 
     if (process.env.NODE_ENV !== "production" && i < 2) {
-     
+
     }
 
     out.push({

@@ -259,6 +259,8 @@ export function getNakshatraForLongitude(siderealLonDeg: number): {
   lord: NakshatraInfo["lord"];
   startDeg: number;
   endDeg: number;
+  pada: 1 | 2 | 3 | 4 | null;
+padaProgress: number;
   // extra convenience for dasha math:
   spanDeg: number;        // usually 13.333...
   offsetWithinNak: number; // degrees from startDeg
@@ -281,6 +283,8 @@ export function getNakshatraForLongitude(siderealLonDeg: number): {
       lord: "Ketu",
       startDeg: 0,
       endDeg: 0,
+      pada: null,
+      padaProgress: 0,
       spanDeg: 13.3333333333,
       offsetWithinNak: 0,
       fractionElapsed: 0,
@@ -292,13 +296,19 @@ export function getNakshatraForLongitude(siderealLonDeg: number): {
   const offset = lon - nak.startDeg;
   const fracElapsed = span > 0 ? offset / span : 0;
   const fracRemain = 1 - fracElapsed;
-
+  // Each nakshatra contains four equal padas.
+// Derive the pada from progress within the nakshatra.
+const padaIndex = Math.min(3, Math.floor(fracElapsed * 4));
+const pada = (padaIndex + 1) as 1 | 2 | 3 | 4;
+const padaProgress = fracElapsed * 4 - padaIndex;
   return {
     name: nak.name,
     keywords: nak.keywords,
     lord: nak.lord,
     startDeg: nak.startDeg,
     endDeg: nak.endDeg,
+    pada,
+    padaProgress,
     spanDeg: span,
     offsetWithinNak: offset,
     fractionElapsed: fracElapsed,

@@ -6,7 +6,7 @@ import { getUserEntitlements } from "@/server/auth/getUserEntitlements";
 export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
-  
+
 
   try {
     const supabase = await createClient();
@@ -49,24 +49,25 @@ export async function POST(req: NextRequest) {
 });
 
     const result = await buildDataEngine({
-      birth: body?.birth,
-      plan: body?.plan ?? "light",
-      selectedDateISO: body?.selectedDateISO,
-      compareDateISO: body?.compareDateISO ?? null,
-      utilityDateISO: body?.utilityDateISO ?? null,
-      utilityHoraDateISO: body?.utilityHoraDateISO ?? null,
-      utilityTime: body?.utilityTime ?? null,
-      utilityPlace: body?.utilityPlace ?? null,
-    });
-
-    return NextResponse.json(result);
+  birth: body?.birth,
+  plan: body?.plan ?? "light",
+  selectedDateISO: body?.selectedDateISO ?? null,
+  compareDateISO: body?.compareDateISO ?? null,
+  utilityDateISO: body?.utilityDateISO ?? null,
+  utilityHoraDateISO: body?.utilityHoraDateISO ?? null,
+  utilityTime: body?.utilityTime ?? null,
+  utilityPlace: body?.utilityPlace ?? null,
+});
+console.log(
+  "=== PERSONALIZED_DAILY ===",
+  JSON.stringify(
+    result.prediction.personalizedDaily,
+    null,
+    2
+  )
+);
+return NextResponse.json(result);
   } catch (err: any) {
-    console.error("DATA_ENGINE_ERROR", {
-      message: err?.message,
-      stack: err?.stack,
-      error: err,
-    });
-
     return NextResponse.json(
       {
         ok: false,

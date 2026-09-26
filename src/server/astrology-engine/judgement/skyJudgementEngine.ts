@@ -27,7 +27,9 @@ export function judgeSky(input: DailySkyInput): SkyJudgement {
   const hasMars = moon.pressurePlanets.includes("Mars");
   const hasRahu = moon.pressurePlanets.includes("Rahu");
   const hasKetu = moon.pressurePlanets.includes("Ketu");
-
+  const hasJupiter = moon.supportPlanets.includes("Jupiter");
+const hasVenus = moon.supportPlanets.includes("Venus");
+const hasMercury = moon.supportPlanets.includes("Mercury");
   const reasons: string[] = [];
   const dominantThemes = new Set<string>();
 
@@ -65,15 +67,38 @@ export function judgeSky(input: DailySkyInput): SkyJudgement {
     dominantThemes.add("withdrawal");
     reasons.push("Ketu influences the Moon, increasing detachment and internalization.");
   }
+  if (hasJupiter) {
+  dominantThemes.add("perspective");
+  dominantThemes.add("guidance");
+  reasons.push(
+    "Jupiter influences the Moon, bringing perspective, wisdom, guidance, and emotional steadiness."
+  );
+}
 
+if (hasVenus) {
+  dominantThemes.add("harmony");
+  dominantThemes.add("emotional ease");
+  reasons.push(
+    "Venus influences the Moon, bringing emotional softness, harmony, comfort, and cooperation."
+  );
+}
+
+if (hasMercury) {
+  dominantThemes.add("clarity");
+  dominantThemes.add("communication");
+  reasons.push(
+    "Mercury influences the Moon, helping emotions become easier to understand, organize, and communicate."
+  );
+}
   const dominantEnergy = buildDominantEnergy({
-    hasSaturn,
-    hasMars,
-    hasRahu,
-    hasKetu,
-    nakshatraName: input.moon.nakshatra,
-    nextNakshatraName: input.moon.nextNakshatra?.name,
-  });
+  hasSaturn,
+  hasMars,
+  hasRahu,
+  hasKetu,
+  hasSupport: moon.supportPlanets.length > 0,
+  nakshatraName: input.moon.nakshatra,
+  nextNakshatraName: input.moon.nextNakshatra?.name,
+});
 
   return {
     date: input.date,
@@ -91,12 +116,13 @@ export function judgeSky(input: DailySkyInput): SkyJudgement {
             : undefined,
     dominantThemes: [...dominantThemes].slice(0, 6),
     globalAdvice: buildGlobalAdvice({
-      hasSaturn,
-      hasMars,
-      hasRahu,
-      hasKetu,
-      hasNextNakshatra: Boolean(input.moon.nextNakshatra),
-    }),
+  hasSaturn,
+  hasMars,
+  hasRahu,
+  hasKetu,
+  hasSupport: moon.supportPlanets.length > 0,
+  hasNextNakshatra: Boolean(input.moon.nextNakshatra),
+}),
     pressureScore: moon.pressureScore,
     supportScore: moon.supportScore,
     reasons,
@@ -108,9 +134,21 @@ function buildDominantEnergy(params: {
   hasMars: boolean;
   hasRahu: boolean;
   hasKetu: boolean;
+  hasSupport: boolean;
   nakshatraName: string;
   nextNakshatraName?: string;
 }) {
+  if (
+  params.hasSaturn &&
+  params.hasSupport &&
+  params.nextNakshatraName === "Revati"
+) {
+  return "Responsible completion with supportive perspective";
+}
+
+if (params.hasSaturn && params.hasSupport) {
+  return "Serious reflection with constructive support";
+}
   if (params.hasSaturn && params.nextNakshatraName === "Revati") {
     return "Completion with responsibility";
   }
@@ -145,8 +183,13 @@ function buildGlobalAdvice(params: {
   hasMars: boolean;
   hasRahu: boolean;
   hasKetu: boolean;
+  hasSupport: boolean;
   hasNextNakshatra: boolean;
 }) {
+  if (params.hasSaturn && params.hasSupport) {
+    return "Move patiently and handle responsibilities carefully, while using available guidance and perspective to make constructive decisions.";
+  }
+
   if (params.hasSaturn) {
     return "Move patiently, complete pending matters, and avoid emotional reactions to delays.";
   }

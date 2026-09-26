@@ -6,6 +6,12 @@ import { computeDailyMoonNakshatras } from "@/server/astro/sweDailyMoon";
 
 type BuildTransitSnapshotParams = {
   birth: BirthInput;
+  currentPlace?: {
+    name?: string;
+    lat: number;
+    lon: number;
+    timezone: string;
+  };
   dateISO: string;
   natalAscendant: {
     sign: string;
@@ -298,8 +304,23 @@ export async function buildTransitSnapshot(
 ) {
   const { dateISO, natalAscendant, plan, birth } = params;
 
-  const engineBirth = toEngineBirth(birth);
-  const transitTime = resolveTransitSnapshotTime(dateISO, birth.timezone);
+const currentPlace = params.currentPlace ?? {
+  lat: birth.lat,
+  lon: birth.lon,
+  timezone: birth.timezone,
+};
+
+const engineBirth = {
+  ...toEngineBirth(birth),
+  lat: currentPlace.lat,
+  lon: currentPlace.lon,
+  tz: currentPlace.timezone,
+};
+
+const transitTime = resolveTransitSnapshotTime(
+  dateISO,
+  currentPlace.timezone
+);
 
 
 
@@ -309,7 +330,7 @@ const transitNowRaw = await computeTransitPlanetsNow(
   {
     dateISO,
     time: transitTime,
-    tz: birth.timezone,
+    tz: currentPlace.timezone,
   }
 );
 
@@ -326,7 +347,7 @@ const mapped = (Array.isArray(transitNowRaw) ? transitNowRaw : []).map((p: any) 
   const relationship = getRelationship(planetName, signLord);
   const dignity = getDignity(planetName, sign, relationship);
   const strengthBand = getStrengthBand(dignity);
-  
+
   return {
     planet: planetName,
     sign,
@@ -381,11 +402,12 @@ const mapped = (Array.isArray(transitNowRaw) ? transitNowRaw : []).map((p: any) 
     {
       dateISO: birth.dateISO,
       time: birth.time,
+      birthTz: birth.timezone,
       baseDateISO: dateISO,
       baseTime: transitTime,
-      tz: birth.timezone,
-      lat: birth.lat,
-      lon: birth.lon,
+      tz: currentPlace.timezone,
+lat: currentPlace.lat,
+lon: currentPlace.lon,
     },
     14
   );
@@ -400,7 +422,10 @@ const mapped = (Array.isArray(transitNowRaw) ? transitNowRaw : []).map((p: any) 
   return {
     dateISO,
     snapshotTime: transitTime,
-    snapshotMode: dateISO === getCurrentDateISOInTimezone(birth.timezone) ? "live_now" : "fixed_noon",
+    snapshotMode:
+  dateISO === getCurrentDateISOInTimezone(currentPlace.timezone)
+    ? "live_now"
+    : "fixed_noon",
     planets: planetsWithMoon,
     moonToday: firstMoon
       ? {
@@ -427,6 +452,6 @@ const mapped = (Array.isArray(transitNowRaw) ? transitNowRaw : []).map((p: any) 
           contacts: [],
         }
       : {}),
-    sourceNote: `Real transit snapshot for ${dateISO} at ${transitTime} (${birth.timezone})`,
+    sourceNote: `Real transit snapshot for ${dateISO} at ${transitTime} (${currentPlace.timezone})`,
   };
 }

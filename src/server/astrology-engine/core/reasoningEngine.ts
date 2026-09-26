@@ -30,11 +30,14 @@ export type DailySkyInput = {
     Record<
       PlanetName,
       {
-        sign: ZodiacSign;
-        nakshatra?: string;
-        degree?: number;
-        retrograde?: boolean;
-      }
+  sign: ZodiacSign;
+  nakshatra?: string;
+  degree?: number;
+  retrograde?: boolean;
+
+  conjunctions?: PlanetName[];
+  aspectsFrom?: PlanetName[];
+}
     >
   >;
   specialNotes?: string[];

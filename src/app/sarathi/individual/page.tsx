@@ -61,36 +61,45 @@ export default function IndividualPage() {
 </p>
 
           <div className="mt-8 flex flex-wrap gap-3">
-            <Link
-              href="/sarathi/individual/login?next=/sarathi/life-report"
-              className="rounded-full bg-[color:var(--primary)] px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90"
-            >
-              Generate Life Report
-            </Link>
+  <Link
+    href="/sarathi/individual/login?next=/sarathi/daily-guidance"
+    className="rounded-full bg-[color:var(--primary)] px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90"
+  >
+    View Today&apos;s Guidance
+  </Link>
 
-            <Link
-              href="/sarathi/individual/login?next=/sarathi/chat"
-              className="rounded-full astro-card px-5 py-2.5 text-sm font-semibold text-foreground hover:bg-white/80 hover:shadow-md"
-            >
-              Ask Sārathi
-            </Link>
-          </div>
+  <Link
+    href="/sarathi/individual/login?next=/sarathi/life-report"
+    className="rounded-full astro-card px-5 py-2.5 text-sm font-semibold text-foreground hover:bg-white/80 hover:shadow-md"
+  >
+    Generate Life Report
+  </Link>
+
+  <Link
+    href="/sarathi/individual/login?next=/sarathi/chat"
+    className="rounded-full astro-card px-5 py-2.5 text-sm font-semibold text-foreground hover:bg-white/80 hover:shadow-md"
+  >
+    Ask Sārathi
+  </Link>
+</div>
         </div>
 
         <section className="mt-10 grid gap-5 md:grid-cols-3">
-          <InfoCard
-            title="Know your current phase"
-            text="Understand what your active Mahadasha, Antardasha and transits are highlighting."
-          />
-          <InfoCard
-            title="Ask specific questions"
-            text="Career, money, marriage, property, health, children, inner growth and more."
-          />
-          <InfoCard
-            title="Get practical guidance"
-            text="No fear-based astrology. Just clear themes, timing and next steps."
-          />
-        </section>
+  <InfoCard
+    title="Know what matters today"
+    text="See the areas of life most active for you today, based on your birth chart, current dasha and planetary transits."
+  />
+
+  <InfoCard
+    title="Understand your life pattern"
+    text="Explore your birth chart, current phase, important life themes and the timing shaping your larger journey."
+  />
+
+  <InfoCard
+    title="Ask specific questions"
+    text="Ask Sārathi about career, money, relationships, property, health, children, inner growth and more."
+  />
+</section>
 
         <section className="mt-10 rounded-3xl astro-card p-6 md:p-8">
           <div className="text-xs font-semibold uppercase tracking-widest astro-text-muted">
@@ -119,9 +128,9 @@ export default function IndividualPage() {
               text="Ask follow-up questions in plain language and receive chart-grounded answers."
             />
             <Feature
-              title="Daily guidance"
-              text="Use Panchang, Moon movement, transits and your chart to understand the tone of the day."
-            />
+  title="Today’s Guidance"
+  text="See your strongest themes for the day, what deserves attention, one practical action and what may be better avoided."
+/>
             <Feature
               title="Privacy first"
               text="Your birth details are sensitive. Sārathi is designed to treat them with care."

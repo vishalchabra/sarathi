@@ -279,7 +279,11 @@ export async function buildDashaData(params: BuildDashaDataParams) {
     plan === "pro" && currentAntardasha
       ? getPratyantardashaTimeline(currentAntardasha)
       : [];
-
+  const activeForPrediction = {
+  md: currentMahadasha?.lord ?? null,
+  ad: currentAntardasha?.subLord ?? null,
+  pd: currentPratyantardasha?.subSubLord ?? null,
+};
   const current = {
     md: currentMahadasha?.lord ?? null,
     ad: currentAntardasha?.subLord ?? null,
@@ -323,10 +327,11 @@ export async function buildDashaData(params: BuildDashaDataParams) {
 
   const tree = buildFullDashaTree(mahaList, selectedDateISO, plan);
 
-  return {
-    current,
-    stack,
-    timelines: {
+ return {
+  current,
+  activeForPrediction,
+  stack,
+  timelines: {
   md: mapMdRows(mahaList),
 
   // Full lifetime lookup timelines

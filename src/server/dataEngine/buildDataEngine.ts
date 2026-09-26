@@ -52,6 +52,13 @@ import {
   sweCalcUt as sweWasmCalcUt,
   sweGetAyanamsaUt as sweWasmGetAyanamsaUt,
 } from "../astro/swe-wasm";
+import {
+  buildPersonalizedPredictionInputFromDataEngine,
+} from "@/server/astrology-engine/adapters/dataEngineAdapter";
+
+import {
+  generatePersonalizedDailyPrediction,
+} from "@/server/astrology-engine/personalizedDailyPredictionGenerator";
 export type DataEnginePlan = "light" | "pro";
 
 export type BirthInput = {
@@ -66,6 +73,12 @@ export type BirthInput = {
 export type BuildDataEngineParams = {
   birth: BirthInput;
   plan?: DataEnginePlan;
+    currentPlace?: {
+    name?: string;
+    lat: number;
+    lon: number;
+    timezone: string;
+  };
   selectedDateISO?: string;
   compareDateISO?: string;
   utilityDateISO?: string;
@@ -107,7 +120,11 @@ export type DataEngineOutput = {
     selectedDateISO: string;
     compareDateISO: string | null;
   };
-
+prediction: {
+  personalizedDaily: ReturnType<
+    typeof generatePersonalizedDailyPrediction
+  >;
+};
   foundations: {
     birthMeta: BirthMeta;
     ascendant: any;
@@ -548,10 +565,10 @@ function getAccurateHoraLord(params: {
     const horaNumber = Math.min(12, Math.floor(elapsed / horaLength) + 1);
     const sequenceIndex = (startIndex + (horaNumber - 1)) % 7;
     const horaLord = HORA_SEQUENCE[sequenceIndex];
-    
+
     const startsAt = sunriseDT.plus({ minutes: (horaNumber - 1) * horaLength });
     const endsAt = sunriseDT.plus({ minutes: horaNumber * horaLength });
-   
+
     return {
       horaLord,
       horaNumber,
@@ -863,7 +880,7 @@ async function getPlanetDeclinationMap(birth: BirthInput) {
     Object.entries(SWE_PLANET_CODES).map(async ([planet, code]) => {
       const r: any = await sweWasmCalcUt(jdUt, code, 2048);
 
-      
+
 
       const declination =
   Array.isArray(r) && typeof r[1] === "number"
@@ -941,6 +958,11 @@ export async function buildDataEngine(
   const selectedDateISO = resolveSelectedDateISO(params.selectedDateISO);
   const compareDateISO = String(params.compareDateISO || "").trim() || null;
   const birth = normalizeBirthTimezone(params.birth);
+  const currentPlace = params.currentPlace ?? {
+  lat: birth.lat,
+  lon: birth.lon,
+  timezone: birth.timezone,
+};
   const utilityDateISO =
   String(params.utilityDateISO || selectedDateISO).trim() || selectedDateISO;
 
@@ -1354,7 +1376,7 @@ const birthPart =
         ) + 1
       )
     : null;
-  
+
 
 const varaLord = WEEKDAY_LORDS[birthDateTime.weekday % 7] ?? null;
 const masaLord = await getMasaLordFromSolarIngress(birthDateTime);
@@ -1404,7 +1426,7 @@ const shadbalaInsights = buildShadbalaInsights(shadbala, afflictions);
   const bhavMadhya = buildBhavMadhya({
     cusps: houseCusps.cusps ?? [],
   });
-   
+
 const kpPlanets = (natalWithStrengths.planets ?? []).map((p: any) => ({
   planet: p?.planet,
   lon: p?.lon ?? p?.longitude ?? null,
@@ -1470,7 +1492,7 @@ const classicYogasRaw = buildClassicYogas({
     birth,
     natalAscendant: natalAscendantForEngine,
   });
- 
+
   const solarShadowPoints = buildSolarShadowPoints({
   natalPlanets: natalWithStrengths.planets,
   natalAscendant: natalAscendantForEngine,
@@ -1490,9 +1512,10 @@ const classicYogasRaw = buildClassicYogas({
   });
 
   const transitNow = await buildTransitSnapshot({
-    birth,
-    dateISO: selectedDateISO,
-    natalAscendant: {
+  birth,
+  currentPlace,
+  dateISO: selectedDateISO,
+  natalAscendant: {
       sign: natalAscendantForEngine.sign ?? "—",
       signNum: natalAscendantForEngine.signNum ?? 0,
       degree: natalAscendantForEngine.degree ?? 0,
@@ -1510,14 +1533,14 @@ const classicYogasRaw = buildClassicYogas({
   });
 
   const panchang = await buildPanchangData({
-    dateISO: selectedDateISO,
-    timezone: birth.timezone,
-    lat: birth.lat,
-    lon: birth.lon,
-    transitNow,
-  });
+  dateISO: selectedDateISO,
+  timezone: currentPlace.timezone,
+  lat: currentPlace.lat,
+  lon: currentPlace.lon,
+  transitNow,
+});
 
-  
+
 
   const moonContext = {
     sign: transitNow?.moonToday?.sign ?? null,
@@ -1572,7 +1595,7 @@ const triggerFacts = buildTriggerFacts({
 });
 
   const triggerScores = scoreAllTriggerAreas(triggerFacts);
-  
+
 
 const topTriggerAreas = getTopAreas(triggerScores);
 
@@ -1665,18 +1688,35 @@ const kpData = buildKPData({
     : [],
 });
 console.log("KP DATA", JSON.stringify(kpData, null, 2));
-  return {
-    meta: {
-      generatedAtISO: new Date().toISOString(),
-      plan,
-      selectedDateISO,
-      compareDateISO,
-    },
+const personalizedPredictionInput =
+  buildPersonalizedPredictionInputFromDataEngine({
+    selectedDateISO,
+    natal: natalWithStrengths,
+    dasha,
+    transitNow,
+  });
 
-    foundations: {
-  birthMeta,
-  ascendant: natalWithStrengths.ascendant,
-  natal: natalWithStrengths,
+const personalizedDailyPrediction =
+  generatePersonalizedDailyPrediction(
+    personalizedPredictionInput
+  );
+
+  return {
+  meta: {
+    generatedAtISO: new Date().toISOString(),
+    plan,
+    selectedDateISO,
+    compareDateISO,
+  },
+
+  prediction: {
+    personalizedDaily: personalizedDailyPrediction,
+  },
+
+  foundations: {
+    birthMeta,
+    ascendant: natalWithStrengths.ascendant,
+    natal: natalWithStrengths,
   houses,
   roles,
   vedicAspects,
@@ -1779,4 +1819,5 @@ triggerEngine: {
     classicYogas,
     kpPlanetOnCusp,
   };
+
 }

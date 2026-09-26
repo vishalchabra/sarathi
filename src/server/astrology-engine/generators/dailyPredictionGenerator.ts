@@ -2,10 +2,18 @@ import type { DailySkyInput } from "../core/reasoningEngine";
 import { judgeSky } from "../judgement/skyJudgementEngine";
 import { judgeAllAscendants } from "../judgement/ascendantJudgementEngine";
 import { buildAllAscendantNarratives } from "../narrative/narrativeEngine";
-
+import {
+  enrichSkyInputWithPlanetContacts,
+} from "../core/aspectResolver";
 export function generateDailyPredictionContent(input: DailySkyInput) {
-  const skyJudgement = judgeSky(input);
-  const ascendantJudgements = judgeAllAscendants(input);
+  const enrichedInput =
+    enrichSkyInputWithPlanetContacts(input);
+
+  const skyJudgement =
+    judgeSky(enrichedInput);
+
+  const ascendantJudgements =
+    judgeAllAscendants(enrichedInput);
   const narratives = buildAllAscendantNarratives(ascendantJudgements);
 
   return {
