@@ -2,6 +2,8 @@
 import Link from "next/link";
 import { createSEO } from "@/lib/seo";
 import TopNav from "./TopNav";
+import { createClient } from "@/lib/supabase/server";
+import DailyGuidanceShell from "./daily-guidance/_shell";
 export const metadata = createSEO({
   title: "Personalised Vedic Astrology Guidance",
   description:
@@ -20,7 +22,12 @@ export const metadata = createSEO({
     "Vedic Astrology Software",
   ],
 });
-export default function SarathiHome() {
+export default async function SarathiHome() {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   return (
     <main className="astro-bg min-h-screen text-foreground">
       <div className="pointer-events-none fixed inset-0 -z-10">
@@ -85,6 +92,40 @@ export default function SarathiHome() {
   secondaryCta="Open Data Engine"
 />
         </div>
+        <section className="mt-10 rounded-3xl astro-card p-6 md:p-8">
+  <div className="mb-6">
+    <div className="text-xs font-semibold uppercase tracking-widest astro-text-muted">
+      For individuals
+    </div>
+
+    <h2 className="mt-3 text-2xl font-semibold md:text-3xl">
+      Today's Guidance
+    </h2>
+
+    <p className="mt-3 text-sm leading-relaxed astro-text-soft">
+      Explore your personalised daily guidance based on your
+      birth chart, current dasha and planetary transits.
+    </p>
+  </div>
+
+  {user ? (
+    <DailyGuidanceShell compact />
+  ) : (
+    <div className="rounded-2xl border border-[color:var(--border)] p-6">
+      <p className="mb-5 text-sm astro-text-soft">
+        Sign in to view today's personalised guidance
+        using your saved birth profile.
+      </p>
+
+      <Link
+        href="/sarathi/individual/login?next=/sarathi"
+        className="inline-flex rounded-full bg-[color:var(--primary)] px-6 py-3 text-sm font-semibold text-primary-foreground"
+      >
+        Sign in for Today's Guidance
+      </Link>
+    </div>
+  )}
+</section>
 <section className="mt-10 rounded-3xl astro-card p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.06)_inset] md:p-8">
   <div className="grid gap-6 md:grid-cols-[1fr_auto] md:items-center">
     <div>
