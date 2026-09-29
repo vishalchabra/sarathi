@@ -540,20 +540,9 @@ if (sunSid !== null && moonSid !== null) {
 const part = 360 / 27;
 
   /* 5) Vimshottari Mahadasha timeline */
-console.log("[life-engine] moon for dasha", {
-  moonSid,
-  moonName: moonBirth?.name ?? null,
-  moonNakshatra: moonBirth?.nakshatra ?? null,
-});
+;
 
-console.log("[life-engine] moon for dasha", {
-  moonSid,
-  moonName: moonBirth?.name ?? null,
-  moonNakshatra: moonBirth?.nakshatra ?? null,
-  birthDateISO: input.birthDateISO,
-  birthTime: input.birthTime,
-  birthTz: input.birthTz,
-});
+;
 
 const dashaTimeline = await vimshottariMDTable({
   dateISO: input.birthDateISO,
@@ -567,22 +556,9 @@ const dashaTimeline = await vimshottariMDTable({
       : undefined,
 });
 
-console.log("[life-engine] MD table check", {
-  count: Array.isArray(dashaTimeline) ? dashaTimeline.length : 0,
-  first: Array.isArray(dashaTimeline) ? dashaTimeline[0] : null,
-});
-console.log("[life-engine] MD table check", {
-  count: Array.isArray(dashaTimeline) ? dashaTimeline.length : 0,
-  first: Array.isArray(dashaTimeline) ? dashaTimeline[0] : null,
-});
-console.log("[life-engine] MD table check", {
-  count: Array.isArray(dashaTimeline) ? dashaTimeline.length : 0,
-  first: Array.isArray(dashaTimeline) ? dashaTimeline[0] : null,
-  moonSid,
-  birthDateISO: input.birthDateISO,
-  birthTime: input.birthTime,
-  birthTz: input.birthTz,
-});
+;
+;
+;
 const fullDashaTimeline: Array<{
   start: string;
   end: string;
@@ -638,12 +614,7 @@ for (const md of dashaTimeline) {
     }
   }
 }
-console.log("[life-engine] full dasha timeline check", {
-  mdCount: Array.isArray(dashaTimeline) ? dashaTimeline.length : 0,
-  fullCount: fullDashaTimeline.length,
-  firstFull: fullDashaTimeline[0] ?? null,
-  lastFull: fullDashaTimeline[fullDashaTimeline.length - 1] ?? null,
-});
+;
 
 if (!Array.isArray(dashaTimeline) || dashaTimeline.length === 0) {
   console.error("[life-engine] ERROR: vimshottariMDTable returned no MD rows");

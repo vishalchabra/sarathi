@@ -1215,29 +1215,13 @@ if (!finalPlace) {
 }
 
 // Debug (shows in browser console)
-console.log("[sarathi/chat] finalProfile being sent", {
-  name: finalProfile?.name,
-  dobISO: finalProfile?.dobISO,
-  tob: finalProfile?.tob,
-  place: {
-    tz: finalProfile?.place?.tz ?? finalPlace.tz,
-    lat: finalProfile?.place?.lat ?? finalPlace.lat,
-    lon: finalProfile?.place?.lon ?? finalPlace.lon,
-    name: finalProfile?.place?.name ?? finalPlace.name,
-  },
-});
+;
 
 
 
 
 // (optional debug)
-console.log("[chat] profile send", {
-  dobISO: finalProfile?.dobISO,
-  tob: finalProfile?.tob,
-  tz: finalPlace?.tz,
-  lat: finalPlace?.lat,
-  lon: finalPlace?.lon,
-});
+;
 
 const payload: any = {
   question: query,
@@ -1872,14 +1856,8 @@ try {
 
 if (msg.role === "assistant" && msg.data) {
   const d = msg.data;
-console.log("[job-debug] full payload", d);
-console.log("[job-debug] lengths", {
-  bottom: d?.bottomLine?.lead?.length ?? 0,
-  copyAnswer: d?.copy?.answer?.length ?? 0,
-  copyLong: d?.copy?.long?.length ?? 0,
-  win0why: Array.isArray(d?.windows?.[0]?.why) ? d.windows[0].why.join(" ").length : 0,
-  win0do: Array.isArray(d?.windows?.[0]?.do) ? d.windows[0].do.join(" ").length : 0,
-});
+;
+;
 
 const now = d?.now?.label || d?.extra?.nowLabel;
 const core = d?.core;
@@ -1903,12 +1881,7 @@ const timingStrength =
   ? []
   : core?.evidenceBullets || d?.evidenceBullets || [];
 const preferLong = intent === "when" || intent === "exact" || view === "narrative";
-console.log("CHAT RESPONSE DEBUG", {
-  answer: d?.answer,
-  timingHierarchy: d?.timingHierarchy,
-  decisionSummary: d?.decisionSummary,
-  windows: d?.windows,
-});
+;
 const hierarchy = d?.timingHierarchy ?? null;
 
 const fallbackAnswer =
@@ -2026,13 +1999,7 @@ if (!answer || answer.trim().length < 120) {
   answer = answer ? `${answer}\n\n${fallbackAnswer}` : fallbackAnswer;
 }
 
-console.log("[chat] keys:", {
-  hasCopy: !!d?.copy,
-  hasLong: !!d?.copy?.long,
-  hasAnswer: !!d?.copy?.answer,
-  hasWindows: Array.isArray(d?.windows) ? d.windows.length : 0,
-  hasBottom: !!d?.bottomLine?.lead,
-});
+;
 
 
 

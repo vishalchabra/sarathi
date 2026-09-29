@@ -5,5 +5,7 @@ export function dbgEnabled(key: string) {
 }
 
 export function dbg(key: string, ...args: any[]) {
-  if (dbgEnabled(key)) console.log(...args);
+if (dbgEnabled(key)) {
+  // Debug logging disabled.
+}
 }

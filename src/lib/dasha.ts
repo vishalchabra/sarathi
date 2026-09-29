@@ -107,7 +107,6 @@ export async function fetchDashaSpans(
       const rows = await serverMod.getTimeline(birth, { fromISO: nowISO, toISO: horizonISO });
       const spans = normalizeRows(rows, nowISO, horizonISO);
       if (spans.length) {
-        if (DEBUG) console.log("[dasha] using @/server/dasha#getTimeline:", spans.length);
         return spans;
       }
     }
@@ -119,7 +118,7 @@ export async function fetchDashaSpans(
         const rows = await serverMod[fn](birth, nowISO, horizonISO);
         const spans = normalizeRows(rows, nowISO, horizonISO);
         if (spans.length) {
-          if (DEBUG) console.log(`[dasha] using @/server/dasha#${fn}:`, spans.length);
+          
           return spans;
         }
       }
@@ -135,14 +134,14 @@ export async function fetchDashaSpans(
       if (cur?.planet && cur?.startISO) {
         const spans = await expandFromCurrentMD(cur.planet, cur.startISO, yearsHorizon);
         if (spans.length) {
-          if (DEBUG) console.log("[dasha] using server currentMD + lib expander:", spans.length);
+          
           return spans;
         }
       }
     }
   } catch (e) {
     // If "@/server/dasha" doesn't exist or throws, just continue
-    if (DEBUG) console.log("[dasha] no usable @/server/dasha:", e?.toString?.() ?? e);
+    
   }
 
   /* 2) Try the lib directly if it exposes a timeline (some Life Report setups do) */
@@ -158,17 +157,17 @@ export async function fetchDashaSpans(
       const rows = await lib[fnName](birth, { fromISO: nowISO, toISO: horizonISO });
       const spans = normalizeRows(rows, nowISO, horizonISO);
       if (spans.length) {
-        if (DEBUG) console.log(`[dasha] using @/lib/dasha#${fnName}:`, spans.length);
+        
         return spans;
       }
     }
 
     // If lib exports only the builder, we still need current MD/start from somewhere -> not available here.
   } catch (e) {
-    if (DEBUG) console.log("[dasha] no usable @/lib/dasha timeline:", e?.toString?.() ?? e);
+    
   }
 
   /* 3) Nothing usable: return [] so the UI shows the synthetic windows (correct > wrong). */
-  if (DEBUG) console.log("[dasha] no timeline found — returning [] (synthetic fallback will be shown)");
+  
   return [];
 }

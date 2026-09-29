@@ -57,8 +57,8 @@ export async function POST(req: NextRequest) {
     }
 
     const client = getOpenAIClient();
-    console.log("[ai-personality] modelUsed:", GPT_MODEL);
-    console.log("[ai-personality] has key:", !!process.env.OPENAI_API_KEY);
+    ;
+    ;
 
     // We want a predictable shape for the UI: { text: string[], closing: string }
     const userPrompt = `

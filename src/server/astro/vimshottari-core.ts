@@ -176,7 +176,7 @@ async function moonSiderealDegAtBirth(birth: Birth): Promise<number> {
 const lonRaw = extractLongitude(res);
 
 if (typeof lonRaw !== "number" || !Number.isFinite(lonRaw)) {
-  console.log("[vimshottari] Moon extraction failed", { res });
+  ;
   throw new Error("Failed to extract sidereal Moon longitude");
 }
 
@@ -208,12 +208,7 @@ function buildMDFromMoonDeg(birth: Birth, moonDeg: number): MDT[] {
 
   if (!MD_YEARS[startLord]) {
     if (process.env.NODE_ENV !== "production") {
-      console.debug(
-        "[vimshottari] Unknown start lord from nakshatra:",
-        nk,
-        "deg=",
-        moonDeg
-      );
+      ;
     }
     return [];
   }
@@ -279,27 +274,15 @@ export async function vimshottariMDTable(birth: Birth): Promise<MDT[]> {
 
     const moonDeg = moonFromCaller ?? (await moonSiderealDegAtBirth(birth));
     const rows = buildMDFromMoonDeg(birth, moonDeg);
-    console.log("[vimshottari] final check", {
-  moonDeg,
-  rowsCount: rows.length,
-  firstRow: rows[0] ?? null,
-});
+    ;
     if (process.env.NODE_ENV !== "production") {
-      console.log(
-        "[vimshottari] Moon°=",
-        moonDeg.toFixed(2),
-        moonFromCaller ? "(from caller)" : "(computed)",
-        "MD rows:",
-        rows.length,
-        rows.slice(0, 3),
-        "…"
-      );
+      ;
     }
 
     return rows;
   } catch (e) {
     if (process.env.NODE_ENV !== "production") {
-      console.log("[vimshottari] failed:", e);
+      ;
     }
     return [];
   }

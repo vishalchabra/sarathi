@@ -138,16 +138,15 @@ const priorityRole:
             ? topCandidate.manifestationScore
             : null;
 
-      const decision:
-        CalibrationDecision =
-        !topCandidate
-          ? "NO_STRUCTURAL_CANDIDATE"
-          : !secondCandidate ||
-              (manifestationGap !==
-                null &&
-                manifestationGap >= 5)
-            ? "SELECTED"
-            : "AMBIGUOUS";
+      const decision: CalibrationDecision =
+  !topCandidate
+    ? "NO_STRUCTURAL_CANDIDATE"
+    : topCandidate.manifestationScore < 50 ||
+        (secondCandidate !== null &&
+          manifestationGap !== null &&
+          manifestationGap < 5)
+      ? "AMBIGUOUS"
+      : "SELECTED";
 
       const transitPlanets =
         Array.from(
@@ -291,105 +290,54 @@ export function logDailyCalibration(
       activations,
       priorities
     );
-
-  console.log(
-    "=== DAILY_CALIBRATION ==="
-  );
+console.log(
+  "[DAILY CALIBRATION]",
+  JSON.stringify(
+    calibration
+      .filter((area) => area.area === "mind")
+      .map((area) => ({
+        area: area.area,
+        decision: area.decision,
+        manifestationGap: area.manifestationGap,
+        candidates: area.candidates,
+      })),
+    null,
+    2
+  )
+);
+  
 
   if (moon) {
-    console.log(
-      `Moon: ${moon.sign ?? "unknown"}` +
-        ` | ${moon.nakshatra ?? "unknown"}` +
-        `${
-          moon.pada !== null
-            ? ` | Pada ${moon.pada}`
-            : ""
-        }`
-    );
+    
   }
 
   for (
     const area of calibration
   ) {
-    console.log("");
+    
 
-    console.log(
-      `${area.area.toUpperCase()}` +
-        ` | timing=${area.timingScore}` +
-        ` | ${area.strength}` +
-        ` | ${area.polarity}`
-    );
+    
 
-    console.log(
-      `houses: ${
-        area.activatedHouses.length
-          ? area.activatedHouses.join(
-              ", "
-            )
-          : "none"
-      }`
-    );
+    
 
-    console.log(
-      `dasha: ${
-        area.dashaPlanets.length
-          ? area.dashaPlanets.join(
-              ", "
-            )
-          : "none"
-      }`
-    );
+    
 
-    console.log(
-      `transit planets: ${
-        area.transitPlanets.length
-          ? area.transitPlanets.join(
-              ", "
-            )
-          : "none"
-      }`
-    );
+    
   if (area.edgeFlags.length > 0) {
-  console.log(
-    `edge flags: ${area.edgeFlags.join(
-      ", "
-    )}`
-  );
+  
 }
-  console.log(
-  `transit evidence: ${area.transitMatchCount} matches` +
-    ` | ${area.transitPlanetCount} unique planets` +
-    ` | ${area.transitSourceCount} unique sources`
-);
+  
 
-    console.log(
-      `transit sources: ${
-        area.transitSources.length
-          ? area.transitSources.join(
-              ", "
-            )
-          : "none"
-      }`
-    );
+    
 
     if (
       !area.candidates.length
     ) {
-      console.log(
-        "candidates: none"
-      );
+      
 
-      console.log(
-  "decision: NO_STRUCTURAL_CANDIDATE"
-);
+      
 
-console.log(
-  `priority: ${area.priorityRole}${
-    area.priorityScore !== null
-      ? ` | score=${area.priorityScore}`
-      : ""
-  }`
-);
+
 
 continue;
     }
@@ -399,38 +347,14 @@ continue;
         candidate,
         index
       ) => {
-        console.log(
-          `${index + 1}. ${candidate.id}` +
-            ` | structural=${candidate.confidenceScore}` +
-            ` | dashaDisc=${candidate.discriminatorScore}` +
-            ` | transitDisc=${candidate.transitDiscriminatorScore}` +
-            ` | combinedDisc=${candidate.combinedDiscriminatorScore}` +
-            ` | discConfidence=${
-              candidate.discriminatorConfidence ??
-              "n/a"
-            }` +
-            ` | manifestation=${candidate.manifestationScore}`
-        );
+        
       }
     );
 
-    console.log(
-      `gap: ${
-        area.manifestationGap ??
-        "n/a"
-      }`
-    );
+    
 
-    console.log(
-      `decision: ${area.decision}`
-    );
-    console.log(
-  `priority: ${area.priorityRole}${
-    area.priorityScore !== null
-      ? ` | score=${area.priorityScore}`
-      : ""
-  }`
-);
+    
+    
   }
 const reportEdgeFlags: string[] = [];
 
@@ -499,20 +423,12 @@ if (
   );
 }
 
-console.log("");
+
 
 if (reportEdgeFlags.length > 0) {
-  console.log(
-    `REPORT EDGE FLAGS: ${reportEdgeFlags.join(
-      ", "
-    )}`
-  );
+  
 } else {
-  console.log(
-    "REPORT EDGE FLAGS: NONE"
-  );
+  
 }
-  console.log(
-    "=== END_DAILY_CALIBRATION ==="
-  );
+  
 }

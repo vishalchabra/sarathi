@@ -82,4 +82,4 @@ const outPath = path.join(
 
 fs.writeFileSync(outPath, content, "utf8");
 
-console.log("Generated 144 lordship placement combinations.");
+;

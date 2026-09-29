@@ -283,27 +283,7 @@ if (
     ...blockers.map((x) => `Career blocker → ${x}`),
   ]).slice(0, 14);
 
-    console.log("[inferCareer] summary", {
-    birth: report?.birth ?? null,
-    modeHint: finalModeHint,
-    independenceScore: modeHintEval.independenceScore,
-    employmentScore: modeHintEval.employmentScore,
-    workType,
-    domainScores,
-    roleScores,
-    planetsSeen: Object.keys(planets),
-    houseLordKeys: Object.keys(houseLords),
-    hasD10,
-    dataCompleteness,
-    h4Occupants: getPlanetsInHouse(report, 4),
-    h6Occupants: getPlanetsInHouse(report, 6),
-    h7Occupants: getPlanetsInHouse(report, 7),
-    h9Occupants: getPlanetsInHouse(report, 9),
-    h10Occupants: getPlanetsInHouse(report, 10),
-    h11Occupants: getPlanetsInHouse(report, 11),
-    topDomainGap,
-    topRoleGap,
-  });
+    ;
 
     return {
     topic: "career",
@@ -770,11 +750,7 @@ employmentScore = clamp(employmentScore, 0, 100);
 
 const gap = independenceScore - employmentScore;
 
-console.log("[inferCareerModeHint] gap check", {
-  independenceScore,
-  employmentScore,
-  gap,
-});
+;
 
 let modeHint: CareerModeHint = "mixed";
 
@@ -786,7 +762,7 @@ if (gap >= 6) {
   modeHint = "mixed";
 }
 
-console.log("[inferCareerModeHint] final modeHint", { modeHint });
+;
 
 return {
   modeHint,

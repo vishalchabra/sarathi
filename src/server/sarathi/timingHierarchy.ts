@@ -862,40 +862,15 @@ else if (
    * Remove after hierarchy is validated.
    */
 
-  console.log(
-    "========== RAW WINDOWS =========="
-  );
+  ;
 
-  console.log(
-    "Broader:",
-    JSON.stringify(
-      broaderWindow,
-      null,
-      2
-    )
-  );
+  ;
 
-  console.log(
-    "Practical:",
-    JSON.stringify(
-      practicalWindow,
-      null,
-      2
-    )
-  );
+  ;
 
-  console.log(
-    "Activation:",
-    JSON.stringify(
-      activationWindow,
-      null,
-      2
-    )
-  );
+  ;
 
-  console.log(
-    "================================="
-  );
+  ;
 
   return {
     broaderWindow,

@@ -56,10 +56,7 @@ export async function logQuestionUsage({
     });
   }
 
-  console.log("ASK_CREDIT_CONSUMED", {
-    userId,
-    creditSource,
-  });
+  ;
 
   return {
     creditSource:

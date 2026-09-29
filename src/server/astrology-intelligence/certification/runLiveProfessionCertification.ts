@@ -279,47 +279,23 @@ export function runLiveProfessionCertification() {
           first.score
       );
 
-  console.log(
-    "\n=== SĀRATHI LIVE PROFESSION CERTIFICATION ===\n"
-  );
+  ;
 
-  console.log(
-    `Target resolution: ${resolutionPasses}/${results.length}`
-  );
+  ;
 
-  console.log(
-    "\nProfession ranking for chartFactsFixture:\n"
-  );
+  ;
 
   ranked.forEach(
     (
       result,
       index
     ) => {
-      console.log(
-        `${String(
-          index + 1
-        ).padStart(
-          2
-        )}. ${String(
-          result.resolvedTarget
-        ).padEnd(
-          22
-        )} ${String(
-          result.score
-        ).padStart(
-          3
-        )}/100  ${String(
-          result.verdict
-        )}  confidence=${result.confidence}`
-      );
+      ;
 
       if (
         !result.targetMatched
       ) {
-        console.log(
-          `    RESOLUTION ERROR: expected ${result.expectedTarget}`
-        );
+        ;
       }
 
       if (
@@ -327,50 +303,27 @@ export function runLiveProfessionCertification() {
           .length >
         0
       ) {
-        console.log(
-          `    strongest: ${result.strongestRequired
-            .map(
-              (item) =>
-                `${item.capability} ${item.score}/${item.minimum}`
-            )
-            .join(
-              " | "
-            )}`
-        );
+        ;
       }
 
       if (
         result.gaps.length >
         0
       ) {
-        console.log(
-          `    gaps: ${result.gaps.join(
-            " | "
-          )}`
-        );
+        ;
       }
     }
   );
 
-  console.log(
-    "\nExpected checks:\n"
-  );
+  ;
 
-  console.log(
-    "- All 20 questions should resolve to the intended target profile."
-  );
+  ;
 
-  console.log(
-    "- Scores should differ meaningfully across professions for the same chart."
-  );
+  ;
 
-  console.log(
-    "- Strong professions should be supported by relevant required capabilities."
-  );
+  ;
 
-  console.log(
-    "- Weak professions should expose capability gaps rather than generic explanations."
-  );
+  ;
 
   return {
     resolutionPasses,

@@ -87,7 +87,7 @@ function choosePlanetHits(hits: KpPlanetOnCuspHit[]) {
     max: 4,
     allow: ["CONJ", "SEXT", "SQUR", "TRIN", "OPPN"],
   };
-console.log("RULE RUNNING", hits[0]?.planet);
+;
   return hits
     .filter((h) => visible(h))
     .filter((h) => rule.allow.includes(h.aspectCode))

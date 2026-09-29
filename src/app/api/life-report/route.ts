@@ -1356,8 +1356,8 @@ if (!transitNowFacts.length && Array.isArray(topTransits) && topTransits.length 
       const transitSnapshotHard = transitNowFacts.slice(0, 3);
       const whyAnchorFacts = transitNowFacts.slice(0, 5);
 
-      console.log("[life-report] transitNow raw:", transitNow);
-      console.log("[life-report] transitNowFacts:", transitNowFacts);
+      
+      
 
       // -------------------------
       // Transit → Natal impact facts (easy-to-use bridge for AI)
@@ -1442,18 +1442,18 @@ if (!transitNowFacts.length && Array.isArray(topTransits) && topTransits.length 
     ...topTransits.slice(0, 3).map((t: any) => `${t.planet} ${t.category || ""}`)
   );
 }
-      console.log("[nowPlan] rankedDrivers:", primaryDrivers);
-      console.log("[nowPlan] primaryDrivers:", primaryDrivers);
+      
+      
 
-      console.log("[nowPlan] topTransits sample:", topTransits.slice(0, 4));
-      console.log("[nowPlan] anchorsUsed sample:", anchorsUsed.slice(0, 6));
-      console.log("[nowPlan] transitNow sample:", transitNow.slice(0, 6));
-      console.log("[nowPlan] TransitNowFacts:", transitNowFacts);
-      console.log("[nowPlan] keys:", Object.keys(enriched || {}));
-      console.log("[nowPlan] enriched.transitNow?", enriched?.transitNow?.slice?.(0, 3));
-      console.log("[nowPlan] enriched.transitPlanets?", enriched?.transitPlanets?.slice?.(0, 3));
-      console.log("[nowPlan] enriched.topTransits?", enriched?.topTransits?.slice?.(0, 3));
-      console.log("[nowPlan] enriched.transits?", enriched?.transits?.slice?.(0, 3));
+      
+      
+      
+      
+      
+      
+      
+      
+      
 
       const prompt = `
   You are Sārathi — a paid, practical Vedic guide.
@@ -1791,7 +1791,7 @@ if (!transitNowFacts.length && Array.isArray(topTransits) && topTransits.length 
     );
   }
 
-  console.log("=== LIFE_REPORT_ROUTE_HIT ===");
+  
 
   try {
     const body = await req.json();
@@ -1893,29 +1893,7 @@ const dataEngine = await buildDataEngine({
   plan: "pro",
 });
 
-console.log("[life-report route] dataEngine check", {
-  vargaKeys: Object.keys(dataEngine?.vargas ?? {}),
-  hasD10: !!dataEngine?.vargas?.d10,
-  hasD16: !!dataEngine?.vargas?.d16,
 
-  transitWindowsCount: Array.isArray(dataEngine?.transitWindows)
-    ? dataEngine.transitWindows.length
-    : 0,
-
-  transitsTransitWindowsCount: Array.isArray(dataEngine?.transits?.transitWindows)
-    ? dataEngine.transits.transitWindows.length
-    : 0,
-
-  triggerEngineKeys: Object.keys(dataEngine?.triggerEngine ?? {}),
-
-  degreeHitsCount: Array.isArray(dataEngine?.triggerEngine?.degreeHits)
-    ? dataEngine.triggerEngine.degreeHits.length
-    : 0,
-
-  degreeHitsSample: Array.isArray(dataEngine?.triggerEngine?.degreeHits)
-    ? dataEngine.triggerEngine.degreeHits.slice(0, 2)
-    : [],
-});
 
 const lagnaSign =
   (enriched as any)?.core?.ascSign ?? (enriched as any)?.ascSign ?? undefined;
@@ -1949,43 +1927,10 @@ if (!overviewSection) {
 // 6) FREE USER: return only overview
 // ----------------------------
 if (!isPaid) {
-  console.log("[life-report route] outgoing timing fields", {
-  dashaTimelineCount: Array.isArray((report as any)?.dashaTimeline)
-    ? (report as any).dashaTimeline.length
-    : 0,
-  eventTimelineCount: Array.isArray((report as any)?.eventTimeline)
-    ? (report as any).eventTimeline.length
-    : 0,
-  eventMonthTimelineCount: Array.isArray((report as any)?.eventMonthTimeline)
-    ? (report as any).eventMonthTimeline.length
-    : 0,
-  transitWindowsCount: Array.isArray((report as any)?.transitWindows)
-    ? (report as any).transitWindows.length
-    : 0,
-});
-console.log("[life-report route] FREE structure check", {
-  hasVargas: !!enriched?.vargas || !!report?.vargas,
-  vargaKeys: Object.keys(enriched?.vargas ?? report?.vargas ?? {}),
-  hasDivisionalCharts: !!enriched?.divisionalCharts || !!report?.divisionalCharts,
-  divisionalKeys: Object.keys(enriched?.divisionalCharts ?? report?.divisionalCharts ?? {}),
-  hasHouses: !!enriched?.houses || !!report?.houses,
-  housesType: Array.isArray(enriched?.houses ?? report?.houses) ? "array" : typeof (enriched?.houses ?? report?.houses),
-  hasHouseLords: !!enriched?.houseLords || !!report?.houseLords,
-  houseLordKeys: Object.keys(enriched?.houseLords ?? report?.houseLords ?? {}),
-});
-console.log("[life-report route] ALL CHART KEYS", {
-  enrichedKeys: Object.keys(enriched ?? {}),
-  reportKeys: Object.keys(report ?? {}),
-});
-console.log("[life-report route] POSSIBLE VARGA CONTAINERS", {
-  enrichedCharts: Object.keys(enriched?.charts ?? {}),
-  enrichedVargas: Object.keys(enriched?.vargas ?? {}),
-  enrichedDivisionalCharts: Object.keys(enriched?.divisionalCharts ?? {}),
+  
 
-  reportCharts: Object.keys(report?.charts ?? {}),
-  reportVargas: Object.keys(report?.vargas ?? {}),
-  reportDivisionalCharts: Object.keys(report?.divisionalCharts ?? {}),
-});
+
+
   return NextResponse.json(
     deepCleanStrings({
       ok: true,
@@ -2129,10 +2074,10 @@ const birthForTransits = {
       (enriched as any).transitNow = transitNow;
       (enriched as any).transitPlanets = transitNow;
 
-      console.log("[life-report] transits:", transits.length);
-      console.log("[life-report] topTransits:", topTransits.length, topTransits?.[0]);
-      console.log("[life-report] transitNow:", transitNow.length, transitNow?.[0]);
-      console.log("[life-report] dailyMoon:", dailyMoon.length, dailyMoon?.[0]);
+      
+      
+      
+      
 
       // ----------------------------
       // 9) Daily Guide (uses transits windows)
@@ -2262,9 +2207,9 @@ const nowPlanKey = `nowplan:v4:${baseKey}:${todayISO}`;
 let nowPlan = await cacheGet<any>(paidNowCacheKey);
 
 if (nowPlan) {
-  console.log("✅ NOW PLAN CACHE HIT");
+  
 } else {
-  console.log("❌ NOW PLAN CACHE MISS → generating");
+  
 
   nowPlan = await buildNowNearFuturePlan(enrichedWithDaily);
 
@@ -2273,7 +2218,7 @@ if (nowPlan) {
   }
 }
 
-console.log("[life-report] nowPlan generated?", !!nowPlan, "headline:", nowPlan?.headline);
+
 
 
       const transitNowFacts = Array.isArray(transitNow)
@@ -2373,9 +2318,9 @@ console.log("[life-report] nowPlan generated?", !!nowPlan, "headline:", nowPlan?
       let fullGuidanceV2 = await cacheGet<any>(paidFullCacheKey);
 
 if (fullGuidanceV2) {
-  console.log("✅ FULL GUIDANCE CACHE HIT");
+  
 } else {
-  console.log("❌ FULL GUIDANCE CACHE MISS → generating");
+  
 
   const paidOut = buildPaidOutput(payload);
 

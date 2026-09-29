@@ -5,6 +5,7 @@ import type {
 
 export type EventSambandhaEvidence = {
   connectionId: string;
+  planets: ActivatedSambandha["planets"];
   relationshipTypes: ActivatedSambandha["relationshipTypes"];
   activePlanets: ActivatedSambandha["activePlanets"];
   activePlanetCount: number;
@@ -80,6 +81,7 @@ export function resolveEventSambandha(params: {
 
     return [{
       connectionId: connection.connectionId,
+      planets: connection.planets,
       relationshipTypes:
         connection.relationshipTypes,
       activePlanets: connection.activePlanets,

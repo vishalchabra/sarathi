@@ -6431,10 +6431,10 @@ const visible =
     ? list.slice(0, 7)
     : fallbackFromNowPlan.slice(0, 7);
 
-console.log("[NOW TAB] todayNextFewDaysCards =", (report as any)?.todayNextFewDaysCards);
-console.log("[NOW TAB] fallbackFromNowPlan =", fallbackFromNowPlan);
-console.log("[NOW TAB] visible =", visible);
-console.log("[NOW TAB] dailyHighlights fallback length =", Array.isArray(dailyHighlights) ? dailyHighlights.length : 0);
+
+
+
+
      const upcomingWindow = React.useMemo(() => {
   const list = Array.isArray((report as any)?.topTransits)
     ? (report as any).topTransits
@@ -9396,7 +9396,7 @@ if (winSunSun) {
     }
     return null;
   })();
-  console.log("[ADV_PRO][UI] plan?", !!plan, "keys:", plan ? Object.keys(plan) : null);
+  
 
 
   const nextUpcoming = hits
@@ -9404,7 +9404,7 @@ if (winSunSun) {
     .sort((a: any, b: any) => String(a?.startISO).localeCompare(String(b?.startISO)))
     .slice(0, 5);
 
-  console.log("[advanced] hits:", hits.length, "topToday:", topToday.length);
+  
   // Try to extract transits from dashaTransitSummary (it may be JSON from /api/ai-dasha-transits)
   const parsedFusion: any = (() => {
     try {
@@ -9506,17 +9506,7 @@ if (winSunSun) {
   const activePlanet = safe(r?.activePlanet ?? r?.now?.activePlanet ?? "", "");
 
   // Debug anchors (safe)
-  console.log("[ADV][anchors]", {
-    ascSign: r?.ascSign,
-    coreAsc: r?.core?.ascSign,
-    moonSign: r?.moonSign,
-    coreMoon: r?.core?.moonSign,
-    moonHouse: r?.core?.moonHouse,
-    dasha: r?.dasha,
-    activeDasha: r?.activeDasha,
-    now: r?.now,
-    activePlanet: r?.activePlanet,
-  });
+  
 
   // Existing builders (keep)
   const why = buildWhyBullets_X(r);
@@ -10107,7 +10097,7 @@ const selectedCountryLabel =
       try {
         const settings = ensureNotificationTz(initialTz);
         setNotificationTz(settings.tz);
-        console.log("[sarathi] notificationTz", settings.tz);
+        
       } catch {
         // fall back silently
       }
@@ -10229,7 +10219,7 @@ const canSeeFull = apiIsPaid || isFull || devUnlockFull;
   const unlockFullDev = useCallback(() => {
     if (typeof window === "undefined") return;
 
-    console.log("[unlockFullDev] clicked");
+    
     localStorage.setItem("sarathi_plan", "full");
     setPlanTier("full");
   }, [setPlanTier, setActiveTab]);
@@ -10321,7 +10311,7 @@ const canSeeFull = apiIsPaid || isFull || devUnlockFull;
 
 
   useEffect(() => {
-    console.log("[predict-effect] report changed", report);
+    
 
     if (!report) {
       setJobPrediction(null);
@@ -10358,7 +10348,7 @@ const canSeeFull = apiIsPaid || isFull || devUnlockFull;
           placeName,
         };
 
-        console.log("[predict-effect] calling /api/sarathi/predict with", body);
+        
 
         const res = await fetch("/api/sarathi/predict", {
           method: "POST",
@@ -10366,7 +10356,7 @@ const canSeeFull = apiIsPaid || isFull || devUnlockFull;
           body: JSON.stringify(body),
         });
 
-        console.log("[predict-effect] response status", res.status);
+        
 
         if (!res.ok) {
           const txt = await res.text().catch(() => "");
@@ -10379,7 +10369,7 @@ const canSeeFull = apiIsPaid || isFull || devUnlockFull;
         }
 
         const json = await res.json();
-        console.log("[predict-effect] prediction json", json);
+        
 
         if (!cancelled) {
           setJobPrediction(json);
@@ -10796,7 +10786,7 @@ const normalizedProfile = {
 };
 
 saveBirthProfile(normalizedProfile);
-      console.log("[PAYLOAD life-report]", payload);
+      
 try {
   await upsertCurrentUserChart({
     chartName: payload.name,
@@ -10808,14 +10798,14 @@ try {
     placeName: payload.placeName,
   });
 
-  console.log("✅ chart saved for current user");
+  
 } catch (err) {
   console.error("[chart] failed to save chart", err);
 }
       // --- call /api/life-report ---
       const ac = new AbortController();
       const timeout = setTimeout(() => ac.abort(), 180000);
-  console.log("[life-report] sending payload", payload);
+  
 
       let res: Response;
       try {
@@ -10839,7 +10829,7 @@ try {
         : "Network error while contacting /api/life-report."
     );
   }
-  console.log("[life-report] response status", res.status);
+  
 
       clearTimeout(timeout);
 
@@ -10879,18 +10869,13 @@ canRunPaidFlows = serverIsPaid;
     envelope; // fallback: sometimes the API returns the report at top-level
 
   setReport(data as any);
-  console.log("[life-report] setReport done:", !!data, Object.keys(data || {}));
+  
   
   // Debug to prove the fix
-  console.log("[life-report] envelope keys:", Object.keys(envelope || {}));
-  console.log("[life-report] data keys:", Object.keys(data || {}));
-  console.log(
-    "[life-report] data.nowPlan?",
-    !!data?.nowPlan,
-    "data.nowNearFuture?",
-    !!data?.nowNearFuture
-  );
-  console.log("[life-report] headline:", data?.nowPlan?.headline);
+  
+  
+  
+  
 
   //  IMPORTANT: from this point forward, use `data` as your life report object
 
@@ -10943,7 +10928,7 @@ try {
         const isFresh = ageMs < 365 * 24 * 60 * 60 * 1000; // 1 year
 
         if (isFresh && typeof cached?.value === "string") {
-          console.log("✅ PERSONALITY CACHE HIT");
+          
           setAiSummary(cached.value);
           servedFromCache = true;
         }
@@ -10955,7 +10940,7 @@ try {
 
   // 2.2 If cache miss, call API
   if (!servedFromCache) {
-    console.log("❌ PERSONALITY CACHE MISS → generating");
+    
 
     const pRes = await fetch("/api/ai-personality", {
       method: "POST",
@@ -11007,7 +10992,7 @@ try {
         console.warn("[personality] cache write failed", e);
       }
 
-      console.log("✅ PERSONALITY GENERATED");
+      
     }
   }
 } catch (e: any) {
@@ -11019,18 +11004,15 @@ try {
       const anyData = data as any;
       const preview = anyData.previewNotifications ?? null;
       if (preview && typeof preview === "object") {
-        console.log("[life-report] previewNotifications", preview);
+        
         setNotificationsPreview(preview as any);
       } else {
         setNotificationsPreview(null);
       }
 
       // (optional debug)
-      console.log("[life-report] notificationFacts", anyData.notificationFacts);
-      console.log(
-        "[life-report] notificationsPreview",
-        anyData.previewNotifications?.morning
-      );
+      
+      
 
       // --- normalize planet & aspect data ---
           const planets = pickPlanets(data);
@@ -11404,10 +11386,10 @@ try {
 
   setTransitNow(Array.isArray(tJson?.transitNow) ? tJson.transitNow : []);
 
-  console.log("[transits] status:", tRes.status);
-  console.log("[transits] debug:", tJson?._debug);
-  console.log("[transits] transitNow sample:", tJson?.transitNow?.[0]);
-  console.log("[transits] first transit sample:", tJson?.transits?.[0]);
+  
+  
+  
+  
 
   if (!tRes.ok || !Array.isArray(tJson?.transits)) {
     console.error("[transits] API failed", tRes.status, tJson);
@@ -11474,14 +11456,14 @@ const structuredDailyFacts = buildDailyFacts(
   7,
   tz
 );
-    console.log("[ai-daily] dailyMoon length:", (dailyMoon || []).length);
-  console.log("[ai-daily] dailyMoon sample:", (dailyMoon || [])[0]);
-  console.log("[ai-daily] dailyFacts[0] raw:", safeDailyFacts?.[0]);
+    
+  
+  
 
-  console.log("[ai-daily] transits count:", (hitList || []).length);
-  console.log("[ai-daily] transits sample:", (hitList || [])[0]);
+  
+  
   if (!hitList || hitList.length === 0) {
-    console.log("⛔ Skipping daily highlights: no transits returned from API");
+    
     // don't return from handleGenerate; just fall back
   }
 
@@ -11797,12 +11779,12 @@ const structuredDailyFacts = buildDailyFacts(
   };
 });
 
-  console.log("[ai-daily] dayInputs[0] sample:", dayInputs?.[0]);
-  console.log("DAY INPUTS SAMPLE", dayInputs[0]);
+  
+  
 
-  console.log("[ai-daily] dayInputs[0] sample:", dayInputs?.[0]);
+  
 
-  console.log("DAY INPUTS SAMPLE", dayInputs[0]);
+  
     // Try AI (optional). If it fails, fallback will still be good.
     try {
       // --- AI daily highlights with timeout (premium UX) ---
@@ -11855,11 +11837,11 @@ const structuredDailyFacts = buildDailyFacts(
     [];
 
 
-  console.log("[ai-daily] aiDaysArr[0] raw:", (outDays || [])[0]);
+  
 
-      console.log("[ai-daily] status=", aiDailyRes?.status ?? "NO_RESPONSE");
-  console.log("[ai-daily] outDays length=", Array.isArray(outDays) ? outDays.length : "NOT_ARRAY", outDays);
-  console.log("[ai-daily] dayInputs length=", Array.isArray(dayInputs) ? dayInputs.length : "NOT_ARRAY", dayInputs);
+      
+  
+  
 
       const aiDaysArr = Array.isArray(outDays) ? outDays : [];
   if (aiDailyRes?.ok && Array.isArray(dayInputs) && dayInputs.length && aiDaysArr.length) {
@@ -11871,8 +11853,8 @@ const structuredDailyFacts = buildDailyFacts(
       rawPreview: (aiJson?._raw || "").slice(0, 200),
     });
   }
-  console.log("[ai-daily] aiDaysArr[0] raw:", aiDaysArr?.[0]);
-  console.log("[ai-daily] outDays[0] raw:", (outDays || [])[0]);
+  
+  
 
     const seen = new Set<string>();
 
@@ -11982,7 +11964,7 @@ const structuredDailyFacts = buildDailyFacts(
     headlineGold;
 
   const aiText = String(d?.text ?? "").trim();
-  console.log("[AI DAY]", dateISO, "headline=", d?.headline, "aiTextLen=", aiText.length);
+  
 
   const text =
     aiText.length >= 40
@@ -12000,10 +11982,10 @@ const structuredDailyFacts = buildDailyFacts(
   const doList = normalizeBullets(d?.do, 3);
   const avoidList = normalizeBullets(d?.avoid, 3);
 
-  console.log("AI DAY DO RAW", d?.do);
-  console.log("AI DAY AVOID RAW", d?.avoid);
-  console.log("AI DAY DO normalized", doList);
-  console.log("AI DAY AVOID normalized", avoidList);
+  
+  
+  
+  
 
   return {
     dateISO,
@@ -12351,7 +12333,7 @@ try {
         const isFresh = ageMs < 30 * 24 * 60 * 60 * 1000; // 30 days
 
         if (isFresh && Array.isArray(cached?.months) && cached.months.length > 0) {
-          console.log("✅ MONTHLY CACHE HIT");
+          
           setMonthlyInsights(cached.months);
           setMonthlyError(null);
           servedMonthlyFromCache = true;
@@ -12366,7 +12348,7 @@ try {
   if (servedMonthlyFromCache) {
     setMonthlyLoading(false);
   } else {
-    console.log("❌ MONTHLY CACHE MISS → generating");
+    
 
     const monthsRes = await fetch("/api/ai-monthly", {
       method: "POST",
@@ -12443,7 +12425,7 @@ try {
         const isFresh = ageMs < 7 * 24 * 60 * 60 * 1000; // 7 days
 
         if (isFresh && Array.isArray(cached?.weeks) && cached.weeks.length > 0) {
-          console.log("✅ WEEKLY CACHE HIT");
+          
           setWeeklyInsights(cached.weeks);
           setWeeklyError(null);
           servedFromCache = true;
@@ -12460,7 +12442,7 @@ try {
     return;
   }
 
-  console.log("❌ WEEKLY CACHE MISS → generating");
+  
 
   const weeksRes = await fetch("/api/ai-weekly", {
     method: "POST",
@@ -12549,13 +12531,7 @@ try {
       (next as any)?.lifeStoryOverview ||
       ""
   );
-  console.log("[life-report] next core fields", {
-    birthDateISO: next?.birthDateISO,
-    birthTime: next?.birthTime,
-    birthTz: next?.birthTz,
-    birthLat: next?.birthLat,
-    birthLon: next?.birthLon,
-  });
+  
 
     setActiveTab("overview");
   } catch (err: any) {

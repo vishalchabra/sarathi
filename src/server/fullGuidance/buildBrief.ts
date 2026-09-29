@@ -562,9 +562,9 @@ const next90 = {
 
   const mdGroups = groupMDAD(report);
   if (process.env.NODE_ENV !== "production") {
-  console.log("[FullGuidance] timeline rows:", getTimelineRows(report)?.length || 0);
+  ;
 }
-  console.log("[FullGuidance] mdGroups", mdGroups?.length, mdGroups?.[0]);
+  ;
   // keep it readable: last 3 MDs; each with up to 6 AD subchapters
   const lifeChapters: LifeChapterMD[] = mdGroups
     .slice(Math.max(0, mdGroups.length - 3))

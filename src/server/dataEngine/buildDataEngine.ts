@@ -59,6 +59,7 @@ import {
 import {
   generatePersonalizedDailyPrediction,
 } from "@/server/astrology-engine/personalizedDailyPredictionGenerator";
+import { selectDailyRemedy } from "./selectDailyRemedy";
 export type DataEnginePlan = "light" | "pro";
 
 export type BirthInput = {
@@ -124,6 +125,7 @@ prediction: {
   personalizedDaily: ReturnType<
     typeof generatePersonalizedDailyPrediction
   >;
+  remedy: ReturnType<typeof selectDailyRemedy>;
 };
   foundations: {
     birthMeta: BirthMeta;
@@ -958,6 +960,24 @@ export async function buildDataEngine(
   const selectedDateISO = resolveSelectedDateISO(params.selectedDateISO);
   const compareDateISO = String(params.compareDateISO || "").trim() || null;
   const birth = normalizeBirthTimezone(params.birth);
+  const [birthYear, birthMonth, birthDay] =
+  birth.dateISO.split("-").map(Number);
+
+const [targetYear, targetMonth, targetDay] =
+  selectedDateISO.split("-").map(Number);
+
+const age =
+  targetYear -
+  birthYear -
+  (
+    targetMonth < birthMonth ||
+    (
+      targetMonth === birthMonth &&
+      targetDay < birthDay
+    )
+      ? 1
+      : 0
+  );
   const currentPlace = params.currentPlace ?? {
   lat: birth.lat,
   lon: birth.lon,
@@ -1687,20 +1707,25 @@ const kpData = buildKPData({
     ? (bhavaChalit as any).cusps
     : [],
 });
-console.log("KP DATA", JSON.stringify(kpData, null, 2));
+;
 const personalizedPredictionInput =
   buildPersonalizedPredictionInputFromDataEngine({
     selectedDateISO,
     natal: natalWithStrengths,
     dasha,
     transitNow,
+    age,
   });
 
 const personalizedDailyPrediction =
   generatePersonalizedDailyPrediction(
     personalizedPredictionInput
   );
-
+const selectedDailyRemedy = selectDailyRemedy({
+  prediction: personalizedDailyPrediction,
+  natalPlanets: natalWithStrengths.planets,
+  roles,
+});
   return {
   meta: {
     generatedAtISO: new Date().toISOString(),
@@ -1709,9 +1734,10 @@ const personalizedDailyPrediction =
     compareDateISO,
   },
 
-  prediction: {
-    personalizedDaily: personalizedDailyPrediction,
-  },
+ prediction: {
+  personalizedDaily: personalizedDailyPrediction,
+  remedy: selectedDailyRemedy,
+},
 
   foundations: {
     birthMeta,

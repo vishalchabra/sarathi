@@ -71,6 +71,19 @@ function buildSkyInput(params: {
 
   const moonToday =
     transitNow?.moonToday;
+    
+const moonSiderealLongitude =
+  typeof moonToday?.signNum === "number" &&
+  typeof moonToday?.degree === "number"
+    ? ((moonToday.signNum - 1) * 30 +
+        moonToday.degree) % 360
+    : null;
+
+console.log(
+  "[DAILY MOON LONGITUDE]",
+  moonSiderealLongitude
+);
+
   if (
     !moonToday ||
     !isZodiacSign(moonToday.sign) ||
@@ -135,6 +148,8 @@ planets[planet] = {
         "number"
           ? moonToday.pada
           : undefined,
+          siderealLongitude:
+  moonSiderealLongitude ?? undefined,
     },
 
     planets,
@@ -147,6 +162,7 @@ export function buildPersonalizedPredictionInputFromDataEngine(
     natal: any;
     dasha: any;
     transitNow: any;
+     age: number;
   }
 ): PersonalizedDailyPredictionInput {
   const {
@@ -154,6 +170,7 @@ export function buildPersonalizedPredictionInputFromDataEngine(
     natal,
     dasha,
     transitNow,
+    age,
   } = params;
 
   const ascendant =
@@ -254,6 +271,7 @@ const profileKey = [
   ascendant,
   selectedDateISO,
   profileKey,
+   age,
 
     dasha: {
       mahadasha: md,

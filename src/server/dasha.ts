@@ -69,7 +69,7 @@ export async function fetchDashaSpans(birth: Birth, yearsHorizon = 3): Promise<D
   const mdStart = (process.env.DASHA_MD_START || "").trim();
   if (md && mdStart) {
     if (process.env.NODE_ENV !== "production") {
-      console.log("[QA] Using explicit ENV MD/AD fallback:", md, mdStart);
+      ;
     }
     return buildADSpansFrom(md, mdStart, yearsHorizon);
   }

@@ -58,11 +58,27 @@ type GuidanceExplanation = {
     source?: string | null;
     polarity?: string | null;
   }>;
+
+  moonPadaContext?: {
+    nakshatra: string;
+    pada: 1 | 2 | 3 | 4;
+    navamsaSign: string | null;
+    navamsaLord: string | null;
+    coreTheme: string | null;
+    interpretiveThemes: string[];
+    actionStyles: string[];
+    cautionStyles: string[];
+    predictionDirection: string;
+    actionDirection: string;
+    cautionDirection: string;
+  } | null;
+
   manifestation: {
     label: string;
     matchedPrimaryHouses: number[];
     matchedSupportingHouses: number[];
     discriminatorPlanetMatches: string[];
+    primaryDiscriminatorPlanetMatches: string[];
     transitDiscriminatorPlanetMatches: string[];
   } | null;
 };
@@ -76,6 +92,17 @@ type DailyPrediction = {
   suppressedAreas?: string[];
   explanation?: GuidanceExplanation | null;
   [key: string]: any;
+};
+
+type SelectedDailyRemedy = {
+  remedy: {
+    id: string;
+    planet: string;
+    title: string;
+    instructions: string;
+    traditionalRationale: string;
+  };
+  reason: string;
 };
 type DailyFocus = {
   area: string;
@@ -285,6 +312,7 @@ const dailyFocusDescriptions: Record<string, string> = {
     "Reflection, spiritual practice or time for yourself may be particularly relevant today.",
 };
 
+
 function getDailyFocusDescription(area: string): string {
   return (
     dailyFocusDescriptions[area] ??
@@ -292,18 +320,16 @@ function getDailyFocusDescription(area: string): string {
   );
 }
 
+
 function MainGuidanceCards({
   primary,
-  dailyFocus,
+  overallTone,
+  selectedRemedy,
 }: {
   primary: DailyTheme;
-  dailyFocus: DailyFocus | null;
+  overallTone?: string;
+  selectedRemedy: SelectedDailyRemedy | null;
 }) {
-  const aligned =
-    dailyFocus?.area === primary.area;
-
-  const area = titleCase(primary.area) || "Your Day";
-
   const prediction =
     primary.prediction ??
     primary.manifestationDescription ??
@@ -311,106 +337,102 @@ function MainGuidanceCards({
 
   return (
     <div className="space-y-5">
-      {dailyFocus?.moonSign && (
-        <div className="rounded-2xl border border-[color:var(--border)] bg-white/70 px-5 py-4">
-          <p className="text-xs font-semibold uppercase tracking-wider astro-text-muted">
-            Today&apos;s Moon
+      {/* Today's overall focus */}
+      {overallTone && (
+        <section className="rounded-2xl border border-[#E7D8C4] bg-white p-5 md:p-6">
+          <p className="text-xs font-bold uppercase tracking-widest text-[#8D643B]">
+            Today&apos;s Focus
           </p>
-          <p className="mt-1 text-lg font-semibold">
-            {dailyFocus.moonSign}
-            {dailyFocus.moonNakshatra
-              ? ` · ${dailyFocus.moonNakshatra}`
-              : ""}
+
+          <p className="mt-3 text-base font-medium leading-7 text-[#3F352B]">
+            {overallTone}
           </p>
-        </div>
+        </section>
       )}
 
-      <div className={aligned ? "" : "grid gap-5 md:grid-cols-2"}>
-        <article
-          className={`rounded-3xl border p-6 ${
-            aligned
-              ? "border-[#B8DCC8] bg-[#F0F8F4]"
-              : "border-[#EBD6A6] bg-[#FFF8EA]"
-          }`}
-        >
-          <p className="text-xs font-bold uppercase tracking-wider astro-text-muted">
-            {aligned ? "Your Main Guidance" : "Broader Period Theme"}
+      {/* Main prediction */}
+      <article className="rounded-3xl border border-[#E8D9C1] bg-[#FFFAF2] p-6 md:p-8">
+        <p className="text-xs font-bold uppercase tracking-widest text-[#8D643B]">
+          Today&apos;s Likely Event
+        </p>
+
+        <h2 className="mt-3 text-2xl font-semibold leading-snug md:text-3xl">
+          {primary.manifestationLabel ??
+            titleCase(primary.area)}
+        </h2>
+
+        <p className="mt-4 text-base leading-8 astro-text-soft">
+          {prediction ||
+            "Your active planetary periods highlight this area today. Pay attention to relevant developments."}
+        </p>
+      </article>
+
+      {/* Practical guidance */}
+      <div className="grid gap-4 md:grid-cols-2">
+        {/* Action first */}
+        <section className="rounded-2xl border border-[#CFE4D5] bg-[#F0F8F4] p-6">
+          <p className="text-xs font-bold uppercase tracking-widest text-[#4B7B67]">
+            Practical Guidance
           </p>
 
-          <h2 className="mt-3 text-2xl font-semibold">
-            {area}
-          </h2>
+          <h3 className="mt-2 text-base font-bold text-[#246B55]">
+            What You Can Do
+          </h3>
 
-          {primary.polarity && (
-            <p className="mt-2 text-sm astro-text-muted">
-              {titleCase(primary.polarity)}
-            </p>
-          )}
+          <p className="mt-3 leading-7 astro-text-soft">
+            {primary.action ||
+              "Take one thoughtful step towards your priorities today."}
+          </p>
+        </section>
 
-          {prediction && (
-            <p className="mt-4 text-base leading-7 astro-text-soft">
-              {prediction}
-            </p>
-          )}
+        {/* Avoid second */}
+        <section className="rounded-2xl border border-[#F0D6D0] bg-[#FFF3F0] p-6">
+          <p className="text-xs font-bold uppercase tracking-widest text-[#A15A50]">
+            Be Mindful Of
+          </p>
 
-          {aligned && dailyFocus && (
-            <p className="mt-4 text-base leading-7 astro-text-soft">
-              Today&apos;s Moon also brings attention to this area.{" "}
-              {getDailyFocusDescription(dailyFocus.area)}
-            </p>
-          )}
-        </article>
+          <h3 className="mt-2 text-base font-bold text-[#9A3434]">
+            What to Avoid
+          </h3>
 
-        {!aligned && dailyFocus && (
-          <article className="rounded-3xl border border-[#DDD4F0] bg-[#F5F1FC] p-6">
-            <p className="text-xs font-bold uppercase tracking-wider astro-text-muted">
-              Today&apos;s Focus
-            </p>
-
-            <h2 className="mt-3 text-2xl font-semibold">
-              {titleCase(dailyFocus.area)}
-            </h2>
-
-            <p className="mt-4 text-base leading-7 astro-text-soft">
-              {getDailyFocusDescription(dailyFocus.area)}
-            </p>
-
-            {dailyFocus.dashaScore === 0 && (
-              <p className="mt-4 text-sm leading-6 astro-text-muted">
-                This is a temporary area of attention,
-                rather than a confirmed period-level event.
-              </p>
-            )}
-          </article>
-        )}
+          <p className="mt-3 leading-7 astro-text-soft">
+            {primary.avoid ||
+              "Avoid rushing into decisions. Give yourself time to assess the situation."}
+          </p>
+        </section>
       </div>
 
-      {(primary.action || primary.avoid) && (
-        <div className="grid gap-4 md:grid-cols-2">
-          {primary.action && (
-            <section className="rounded-2xl bg-[#F0F8F4] p-5">
-              <h3 className="text-sm font-bold uppercase tracking-wide text-[#246B55]">
-                Suggested Action
-                {!aligned && ` · ${area}`}
-              </h3>
-              <p className="mt-3 leading-7">
-                {primary.action}
-              </p>
-            </section>
-          )}
+      {/* Traditional practice */}
+      {selectedRemedy && (
+        <section className="rounded-2xl border border-[#D8E6D8] bg-[#F5FAF5] p-5 md:p-6">
+          <p className="text-xs font-bold uppercase tracking-widest text-[#426B4B]">
+            Optional Traditional Practice
+          </p>
 
-          {primary.avoid && (
-            <section className="rounded-2xl bg-[#FFF2F0] p-5">
-              <h3 className="text-sm font-bold uppercase tracking-wide text-[#9A3434]">
-                What to Be Mindful Of
-                {!aligned && ` · ${area}`}
-              </h3>
-              <p className="mt-3 leading-7">
-                {primary.avoid}
+          <h3 className="mt-2 text-lg font-bold text-[#315B3B]">
+            {selectedRemedy.remedy.title}
+          </h3>
+
+          <p className="mt-3 leading-7 astro-text-soft">
+            {selectedRemedy.remedy.instructions}
+          </p>
+
+          <details className="mt-4 border-t border-[#D8E6D8] pt-4">
+            <summary className="cursor-pointer text-sm font-semibold text-[#426B4B]">
+              Why this practice?
+            </summary>
+
+            <div className="mt-3 space-y-2">
+              <p className="text-sm leading-6 astro-text-soft">
+                {selectedRemedy.remedy.traditionalRationale}
               </p>
-            </section>
-          )}
-        </div>
+
+              <p className="text-sm leading-6 astro-text-soft">
+                {selectedRemedy.reason}
+              </p>
+            </div>
+          </details>
+        </section>
       )}
     </div>
   );
@@ -516,6 +538,7 @@ function ThemeCard({
     </article>
   );
 }
+
 function WhyThisGuidance({
   explanation,
 }: {
@@ -523,12 +546,75 @@ function WhyThisGuidance({
 }) {
   const [expanded, setExpanded] = useState(false);
 
-  const transitMatches = explanation.transitMatches.filter(
-    (match) => match.planet
-  );
+  const planets = [...new Set(explanation.dashaPlanets)];
+  const houses = [...new Set(explanation.activatedHouses)];
+
+  const transitPlanets = [
+    ...new Set(
+      explanation.transitMatches
+        .map((match) => match.planet)
+        .filter((planet): planet is NonNullable<typeof planet> =>
+          Boolean(planet)
+        )
+    ),
+  ];
+
+  const manifestationLabel =
+    explanation.manifestation?.label ?? null;
+
+  const manifestationPrimaryHouses = [
+    ...new Set(
+      explanation.manifestation?.matchedPrimaryHouses ?? []
+    ),
+  ];
+
+  const manifestationSupportingHouses = [
+    ...new Set(
+      explanation.manifestation?.matchedSupportingHouses ?? []
+    ),
+  ];
+
+  const manifestationPlanets = [
+    ...new Set([
+      ...(explanation.manifestation
+        ?.primaryDiscriminatorPlanetMatches ?? []),
+      ...(explanation.manifestation
+        ?.discriminatorPlanetMatches ?? []),
+      ...(explanation.manifestation
+        ?.transitDiscriminatorPlanetMatches ?? []),
+    ]),
+  ];
+
+  const moonPada = explanation.moonPadaContext;
+
+  const formatHouses = (values: number[]) =>
+  values
+    .map(
+      (house) =>
+        `${house}${ordinalSuffix(house)}`
+    )
+    .join(" and ");
+
+const houseWord = (values: number[]) =>
+  values.length === 1 ? "house" : "houses";
+
+  const directionText =
+    moonPada?.predictionDirection === "completion"
+      ? "completion or resolution"
+      : moonPada?.predictionDirection === "clarification"
+      ? "clarity and understanding"
+      : moonPada?.predictionDirection === "stabilization"
+      ? "stability and consolidation"
+      : moonPada?.predictionDirection === "transition"
+      ? "transition and movement from one stage to another"
+      : moonPada?.predictionDirection === "coordination"
+      ? "coordination, communication and alignment"
+      : moonPada?.predictionDirection === "development"
+      ? "gradual development through practical steps"
+      : null;
 
   return (
-    <section className="overflow-hidden rounded-3xl border border-[color:var(--border)] bg-white/70">
+    <section className="overflow-hidden rounded-3xl border border-[#E8D9C1] bg-[#FFFCF7]">
       <button
         type="button"
         onClick={() => setExpanded((current) => !current)}
@@ -537,10 +623,12 @@ function WhyThisGuidance({
       >
         <div>
           <h3 className="text-base font-semibold">
-            Why this guidance?
+            Why This Prediction?
           </h3>
+
           <p className="mt-1 text-sm astro-text-muted">
-            See the planetary factors behind your primary focus.
+            See how today&apos;s astrological indications
+            connect with your likely event.
           </p>
         </div>
 
@@ -553,78 +641,170 @@ function WhyThisGuidance({
       </button>
 
       {expanded && (
-        <div className="space-y-5 border-t border-[color:var(--border)] p-5 md:px-6">
-          {explanation.dashaPlanets.length > 0 && (
+        <div className="space-y-5 border-t border-[#E8D9C1] p-5 md:px-6">
+
+          {/* AREA ACTIVATION */}
+          <div>
+            <p className="text-xs font-bold uppercase tracking-widest text-[#8D643B]">
+              Why this area is active
+            </p>
+
+            <p className="mt-2 leading-7 astro-text-soft">
+              Your active planetary periods
+              {planets.length > 0 && (
+                <>
+                  , including{" "}
+                  <strong>{planets.join(", ")}</strong>
+                </>
+              )}
+              , are activating{" "}
+              {houses.length > 0 ? (
+  <>
+    the{" "}
+    <strong>{formatHouses(houses)}</strong>{" "}
+    {houseWord(houses)}
+  </>
+) : (
+  "relevant areas of your birth chart"
+)}
+              . This brings{" "}
+              <strong>{titleCase(explanation.area)}</strong>{" "}
+              matters into focus today.
+            </p>
+          </div>
+
+          {/* MANIFESTATION DISCRIMINATION */}
+          {manifestationLabel && (
             <div>
-              <h4 className="text-sm font-semibold">
-                Active Dasha Planets
-              </h4>
-              <p className="mt-2 text-sm leading-6 astro-text-soft">
-                {explanation.dashaPlanets.join(", ")}
-              </p>
-            </div>
-          )}
-
-          {explanation.activatedHouses.length > 0 && (
-            <div>
-              <h4 className="text-sm font-semibold">
-                Activated Houses
-              </h4>
-              <p className="mt-2 text-sm leading-6 astro-text-soft">
-                {explanation.activatedHouses
-                  .map((house) => `${house}${ordinalSuffix(house)} house`)
-                  .join(", ")}
-              </p>
-            </div>
-          )}
-
-          {transitMatches.length > 0 && (
-            <div>
-              <h4 className="text-sm font-semibold">
-                Relevant Planetary Transits
-              </h4>
-
-              <div className="mt-2 flex flex-wrap gap-2">
-                {transitMatches.map((match, index) => (
-                  <span
-                    key={`${match.planet}-${match.source}-${index}`}
-                    className="rounded-full border border-[color:var(--border)] bg-white px-3 py-1.5 text-sm"
-                  >
-                    {match.planet}
-                    {match.source
-                      ? ` · ${titleCase(match.source)}`
-                      : ""}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {explanation.manifestation && (
-            <div className="rounded-2xl bg-[#FFF6F4] p-4">
-              <h4 className="text-sm font-semibold">
-                Specific Theme
-              </h4>
-              <p className="mt-2 text-sm leading-6 astro-text-soft">
-                {explanation.manifestation.label}
+              <p className="text-xs font-bold uppercase tracking-widest text-[#8D643B]">
+                Why {manifestationLabel}
               </p>
 
-              {explanation.manifestation
-                .matchedPrimaryHouses.length > 0 && (
-                <p className="mt-2 text-xs astro-text-muted">
-                  Primary supporting houses:{" "}
-                  {explanation.manifestation
-                    .matchedPrimaryHouses.join(", ")}
+              <p className="mt-2 leading-7 astro-text-soft">
+                Within the broader{" "}
+                <strong>
+                  {titleCase(explanation.area)}
+                </strong>{" "}
+                theme, the chart shows more specific
+                indications for{" "}
+                <strong>
+                  {manifestationLabel.toLowerCase()}
+                </strong>
+                {manifestationPrimaryHouses.length > 0 && (
+                  <>
+                    , including connections with the{" "}
+                    <strong>
+  {formatHouses(
+    manifestationPrimaryHouses
+  )}
+</strong>{" "}
+{houseWord(manifestationPrimaryHouses)}
+                  </>
+                )}
+                {manifestationSupportingHouses.length > 0 && (
+                  <>
+                    {" "}and additional support from the{" "}
+                    <strong>
+  {formatHouses(
+    manifestationSupportingHouses
+  )}
+</strong>{" "}
+{houseWord(manifestationSupportingHouses)}
+                  </>
+                )}
+                .
+              </p>
+
+              {manifestationPlanets.length > 0 && (
+                <p className="mt-2 leading-7 astro-text-soft">
+                  Planetary indicators involving{" "}
+                  <strong>
+                    {manifestationPlanets.join(", ")}
+                  </strong>{" "}
+                  further distinguish this specific
+                  expression from other possible{" "}
+                  {titleCase(explanation.area).toLowerCase()}{" "}
+                  themes.
                 </p>
               )}
             </div>
           )}
 
+          {/* TRANSIT SUPPORT */}
+          {transitPlanets.length > 0 && (
+            <div>
+              <p className="text-xs font-bold uppercase tracking-widest text-[#8D643B]">
+                Today&apos;s supporting transits
+              </p>
+
+              <p className="mt-2 leading-7 astro-text-soft">
+                Current movements involving{" "}
+                <strong>
+                  {transitPlanets.join(", ")}
+                </strong>{" "}
+                provide additional timing support for
+                the active indications in your chart.
+              </p>
+            </div>
+          )}
+
+          {/* MOON PADA CONTEXT */}
+          {moonPada && (
+            <div>
+              <p className="text-xs font-bold uppercase tracking-widest text-[#8D643B]">
+                Today&apos;s Moon
+              </p>
+
+              <p className="mt-2 leading-7 astro-text-soft">
+                The Moon is moving through{" "}
+                <strong>
+                  {moonPada.nakshatra}, Pada{" "}
+                  {moonPada.pada}
+                </strong>
+                {moonPada.navamsaSign && (
+                  <>
+                    {" "}in{" "}
+                    <strong>
+                      {moonPada.navamsaSign} Navamsa
+                    </strong>
+                  </>
+                )}
+                .{" "}
+                {directionText
+                  ? `This adds an emphasis on ${directionText}, shaping how today's theme may unfold.`
+                  : "This provides additional context for how today's theme may unfold."}
+              </p>
+            </div>
+          )}
+
+          {/* FINAL INTERPRETATION */}
+          {manifestationLabel && (
+            <div className="rounded-2xl border border-[#E8D9C1] bg-[#FFFAF2] p-4">
+              <p className="text-xs font-bold uppercase tracking-widest text-[#8D643B]">
+                How Sārathi reads this
+              </p>
+
+              <p className="mt-2 leading-7 astro-text-soft">
+                The broader chart activation identifies{" "}
+                <strong>
+                  {titleCase(explanation.area)}
+                </strong>{" "}
+                as an important area today. The
+                manifestation-specific indicators then
+                point more precisely towards{" "}
+                <strong>
+                  {manifestationLabel.toLowerCase()}
+                </strong>
+                {moonPada
+                  ? ", while today's Moon helps describe how that theme is likely to express itself."
+                  : "."}
+              </p>
+            </div>
+          )}
+
           <p className="text-xs leading-5 astro-text-muted">
-            These are the factors identified by Sārathi's
-            existing timing and event-activation analysis.
-            They describe astrological indications, not
-            guaranteed events.
+            This is a traditional astrological
+            interpretation, not a guaranteed event.
           </p>
         </div>
       )}
@@ -676,6 +856,7 @@ const [selectedCity, setSelectedCity] = useState<{
 
 const clearGuidance = () => {
   setPrediction(null);
+  setSelectedRemedy(null);
   setDailyFocus(null);
   setSnapshot(null);
   setError(null);
@@ -686,6 +867,8 @@ const clearGuidance = () => {
     );
 const [dailyFocus, setDailyFocus] =
   useState<DailyFocus | null>(null);
+  const [selectedRemedy, setSelectedRemedy] =
+  useState<SelectedDailyRemedy | null>(null);
   const [snapshot, setSnapshot] =
   useState<AstrologicalSnapshotData | null>(null);
   const [loadingProfiles, setLoadingProfiles] =
@@ -803,6 +986,7 @@ useEffect(() => {
       } | null;
       selectedDateISO?: string;
       prediction?: DailyPrediction;
+      remedy?: SelectedDailyRemedy | null;
       dailyFocus?: DailyFocus | null;
       snapshot?: AstrologicalSnapshotData | null;
     } | null = null;
@@ -842,11 +1026,12 @@ useEffect(() => {
       setSelectedDateISO(handoff.selectedDateISO);
     }
 
-    if (handoff.prediction) {
-      setPrediction(handoff.prediction);
-      setDailyFocus(handoff.dailyFocus ?? null);
-      setSnapshot(handoff.snapshot ?? null);
-    }
+   if (handoff.prediction) {
+  setPrediction(handoff.prediction);
+  setSelectedRemedy(handoff.remedy ?? null);
+  setDailyFocus(handoff.dailyFocus ?? null);
+  setSnapshot(handoff.snapshot ?? null);
+}
   }
 
   void initializeGuidance();
@@ -904,6 +1089,7 @@ setGenerating(true);
         }
 
         setPrediction(data?.prediction ?? null);
+        setSelectedRemedy(data?.remedy ?? null);
 setDailyFocus(data?.dailyFocus ?? null);
 setSnapshot(data?.snapshot ?? null);
 
@@ -917,6 +1103,7 @@ if (data?.date) {
         );
 
        setPrediction(null);
+       setSelectedRemedy(null);
   setDailyFocus(null);
   setSnapshot(null);
 
@@ -984,6 +1171,7 @@ const secondary =
         onChange={(event) => {
   setSelectedProfileId(event.target.value);
   setPrediction(null);
+  setSelectedRemedy(null);
 setDailyFocus(null);
 setSnapshot(null);
 }}
@@ -1099,6 +1287,7 @@ onTimezoneResolved={(timezone, place) => {
   await loadProfiles(savedProfileId);
   setShowProfileForm(false);
   setPrediction(null);
+  setSelectedRemedy(null);
 setDailyFocus(null);
 setSnapshot(null);
 }}
@@ -1116,29 +1305,17 @@ setSnapshot(null);
       {prediction ? (
         <>
 
-{!compact && <section>
-  <div className="text-sm font-semibold astro-text-muted">
-    {formatDate(selectedDateISO)}
-  </div>
-
-  <div className="mt-3 rounded-3xl border border-[color:var(--border)] bg-white/70 p-6">
-    <div className="text-xs font-semibold uppercase tracking-[0.14em] astro-text-muted">
-      Your Day at a Glance
-    </div>
-
-    <p className="mt-3 text-lg leading-8">
-      Your broader planetary period and today&apos;s Moon
-      highlight different layers of your day. Explore
-      your main guidance and today&apos;s focus below.
-    </p>
-  </div>
-</section>}
-
          {primary ? (
   <section>
-    <div className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] astro-text-muted">
-      {compact ? "Today's Highlights" : "Your Guidance"}
-    </div>
+   <div className="mb-3">
+  <div className="text-xs font-semibold uppercase tracking-[0.14em] astro-text-muted">
+    {compact ? "Today's Highlights" : "Your Guidance for Today"}
+  </div>
+
+  <p className="mt-2 text-sm font-medium text-[#8D643B]">
+    {formatDate(selectedDateISO)}
+  </p>
+</div>
 
     {compact ? (
       <div className="rounded-3xl border border-[color:var(--border)] bg-white/80 p-5">
@@ -1162,10 +1339,11 @@ setSnapshot(null);
         </p>
       </div>
     ) : (
-      <MainGuidanceCards
-        primary={primary}
-        dailyFocus={dailyFocus}
-      />
+<MainGuidanceCards
+  primary={primary}
+  overallTone={prediction.overallTone}
+  selectedRemedy={selectedRemedy}
+/>
     )}
   </section>
 ) : null}
@@ -1176,33 +1354,6 @@ setSnapshot(null);
             />
           )}
 
-          {!compact && secondary.length ? (
-            <section>
-              <div className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] astro-text-muted">
-                Also Active Today
-              </div>
-
-              <div
-  className={
-    secondary.length === 1
-      ? "grid gap-4"
-      : "grid gap-4 md:grid-cols-2"
-  }
->
-                {secondary.map(
-                  (
-                    theme,
-                    index
-                  ) => (
-                    <ThemeCard
-                      key={`${theme.area ?? "theme"}-${index}`}
-                      theme={theme}
-                    />
-                  )
-                )}
-              </div>
-            </section>
-          ) : null}
 
           {!primary &&
           !secondary.length ? (
@@ -1245,6 +1396,7 @@ setSnapshot(null);
         selectedCity,
         selectedDateISO,
         prediction,
+        remedy: selectedRemedy,
         dailyFocus,
         snapshot,
       })

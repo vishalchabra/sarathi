@@ -1,9 +1,13 @@
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // 🔕 Disable ESLint during production builds (Vercel)
   eslint: {
     ignoreDuringBuilds: true,
   },
+
+ compiler: {
+  removeConsole: false,
+},
 };
 
 export default nextConfig;

@@ -18,6 +18,7 @@ export type DailySkyInput = {
     degree?: number;
     nakshatra: string;
     pada?: number;
+    siderealLongitude?: number;
     nextNakshatra?: {
       name: string;
       time: string;

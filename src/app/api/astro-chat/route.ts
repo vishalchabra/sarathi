@@ -12688,7 +12688,7 @@ function getMarriageActivators(report: any): string[] {
   const out = new Set<string>();
 
   const houseLords = getHouseLordMap(report);
-console.log("Career house lords", houseLords);
+
   const addPlanet = (x: any) => {
     const p = safePlanetName(x);
     if (p) out.add(p);
@@ -16637,21 +16637,11 @@ const astroTimeline = buildAstroTimelineFromSignals(
   themeSignal,
   careerEventType
 );
-console.log(
-  "========== ASTRO TIMELINE STRUCTURED =========="
-);
 
-console.log(
-  JSON.stringify(
-    astroTimeline.slice(0, 10),
-    null,
-    2
-  )
-);
 
-console.log(
-  "==============================================="
-);
+
+
+
 const {
   majorWindows,
   nearTermWindows,
@@ -18524,10 +18514,7 @@ const userContext =
     userContext,
   });
 }
-  console.log(
-  "[USER CONTEXT]",
-  JSON.stringify(userContext, null, 2)
-);
+  
 const astroBundle = buildGenericAstroBundle(
   question,
   topic,
@@ -19075,21 +19062,11 @@ const timingHierarchy =
   buildTimingHierarchy(
     astroBundle
   );
-  console.log(
-  "========== TIMING HIERARCHY =========="
-);
+  
 
-console.log(
-  JSON.stringify(
-    timingHierarchy,
-    null,
-    2
-  )
-);
 
-console.log(
-  "======================================"
-);
+
+
 const eventLifecycle =
   buildEventLifecycle(
     astroBundle,
@@ -19501,38 +19478,10 @@ for (const rawPlanet of karakaPlanets) {
       }
     );
 
-  console.log({
-    planet,
-    focusHouses,
-    rulesFocusHouse,
-    isActiveDashaPlanet,
-
-    matchingFocusLinks:
-      matchingFocusLinks.map(
-        (link: any) => ({
-          reason:
-            link?.reason,
-          relatedHouses:
-            link?.relatedHouses,
-          score:
-            link?.score,
-        })
-      ),
-
-    selectedPrimary:
-      chartPrimaryPlanets.some(
-        (selectedPlanet) =>
-          String(
-            selectedPlanet
-          ).toLowerCase() ===
-          planet.toLowerCase()
-      ),
-  });
+  
 }
 
-console.log(
-  "=========================================="
-);
+
 
 for (const rawPlanet of karakaPlanets) {
   const planet =
@@ -22625,40 +22574,15 @@ function findTextPaths(
 
   return results;
 }
-console.log(
-  "========== V3.5 NATURALIZE PAYLOAD CHECK =========="
-);
 
-console.log(
-  "Planet Reasoning:",
-  JSON.stringify(
-    planetReasoning ?? null,
-    null,
-    2
-  )
-);
 
-console.log(
-  "Timing Hierarchy:",
-  JSON.stringify(
-    timingHierarchy ?? null,
-    null,
-    2
-  )
-);
 
-console.log(
-  "Decision Summary:",
-  JSON.stringify(
-    decisionSummary ?? null,
-    null,
-    2
-  )
-);
 
-console.log(
-  "==================================================="
-);
+
+
+
+
+
     const naturalizeURL =
   safeInternalURL(
     req,
@@ -22675,10 +22599,7 @@ const naturalizeTimeout =
 
 let naturalRes: Response | null =
   null;
-console.log(
-  "[NATURALIZE USER CONTEXT]",
-  safeNatPayload.userContext
-);
+
 try {
   naturalRes = await fetch(
     naturalizeURL,
@@ -22893,47 +22814,26 @@ const premiumTimingAnswer =
   shouldUseSeniorResponse
     ? buildSeniorAstrologerResponse(astroBundle)
     : null;
-console.log("========== TIMING CHECK ==========");
-console.log("Topic:", astroBundle?.topic);
-console.log("Event type:", astroBundle?.eventType);
-console.log("Question type:", questionType);
-console.log("Should suppress timing:", shouldSuppressTiming);
 
-console.log(
-  "Selected:",
-  astroBundle?.selectedTimingWindow ?? null
-);
 
-console.log(
-  "Best:",
-  astroBundle?.bestAvailableWindow ?? null
-);
 
-console.log(
-  "Strongest:",
-  astroBundle?.strongestWindow ?? null
-);
 
-console.log(
-  "Timing windows:",
-  astroBundle?.timingWindows?.slice(0, 3) ?? []
-);
 
-console.log("==================================");
-console.log("========== MULTI INTENT EVIDENCE CHECK ==========");
-console.log(
-  "Career inference:",
-  JSON.stringify(astroBundle?.careerInference ?? null, null, 2)
-);
-console.log(
-  "Final decision:",
-  JSON.stringify(finalDecision ?? null, null, 2)
-);
-console.log(
-  "Thought process:",
-  JSON.stringify(thoughtProcess ?? null, null, 2)
-);
-console.log("=================================================");
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 const naturalizedAnswer =
   safeStr(
     naturalJson?.text ??
@@ -22969,10 +22869,7 @@ let answer =
       astroBundle.answerSummary;
 
 answer = polishUserFacingDates(answer);
-console.log(
-  "Should Prefer Senior Response:",
-  shouldPreferSeniorResponse
-);
+
 const answerWordCount = answer
   .split(/\s+/)
   .filter(Boolean)
@@ -23240,14 +23137,11 @@ const whyThisWorks =
 
 const polishedShortAnswer =
   polishUserFacingDates(shortAnswer);
-console.log("========== ANSWER CHECK ==========");
-console.log("Naturalized:", naturalizedAnswer);
-console.log("Answer before polishing:", answer);
-console.log(
-  "Multi-intent:",
-  multiIntentAnalysis.isMultiIntent
-);
-console.log("==================================");
+
+
+
+
+
 const polishedFullAnswer =
   polishUserFacingDates(fullAnswer);
 

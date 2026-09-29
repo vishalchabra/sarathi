@@ -699,12 +699,12 @@ const thoughtProcess =
   body?.thoughtProcess ?? null;
 const finalDecision =
   body?.finalDecision ?? null;
-  console.log("========== EVENT LIFECYCLE ==========");
-console.log(JSON.stringify(eventLifecycle, null, 2));
-console.log("=====================================");
-  console.log("========== DECISION SUMMARY ==========");
-console.log(JSON.stringify(decisionSummary, null, 2));
-console.log("======================================");
+  ;
+;
+;
+  ;
+;
+;
 
   const verdict = safeStr(body?.verdict);
   const humanReason = safeStr(body?.humanReason);
@@ -1326,49 +1326,16 @@ lines.push(
     lines.push(`\nSTYLE_GUIDE_JSON:\n${JSON.stringify(styleGuide, null, 2)}`);
   }
 const finalPrompt = lines.join("\n");
-console.log(
-  "========== NATURALIZER V3.5 PROMPT CHECK =========="
-);
+;
 
-console.log(
-  "Has PLANET_REASONING:",
-  finalPrompt.includes(
-    "PLANET_REASONING:"
-  )
-);
+;
 
-console.log(
-  "Planet Reasoning:",
-  JSON.stringify(
-    planetReasoning ?? null,
-    null,
-    2
-  )
-);
+;
 
-console.log(
-  "Prompt length:",
-  finalPrompt.length
-);
-console.log(
-  "THOUGHT PROCESS:",
-  JSON.stringify(
-    thoughtProcess,
-    null,
-    2
-  )
-);
-console.log(
-  "FINAL DECISION:",
-  JSON.stringify(
-    finalDecision,
-    null,
-    2
-  )
-);
-console.log(
-  "===================================================="
-);
+;
+;
+;
+;
 const staleNeedles = [
   "The major structural property purchase window",
   "Major windows:",
@@ -1851,15 +1818,7 @@ const finishReason =
   completion.choices[0]?.finish_reason ??
   null;
 
-console.log(
-  "[NATURALIZE COMPLETION]",
-  {
-    finishReason,
-    outputLength:
-      completion.choices[0]?.message?.content?.length ?? 0,
-    maxTokens,
-  }
-);
+;
                const textRaw = completion.choices[0]?.message?.content ?? raw;
  
 

@@ -41,12 +41,7 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json();
 
-   console.log("=== DATA_ENGINE_HIT ===", {
-  time: new Date().toISOString(),
-  selectedDateISO: body?.selectedDateISO,
-  compareDateISO: body?.compareDateISO ?? null,
-  userId: user.id,
-});
+   ;
 
     const result = await buildDataEngine({
   birth: body?.birth,
@@ -58,14 +53,7 @@ export async function POST(req: NextRequest) {
   utilityTime: body?.utilityTime ?? null,
   utilityPlace: body?.utilityPlace ?? null,
 });
-console.log(
-  "=== PERSONALIZED_DAILY ===",
-  JSON.stringify(
-    result.prediction.personalizedDaily,
-    null,
-    2
-  )
-);
+;
 return NextResponse.json(result);
   } catch (err: any) {
     return NextResponse.json(

@@ -312,7 +312,7 @@ for (const synthesis of areaSyntheses) {
 
   synthesis.timingScore =
     timing.score;
-
+  
   synthesis.timingStrength =
     timing.strength;
     if (synthesis.polarityScore >= 15) {
@@ -403,33 +403,7 @@ const areaSyntheses =
   buildAreaSyntheses(matches);
 
 if (process.env.NODE_ENV !== "production") {
-  console.log(
-    "[TIMING_COMPONENTS]",
-    JSON.stringify(
-      areaSyntheses.map((area) => ({
-        area: area.area,
-        dashaScore: area.dashaScore,
-        dashaConfirmationCount:
-          area.dashaConfirmationCount,
-        strongestTransitImportance:
-          area.strongestTransitImportance,
-        transitPlanetConfirmationCount:
-          area.transitPlanetConfirmationCount,
-        transitSignals: area.transitMatches.map(
-          (match) => ({
-            planet: match.transitPlanet,
-            house: match.transitHouse,
-            source: match.transitSource,
-            importance: match.transitImportance,
-            polarity: match.transitPolarity,
-          })
-        ),
-        timingScore: area.timingScore,
-      })),
-      null,
-      2
-    )
-  );
+  ;
 }
   const strongestAreas =
   areaSyntheses

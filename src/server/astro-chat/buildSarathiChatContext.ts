@@ -203,37 +203,11 @@ const dashaTimeline = [
         String(b.start)
       )
   );
-    console.log(
-  "========== REAL DASHA TIMELINE SHAPE =========="
-);
+    ;
 
-console.log({
-  mdFirst:
-    engine?.timing?.dasha?.timelines?.md?.[0] ??
-    null,
+;
 
-  adFirst:
-    engine?.timing?.dasha?.timelines?.ad?.[0] ??
-    null,
-
-  pdFirst:
-    engine?.timing?.dasha?.timelines?.pd?.[0] ??
-    null,
-
-  adCurrentMdFirst:
-    engine?.timing?.dasha?.timelines
-      ?.adInCurrentMd?.[0] ??
-    null,
-
-  pdCurrentAdFirst:
-    engine?.timing?.dasha?.timelines
-      ?.pdInCurrentAd?.[0] ??
-    null,
-});
-
-console.log(
-  "==============================================="
-);
+;
   return {
     engine,
 

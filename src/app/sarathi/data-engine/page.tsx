@@ -1245,11 +1245,7 @@ async function handleGenerate() {
     if (!res.ok || json?.ok === false) {
       throw new Error(json?.error || "Failed to generate.");
     }
-console.log("DEGREE FOLLOWUP DEBUG", {
-  natalPlanets: json?.foundations?.natal?.planets ?? json?.natal?.planets,
-  transitNow: json?.transits?.transitNow ?? json?.transitNow,
-  transitWindows: json?.transits?.transitWindows ?? json?.transitWindows,
-});
+;
     setData(json);
   } catch (e: any) {
     setError(e?.message || "Something went wrong.");

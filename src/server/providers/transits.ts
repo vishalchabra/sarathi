@@ -316,10 +316,10 @@ export async function dailyTransitSignals(
     const sweRef = swe;
     const cfg = topicConfig(topic, house, sweRef);
 
-    console.log("[SARATHI DEBUG] swe?", !!sweRef);
-    console.log("[SARATHI DEBUG] natal planets keys", Object.keys(natal.planets));
-    console.log("[SARATHI DEBUG] targets", cfg.targets.length);
-    console.log("[SARATHI DEBUG] transiting", cfg.transiting.length);
+    ;
+    ;
+    ;
+    ;
 
     if (
       !cfg.transiting.length ||

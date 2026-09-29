@@ -147,6 +147,25 @@ try {
     { status: 400 }
   );
 }
+const [birthYear, birthMonth, birthDay] =
+  body.birth.dateISO.split("-").map(Number);
+
+const [predictionYear, predictionMonth, predictionDay] =
+  selectedDateISO.split("-").map(Number);
+
+const age =
+  predictionYear -
+  birthYear -
+  (
+    predictionMonth < birthMonth ||
+    (
+      predictionMonth === birthMonth &&
+      predictionDay < birthDay
+    )
+      ? 1
+      : 0
+  );
+console.log("[DAILY GUIDANCE API] buildDataEngine starting");
 
     const result =
       await buildDataEngine({
@@ -205,7 +224,7 @@ const focus = daily?.dailyAreas[0] ?? null;
   name: result.foundations.birthMeta?.name ?? null,
 
   prediction,
-
+  remedy: result.prediction.remedy,
 dailyFocus: focus
   ? {
       area: focus.area,

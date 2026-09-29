@@ -1,5 +1,5 @@
 // FILE: src/server/astro/ascendant.ts (or wherever this lives)
-console.log("ASC TS FILE LOADED")
+;
 import "server-only";
 import { DateTime } from "luxon";
 import {

@@ -556,66 +556,36 @@ export function runProfessionCertification():
 const certification =
   runProfessionCertification();
 
-console.log(
-  "\n=== SĀRATHI PROFESSION CERTIFICATION ===\n"
-);
+;
 
-console.log(
-  `Total: ${certification.total}`
-);
+;
 
-console.log(
-  `Pass: ${certification.passed}`
-);
+;
 
-console.log(
-  `Partial: ${certification.partial}`
-);
+;
 
-console.log(
-  `Fail: ${certification.failed}`
-);
+;
 
-console.log(
-  `Missing profiles: ${certification.missingProfiles}`
-);
+;
 
-console.log(
-  `Profile coverage: ${certification.profileCoverage.covered}/${certification.profileCoverage.expected} (${certification.profileCoverage.percentage}%)`
-);
+;
 
-console.log(
-  `Average benchmark score: ${certification.averageScore}/100`
-);
+;
 
-console.log(
-  "\nResults:\n"
-);
+;
 
 for (
   const result of
   certification.results
 ) {
-  console.log(
-    `${result.status.toUpperCase().padEnd(
-      15
-    )} ${String(
-      result.score
-    ).padStart(
-      3
-    )}/100  ${result.targetKey}`
-  );
+  ;
 
   if (
     result.expectedCapabilities
       .missing.length >
     0
   ) {
-    console.log(
-      `  Missing must-have: ${result.expectedCapabilities.missing.join(
-        ", "
-      )}`
-    );
+    ;
   }
 
   if (
@@ -623,10 +593,6 @@ for (
       .present.length >
     0
   ) {
-    console.log(
-      `  Forbidden present: ${result.forbiddenCapabilities.present.join(
-        ", "
-      )}`
-    );
+    ;
   }
 }

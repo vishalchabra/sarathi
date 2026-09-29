@@ -42,7 +42,7 @@ async function main() {
       String(day).padStart(2, "0"),
     ].join("-");
 
-    console.log(`Processing ${date}...`);
+    ;
 
     const result = await buildDataEngine({
       birth,
@@ -89,7 +89,7 @@ async function main() {
   );
 
   await writeFile(outputPath, csv, "utf8");
-  console.log(`Export complete: ${outputPath}`);
+  ;
 }
 
 main().catch((error) => {

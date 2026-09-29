@@ -702,11 +702,7 @@ function ClassicYogasCard({
 const rawDetected = rawDetectedSource.filter(
   (yoga: any) => yoga && typeof yoga === "object"
 );
-  console.log("CLASSIC YOGAS DEBUG", {
-  data,
-  rawDetectedSource,
-  rawDetected,
-});
+  ;
   const currentDashaPlanets = [
   currentDasha?.md?.planet ?? currentDasha?.md?.lord ?? currentDasha?.md,
   currentDasha?.ad?.planet ?? currentDasha?.ad?.lord ?? currentDasha?.ad,

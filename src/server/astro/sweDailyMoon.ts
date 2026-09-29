@@ -172,14 +172,7 @@ export async function computeMoonNakshatraNow(
   const nak = typeof lonSid === "number" ? nakFromDegSidereal(lonSid) : null;
 
   if (process.env.NODE_ENV !== "production") {
-    console.log("[moonNow] debug", {
-      nowISO: now.toISOString(),
-      jdUt,
-      ayanamsa: ay,
-      lonTrop,
-      lonSid,
-      nakSid: nak,
-    });
+    ;
   }
 
   return {

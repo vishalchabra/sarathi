@@ -173,7 +173,7 @@ export async function POST(req: Request) {
         const nowRes = await sweDaily.computeMoonNakshatraNow(tz, birth.lat, birth.lon);
 
         // TEMP debug (remove after confirming shape)
-        console.log("[moonNow] nowRes", nowRes);
+        ;
 
         moonNow = {
           atISO:
@@ -194,12 +194,7 @@ export async function POST(req: Request) {
       }
 
       // ---- DEBUG LOGS ----
-      console.log("[dailyMoon] output sample", {
-        count: Array.isArray(dailyMoon) ? dailyMoon.length : null,
-        first: Array.isArray(dailyMoon) ? dailyMoon[0] : null,
-        second: Array.isArray(dailyMoon) ? dailyMoon[1] : null,
-        last: Array.isArray(dailyMoon) ? dailyMoon[dailyMoon.length - 1] : null,
-      });
+      ;
     } catch (e) {
       console.warn("[transits] daily moon engine failed", e);
       dailyMoon = [];
@@ -232,15 +227,7 @@ const topTransits = transits
   .slice()
   .sort((a: any, b: any) => scoreTransit(b) - scoreTransit(a))
   .slice(0, 12);
-  console.log(
-  "[topTransits scored]",
-  topTransits.slice(0, 5).map((t: any) => ({
-    title: t?.title,
-    strength: t?.strength,
-    orb: t?.orb,
-    startISO: t?.startISO,
-  }))
-);
+  ;
     return NextResponse.json({
       transits, // full list (backwards compatible)
       topTransits, // pre-trimmed list

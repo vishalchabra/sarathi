@@ -17,10 +17,7 @@ export default function ServiceWorkerRegister() {
           }
         );
 
-        console.log(
-          "[PWA] Service worker registered:",
-          registration.scope
-        );
+        ;
       } catch (error) {
         console.error(
           "[PWA] Service worker registration failed:",

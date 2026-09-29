@@ -300,7 +300,7 @@ export default function EnhancedLifeReport({
     houses,
     planets,
   } = report || {};
-  console.log("DEBUG activePeriods", activePeriods);
+  ;
   return (
     <div className="max-w-5xl mx-auto space-y-6 text-slate-900/90 print:bg-white/80 print:text-black">
       

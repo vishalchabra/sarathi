@@ -53,6 +53,7 @@ export type JudgementSignal = {
   area: LifeArea;
 
   planet?: PlanetName;
+  nakshatraLord?: PlanetName;
   transitHouse?: number;
   polarity: "supportive" | "challenging" | "mixed" | "neutral";
   importance: number; // 1-100
@@ -166,6 +167,7 @@ export function judgeAscendant(
   source: "moon_house",
   area: house.primaryAreas[0],
   planet: "Moon",
+  nakshatraLord: nakshatra.lord as PlanetName,
   transitHouse: ascAnalysis.moonHouse,
     polarity: getHousePolarity(ascAnalysis.moonHouse),
     importance: getMoonHouseImportance(ascAnalysis.moonHouse),
@@ -203,7 +205,9 @@ moonDignity.principle,
 
       planet:
         "Moon",
-
+      nakshatraLord:
+  nakshatra.lord as PlanetName,
+  
       polarity:
         "mixed",
 
@@ -254,6 +258,7 @@ if (lordshipPlacement) {
   source: "moon_lordship",
   area: placementAny.areas[0],
   planet: "Moon",
+  nakshatraLord: nakshatra.lord as PlanetName,
     polarity: "mixed",
     importance: isCurated ? 40 : 36,
     confidence: placementAny.confidence ?? 8,

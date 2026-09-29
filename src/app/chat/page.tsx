@@ -320,18 +320,7 @@ export default function AstroChatPage() {
 
     const ok = isProfileComplete(freshProfile);
 
-    console.log("[SARATHI_CHAT_DEBUG] sending", {
-      question,
-      topic,
-      reportPresent: !!report,
-      profilePresent: !!freshProfile,
-      profileOk: ok,
-      dobISO: (freshProfile as any)?.dobISO,
-      tob: (freshProfile as any)?.tob,
-      tz: (freshProfile as any)?.place?.tz,
-      lat: (freshProfile as any)?.place?.lat,
-      lon: (freshProfile as any)?.place?.lon,
-    });
+    ;
 
     if (!ok) {
       setMessages((m) => [

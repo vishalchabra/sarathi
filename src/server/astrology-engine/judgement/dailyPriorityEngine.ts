@@ -39,8 +39,12 @@ export function buildDailyPriorities(
   activations: EventActivation[]
 ): DailyPriorityResult {
   const priorities =
-    activations
-      .map((activation) => {
+  activations
+    .filter(
+      (activation) =>
+        activation.candidateEvents.length > 0
+    )
+    .map((activation) => {
         const topCandidate =
   activation.candidateEvents[0] ??
   null;
@@ -58,7 +62,8 @@ const manifestationGap =
       : 0;
 
 const hasClearManifestation =
-  Boolean(topCandidate) &&
+  topCandidate !== null &&
+  topCandidate.manifestationScore >= 50 &&
   (
     !secondCandidate ||
     manifestationGap >= 5
@@ -72,9 +77,29 @@ const bestManifestation =
 const manifestationScore =
   topCandidate
     ?.manifestationScore ?? 0;
+        const manifestationBonus =
+  bestManifestation
+    ? Math.min(
+        10,
+        Math.max(
+          0,
+          bestManifestation.manifestationScore - 50
+        )
+      )
+    : 0;
 
-        const dailyPriorityScore =
-  activation.timingScore;
+const moonConfirmationBonus =
+  bestManifestation?.hasMoonSambandhaConfirmation
+    ? 2
+    : 0;
+
+const rawPriorityScore =
+  activation.timingScore +
+  manifestationBonus +
+  moonConfirmationBonus;
+
+const dailyPriorityScore =
+  Math.min(100, rawPriorityScore);
 
         const priority: DailyPriority = {
           candidateEvents: activation.candidateEvents,
@@ -98,28 +123,21 @@ return priority;
       })
      .sort(
   (a, b) =>
-    b.dailyPriorityScore -
-    a.dailyPriorityScore
+    b.dailyPriorityScore - a.dailyPriorityScore
 );
-
-priorities.forEach(
-  (priority, index) => {
-    if (index === 0) {
-      priority.role = "primary";
-      return;
-    }
-
-    if (
-      priority.dailyPriorityScore >= 60
-    ) {
-      priority.role = "secondary";
-      return;
-    }
-
-    priority.role = "background";
+priorities.forEach((priority, index) => {
+  if (index === 0) {
+    priority.role = "primary";
+    return;
   }
-);
 
+  if (priority.dailyPriorityScore >= 60) {
+    priority.role = "secondary";
+    return;
+  }
+
+  priority.role = "background";
+});
   const primary =
     priorities[0] ?? null;
 

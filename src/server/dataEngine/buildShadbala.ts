@@ -1069,11 +1069,7 @@ export function buildShadbala({
     const saptavargaja = getSaptavargajaBala(p, natalPlanets, vargaData);
     const vargaConsistencyBala = getVargaConsistencyBala(p, vargaData);
     if (["Venus", "Jupiter"].includes(planetName)) {
-  console.log("SHADBALA SAPTAVARGA DEBUG", {
-    planet: planetName,
-    totalSaptavargaja: saptavargaja.virupas,
-    breakdown: saptavargaja.breakdown,
-  });
+  ;
 }
     const uchchaBala = getUchchaBala(p);
     

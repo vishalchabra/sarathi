@@ -228,9 +228,9 @@ if (before) out.push(before);
       }
 
       // Helpful env checks (will show you WHY it’s 500)
-      console.log("[ai-daily-highlights] model:", process.env.OPENAI_MODEL_DAILY || "gpt-4o-mini");
-      console.log("[ai-daily-highlights] has key:", !!process.env.OPENAI_API_KEY);
-      console.log("[ai-daily-highlights] days:", days.length);
+      ;
+      ;
+      ;
 
     const sys = [
   "You are Sārathi — calm, direct, practical. Not a life coach. Not motivational. Not generic.",
@@ -328,7 +328,7 @@ if (before) out.push(before);
       });
 
       const raw = resp.choices?.[0]?.message?.content ?? "{}";
-      console.log("[ai-daily-highlights] raw length:", raw.length);
+      ;
       // console.log("[ai-daily-highlights] raw:", raw); // uncomment temporarily if needed
 
       let parsed: any = {};
