@@ -1322,6 +1322,21 @@ const natalWithStrengths = {
     vargaData: vargas,
   }),
 };
+if (process.env.NODE_ENV === "development") {
+  console.log(
+    "[NATAL D9 INPUT CHECK]",
+    JSON.stringify({
+      ascendant: natalWithStrengths.ascendant,
+      planets: natalWithStrengths.planets.map((p: any) => ({
+        planet: p.planet,
+        sign: p.sign,
+        lon: p.lon,
+        longitude: p.longitude,
+        degree: p.degree,
+      })),
+    }, null, 2)
+  );
+}
 const natalMoonRow =
   Array.isArray(natalWithStrengths.planets)
     ? natalWithStrengths.planets.find((p: any) => p?.planet === "Moon") ?? null

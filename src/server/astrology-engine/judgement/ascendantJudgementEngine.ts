@@ -248,32 +248,61 @@ const generatedPlacement =
 
 const lordshipPlacement =
   curatedPlacement ?? generatedPlacement;
-
+if (
+  process.env.NODE_ENV === "development" &&
+  ascendant === "Virgo"
+) {
+  console.log("[MOON PLACEMENT LOOKUP]", {
+    ascendant,
+    placementKey,
+    source: curatedPlacement
+      ? "curated"
+      : generatedPlacement
+        ? "generated"
+        : "missing",
+    areas: lordshipPlacement?.areas ?? [],
+  });
+}
 if (lordshipPlacement) {
   const placementAny = lordshipPlacement as any;
   const isCurated = "dailyExpression" in placementAny;
 
-  signals.push({
-  id: `${ascendant}_lordship_placement_${placementKey}`,
-  source: "moon_lordship",
-  area: placementAny.areas[0],
-  planet: "Moon",
-  nakshatraLord: nakshatra.lord as PlanetName,
-    polarity: "mixed",
-    importance: isCurated ? 40 : 36,
-    confidence: placementAny.confidence ?? 8,
+  const areas = [
+    ...new Set(placementAny.areas as LifeArea[]),
+  ];
 
-    message: placementAny.dailyExpression ?? placementAny.synthesis,
+  const totalImportance = isCurated ? 40 : 36;
 
-    advice: placementAny.bestUse ?? placementAny.advice,
+  const importancePerArea =
+    areas.length > 0
+      ? totalImportance / areas.length
+      : 0;
 
-    reasons: [
-      `Moon rules the ${ordinal(lordship.moonLordshipHouse)} house for ${ascendant}.`,
-      `Moon is transiting the ${ordinal(ascAnalysis.moonHouse)} house from ${ascendant}.`,
-      placementAny.principle,
-      placementAny.synthesis,
-    ],
-  });
+  for (const area of areas) {
+    signals.push({
+      id: `${ascendant}_lordship_placement_${placementKey}_${area}`,
+      source: "moon_lordship",
+      area,
+      planet: "Moon",
+      nakshatraLord: nakshatra.lord as PlanetName,
+      transitHouse: ascAnalysis.moonHouse,
+      polarity: "mixed",
+      importance: importancePerArea,
+      confidence: placementAny.confidence ?? 8,
+      message:
+        placementAny.dailyExpression ??
+        placementAny.synthesis,
+      advice:
+        placementAny.bestUse ??
+        placementAny.advice,
+      reasons: [
+        `Moon rules the ${ordinal(lordship.moonLordshipHouse)} house for ${ascendant}.`,
+        `Moon is transiting the ${ordinal(ascAnalysis.moonHouse)} house from ${ascendant}.`,
+        placementAny.principle,
+        placementAny.synthesis,
+      ],
+    });
+  }
 }
 for (const [planetName, planetData] of Object.entries(input.planets ?? {})) {
   const planet = planetName as PlanetName;

@@ -16,22 +16,42 @@ export async function GET(request: NextRequest) {
     request.nextUrl.searchParams.get("date") ??
     "2026-10-20";
 
-  if (!/^2026-10-(0[1-9]|[12]\d|3[01])$/.test(date)) {
+ if (
+  !/^2026-(09-(2[7-9]|30)|10-(0[1-3]))$/.test(date)
+) {
+  return NextResponse.json(
+    {
+      error:
+        "Select a date from 2026-09-27 to 2026-10-03.",
+    },
+    { status: 400 }
+  );
+}
+  const params = request.nextUrl.searchParams;
+
+  const birth = {
+    dateISO: params.get("birthDate") ?? "1984-01-21",
+    time: params.get("birthTime") ?? "23:35",
+    timezone: params.get("timezone") ?? "Asia/Kolkata",
+    lat: Number(params.get("lat") ?? "29.968"),
+    lon: Number(params.get("lon") ?? "77.546"),
+  };
+
+  if (
+    !/^\d{4}-\d{2}-\d{2}$/.test(birth.dateISO) ||
+    !/^([01]\d|2[0-3]):[0-5]\d$/.test(birth.time) ||
+    !Number.isFinite(birth.lat) ||
+    !Number.isFinite(birth.lon) ||
+    Math.abs(birth.lat) > 90 ||
+    Math.abs(birth.lon) > 180
+  ) {
     return NextResponse.json(
-      { error: "Select a date in October 2026." },
+      { error: "Invalid birth parameters" },
       { status: 400 }
     );
   }
-
   const result = await buildDataEngine({
-    birth: {
-      // Use the same birth input as the comparison route.
-      dateISO: "1984-01-21",
-      time: "23:35",
-      timezone: "Asia/Kolkata",
-      lat: 29.968,
-      lon: 77.546,
-    },
+    birth,
     plan: "pro",
     selectedDateISO: date,
   });
@@ -40,8 +60,25 @@ export async function GET(request: NextRequest) {
   const daily = prediction.dailyComparison;
   const focus = daily?.dailyAreas[0] ?? null;
 
-  return NextResponse.json({
-    date,
+ return NextResponse.json({
+  date,
+   fullPrediction: {
+    overallTone: prediction.overallTone,
+    primaryTheme: prediction.primaryTheme,
+    secondaryThemes: prediction.secondaryThemes,
+    suppressedAreas: prediction.suppressedAreas,
+  },
+  moonDailyThemes: prediction.moonDailyThemes ?? null,
+  moonFirstGuidance: prediction.moonFirstGuidance ?? null,
+  moonAllAreaEventCandidates:
+  prediction.moonAllAreaEventCandidates ?? null,
+  moonMoneyHouseEvidence:
+  prediction.moonMoneyHouseEvidence ?? null,
+  moonMoneyTransitEvidence:
+  prediction.moonMoneyTransitEvidence ?? null,
+  moonDashaHouseConnections:
+  prediction.moonDashaHouseConnections ?? null,
+   moonTriggerNatalD9: prediction.moonTriggerNatalD9 ?? null,
     periodTheme: prediction.primaryTheme
   ? {
       area: prediction.primaryTheme.area,

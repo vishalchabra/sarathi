@@ -293,14 +293,16 @@ export function logDailyCalibration(
 console.log(
   "[DAILY CALIBRATION]",
   JSON.stringify(
-    calibration
-      .filter((area) => area.area === "mind")
-      .map((area) => ({
-        area: area.area,
-        decision: area.decision,
-        manifestationGap: area.manifestationGap,
-        candidates: area.candidates,
-      })),
+    calibration.map((area) => ({
+      area: area.area,
+      timingScore: area.timingScore,
+      priorityRole: area.priorityRole,
+      priorityScore: area.priorityScore,
+      decision: area.decision,
+      manifestationGap: area.manifestationGap,
+      edgeFlags: area.edgeFlags,
+      candidates: area.candidates.slice(0, 3),
+    })),
     null,
     2
   )

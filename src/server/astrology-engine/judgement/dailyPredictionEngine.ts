@@ -5,6 +5,7 @@ import type {
 
 export type DailyPredictionTheme = {
   area: DailyPriority["area"];
+    selectionSource?: "moon_natal_convergence";
   polarity: DailyPriority["polarity"];
 
   manifestationId: string | null;
@@ -376,11 +377,12 @@ const addPolarityContext = (
 if (!manifestation) {
   const [first, second] = priority.candidateEvents;
 
-  if (
-    first &&
-    second &&
-    first.manifestationScore - second.manifestationScore < 5
-  ) {
+ if (
+  priority.area !== "money" &&
+  first &&
+  second &&
+  first.manifestationScore - second.manifestationScore < 5
+) {
     const eventLabels =
       `${first.label.toLowerCase()} or ${second.label.toLowerCase()}`;
 
@@ -883,6 +885,26 @@ case "property_complication":
     return "Avoid unnecessary reactions or rushed decisions.";
 }
 }
+export function buildMoonThemeGuidance(
+  area: DailyPriority["area"]
+): {
+  prediction: string;
+  action: string;
+  avoid: string;
+} {
+  const moonPriority = {
+    area,
+    polarity: "neutral",
+    bestManifestation: null,
+    candidateEvents: [],
+  } as unknown as DailyPriority;
+
+  return {
+    prediction: buildThemePrediction(moonPriority),
+    action: buildThemeAction(moonPriority),
+    avoid: buildThemeAvoid(moonPriority),
+  };
+}
 function priorityToPredictionTheme(
   priority: DailyPriority
 ): DailyPredictionTheme {
@@ -979,28 +1001,78 @@ function capitalizeFirstLetter(value: string): string {
   return value.charAt(0).toUpperCase() + value.slice(1);
 }
 export function buildDailyPrediction(
-  priorities: DailyPriorityResult
+  priorities: DailyPriorityResult,
+  moonLeadingAreas: DailyPriority["area"][] = []
 ): DailyPersonalizedPrediction {
-  const primaryTheme =
-    priorities.primary
-      ? priorityToPredictionTheme(
-          priorities.primary
+  const allPriorities = [
+  priorities.primary,
+  ...priorities.secondary,
+  ...priorities.background,
+].filter((priority): priority is DailyPriority => priority !== null);
+
+const moonLeadingPriority = moonLeadingAreas
+  .map((area) =>
+    allPriorities.find(
+      (priority) =>
+        priority.area === area &&
+        priority.areaTimingScore >= 50
+    )
+  )
+  .find((priority) => priority !== undefined);
+
+const selectedPrimary =
+  moonLeadingPriority ?? priorities.primary;
+
+const primaryTheme = selectedPrimary
+  ? {
+      ...priorityToPredictionTheme(selectedPrimary),
+      role: "primary" as const,
+    }
+  : null;
+
+  const adjustedPriorities: DailyPriorityResult = {
+  ...priorities,
+  primary: selectedPrimary
+    ? {
+        ...selectedPrimary,
+        role: "primary",
+      }
+    : null,
+  secondary: allPriorities
+    .filter(
+      (priority) =>
+        priority.area !== selectedPrimary?.area &&
+        (
+          priority.role === "secondary" ||
+          priority.area === priorities.primary?.area
         )
-      : null;
+    )
+    .map((priority) => ({
+      ...priority,
+      role: "secondary" as const,
+    })),
+};
 
-  const secondaryThemes =
-    priorities.secondary.map(
-      priorityToPredictionTheme
-    );
+const secondaryThemes =
+  adjustedPriorities.secondary.map(
+    priorityToPredictionTheme
+  );
 
-  const suppressedAreas =
-    priorities.background.map(
-      (priority) => priority.area
-    );
+ const suppressedAreas =
+  priorities.background
+    .filter(
+      (priority) =>
+        priority.area !== selectedPrimary?.area &&
+        !adjustedPriorities.secondary.some(
+          (secondary) =>
+            secondary.area === priority.area
+        )
+    )
+    .map((priority) => priority.area);
 
  return {
   overallTone:
-    buildOverallTone(priorities),
+  buildOverallTone(adjustedPriorities),
 
   primaryTheme,
   secondaryThemes,

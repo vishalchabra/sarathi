@@ -25,14 +25,18 @@ import {
 import {
   buildEventActivations,
 } from "./judgement/eventActivationEngine";
-
+import {
+  EVENT_THEMES,
+} from "./knowledge/eventThemes";
 import {
   buildDailyPriorities,
+  buildMoonDailyThemes,
 } from "./judgement/dailyPriorityEngine";
 
 import {
   buildDailyPrediction,
-} from "./judgement/dailyPredictionEngine";
+  buildMoonThemeGuidance,
+} from "./judgement/dailyPredictionEngine"; 
 import {
   logDailyCalibration,
 } from "./debug/dailyCalibration";
@@ -54,10 +58,56 @@ import type {
 } from "./knowledge/dashaSambandhaResolver";
 
 import { getNakshatraPadaData } from "./knowledge/nakshatraPadaData";
-
+import {
+  resolveMoneyEventExpression,
+  resolveEventStage,
+  composeMoneyEventExpressionNarrative,
+  resolvePadaExpressionMode,
+  composeMoneyPredictionV2,
+  realizePrediction,
+  resolveEducationEventExpression,
+  composeEducationPredictionV2,
+  resolveCareerEventExpression,
+composeCareerPredictionV2,
+resolveMindEventExpression,
+composeMindPredictionV2,
+resolveHomeEventExpression,
+composeHomePredictionV2,
+resolveFamilyEventExpression,
+composeFamilyPredictionV2,
+resolveHealthEventExpression,
+composeHealthPredictionV2,
+resolveRelationshipEventExpression,
+composeRelationshipPredictionV2,
+resolveChildrenEventExpression,
+composeChildrenPredictionV2,
+resolveTravelEventExpression,
+composeTravelPredictionV2,
+resolveCommunicationEventExpression,
+composeCommunicationPredictionV2,
+resolvePublicImageEventExpression,
+composePublicImagePredictionV2,
+resolveHiddenMattersEventExpression,
+composeHiddenMattersPredictionV2,
+resolvePropertyEventExpression,
+composePropertyPredictionV2,
+resolveSpiritualityEventExpression,
+composeSpiritualityPredictionV2,
+} from "./narrative/eventExpressionLibrary";
+import {
+  diagnoseMoonDashaSambandha,
+} from "./debug/moonSambandhaDiagnostic";
+import {
+  resolveMoonTriggerNatalAreas,
+} from "./debug/moonNatalAreaResolver";
+import type { LifeArea } from "./types";
+import { HOUSE_KNOWLEDGE } from "./knowledge/houses";
+import { navamsaLon } from "../astro/chart-svg";
+import { diagnoseEventConfirmation } from "./judgement/eventConfirmationDiagnostic";
 export type PersonalizedNatalPosition = {
   sign: ZodiacSign;
   house: number;
+  longitude?: number | null;
 
   // Optional narrative context; does not affect prediction scoring.
   nakshatra?: string | null;
@@ -71,7 +121,8 @@ export type PersonalizedDailyPredictionInput = {
   selectedDateISO: string;
   profileKey: string;
 
-  ascendant: ZodiacSign;
+    ascendant: ZodiacSign;
+  natalAscendantLongitude?: number | null;
   age?: number;
   dasha: {
     mahadasha: PlanetName;
@@ -89,6 +140,60 @@ export type PersonalizedDailyPredictionInput = {
 export function generatePersonalizedDailyPrediction(
   input: PersonalizedDailyPredictionInput
 ) {
+  const natalD9AscendantLongitude =
+  typeof input.natalAscendantLongitude === "number" &&
+  Number.isFinite(input.natalAscendantLongitude)
+    ? navamsaLon(input.natalAscendantLongitude)
+    : null;
+
+if (process.env.NODE_ENV === "development") {
+  console.log(
+    "[NATAL D9 ASCENDANT]",
+    JSON.stringify({
+      d1Ascendant: input.ascendant,
+      d1Longitude: input.natalAscendantLongitude,
+      d9Longitude: natalD9AscendantLongitude,
+      d9Sign:
+        natalD9AscendantLongitude !== null
+          ? Math.floor(natalD9AscendantLongitude / 30) + 1
+          : null,
+    })
+  );
+}
+const natalD9PlanetPositions = Object.entries(
+  input.natalPositions
+).flatMap(([planet, position]) => {
+  const longitude = position?.longitude;
+
+  if (
+    typeof longitude !== "number" ||
+    !Number.isFinite(longitude) ||
+    natalD9AscendantLongitude === null
+  ) {
+    return [];
+  }
+
+  const d9Longitude = navamsaLon(longitude);
+
+  const d9SignIndex = Math.floor(d9Longitude / 30);
+  const d9AscendantSignIndex = Math.floor(
+    natalD9AscendantLongitude / 30
+  );
+
+  return [{
+    planet,
+    d9Sign: d9SignIndex + 1,
+    d9House:
+      ((d9SignIndex - d9AscendantSignIndex + 12) % 12) + 1,
+  }];
+});
+
+if (process.env.NODE_ENV === "development") {
+  console.log(
+    "[NATAL D9 PLANETS]",
+    JSON.stringify(natalD9PlanetPositions)
+  );
+}
   const enrichedSky =
     enrichSkyInputWithPlanetContacts(
       input.sky
@@ -97,7 +202,7 @@ const moonPadaData = getNakshatraPadaData(
   enrichedSky.moon.siderealLongitude
 );
 
-console.log("[DAILY MOON PADA DATA]", moonPadaData);
+
   const judgements =
     judgeAllAscendants(
       enrichedSky
@@ -116,7 +221,174 @@ console.log("[DAILY MOON PADA DATA]", moonPadaData);
       `Ascendant judgement not found for ${input.ascendant}.`
     );
   }
+const moonNakshatraSignal =
+  ascendantJudgement.rankedSignals.find(
+    (signal) => signal.source === "moon_nakshatra"
+  );
 
+const zodiacOrder: ZodiacSign[] = [
+  "Aries",
+  "Taurus",
+  "Gemini",
+  "Cancer",
+  "Leo",
+  "Virgo",
+  "Libra",
+  "Scorpio",
+  "Sagittarius",
+  "Capricorn",
+  "Aquarius",
+  "Pisces",
+];
+
+const ascendantIndex = zodiacOrder.indexOf(input.ascendant);
+const moonSignIndex = zodiacOrder.indexOf(enrichedSky.moon.sign);
+
+const moonTransitHouse =
+  ((moonSignIndex - ascendantIndex + 12) % 12) + 1;
+const moonNakshatraLord =
+  moonNakshatraSignal?.nakshatraLord ?? null;
+
+const moonNavamsaLord =
+  moonPadaData?.navamsaLord &&
+  [
+    "Sun",
+    "Moon",
+    "Mars",
+    "Mercury",
+    "Jupiter",
+    "Venus",
+    "Saturn",
+    "Rahu",
+    "Ketu",
+  ].includes(moonPadaData.navamsaLord)
+    ? (moonPadaData.navamsaLord as PlanetName)
+    : null;
+const moonTriggerNatalD9 = {
+  nakshatraLord: moonNakshatraLord
+    ? natalD9PlanetPositions.find(
+        (p) => p.planet === moonNakshatraLord
+      ) ?? null
+    : null,
+
+  navamsaLord: moonNavamsaLord
+    ? natalD9PlanetPositions.find(
+        (p) => p.planet === moonNavamsaLord
+      ) ?? null
+    : null,
+};
+
+if (process.env.NODE_ENV === "development") {
+  console.log(
+    "[MOON TRIGGER NATAL D9]",
+    JSON.stringify(moonTriggerNatalD9)
+  );
+}
+const nakshatraLordNatal =
+  moonNakshatraLord
+    ? input.natalPositions[moonNakshatraLord] ?? null
+    : null;
+
+const navamsaLordNatal =
+  moonNavamsaLord
+    ? input.natalPositions[moonNavamsaLord] ?? null
+    : null;
+    const nakshatraLordNatalAreas =
+  moonNakshatraLord
+    ? resolveMoonTriggerNatalAreas({
+        ascendant: input.ascendant,
+        planet: moonNakshatraLord,
+        natalPositions: input.natalPositions,
+      })
+    : null;
+
+const navamsaLordNatalAreas =
+  moonNavamsaLord
+    ? resolveMoonTriggerNatalAreas({
+        ascendant: input.ascendant,
+        planet: moonNavamsaLord,
+        natalPositions: input.natalPositions,
+      })
+    : null;
+function describeMoonNatalConnection(
+  area: LifeArea,
+  source: string,
+  natalAreas: typeof nakshatraLordNatalAreas
+): string | null {
+  if (!natalAreas) return null;
+
+  const connections: string[] = [];
+
+  if (natalAreas.placementAreas.includes(area)) {
+    connections.push(
+      `its natal placement in the ${natalAreas.natalHouse}th house`
+    );
+  }
+
+  if (natalAreas.lordshipAreas.includes(area)) {
+    const houses = natalAreas.ruledHouses.join(" and ");
+    connections.push(
+      `its lordship of house${natalAreas.ruledHouses.length > 1 ? "s" : ""} ${houses}`
+    );
+  }
+
+  if (connections.length === 0) return null;
+
+  return `${source} ${natalAreas.planet} connects with ${area} through ${connections.join(" and ")}.`;
+}
+let moonNarrativeTransitContext: {
+  sign: ZodiacSign;
+  house: number;
+  nakshatra: string | null;
+  pada: number | null;
+  nakshatraLord: PlanetName | null;
+  navamsaSign: string | null;
+  navamsaLord: PlanetName | null;
+  nakshatraLordNatalAreas: typeof nakshatraLordNatalAreas;
+navamsaLordNatalAreas: typeof navamsaLordNatalAreas;
+} | null = null;
+const moonDailyActivation = {
+  sign: enrichedSky.moon.sign,
+
+  house: moonTransitHouse,
+
+  nakshatra:
+    moonPadaData?.nakshatra ??
+    enrichedSky.moon.nakshatra ??
+    null,
+
+  pada:
+    moonPadaData?.pada ??
+    enrichedSky.moon.pada ??
+    null,
+
+  nakshatraLord: moonNakshatraLord,
+nakshatraLordNatal,
+nakshatraLordNatalAreas,
+  navamsaSign:
+    moonPadaData?.navamsaSign ?? null,
+
+  navamsaLord: moonNavamsaLord,
+navamsaLordNatal,
+navamsaLordNatalAreas,
+};
+moonNarrativeTransitContext = {
+  sign: moonDailyActivation.sign,
+  house: moonDailyActivation.house,
+  nakshatra: moonDailyActivation.nakshatra,
+  pada: moonDailyActivation.pada,
+  nakshatraLord: moonDailyActivation.nakshatraLord,
+  navamsaSign: moonDailyActivation.navamsaSign,
+  navamsaLord: moonDailyActivation.navamsaLord,
+  nakshatraLordNatalAreas: moonDailyActivation.nakshatraLordNatalAreas,
+navamsaLordNatalAreas: moonDailyActivation.navamsaLordNatalAreas,
+};
+if (process.env.NODE_ENV === "development") {
+  console.log(
+    "[MOON DAILY ACTIVATION]",
+    JSON.stringify(moonDailyActivation)
+  );
+}
 if (process.env.NODE_ENV !== "production") {
   const moonSources = new Set([
     "moon_house",
@@ -143,7 +415,31 @@ if (process.env.NODE_ENV !== "production") {
       natalPositions:
         input.natalPositions,
     });
+let moonSambandhaDiagnostic:
+  | ReturnType<typeof diagnoseMoonDashaSambandha>
+  | null = null;
 let activatedSambandha: ActivatedSambandha[] = [];
+let moonPrimaryAreas: LifeArea[] = [];
+let moonSambandhaHouses: number[] = [];
+
+let moonNarrativeD1Evidence: {
+  area: string;
+  tier: "PRIMARY_CONVERGENCE" | "REINFORCED" | "SINGLE_SOURCE";
+  supportingPlanets: PlanetName[];
+  evidence: {
+    nakshatraPlacement: boolean;
+    nakshatraLordship: boolean;
+    navamsaPlacement: boolean;
+    navamsaLordship: boolean;
+  };
+  sambandhaReinforced: boolean;
+}[] = [];
+let moonPriorityInput = {
+  primaryAreas: [] as LifeArea[],
+  reinforcedAreas: [] as LifeArea[],
+  singleSourceAreas: [] as LifeArea[],
+  transitHouseConfirmedAreas: [] as LifeArea[],
+};
   // Natal Sambandha diagnostic.
   // Does not affect prediction scores or event selection.
   if (
@@ -155,6 +451,432 @@ let activatedSambandha: ActivatedSambandha[] = [];
         ascendant: input.ascendant,
         planets: input.natalPositions,
       });
+  const moonNakshatraLord =
+    ascendantJudgement.rankedSignals.find(
+      (signal) => signal.source === "moon_nakshatra"
+    )?.nakshatraLord;
+    const moonTriggerPlanets = [
+  moonNakshatraLord,
+  moonNavamsaLord,
+].filter(
+  (planet): planet is PlanetName => planet !== null
+);
+
+const moonNatalSambandha =
+  natalSambandha.relationships.filter(
+    (relationship) =>
+      moonTriggerPlanets.some((planet) =>
+        relationship.planets.includes(planet)
+      )
+  );
+  const moonTriggerSambandha =
+  moonNakshatraLord &&
+  moonNavamsaLord
+    ? natalSambandha.relationships.filter(
+        (relationship) =>
+          relationship.planets.includes(moonNakshatraLord) &&
+          relationship.planets.includes(moonNavamsaLord)
+      )
+    : [];
+
+if (process.env.NODE_ENV === "development") {
+  console.log(
+    "[MOON TRIGGER SAMBANDHA]",
+    JSON.stringify({
+      nakshatraLord: moonNakshatraLord,
+      navamsaLord: moonNavamsaLord,
+      relationships: moonTriggerSambandha,
+    })
+  );
+}
+const moonActivatedAreaEvidence = new Map<
+  string,
+  {
+    nakshatraPlacement: boolean;
+    nakshatraLordship: boolean;
+    navamsaPlacement: boolean;
+    navamsaLordship: boolean;
+  }
+>();
+
+const registerAreaEvidence = (
+  areas: string[],
+  source:
+    | "nakshatraPlacement"
+    | "nakshatraLordship"
+    | "navamsaPlacement"
+    | "navamsaLordship"
+) => {
+  for (const area of areas) {
+    const existing =
+      moonActivatedAreaEvidence.get(area) ?? {
+        nakshatraPlacement: false,
+        nakshatraLordship: false,
+        navamsaPlacement: false,
+        navamsaLordship: false,
+      };
+
+    existing[source] = true;
+    moonActivatedAreaEvidence.set(area, existing);
+  }
+};
+
+if (nakshatraLordNatalAreas) {
+  registerAreaEvidence(
+    nakshatraLordNatalAreas.placementAreas,
+    "nakshatraPlacement"
+  );
+
+  registerAreaEvidence(
+    nakshatraLordNatalAreas.lordshipAreas,
+    "nakshatraLordship"
+  );
+}
+
+if (navamsaLordNatalAreas) {
+  registerAreaEvidence(
+    navamsaLordNatalAreas.placementAreas,
+    "navamsaPlacement"
+  );
+
+  registerAreaEvidence(
+    navamsaLordNatalAreas.lordshipAreas,
+    "navamsaLordship"
+  );
+}
+
+const moonActivatedAreas = [
+  ...moonActivatedAreaEvidence.entries(),
+]
+  .map(([area, evidence]) => {
+    const nakshatraSupportsArea =
+      evidence.nakshatraPlacement ||
+      evidence.nakshatraLordship;
+
+    const navamsaSupportsArea =
+      evidence.navamsaPlacement ||
+      evidence.navamsaLordship;
+
+    const supportingPlanets = [
+      ...new Set(
+        [
+          nakshatraSupportsArea ? moonNakshatraLord : null,
+          navamsaSupportsArea ? moonNavamsaLord : null,
+        ].filter(
+          (planet): planet is PlanetName => planet !== null
+        )
+      ),
+    ];
+
+    return {
+      area,
+      evidence,
+      convergenceCount:
+        Object.values(evidence).filter(Boolean).length,
+      planetConvergenceCount: supportingPlanets.length,
+      supportingPlanets,
+    };
+  })
+  .sort(
+    (a, b) =>
+      b.convergenceCount - a.convergenceCount
+  );
+
+if (process.env.NODE_ENV === "development") {
+  console.log(
+    "[MOON ACTIVATED AREAS]",
+    JSON.stringify(moonActivatedAreas)
+  );
+}
+if (process.env.NODE_ENV === "development") {
+  console.log(
+    "[MOON NATAL SAMBANDHA]",
+    JSON.stringify({
+      triggers: moonTriggerPlanets,
+      relationships: moonNatalSambandha,
+    })
+  );
+}
+      
+const moonTriggerSambandhaHouses = [
+  ...new Set(
+    moonTriggerSambandha.flatMap(
+      (relationship) => relationship.houses
+    )
+  ),
+];
+moonSambandhaHouses = moonTriggerSambandhaHouses;
+const moonTriggerSambandhaAreas = [
+  ...new Set(
+    moonTriggerSambandhaHouses.flatMap(
+      (house) =>
+        HOUSE_KNOWLEDGE[house]?.primaryAreas ?? []
+    )
+  ),
+];
+
+const moonActivatedAreasWithSambandha =
+  moonActivatedAreas.map((item) => ({
+    ...item,
+
+    sambandhaReinforced:
+      moonTriggerSambandhaAreas.includes(
+        item.area as LifeArea
+      ),
+
+    sambandhaHouses:
+      moonTriggerSambandhaHouses,
+  }));
+const moonNatalD9HouseEvidence = [
+  {
+    source: "nakshatraLord",
+    position: moonTriggerNatalD9.nakshatraLord,
+  },
+  {
+    source: "navamsaLord",
+    position: moonTriggerNatalD9.navamsaLord,
+  },
+].map(({ source, position }) => ({
+  source,
+  planet: position?.planet ?? null,
+  d9House: position?.d9House ?? null,
+  areas: position
+    ? HOUSE_KNOWLEDGE[position.d9House]?.primaryAreas ?? []
+    : [],
+}));
+
+if (process.env.NODE_ENV === "development") {
+  console.log(
+    "[MOON NATAL D9 HOUSE EVIDENCE]",
+    JSON.stringify(moonNatalD9HouseEvidence)
+  );
+}
+const moonD9AreaSupport = moonActivatedAreasWithSambandha.map(
+  (item) => {
+    const matchingD9Triggers =
+      moonNatalD9HouseEvidence
+        .filter((d9) => d9.areas.includes(item.area as LifeArea))
+        .map((d9) => ({
+          source: d9.source,
+          planet: d9.planet,
+          d9House: d9.d9House,
+        }));
+
+    return {
+      area: item.area,
+      hasD9HouseOverlap: matchingD9Triggers.length > 0,
+      matchingD9Triggers,
+    };
+  }
+);
+
+if (process.env.NODE_ENV === "development") {
+  console.log(
+    "[MOON D9 AREA SUPPORT]",
+    JSON.stringify(moonD9AreaSupport)
+  );
+}
+const moonAreaEvidenceTiers =
+  moonActivatedAreasWithSambandha.map((item) => {
+    let tier:
+      | "PRIMARY_CONVERGENCE"
+      | "REINFORCED"
+      | "SINGLE_SOURCE";
+
+const hasDirectPlacement =
+  item.evidence.nakshatraPlacement ||
+  item.evidence.navamsaPlacement;
+
+if (
+  item.planetConvergenceCount >= 2 &&
+  hasDirectPlacement
+) {
+  tier = "PRIMARY_CONVERGENCE";
+} else if (
+  item.planetConvergenceCount >= 2 ||
+  item.sambandhaReinforced
+) {
+  tier = "REINFORCED";
+} else {
+  tier = "SINGLE_SOURCE";
+}
+
+    return {
+      ...item,
+      tier,
+    };
+  });
+  moonNarrativeD1Evidence = moonAreaEvidenceTiers.map((item) => ({
+  area: item.area,
+  tier: item.tier,
+  supportingPlanets: item.supportingPlanets,
+  evidence: item.evidence,
+  sambandhaReinforced: item.sambandhaReinforced,
+}));
+const moonD1D9EvidenceComparison =
+  moonAreaEvidenceTiers.map((item) => {
+    const d9Support = moonD9AreaSupport.find(
+      (support) => support.area === item.area
+    );
+
+    return {
+      area: item.area,
+      d1Tier: item.tier,
+      d1SupportingPlanets: item.supportingPlanets,
+      d9HouseOverlap:
+        d9Support?.hasD9HouseOverlap ?? false,
+      d9MatchingTriggers:
+        d9Support?.matchingD9Triggers ?? [],
+    };
+  });
+
+if (process.env.NODE_ENV === "development") {
+  console.log(
+    "[MOON D1 D9 EVIDENCE COMPARISON]",
+    JSON.stringify(moonD1D9EvidenceComparison)
+  );
+}
+if (process.env.NODE_ENV === "development") {
+  console.log(
+    "[MOON AREA EVIDENCE TIERS]",
+    JSON.stringify(moonAreaEvidenceTiers)
+  );
+}
+moonPrimaryAreas =
+  moonAreaEvidenceTiers
+    .filter(
+      (item) => item.tier === "PRIMARY_CONVERGENCE"
+    )
+    .map((item) => item.area as LifeArea);
+const moonTransitHouseAreas =
+  HOUSE_KNOWLEDGE[moonTransitHouse]?.primaryAreas ?? [];
+
+const moonTransitHouseConfirmation = {
+  moonHouse: moonTransitHouse,
+  houseAreas: moonTransitHouseAreas,
+
+  confirmedPrimaryAreas: moonPrimaryAreas.filter((area) =>
+    moonTransitHouseAreas.includes(area)
+  ),
+
+  unconfirmedPrimaryAreas: moonPrimaryAreas.filter(
+    (area) => !moonTransitHouseAreas.includes(area)
+  ),
+};
+
+if (process.env.NODE_ENV === "development") {
+  console.log(
+    "[MOON TRANSIT HOUSE CONFIRMATION]",
+    JSON.stringify(moonTransitHouseConfirmation)
+  );
+}
+const moonReinforcedAreas =
+  moonAreaEvidenceTiers
+    .filter(
+      (item) => item.tier === "REINFORCED"
+    )
+    .map((item) => item.area as LifeArea);
+
+const moonSingleSourceAreas =
+  moonAreaEvidenceTiers
+    .filter(
+      (item) => item.tier === "SINGLE_SOURCE"
+    )
+        .map((item) => item.area as LifeArea);
+
+const moonThemeActivation = {
+  primaryAreas: moonPrimaryAreas,
+  reinforcedAreas: moonReinforcedAreas,
+  singleSourceAreas: moonSingleSourceAreas,
+
+  context: {
+    moonHouse: moonTransitHouse,
+    moonSign: enrichedSky.moon.sign,
+  },
+
+  expression: {
+    nakshatra: moonPadaData?.nakshatra ?? null,
+    pada: moonPadaData?.pada ?? null,
+    navamsaSign: moonPadaData?.navamsaSign ?? null,
+    navamsaLord: moonNavamsaLord,
+  },
+};
+moonPriorityInput = {
+  primaryAreas: moonThemeActivation.primaryAreas,
+  reinforcedAreas: moonThemeActivation.reinforcedAreas,
+  singleSourceAreas: moonThemeActivation.singleSourceAreas,
+  transitHouseConfirmedAreas:
+    moonTransitHouseConfirmation.confirmedPrimaryAreas,
+};
+if (process.env.NODE_ENV === "development") {
+  console.log(
+    "[MOON THEME ACTIVATION]",
+    JSON.stringify(moonThemeActivation)
+  );
+}
+if (process.env.NODE_ENV === "development") {
+  console.log(
+    "[MOON ACTIVATED AREAS + SAMBANDHA]",
+    JSON.stringify({
+      sambandhaHouses: moonTriggerSambandhaHouses,
+      sambandhaAreas: moonTriggerSambandhaAreas,
+      activatedAreas: moonActivatedAreasWithSambandha,
+    })
+  );
+}
+  
+
+  moonSambandhaDiagnostic = diagnoseMoonDashaSambandha({
+        ascendant: input.ascendant,
+        nakshatraLord: moonNakshatraLord,
+        navamsaLord: (
+  moonPadaData?.navamsaLord &&
+  [
+    "Sun", "Moon", "Mars", "Mercury",
+    "Jupiter", "Venus", "Saturn", "Rahu", "Ketu"
+  ].includes(moonPadaData.navamsaLord)
+    ? moonPadaData.navamsaLord
+    : null
+) as import("./types").PlanetName | null,
+        dashaPlanets: dasha.dominantPlanets,
+        natalPositions: input.natalPositions,
+        natalSambandha,
+      });
+
+console.dir(
+  {
+    diagnostic: "MOON_DASHA_SAMBANDHA",
+    result: moonSambandhaDiagnostic,
+  },
+  { depth: null }
+);
+
+if (moonSambandhaDiagnostic) {
+  const natalAreaSupport = moonSambandhaDiagnostic.triggers.flatMap(
+    (trigger) =>
+      trigger.natalAreas.combinedAreas.map((area) => ({
+        area,
+        source: trigger.source,
+        planet: trigger.planet,
+        fromPlacement:
+          trigger.natalAreas.placementAreas.includes(area),
+        fromLordship:
+          trigger.natalAreas.lordshipAreas.includes(area),
+        directlyDashaActive: trigger.directlyDashaActive,
+        directConnections: trigger.connections.length,
+        indirectConnections:
+          trigger.indirectDashaConnections.length,
+      }))
+  );
+
+  console.dir(
+    {
+      diagnostic: "MOON_NATAL_AREA_SUPPORT",
+      areas: natalAreaSupport,
+    },
+    { depth: null }
+  );
+}
 if (process.env.NODE_ENV === "development") {
   const moonNakshatraLord =
     ascendantJudgement.rankedSignals.find(
@@ -212,25 +934,411 @@ const events =
     dasha,
     transit: ascendantJudgement,
     synthesis,
+    moonPrimaryAreas,
+    moonSambandhaHouses,
     activatedSambandha,
     moonPadaData,
     natalPositions: input.natalPositions,
     age: input.age,
   });
-
+if (process.env.NODE_ENV === "development") {
+  console.log(
+    "[EVENT ACTIVATIONS BEFORE MOON FILTER]",
+    JSON.stringify(events.activations)
+  );
+}
 const priorities =
   buildDailyPriorities(
-    events.activations
+    events.activations,
+    moonPriorityInput
   );
-  if (process.env.NODE_ENV !== "production") {
+  const moonDashaHouseConnections =
+  process.env.NODE_ENV === "development"
+    ? dasha.planetActivations.map((activation) => ({
+        planet: activation.planet,
+        levels: activation.levels,
+        strength: activation.strength,
+        ruledHouses: activation.ruledHouses,
+        natalHouse: activation.natalHouse ?? null,
+        dispositor: activation.dispositor ?? null,
+        dispositorRuledHouses:
+          activation.dispositorRuledHouses,
+        areaActivations: activation.areaActivations,
+      }))
+    : [];
+  const moonMoneyHouseEvidence =
+  process.env.NODE_ENV === "development"
+    ? events.activations
+        .filter((activation) => activation.area === "money")
+        .map((activation) => ({
+          area: activation.area,
+          houseEvidence: activation.houseEvidence,
+          rankedHouses: activation.rankedHouses,
+        }))
+    : [];
+    const moonMoneyTransitEvidence =
+  process.env.NODE_ENV === "development"
+    ? ascendantJudgement.rankedSignals
+        .filter(
+          (signal) =>
+            signal.transitHouse !== undefined &&
+            [2, 5, 9, 10, 11].includes(signal.transitHouse)
+        )
+        .map((signal) => ({
+          planet: signal.planet ?? null,
+          house: signal.transitHouse,
+          area: signal.area,
+          source: signal.source,
+          importance: signal.importance,
+          polarity: signal.polarity,
+        }))
+    : [];
+const moonAllAreaEventCandidates =
+  process.env.NODE_ENV === "development"
+    ? [
+        priorities.primary,
+        ...priorities.secondary,
+        ...priorities.background,
+      ]
+        .filter((priority) => priority !== null)
+        .map((priority) => ({
+          area: priority.area,
+          dailyPriorityScore: priority.dailyPriorityScore,
+          selectedEvent: priority.bestManifestation?.id ?? null,
+          topCandidates: priority.candidateEvents
+  .slice(0, 3)
+  .map((event) => {
+    const confirmation = diagnoseEventConfirmation(
+      event,
+      priority.candidateEvents.filter(
+        (competitor) => competitor.id !== event.id
+      )
+    );
+const eventTheme = EVENT_THEMES.find(
+  (theme) => theme.id === event.id
+);
+const eventDashaHouseEvidence = eventTheme
+  ? moonDashaHouseConnections.flatMap((activation) => {
+      const connections = [
+        ...activation.ruledHouses.map((house) => ({
+          house,
+          source: "lordship",
+        })),
+        ...(activation.natalHouse !== null
+          ? [{
+              house: activation.natalHouse,
+              source: "natal_placement",
+            }]
+          : []),
+        ...activation.dispositorRuledHouses.map((house) => ({
+          house,
+          source: "dispositor",
+        })),
+      ];
+
+      return connections
+        .filter(
+          (connection) =>
+            eventTheme.primaryHouses.includes(connection.house) ||
+            eventTheme.supportingHouses.includes(connection.house)
+        )
+        .map((connection) => ({
+          planet: activation.planet,
+          dispositor: activation.dispositor,
+          levels: activation.levels,
+          strength: activation.strength,
+          house: connection.house,
+          source: connection.source,
+          sourceWeight:
+  connection.source === "lordship"
+    ? 3
+    : connection.source === "natal_placement"
+      ? 2
+      : 1,
+      overlapsWithActiveDispositor:
+  connection.source === "dispositor" &&
+  activation.dispositor !== null &&
+  activation.dispositor !== undefined &&
+  moonDashaHouseConnections.some(
+    (other) =>
+      other.planet === activation.dispositor &&
+      other.ruledHouses.includes(connection.house)
+  ),
+          houseRole: eventTheme.primaryHouses.includes(
+            connection.house
+          )
+            ? "primary"
+            : "supporting",
+        }));
+    })
+  : [];
+const crossAreaTransitEvidence = eventTheme
+  ? ascendantJudgement.rankedSignals
+      .filter(
+        (signal) =>
+          signal.planet !== undefined &&
+          signal.transitHouse !== undefined &&
+          signal.source !== "moon_nakshatra" &&
+          signal.source !== "moon_condition" &&
+          signal.area !== event.area &&
+          (
+            eventTheme.primaryHouses.includes(
+              signal.transitHouse
+            ) ||
+            eventTheme.supportingHouses.includes(
+              signal.transitHouse
+            )
+          )
+      )
+      .map((signal) => ({
+        planet: signal.planet,
+        house: signal.transitHouse,
+        area: signal.area,
+        source: signal.source,
+        importance: signal.importance,
+        polarity: signal.polarity,
+        houseRole: eventTheme.primaryHouses.includes(
+          signal.transitHouse!
+        )
+          ? "primary"
+          : "supporting",
+      }))
+  : [];
+    return {
+      id: event.id,
+      label: event.label,
+      score: event.manifestationScore,
+     hasMoonConfirmation:
+  event.hasMoonSambandhaConfirmation,
+  moonEvidence: event.moonEvidence ?? [],
+matchedEventHouseTransits:
+  event.matchedEventHouseTransits,
+matchedTransitDiscriminatorEvidence:
+  event.matchedTransitDiscriminatorEvidence,
+  crossAreaTransitEvidence,
+  eventDashaHouseEvidence,
+  proposedEventConfirmation: {
+  hasPrimaryDashaEvidence:
+    eventDashaHouseEvidence.some(
+      (evidence) =>
+        evidence.houseRole === "primary" &&
+        evidence.source !== "dispositor"
+    ),
+
+  hasDirectSupportingDashaEvidence:
+    eventDashaHouseEvidence.some(
+      (evidence) =>
+        evidence.houseRole === "supporting" &&
+        evidence.source !== "dispositor"
+    ),
+
+  hasPrimaryTransitEvidence:
+    [
+      ...event.matchedEventHouseTransits,
+      ...crossAreaTransitEvidence,
+    ].some(
+      (evidence) =>
+        evidence.houseRole === "primary"
+    ),
+
+  hasDiscriminatorOverlap:
+    confirmation.overlappingDiscriminatorPlanets.length > 0,
+
+  hasClearEventSeparation:
+    confirmation.competingEventGap === null ||
+    confirmation.competingEventGap >= 5,
+},
+  eventEvidenceComparison: {
+  hasDirectSupportingDashaEvidence:
+    eventDashaHouseEvidence.some(
+      (evidence) =>
+        evidence.houseRole === "supporting" &&
+        evidence.source !== "dispositor"
+    ),
+
+  hasPrimaryHouseTransitEvidence:
+    [
+      ...event.matchedEventHouseTransits,
+      ...crossAreaTransitEvidence,
+    ].some(
+      (evidence) =>
+        evidence.houseRole === "primary"
+    ),
+
+  hasSupportingHouseTransitEvidence:
+    [
+      ...event.matchedEventHouseTransits,
+      ...crossAreaTransitEvidence,
+    ].some(
+      (evidence) =>
+        evidence.houseRole === "supporting"
+    ),
+},
+  eventTransitCorroboration: {
+  primaryHouses: [
+    ...new Set([
+      ...event.matchedEventHouseTransits,
+      ...crossAreaTransitEvidence,
+    ]
+      .filter((evidence) => evidence.houseRole === "primary")
+      .map((evidence) => evidence.house)),
+  ],
+
+  supportingHouses: [
+    ...new Set([
+      ...event.matchedEventHouseTransits,
+      ...crossAreaTransitEvidence,
+    ]
+      .filter((evidence) => evidence.houseRole === "supporting")
+      .map((evidence) => evidence.house)),
+  ],
+
+ supportivePrimaryPlanets: [
+  ...new Set(
+    crossAreaTransitEvidence
+      .filter(
+        (evidence) =>
+          evidence.houseRole === "primary" &&
+          evidence.polarity === "supportive"
+      )
+      .map((evidence) => evidence.planet)
+  ),
+],
+},
+  independentDashaEvidence: {
+  directConnections: eventDashaHouseEvidence.filter(
+    (evidence) =>
+      evidence.source !== "dispositor"
+  ).length,
+
+  independentSupportingHouses: [
+    ...new Set(
+      eventDashaHouseEvidence
+        .filter(
+          (evidence) =>
+            evidence.houseRole === "supporting" &&
+            evidence.source !== "dispositor"
+        )
+        .map((evidence) => evidence.house)
+    ),
+  ],
+
+  overlappingDispositorConnections:
+    eventDashaHouseEvidence.filter(
+      (evidence) =>
+        evidence.overlapsWithActiveDispositor
+    ).length,
+},
+confirmation: {
+        status: confirmation.status,
+        reasons: confirmation.reasons,
+        primaryHouses: confirmation.primaryHouses,
+        supportingHouses: confirmation.supportingHouses,
+        natalDiscriminatorPlanets:
+          confirmation.natalDiscriminatorPlanets,
+        transitDiscriminatorPlanets:
+          confirmation.transitDiscriminatorPlanets,
+        overlappingDiscriminatorPlanets:
+          confirmation.overlappingDiscriminatorPlanets,
+        competingEventGap:
+          confirmation.competingEventGap,
+      },
+    };
+  }),
+        }))
+    : [];
+  const moonDailyThemes = buildMoonDailyThemes(moonPriorityInput);
+const moonFirstGuidance =
+  moonDailyThemes.leadingAreas.map((area) => {
+       const d1Evidence = moonNarrativeD1Evidence.find(
+  (item) => item.area === area
+);const eventPriority = [
+  priorities.primary,
+  ...priorities.secondary,
+  ...priorities.background,
+].find((priority) => priority?.area === area);
+
+const moonEventCandidates = {
+  selectedEvent: eventPriority?.bestManifestation
+    ? {
+        id: eventPriority.bestManifestation.id,
+        label: eventPriority.bestManifestation.label,
+        score: eventPriority.bestManifestation.manifestationScore,
+      }
+    : null,
+
+  topCandidates:
+    eventPriority?.candidateEvents.slice(0, 3).map((event) => ({
+      id: event.id,
+      label: event.label,
+      score: event.manifestationScore,
+      hasMoonConfirmation:
+        event.hasMoonSambandhaConfirmation,
+        matchedEventHouseTransits:
+  event.matchedEventHouseTransits,
+matchedTransitDiscriminatorEvidence:
+  event.matchedTransitDiscriminatorEvidence,
+    })) ?? [],
+};
+
+        return {
+          area,
+          eventCandidates: moonEventCandidates,
+          transitContext: moonNarrativeTransitContext,
+          ...buildMoonThemeGuidance(area),
+         explanation: (() => {
+  if (!moonNarrativeTransitContext) return null;
+
+  const context = moonNarrativeTransitContext;
+
+  const nakshatraConnection = describeMoonNatalConnection(
+    area,
+    "Moon nakshatra lord",
+    context.nakshatraLordNatalAreas
+  );
+
+  const navamsaConnection = describeMoonNatalConnection(
+    area,
+    "Moon navamsha lord",
+    context.navamsaLordNatalAreas
+  );
+
+  const connections = [
+    nakshatraConnection,
+    navamsaConnection,
+  ].filter((value): value is string => value !== null);
+
+  if (connections.length === 0) return null;
+
+  return [
+    `The Moon is transiting ${context.nakshatra ?? context.sign}.`,
+    ...connections,
+    d1Evidence?.tier === "PRIMARY_CONVERGENCE"
+  ? `Independent natal planetary connections support ${area} as a primary theme today. This does not confirm a specific event.`
+  : d1Evidence?.tier === "REINFORCED"
+    ? `The natal evidence reinforces ${area} as an area of attention today, without confirming a specific event.`
+    : `This connection suggests ${area} as a possible area of attention today, without confirming a specific event.`,
+  ].join(" ");
+})(),
+          d1Evidence: d1Evidence
+            ? {
+                tier: d1Evidence.tier,
+                supportingPlanets: d1Evidence.supportingPlanets,
+                evidence: d1Evidence.evidence,
+                sambandhaReinforced:
+                  d1Evidence.sambandhaReinforced,
+              }
+            : null,
+        };
+        });
+if (process.env.NODE_ENV === "development") {
   console.log(
-    "[MONEY CANDIDATES]",
-    JSON.stringify(
-      priorities.priorities.find((p) => p.area === "money"),
-      null,
-      2
-    )
+    "[MOON DAILY THEMES]",
+    JSON.stringify(moonDailyThemes)
   );
+}
+  if (process.env.NODE_ENV !== "production") {
+
 }
 let dailyComparison: {
   moonSign: string;
@@ -315,7 +1423,228 @@ dailyComparison = {
     ),
 };
 if (process.env.NODE_ENV !== "production") {
+  console.log("[TRANSIT FIRST COMPARISON]", {
+    date: input.selectedDateISO,
+    currentPrimary: priorities.primary?.area ?? null,
+    transitPrimary: dailyComparison.dailyAreas[0]?.area ?? null,
+    transitCandidates: dailyComparison.dailyAreas
+      .slice(0, 3)
+      .map((item) => ({
+        area: item.area,
+        importance: item.strongestImportance,
+        signalCount: item.signalCount,
+        dashaScore: item.dashaScore,
+      })),
+  });
+}
+if (process.env.NODE_ENV !== "production") {
   ;
+}
+if (process.env.NODE_ENV === "development") {
+  const combinedMoonRanking = dailyComparison.dailyAreas
+    .map((item) => {
+      const evidenceBySource = new Map<string, number>();
+
+      for (const signal of item.signals) {
+        evidenceBySource.set(
+          signal.source,
+          Math.max(
+            evidenceBySource.get(signal.source) ?? 0,
+            signal.importance
+          )
+        );
+      }
+
+      const combinedImportance = [
+        ...evidenceBySource.values(),
+      ].reduce((sum, importance) => sum + importance, 0);
+
+      return {
+        area: item.area,
+        combinedImportance,
+        strongestImportance: item.strongestImportance,
+        signalCount: item.signalCount,
+        dashaScore: item.dashaScore,
+        sources: [...evidenceBySource.keys()],
+      };
+    })
+    .sort(
+      (a, b) =>
+        b.combinedImportance - a.combinedImportance ||
+        b.signalCount - a.signalCount
+    );
+
+  console.log(
+    "[COMBINED MOON COMPARISON]",
+    JSON.stringify({
+      currentPrimary: priorities.primary?.area ?? null,
+      combinedCandidates: combinedMoonRanking.slice(0, 5),
+    })
+  );
+  if (moonSambandhaDiagnostic) {
+  const hybridMoonRanking = combinedMoonRanking
+  .map((item) => {
+    const area = item.area as import("./types").LifeArea;
+    const moonHouseImportance =
+  dailyComparison.dailyAreas
+    .find((candidate) => candidate.area === item.area)
+    ?.signals
+    .filter((signal) => signal.source === "moon_house")
+    .reduce(
+      (maximum, signal) =>
+        Math.max(maximum, signal.importance),
+      0
+    ) ?? 0;
+    const supportingTriggers =
+        moonSambandhaDiagnostic!.triggers.filter(
+          (trigger) =>
+            trigger.natalAreas.combinedAreas.includes(area)
+        );
+const dashaBackedTriggers = supportingTriggers.filter(
+  (trigger) =>
+    trigger.directlyDashaActive ||
+    trigger.connections.length > 0 ||
+    trigger.indirectDashaConnections.length > 0
+);
+const dashaBacking = supportingTriggers.map((trigger) => ({
+  planet: trigger.planet,
+  backingType: trigger.directlyDashaActive
+    ? "DASHA_ACTIVE"
+    : trigger.connections.length > 0
+      ? "DIRECT"
+      : trigger.indirectDashaConnections.length > 0
+        ? "INHERITED"
+        : "NONE",
+  intermediaries: [
+    ...new Set(
+      trigger.indirectDashaConnections.map(
+        (connection) => connection.intermediary
+      )
+    ),
+  ],
+}));
+const independentBackingRoots = [
+  ...new Set(
+    dashaBacking
+      .filter((backing) => backing.backingType !== "NONE")
+      .map((backing) =>
+        backing.backingType === "INHERITED" &&
+        backing.intermediaries.length > 0
+          ? backing.intermediaries[0]
+          : backing.planet
+      )
+  ),
+];
+      // One contribution per trigger, regardless of
+      // how many dasha relationships it has.
+      const natalSupport = supportingTriggers.reduce(
+        (sum, trigger) => {
+          const placement =
+            trigger.natalAreas.placementAreas.includes(area);
+
+          const lordship =
+            trigger.natalAreas.lordshipAreas.includes(area);
+
+          return sum + (placement ? 8 : lordship ? 4 : 0);
+        },
+        0
+      );
+
+      return {
+        area: item.area,
+        moonImportance: item.combinedImportance,
+        natalSupport,
+        experimentalScore: item.combinedImportance + natalSupport,
+        backgroundImportance: moonHouseImportance,
+dailyEmphasisScore:
+  item.combinedImportance -
+  moonHouseImportance +
+  natalSupport,
+  balancedScore:
+  item.combinedImportance -
+  moonHouseImportance +
+  natalSupport +
+  moonHouseImportance * 0.25,
+        supportingPlanets: supportingTriggers.map(
+          (trigger) => trigger.planet
+        ),
+        dashaBackedPlanets: [
+  ...new Set(
+    dashaBackedTriggers.map((trigger) => trigger.planet)
+  ),
+],
+unsupportedPlanets: [
+  ...new Set(
+    supportingTriggers
+      .filter((trigger) => !dashaBackedTriggers.includes(trigger))
+      .map((trigger) => trigger.planet)
+  ),
+],
+dashaBacking,
+independentBackingRoots,
+        dashaScore: item.dashaScore,
+      };
+    })
+    .sort(
+      (a, b) =>
+        b.experimentalScore - a.experimentalScore ||
+        b.moonImportance - a.moonImportance
+    );
+
+  console.log(
+    "[HYBRID MOON COMPARISON]",
+    JSON.stringify({
+      currentPrimary: priorities.primary?.area ?? null,
+      candidates: hybridMoonRanking.slice(0, 5),
+    })
+  );
+console.log(
+  "[DAILY EMPHASIS COMPARISON]",
+  JSON.stringify({
+    currentPrimary: priorities.primary?.area ?? null,
+    candidates: [...hybridMoonRanking]
+      .sort(
+        (a, b) =>
+          b.dailyEmphasisScore - a.dailyEmphasisScore ||
+          b.experimentalScore - a.experimentalScore
+      )
+      .slice(0, 5)
+      .map((item) => ({
+        area: item.area,
+        backgroundImportance: item.backgroundImportance,
+        dailyEmphasisScore: item.dailyEmphasisScore,
+        hybridScore: item.experimentalScore,
+        supportingPlanets: item.supportingPlanets,
+      })),
+   })
+);
+console.log(
+  "[BALANCED MOON COMPARISON]",
+  JSON.stringify({
+    ascendant: input.ascendant,
+    currentPrimary: priorities.primary?.area ?? null,
+    candidates: [...hybridMoonRanking]
+      .sort(
+        (a, b) =>
+          b.balancedScore - a.balancedScore ||
+          b.dailyEmphasisScore - a.dailyEmphasisScore
+      )
+      .slice(0, 5)
+      .map((item) => ({
+        area: item.area,
+        fullHybridScore: item.experimentalScore,
+        dailyEmphasisScore: item.dailyEmphasisScore,
+        balancedScore: item.balancedScore,
+        backgroundImportance: item.backgroundImportance,
+        supportingPlanets: item.supportingPlanets,
+        dashaBackedPlanets: item.dashaBackedPlanets,
+unsupportedPlanets: item.unsupportedPlanets,
+dashaBacking: item.dashaBacking,
+independentBackingRoots: item.independentBackingRoots,
+      })),
+  })
+);
+}
 }
 if (
   process.env.NODE_ENV !==
@@ -339,7 +1668,51 @@ if (
 }
 
 const prediction =
-  buildDailyPrediction(priorities);
+  buildDailyPrediction(
+    priorities,
+    moonDailyThemes.leadingAreas
+  );
+  const moonPrimaryGuidance = moonFirstGuidance.find(
+  (guidance) =>
+    guidance.d1Evidence?.tier === "PRIMARY_CONVERGENCE" &&
+    guidance.eventCandidates.selectedEvent === null
+);
+
+if (
+  moonPrimaryGuidance &&
+  prediction.primaryTheme &&
+  prediction.primaryTheme.manifestationId === null &&
+  prediction.primaryTheme.area !== moonPrimaryGuidance.area
+) {
+  prediction.secondaryThemes = [
+    {
+      ...prediction.primaryTheme,
+      role: "secondary",
+    },
+    ...prediction.secondaryThemes.filter(
+      (theme) => theme.area !== moonPrimaryGuidance.area
+    ),
+  ];
+
+  prediction.primaryTheme = {
+    area: moonPrimaryGuidance.area,
+    selectionSource: "moon_natal_convergence" as const,
+    polarity: "neutral",
+    manifestationId: null,
+    manifestationLabel: null,
+    manifestationDescription: null,
+    prediction: moonPrimaryGuidance.prediction,
+    action: moonPrimaryGuidance.action,
+    avoid: moonPrimaryGuidance.avoid,
+    priorityScore: 0,
+    manifestationScore: 0,
+    role: "primary",
+  };
+  prediction.suppressedAreas =
+  prediction.suppressedAreas.filter(
+    (area) => area !== moonPrimaryGuidance.area
+  );
+}
 if (process.env.NODE_ENV !== "production") {
   ;
 }
@@ -358,6 +1731,61 @@ const selectedManifestation =
       candidate.id ===
       prediction.primaryTheme?.manifestationId
   );
+const moneyEventExpression =
+  selectedManifestation &&
+  selectedManifestation.area === "money"
+    ? resolveMoneyEventExpression(
+        selectedManifestation.id,
+        {
+          matchedPrimaryHouses:
+            selectedManifestation.matchedPrimaryHouses,
+
+          matchedSupportingHouses:
+            selectedManifestation.matchedSupportingHouses,
+
+          primaryHouseScore:
+            selectedManifestation.primaryHouseScore,
+
+          supportingHouseScore:
+            selectedManifestation.supportingHouseScore,
+
+          evidenceScore:
+            selectedManifestation.evidenceScore,
+
+          primaryPlanetConfirmationCount:
+            selectedManifestation.primaryPlanetConfirmationCount,
+
+          planetConfirmationCount:
+            selectedManifestation.planetConfirmationCount,
+
+          discriminatorPlanetMatches:
+            selectedManifestation.discriminatorPlanetMatches,
+
+          primaryDiscriminatorPlanetMatches:
+            selectedManifestation
+              .primaryDiscriminatorPlanetMatches,
+
+          discriminatorSourceMatches:
+            selectedManifestation.discriminatorSourceMatches,
+
+          matchedDiscriminatorEvidence:
+            selectedManifestation.matchedDiscriminatorEvidence,
+
+          transitDiscriminatorPlanetMatches:
+            selectedManifestation
+              .transitDiscriminatorPlanetMatches,
+
+          matchedTransitDiscriminatorEvidence:
+            selectedManifestation
+              .matchedTransitDiscriminatorEvidence,
+
+          discriminatorConfidence:
+            selectedManifestation.discriminatorConfidence,
+        }
+      )
+    : null;
+
+
 const relevantPadaContext = primaryActivation
   ? [...new Set(primaryActivation.dashaPlanets)]
       .map((planet) => {
@@ -400,6 +1828,12 @@ const currentMoonPadaInterpretation =
         moonPadaData.pada
       )
     : null;
+if (process.env.NODE_ENV === "development") {
+  console.log(
+    "[MOON PADA INTERPRETATION]",
+    JSON.stringify(currentMoonPadaInterpretation)
+  );
+}
 const narrativeVariant =
   prediction.primaryTheme
     ? selectDailyNarrativeVariant({
@@ -524,6 +1958,301 @@ const moonThemeDirection =
       )
     ? "coordinate"
     : "develop";
+const eventStageV2 = resolveEventStage(moonThemeDirection);
+const padaExpressionModeV2 = resolvePadaExpressionMode(
+  currentMoonPadaInterpretation?.interpretiveThemes ?? []
+);
+const eventNarrativeV2 =
+  moneyEventExpression && selectedManifestation
+    ? composeMoneyEventExpressionNarrative(
+  selectedManifestation.id,
+  moneyEventExpression,
+  eventStageV2,
+  padaExpressionModeV2
+)
+    : null;
+const composedPredictionV2 =
+  moneyEventExpression
+    ? composeMoneyPredictionV2(
+        moneyEventExpression,
+        eventStageV2,
+        padaExpressionModeV2
+      )
+    : null;
+const educationEventExpressionV2 =
+  selectedManifestation
+    ? resolveEducationEventExpression(
+  selectedManifestation.id,
+  selectedManifestation.matchedSupportingHouses ?? [],
+  selectedManifestation.discriminatorPlanetMatches ?? []
+)
+    : null;
+const educationPredictionV2 =
+  educationEventExpressionV2
+    ? composeEducationPredictionV2(
+        educationEventExpressionV2,
+        eventStageV2,
+        padaExpressionModeV2
+      )
+    : null;
+const careerEventExpressionV2 =
+  selectedManifestation
+    ? resolveCareerEventExpression(
+        selectedManifestation.id
+      )
+    : null;
+
+const careerPredictionV2 =
+  careerEventExpressionV2
+    ? composeCareerPredictionV2(
+        careerEventExpressionV2,
+        eventStageV2,
+        padaExpressionModeV2
+      )
+    : null;
+const mindEventExpressionV2 =
+  selectedManifestation
+    ? resolveMindEventExpression(
+        selectedManifestation.id
+      )
+    : null;
+
+const mindPredictionV2 =
+  mindEventExpressionV2
+    ? composeMindPredictionV2(
+        mindEventExpressionV2,
+        eventStageV2,
+        padaExpressionModeV2
+      )
+    : null;
+const homeEventExpressionV2 =
+  selectedManifestation
+    ? resolveHomeEventExpression(
+        selectedManifestation.id
+      )
+    : null;
+
+const homePredictionV2 =
+  homeEventExpressionV2
+    ? composeHomePredictionV2(
+        homeEventExpressionV2,
+        eventStageV2,
+        padaExpressionModeV2
+      )
+    : null;
+const familyEventExpressionV2 =
+  selectedManifestation
+    ? resolveFamilyEventExpression(
+        selectedManifestation.id
+      )
+    : null;
+
+const familyPredictionV2 =
+  familyEventExpressionV2
+    ? composeFamilyPredictionV2(
+        familyEventExpressionV2,
+        eventStageV2,
+        padaExpressionModeV2
+      )
+    : null;
+const healthEventExpressionV2 =
+  selectedManifestation
+    ? resolveHealthEventExpression(selectedManifestation.id)
+    : null;
+
+const healthPredictionV2 =
+  healthEventExpressionV2
+    ? composeHealthPredictionV2(
+        healthEventExpressionV2,
+        eventStageV2,
+        padaExpressionModeV2
+      )
+    : null;
+const relationshipEventExpressionV2 =
+  selectedManifestation
+    ? resolveRelationshipEventExpression(
+        selectedManifestation.id
+      )
+    : null;
+
+const relationshipPredictionV2 =
+  relationshipEventExpressionV2
+    ? composeRelationshipPredictionV2(
+        relationshipEventExpressionV2,
+        eventStageV2,
+        padaExpressionModeV2
+      )
+    : null;
+const childrenEventExpressionV2 =
+  selectedManifestation
+    ? resolveChildrenEventExpression(
+        selectedManifestation.id
+      )
+    : null;
+
+const childrenPredictionV2 =
+  childrenEventExpressionV2
+    ? composeChildrenPredictionV2(
+        childrenEventExpressionV2,
+        eventStageV2,
+        padaExpressionModeV2
+      )
+    : null;
+const travelEventExpressionV2 =
+  selectedManifestation
+    ? resolveTravelEventExpression(
+        selectedManifestation.id
+      )
+    : null;
+
+const travelPredictionV2 =
+  travelEventExpressionV2
+    ? composeTravelPredictionV2(
+        travelEventExpressionV2,
+        eventStageV2,
+        padaExpressionModeV2
+      )
+    : null;
+const communicationEventExpressionV2 =
+  selectedManifestation
+    ? resolveCommunicationEventExpression(
+        selectedManifestation.id
+      )
+    : null;
+
+const communicationPredictionV2 =
+  communicationEventExpressionV2
+    ? composeCommunicationPredictionV2(
+        communicationEventExpressionV2,
+        eventStageV2,
+        padaExpressionModeV2
+      )
+    : null;
+const publicImageEventExpressionV2 =
+  selectedManifestation
+    ? resolvePublicImageEventExpression(
+        selectedManifestation.id
+      )
+    : null;
+
+const publicImagePredictionV2 =
+  publicImageEventExpressionV2
+    ? composePublicImagePredictionV2(
+        publicImageEventExpressionV2,
+        eventStageV2,
+        padaExpressionModeV2
+      )
+    : null;
+const hiddenMattersEventExpressionV2 =
+  selectedManifestation
+    ? resolveHiddenMattersEventExpression(
+        selectedManifestation.id
+      )
+    : null;
+
+const hiddenMattersPredictionV2 =
+  hiddenMattersEventExpressionV2
+    ? composeHiddenMattersPredictionV2(
+        hiddenMattersEventExpressionV2,
+        eventStageV2,
+        padaExpressionModeV2
+      )
+    : null;
+const propertyEventExpressionV2 =
+  selectedManifestation
+    ? resolvePropertyEventExpression(
+        selectedManifestation.id
+      )
+    : null;
+
+const propertyPredictionV2 =
+  propertyEventExpressionV2
+    ? composePropertyPredictionV2(
+        propertyEventExpressionV2,
+        eventStageV2,
+        padaExpressionModeV2
+      )
+    : null;
+const spiritualityEventExpressionV2 =
+  selectedManifestation
+    ? resolveSpiritualityEventExpression(
+        selectedManifestation.id
+      )
+    : null;
+
+const spiritualityPredictionV2 =
+  spiritualityEventExpressionV2
+    ? composeSpiritualityPredictionV2(
+        spiritualityEventExpressionV2,
+        eventStageV2,
+        padaExpressionModeV2
+      )
+    : null;
+if (selectedManifestation) {
+  console.log(
+    "[EVENT EXPRESSION V2]",
+    JSON.stringify(
+      {
+        date: input.selectedDateISO,
+        manifestationId:
+          selectedManifestation?.id ?? null,
+        matchedPrimaryHouses:
+          selectedManifestation?.matchedPrimaryHouses ?? [],
+        matchedSupportingHouses:
+          selectedManifestation?.matchedSupportingHouses ?? [],
+        discriminatorPlanetMatches:
+          selectedManifestation?.discriminatorPlanetMatches ?? [],
+        primaryDiscriminatorPlanetMatches:
+          selectedManifestation
+            ?.primaryDiscriminatorPlanetMatches ?? [],
+        transitDiscriminatorPlanetMatches:
+          selectedManifestation
+            ?.transitDiscriminatorPlanetMatches ?? [],
+        moonNakshatra:
+  currentMoonPadaInterpretation?.nakshatra ?? null,
+moonPada:
+  currentMoonPadaInterpretation?.pada ?? null,
+moonInterpretiveThemes:
+  currentMoonPadaInterpretation?.interpretiveThemes ?? [],
+        expression: moneyEventExpression,
+eventStage: eventStageV2,
+padaExpressionMode: padaExpressionModeV2,
+candidateNarrative: eventNarrativeV2,
+composedPredictionV2,
+educationPredictionV2,
+educationEventExpressionV2,
+careerEventExpressionV2,
+careerPredictionV2,
+mindEventExpressionV2,
+mindPredictionV2,
+homeEventExpressionV2,
+homePredictionV2,
+familyEventExpressionV2,
+familyPredictionV2,
+healthEventExpressionV2,
+healthPredictionV2,
+relationshipEventExpressionV2,
+relationshipPredictionV2,
+childrenEventExpressionV2,
+childrenPredictionV2,
+travelEventExpressionV2,
+travelPredictionV2,
+communicationEventExpressionV2,
+communicationPredictionV2,
+publicImageEventExpressionV2,
+publicImagePredictionV2,
+hiddenMattersEventExpressionV2,
+hiddenMattersPredictionV2,
+propertyEventExpressionV2,
+propertyPredictionV2,
+spiritualityEventExpressionV2,
+spiritualityPredictionV2,
+      },
+      null,
+      2
+    )
+  );
+}
 const moonPredictionDirection =
   moonThemeDirection === "complete"
     ? "completion"
@@ -2943,6 +4672,27 @@ avoid:
 return {
   ...personalizedPrediction,
   dailyComparison,
+  ...(process.env.NODE_ENV === "development"
+  ? { moonTriggerNatalD9 }
+  : {}),
+  ...(process.env.NODE_ENV === "development"
+    ? { moonDailyThemes }
+    : {}),
+      ...(process.env.NODE_ENV === "development"
+    ? { moonFirstGuidance }
+    : {}),
+    ...(process.env.NODE_ENV === "development"
+  ? { moonAllAreaEventCandidates }
+  : {}),
+  ...(process.env.NODE_ENV === "development"
+  ? { moonMoneyHouseEvidence }
+  : {}),
+  ...(process.env.NODE_ENV === "development"
+  ? { moonMoneyTransitEvidence }
+  : {}),
+  ...(process.env.NODE_ENV === "development"
+  ? { moonDashaHouseConnections }
+  : {}),
   explanation: primaryActivation
     ? {
     moonPadaContext:

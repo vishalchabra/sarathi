@@ -229,6 +229,15 @@ natalPositions[planet] = {
   sign,
   house: row.house,
 
+  longitude:
+    typeof row.lon === "number" &&
+    Number.isFinite(row.lon)
+      ? row.lon
+      : typeof row.longitude === "number" &&
+          Number.isFinite(row.longitude)
+        ? row.longitude
+        : null,
+
   // Additional context for narrative refinement only.
   nakshatra:
     typeof row.nakshatra === "string"
@@ -266,12 +275,19 @@ const profileKey = [
       : `${planet}:missing`;
   }),
 ].join("|");
-  return {
+ return {
   sky,
   ascendant,
+
+  natalAscendantLongitude:
+    typeof natal?.ascendant?.lon === "number" &&
+    Number.isFinite(natal.ascendant.lon)
+      ? natal.ascendant.lon
+      : null,
+
   selectedDateISO,
   profileKey,
-   age,
+  age,
 
     dasha: {
       mahadasha: md,
