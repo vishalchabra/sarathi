@@ -148,7 +148,8 @@ const hasClearManifestation =
 const confirmation = topCandidate
   ? diagnoseEventConfirmation(
       topCandidate,
-      activation.candidateEvents.slice(1)
+      activation.candidateEvents.slice(1),
+      activation.rankedHouses
     )
   : null;
 

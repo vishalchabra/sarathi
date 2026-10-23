@@ -1,5 +1,10 @@
-import type { CandidateEventTheme } from "./eventActivationEngine";
+import type {
+  CandidateEventTheme,
+  EventActivation,
+} from "./eventActivationEngine";
 
+import { meetsRequiredHouseEvidence } from "./eventActivationEngine";
+import { EVENT_THEMES } from "../knowledge/eventThemes";
 export type EventConfirmationStatus =
   | "AREA_CONFIRMED"
   | "EVENT_SUPPORTED"
@@ -12,6 +17,8 @@ export type EventConfirmationDiagnostic = {
   primaryHouses: number[];
   supportingHouses: number[];
   evidenceHouses: number[];
+    requiredHouses: number[];
+  matchedRequiredHouses: number[];
   natalDiscriminatorPlanets: string[];
   transitDiscriminatorPlanets: string[];
   overlappingDiscriminatorPlanets: string[];
@@ -21,7 +28,8 @@ export type EventConfirmationDiagnostic = {
 
 export function diagnoseEventConfirmation(
   candidate: CandidateEventTheme,
-  competitors: readonly CandidateEventTheme[]
+  competitors: readonly CandidateEventTheme[],
+  rankedHouses?: EventActivation["rankedHouses"]
 ): EventConfirmationDiagnostic {
   const primaryHouses = [...candidate.matchedPrimaryHouses];
   const supportingHouses = [...candidate.matchedSupportingHouses];
@@ -29,7 +37,22 @@ export function diagnoseEventConfirmation(
   const evidenceHouses = [
     ...new Set([...primaryHouses, ...supportingHouses]),
   ];
+  const definition = EVENT_THEMES.find(
+    (theme) => theme.id === candidate.id
+  );
 
+  const requiredHouses = definition?.requiredHouses ?? [];
+
+  const matchedRequiredHouses = requiredHouses.filter(
+    (house) => evidenceHouses.includes(house)
+  );
+  const requiredHouseEvidenceVerified =
+  requiredHouses.length === 0 ||
+  (rankedHouses !== undefined &&
+    meetsRequiredHouseEvidence(
+      requiredHouses,
+      rankedHouses
+    ));
   const natalDiscriminatorPlanets = [
     ...new Set(
       candidate.matchedDiscriminatorEvidence.map(
@@ -96,9 +119,11 @@ export function diagnoseEventConfirmation(
   supportingHouses.length > 0 ||
   evidenceHouses.length >= 2
 ) &&
+requiredHouseEvidenceVerified &&
 natalDiscriminatorPlanets.length > 0 &&
 transitDiscriminatorPlanets.length > 0 &&
-    (competingEventGap === null || competingEventGap >= 5)
+overlappingDiscriminatorPlanets.length > 0 &&
+(competingEventGap === null || competingEventGap >= 5)
   ) {
     status = "EVENT_SUPPORTED";
   } else if (
@@ -115,6 +140,8 @@ transitDiscriminatorPlanets.length > 0 &&
     primaryHouses,
     supportingHouses,
     evidenceHouses,
+        requiredHouses,
+    matchedRequiredHouses,
     natalDiscriminatorPlanets,
     transitDiscriminatorPlanets,
     overlappingDiscriminatorPlanets,

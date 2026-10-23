@@ -15,6 +15,7 @@ import {
 import {
   getSignLord,
 } from "./signLords";
+import { VEDIC_ASPECT_RULES } from "../core/aspectResolver";
 export type DashaLevel =
   | "mahadasha"
   | "antardasha"
@@ -74,8 +75,28 @@ export type NatalPlanetPosition = {
 export type DashaAreaActivationSource =
   | "lordship"
   | "natal_placement"
-  | "dispositor";
+  | "dispositor"
+  | "natal_aspect";
+function getNatalAspectedHouses(
+  planet: PlanetName,
+  natalHouse?: number
+): number[] {
+  if (
+    natalHouse === undefined ||
+    natalHouse < 1 ||
+    natalHouse > 12
+  ) {
+    return [];
+  }
 
+  const aspectDistances =
+    VEDIC_ASPECT_RULES[planet] ?? [];
+
+  return aspectDistances.map(
+    (distance) =>
+      ((natalHouse + distance - 2) % 12) + 1
+  );
+}
 export type DashaAreaSourceContribution = {
   source: DashaAreaActivationSource;
 
@@ -160,6 +181,7 @@ function buildDashaAreaActivations(params: {
 
   ruledHouses: number[];
   natalHouse?: number;
+  natalAspectedHouses: number[];
   dispositorRuledHouses: number[];
 }): DashaAreaActivation[] {
   const activationMap =
@@ -261,7 +283,22 @@ for (const area of params.dispositorAreas) {
     )
   );
 }
+const natalAspectAreas =
+  getDashaActivatedAreas(
+    params.natalAspectedHouses
+  );
 
+for (const area of natalAspectAreas) {
+  addActivation(
+    area,
+    "natal_aspect",
+    0.5,
+    getHousesForArea(
+      params.natalAspectedHouses,
+      area
+    )
+  );
+}
   return Array.from(
     activationMap.values()
   ).sort(
@@ -394,7 +431,11 @@ export function resolveDashaActivation(
   input.natalPositions?.[
     period.planet
   ]?.sign;
-
+const natalAspectedHouses =
+  getNatalAspectedHouses(
+    period.planet,
+    natalHouse
+  );
 const isNode =
   period.planet === "Rahu" ||
   period.planet === "Ketu";
@@ -435,6 +476,7 @@ const dispositorAreas =
 
     ruledHouses,
     natalHouse,
+     natalAspectedHouses,
     dispositorRuledHouses,
   });
 

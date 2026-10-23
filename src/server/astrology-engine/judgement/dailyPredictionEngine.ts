@@ -394,10 +394,25 @@ if (!manifestation) {
   }
 
   switch (priority.area) {
-    case "mind":
-      return addPolarityContext(
-        "Your mental and emotional space is more active today. Different thoughts or feelings may compete for attention, so allow yourself time to process them before deciding what deserves your energy."
-      );
+   case "mind": {
+  const leadingCandidate = priority.candidateEvents[0];
+
+  if (
+  leadingCandidate?.id === "emotional_stability" &&
+  leadingCandidate.hasMoonSambandhaConfirmation === true &&
+  leadingCandidate.matchedPrimaryHouses.includes(4)
+) {
+  return (
+    "Emotional stability and peace of mind are highlighted today. " +
+    "The Moon-linked activation of the fourth house brings attention " +
+    "to your emotional foundation, inner security and personal comfort."
+  );
+}
+
+  return addPolarityContext(
+    "Your mental and emotional space is more active today. Different thoughts or feelings may compete for attention, so allow yourself time to process them before deciding what deserves your energy."
+  );
+}
 
     case "children":
       return addPolarityContext(
@@ -649,10 +664,10 @@ case "property_complication":
     return "Give important conversations your full attention and listen before deciding how to respond.";
 
   case "career":
-    return "Focus on the professional matter that currently requires the clearest practical response.";
+  return "Review your current professional priorities, follow up on any pending discussions, and address the task or decision that needs your attention first.";
 
   case "money":
-    return "Review financial decisions carefully and keep your priorities clear.";
+  return "Review upcoming payments, pending receipts and financial commitments. Check the details before making a new commitment, and prioritise what needs attention first.";
 
   case "health":
     return "Pay closer attention to your routine, energy and physical signals.";
@@ -852,13 +867,13 @@ case "property_complication":
     return "Avoid unnecessary financial commitments until the practical details are clear.";
 
   case "health":
-    return "Avoid ignoring changes in energy, routine or physical wellbeing.";
+    return "Review your sleep, meals, hydration and activity levels. Notice any changes in how you feel and make sensible adjustments to your routine.";
 
   case "family":
-    return "Avoid absorbing every family concern as your personal responsibility.";
+     return "Check whether a family member needs your time or support, address any pending household discussion, and keep your commitments manageable.";
 
   case "home":
-    return "Avoid forcing domestic decisions before the practical situation is clear.";
+     return "Review any pending household tasks, maintenance needs or domestic arrangements. Address the most important practical matter first.";
 
   case "travel":
     return "Avoid relying on rushed plans or leaving important arrangements until the last moment.";
@@ -870,16 +885,16 @@ case "property_complication":
     return "Avoid scattering your attention across too many subjects or priorities.";
 
   case "publicImage":
-    return "Avoid impulsive communication that could create the wrong impression.";
+  return "Review how you present your work and communicate with others. Make sure your contributions and important messages are clear, accurate and professional.";
 
-  case "hiddenMatters":
-    return "Avoid acting on suspicion or incomplete information.";
+case "hiddenMatters":
+  return "Review any information or unresolved details that need clarification. Avoid drawing conclusions until you have a clearer understanding of the situation.";
 
-  case "communication":
-    return "Avoid rushed messages, assumptions or responding before you understand the full context.";
+case "communication":
+  return "Follow up on important messages, clarify any outstanding questions, and check that your instructions or expectations have been understood.";
 
-  case "property":
-    return "Avoid committing to property or asset decisions before reviewing the practical details.";
+case "property":
+  return "Review any pending property, housing or asset-related decisions. Check documents, costs and practical obligations before taking the next step.";
 
   default:
     return "Avoid unnecessary reactions or rushed decisions.";

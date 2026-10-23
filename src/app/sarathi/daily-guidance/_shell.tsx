@@ -353,8 +353,10 @@ function MainGuidanceCards({
       {/* Main prediction */}
       <article className="rounded-3xl border border-[#E8D9C1] bg-[#FFFAF2] p-6 md:p-8">
         <p className="text-xs font-bold uppercase tracking-widest text-[#8D643B]">
-          Today&apos;s Likely Event
-        </p>
+  {primary.manifestationId
+    ? "Today's Likely Event"
+    : "Today's Main Focus"}
+</p>
 
         <h2 className="mt-3 text-2xl font-semibold leading-snug md:text-3xl">
           {primary.manifestationLabel ??

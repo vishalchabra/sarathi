@@ -104,6 +104,13 @@ import type { LifeArea } from "./types";
 import { HOUSE_KNOWLEDGE } from "./knowledge/houses";
 import { navamsaLon } from "../astro/chart-svg";
 import { diagnoseEventConfirmation } from "./judgement/eventConfirmationDiagnostic";
+import {
+  resolveCandidateRealLifeEvent,
+  assessRealLifeEventEvidence,
+  resolveAreaPracticalGuidance,
+  RealLifePracticalGuidance,
+  type RealLifeEventEvidence,
+} from "./narrative/realLifeEventNarrative";
 export type PersonalizedNatalPosition = {
   sign: ZodiacSign;
   house: number;
@@ -952,6 +959,7 @@ const priorities =
     events.activations,
     moonPriorityInput
   );
+
   const moonDashaHouseConnections =
   process.env.NODE_ENV === "development"
     ? dasha.planetActivations.map((activation) => ({
@@ -993,6 +1001,189 @@ const priorities =
           polarity: signal.polarity,
         }))
     : [];
+// Development-only real-life narrative integration.
+// Uses actual event evidence without modifying live predictions.
+const realLifeEducationNarrativePreview =
+  process.env.NODE_ENV === "development"
+    ? (() => {
+        const educationPriority = [
+          priorities.primary,
+          ...priorities.secondary,
+          ...priorities.background,
+        ].find((priority) => priority?.area === "education");
+
+        if (!educationPriority) {
+          return null;
+        }
+
+        const candidate = educationPriority.candidateEvents[0];
+
+        if (!candidate) {
+          return null;
+        }
+
+        const matchingActivation = events.activations.find(
+  (activation) => activation.area === "education"
+);
+
+const confirmation = diagnoseEventConfirmation(
+  candidate,
+  educationPriority.candidateEvents.filter(
+    (competitor) => competitor.id !== candidate.id
+  ),
+  matchingActivation?.rankedHouses
+);
+
+const eventTheme = EVENT_THEMES.find(
+  (theme) => theme.id === candidate.id
+);
+
+const hasDirectDashaHouseEvidence =
+  eventTheme !== undefined &&
+  moonDashaHouseConnections.some((activation) =>
+    [
+      ...activation.ruledHouses,
+      ...(activation.natalHouse != null
+  ? [activation.natalHouse]
+  : []),
+    ].some((house) =>
+      eventTheme.primaryHouses.includes(house) ||
+      eventTheme.supportingHouses.includes(house)
+    )
+  );
+
+const evidence: RealLifeEventEvidence = {
+  area: "education",
+  manifestationId:
+    educationPriority.bestManifestation?.id ?? null,
+
+  matchedPrimaryHouses: confirmation.primaryHouses,
+  matchedSupportingHouses: confirmation.supportingHouses,
+
+  discriminatorPlanetMatches:
+    confirmation.natalDiscriminatorPlanets,
+
+  transitDiscriminatorPlanetMatches:
+    confirmation.transitDiscriminatorPlanets,
+
+  hasMoonSambandhaConfirmation:
+    candidate.hasMoonSambandhaConfirmation === true,
+
+  hasDirectDashaHouseEvidence,
+
+  hasPrimaryHouseTransitEvidence:
+    candidate.matchedEventHouseTransits.some(
+      (transit) => transit.houseRole === "primary"
+    ),
+
+  hasSupportingHouseTransitEvidence:
+    candidate.matchedEventHouseTransits.some(
+      (transit) => transit.houseRole === "supporting"
+    ),
+
+  hasTransitDiscriminatorOverlap:
+    confirmation.overlappingDiscriminatorPlanets.length > 0,
+
+  eventConfirmationStatus: confirmation.status,
+};
+
+ const narrative = resolveCandidateRealLifeEvent({
+  evidence,
+  date: input.selectedDateISO,
+});
+const practicalGuidance = resolveAreaPracticalGuidance(
+  evidence,
+  input.selectedDateISO
+);
+const isPrimaryDailyArea =
+  priorities.primary?.area === "education";
+
+const primaryPracticalGuidance =
+  isPrimaryDailyArea ? practicalGuidance : null;
+return {
+  candidateId: candidate.id,
+  selectedManifestationId:
+    educationPriority.bestManifestation?.id ?? null,
+  confirmationStatus: confirmation.status,
+  evidenceAssessment: assessRealLifeEventEvidence(evidence),
+  evidenceInput: {
+    area: evidence.area,
+    matchedPrimaryHouses: evidence.matchedPrimaryHouses,
+    matchedSupportingHouses: evidence.matchedSupportingHouses,
+    eventConfirmationStatus: evidence.eventConfirmationStatus,
+    hasDirectDashaHouseEvidence:
+      evidence.hasDirectDashaHouseEvidence,
+    hasMoonSambandhaConfirmation:
+      evidence.hasMoonSambandhaConfirmation,
+  },
+  narrative,
+  practicalGuidance,
+primaryPracticalGuidance,
+isPrimaryDailyArea,
+};
+      })()
+    : null;
+const realLifeCareerGuidancePreview:
+  RealLifePracticalGuidance | null =
+  process.env.NODE_ENV === "development"
+    ? (() => {
+        if (priorities.primary?.area !== "career") {
+          return null;
+        }
+
+        const careerPriority = priorities.primary;
+        const candidate = careerPriority.candidateEvents[0];
+
+        if (!candidate) {
+          return null;
+        }
+
+        const matchingActivation = events.activations.find(
+          (activation) => activation.area === "career"
+        );
+
+        const confirmation = diagnoseEventConfirmation(
+          candidate,
+          careerPriority.candidateEvents.filter(
+            (competitor) => competitor.id !== candidate.id
+          ),
+          matchingActivation?.rankedHouses
+        );
+
+        const evidence: RealLifeEventEvidence = {
+          area: "career",
+          manifestationId:
+            careerPriority.bestManifestation?.id ?? null,
+          matchedPrimaryHouses: confirmation.primaryHouses,
+          matchedSupportingHouses: confirmation.supportingHouses,
+          discriminatorPlanetMatches:
+            confirmation.natalDiscriminatorPlanets,
+          transitDiscriminatorPlanetMatches:
+            confirmation.transitDiscriminatorPlanets,
+          hasMoonSambandhaConfirmation:
+            candidate.hasMoonSambandhaConfirmation === true,
+          hasDirectDashaHouseEvidence: false,
+          hasPrimaryHouseTransitEvidence:
+            candidate.matchedEventHouseTransits.some(
+              (item) => item.houseRole === "primary"
+            ),
+          hasTransitDiscriminatorOverlap:
+            confirmation.overlappingDiscriminatorPlanets.length > 0,
+          eventConfirmationStatus: confirmation.status,
+          isPrimaryDailyArea: true,
+          dailyPriorityScore: careerPriority.dailyPriorityScore,
+        };
+
+        const guidance = resolveAreaPracticalGuidance(
+  evidence,
+  input.selectedDateISO
+);
+
+
+
+return guidance;
+      })()
+    : null;
 const moonAllAreaEventCandidates =
   process.env.NODE_ENV === "development"
     ? [
@@ -1006,14 +1197,18 @@ const moonAllAreaEventCandidates =
           dailyPriorityScore: priority.dailyPriorityScore,
           selectedEvent: priority.bestManifestation?.id ?? null,
           topCandidates: priority.candidateEvents
-  .slice(0, 3)
   .map((event) => {
-    const confirmation = diagnoseEventConfirmation(
-      event,
-      priority.candidateEvents.filter(
-        (competitor) => competitor.id !== event.id
-      )
-    );
+    const matchingActivation = events.activations.find(
+  (activation) => activation.area === priority.area
+);
+
+const confirmation = diagnoseEventConfirmation(
+  event,
+  priority.candidateEvents.filter(
+    (competitor) => competitor.id !== event.id
+  ),
+  matchingActivation?.rankedHouses
+);
 const eventTheme = EVENT_THEMES.find(
   (theme) => theme.id === event.id
 );
@@ -1677,7 +1872,25 @@ const prediction =
     guidance.d1Evidence?.tier === "PRIMARY_CONVERGENCE" &&
     guidance.eventCandidates.selectedEvent === null
 );
-
+const existingMoonPriority = moonPrimaryGuidance
+  ? [
+      priorities.primary,
+      ...priorities.secondary,
+      ...priorities.background,
+    ].find(
+      (priority) =>
+        priority?.area === moonPrimaryGuidance.area
+    ) ?? null
+  : null;
+const existingMoonTheme = moonPrimaryGuidance
+  ? [
+      prediction.primaryTheme,
+      ...prediction.secondaryThemes,
+    ].find(
+      (theme) =>
+        theme?.area === moonPrimaryGuidance.area
+    )
+  : null;
 if (
   moonPrimaryGuidance &&
   prediction.primaryTheme &&
@@ -1694,20 +1907,28 @@ if (
     ),
   ];
 
-  prediction.primaryTheme = {
-    area: moonPrimaryGuidance.area,
-    selectionSource: "moon_natal_convergence" as const,
-    polarity: "neutral",
-    manifestationId: null,
-    manifestationLabel: null,
-    manifestationDescription: null,
-    prediction: moonPrimaryGuidance.prediction,
-    action: moonPrimaryGuidance.action,
-    avoid: moonPrimaryGuidance.avoid,
-    priorityScore: 0,
-    manifestationScore: 0,
-    role: "primary",
-  };
+  prediction.primaryTheme = existingMoonTheme
+  ? {
+      ...existingMoonTheme,
+      selectionSource: "moon_natal_convergence" as const,
+      role: "primary",
+    }
+  : {
+      area: moonPrimaryGuidance.area,
+      selectionSource: "moon_natal_convergence" as const,
+      polarity: "neutral",
+      manifestationId: null,
+      manifestationLabel: null,
+      manifestationDescription: null,
+      prediction: moonPrimaryGuidance.prediction,
+      action: moonPrimaryGuidance.action,
+      avoid: moonPrimaryGuidance.avoid,
+      priorityScore:
+  existingMoonPriority?.dailyPriorityScore ?? 0,
+manifestationScore:
+  existingMoonPriority?.manifestationScore ?? 0,
+      role: "primary",
+    };
   prediction.suppressedAreas =
   prediction.suppressedAreas.filter(
     (area) => area !== moonPrimaryGuidance.area
@@ -1724,6 +1945,16 @@ const primaryActivation =
           prediction.primaryTheme?.area
       )
     : null;
+const primaryGuidancePriority = prediction.primaryTheme
+  ? [
+      priorities.primary,
+      ...priorities.secondary,
+      ...priorities.background,
+    ].find(
+      (priority) =>
+        priority?.area === prediction.primaryTheme?.area
+    ) ?? null
+  : null;
 
 const selectedManifestation =
   primaryActivation?.candidateEvents.find(
@@ -1731,6 +1962,135 @@ const selectedManifestation =
       candidate.id ===
       prediction.primaryTheme?.manifestationId
   );
+const primaryGuidanceCandidate =
+  selectedManifestation ??
+  primaryGuidancePriority?.bestManifestation ??
+  primaryGuidancePriority?.candidateEvents.find(
+    (candidate) =>
+      candidate.matchedPrimaryHouses.length > 0 &&
+      (
+        candidate.hasMoonSambandhaConfirmation === true ||
+        diagnoseEventConfirmation(
+          candidate,
+          primaryGuidancePriority.candidateEvents.filter(
+            (other) => other.id !== candidate.id
+          ),
+          primaryActivation?.rankedHouses
+        ).status === "AREA_CONFIRMED"
+      )
+  ) ??
+  null;
+  const primaryGuidanceConfirmation =
+  primaryGuidanceCandidate
+    ? diagnoseEventConfirmation(
+        primaryGuidanceCandidate,
+        (
+          primaryGuidancePriority?.candidateEvents ??
+          primaryActivation?.candidateEvents ??
+          []
+        ).filter(
+          (candidate) =>
+            candidate.id !== primaryGuidanceCandidate.id
+        ),
+        primaryActivation?.rankedHouses
+      )
+    : null;
+    const primaryGuidanceHasDirectDashaHouseEvidence =
+  primaryGuidanceCandidate !== null &&
+  dasha.planetActivations.some((activation) =>
+    [
+      ...activation.ruledHouses,
+      ...(activation.natalHouse != null
+  ? [activation.natalHouse]
+  : []),
+    ].some(
+      (house) =>
+        primaryGuidanceCandidate.matchedPrimaryHouses.includes(house) ||
+        primaryGuidanceCandidate.matchedSupportingHouses.includes(house)
+    )
+  );
+    const primaryGuidanceEvidence: RealLifeEventEvidence | null =
+  prediction.primaryTheme &&
+  primaryGuidanceCandidate &&
+  primaryGuidanceConfirmation
+    ? {
+        area: prediction.primaryTheme.area,
+
+        manifestationId:
+          prediction.primaryTheme.manifestationId,
+
+        matchedPrimaryHouses:
+          primaryGuidanceConfirmation.primaryHouses,
+
+        matchedSupportingHouses:
+          primaryGuidanceConfirmation.supportingHouses,
+
+        discriminatorPlanetMatches:
+          primaryGuidanceConfirmation.natalDiscriminatorPlanets,
+
+        transitDiscriminatorPlanetMatches:
+          primaryGuidanceConfirmation.transitDiscriminatorPlanets,
+
+        hasMoonSambandhaConfirmation:
+          primaryGuidanceCandidate.hasMoonSambandhaConfirmation === true,
+
+        hasDirectDashaHouseEvidence:
+  primaryGuidanceHasDirectDashaHouseEvidence,
+
+        hasPrimaryHouseTransitEvidence:
+          primaryGuidanceCandidate.matchedEventHouseTransits.some(
+            (transit) => transit.houseRole === "primary"
+          ),
+
+        hasSupportingHouseTransitEvidence:
+          primaryGuidanceCandidate.matchedEventHouseTransits.some(
+            (transit) => transit.houseRole === "supporting"
+          ),
+
+        hasTransitDiscriminatorOverlap:
+          primaryGuidanceConfirmation
+            .overlappingDiscriminatorPlanets.length > 0,
+
+        eventConfirmationStatus:
+          primaryGuidanceConfirmation.status,
+
+        isPrimaryDailyArea: true,
+
+        dailyPriorityScore:
+          prediction.primaryTheme.priorityScore,
+      }
+    : null;
+    const primaryAreaPracticalGuidance =
+  primaryGuidanceEvidence
+    ? resolveAreaPracticalGuidance(
+        primaryGuidanceEvidence,
+        input.selectedDateISO
+      )
+    : null;
+  const leadingMindFocusCandidate =
+  prediction.primaryTheme?.area === "mind" &&
+  prediction.primaryTheme.manifestationId === null
+    ? primaryActivation?.candidateEvents.find(
+        (candidate) =>
+          (candidate.id === "emotional_stability" ||
+            candidate.id === "mental_pressure") &&
+          candidate.hasMoonSambandhaConfirmation === true &&
+          candidate.matchedPrimaryHouses.length > 0
+      ) ?? null
+    : null;
+const leadingEducationFocusCandidate =
+  prediction.primaryTheme?.area === "education" &&
+  prediction.primaryTheme.manifestationId === null
+    ? primaryActivation?.candidateEvents.find(
+        (candidate) =>
+          (candidate.id === "education_focus" ||
+            candidate.id === "education_progress" ||
+            candidate.id === "education_challenge") &&
+          candidate.hasMoonSambandhaConfirmation === true &&
+          candidate.matchedPrimaryHouses.length > 0
+      ) ?? null
+    : null;
+
 const moneyEventExpression =
   selectedManifestation &&
   selectedManifestation.area === "money"
@@ -1979,13 +2339,18 @@ const composedPredictionV2 =
         padaExpressionModeV2
       )
     : null;
+const educationNarrativeCandidate =
+  selectedManifestation?.area === "education"
+    ? selectedManifestation
+    : leadingEducationFocusCandidate;
+
 const educationEventExpressionV2 =
-  selectedManifestation
+  educationNarrativeCandidate
     ? resolveEducationEventExpression(
-  selectedManifestation.id,
-  selectedManifestation.matchedSupportingHouses ?? [],
-  selectedManifestation.discriminatorPlanetMatches ?? []
-)
+        educationNarrativeCandidate.id,
+        educationNarrativeCandidate.matchedSupportingHouses ?? [],
+        educationNarrativeCandidate.discriminatorPlanetMatches ?? []
+      )
     : null;
 const educationPredictionV2 =
   educationEventExpressionV2
@@ -1994,6 +2359,30 @@ const educationPredictionV2 =
         eventStageV2,
         padaExpressionModeV2
       )
+    : null;
+const personalizedEducationFocusPrediction =
+  prediction.primaryTheme?.area === "education" &&
+  prediction.primaryTheme.manifestationId === null &&
+  leadingEducationFocusCandidate
+    ? [
+        leadingEducationFocusCandidate.id === "education_challenge" &&
+leadingEducationFocusCandidate.matchedTransitDiscriminatorEvidence.length > 0
+  ? "A learning-related matter may require extra patience or a closer review of your approach today."
+          : leadingEducationFocusCandidate.id === "education_progress"
+          ? "You may find an opportunity to make steady progress in something you are studying or trying to understand."
+          : leadingEducationFocusCandidate.matchedPrimaryHouses.includes(5) &&
+            leadingEducationFocusCandidate.matchedPrimaryHouses.includes(9)
+          ? "Today may be a good time to deepen your understanding of something you are learning or exploring."
+          : leadingEducationFocusCandidate.matchedPrimaryHouses.includes(5)
+          ? "Your attention may turn towards learning, problem-solving or developing a skill."
+          : leadingEducationFocusCandidate.matchedPrimaryHouses.includes(9)
+          ? "Exploring a different perspective or seeking guidance may help deepen your understanding."
+          : "Learning and educational priorities may deserve some attention today.",
+        eventStageV2.stage === "stabilizing" &&
+        padaExpressionModeV2.mode === "adjustment"
+          ? "Revisiting your approach or making a small adjustment could help bring greater clarity."
+          : "Focus on understanding and steady progress rather than expecting an immediate result.",
+      ].join(" ")
     : null;
 const careerEventExpressionV2 =
   selectedManifestation
@@ -2011,9 +2400,13 @@ const careerPredictionV2 =
       )
     : null;
 const mindEventExpressionV2 =
-  selectedManifestation
+  selectedManifestation?.area === "mind"
     ? resolveMindEventExpression(
         selectedManifestation.id
+      )
+    : leadingMindFocusCandidate
+    ? resolveMindEventExpression(
+        leadingMindFocusCandidate.id
       )
     : null;
 
@@ -2025,6 +2418,18 @@ const mindPredictionV2 =
         padaExpressionModeV2
       )
     : null;
+
+const personalizedMindFocusPrediction =
+  prediction.primaryTheme?.area === "mind" &&
+  prediction.primaryTheme.manifestationId === null &&
+  leadingMindFocusCandidate &&
+  mindPredictionV2
+    ? [
+        prediction.primaryTheme.prediction,
+        mindPredictionV2,
+      ].join(" ")
+    : null;
+
 const homeEventExpressionV2 =
   selectedManifestation
     ? resolveHomeEventExpression(
@@ -4641,7 +5046,9 @@ const personalizedPrediction = {
 
           prediction:
   prediction.primaryTheme.manifestationId === null
-    ? prediction.primaryTheme.prediction
+    ? personalizedMindFocusPrediction ??
+      personalizedEducationFocusPrediction ??
+      prediction.primaryTheme.prediction
     : [
         narrativeVariant?.prediction ??
           prediction.primaryTheme.prediction,
@@ -4650,7 +5057,7 @@ const personalizedPrediction = {
         .filter(Boolean)
         .join(" "),
 
-  action:
+  action: [
   prediction.primaryTheme.manifestationId === null
     ? prediction.primaryTheme.action
     : [
@@ -4660,6 +5067,19 @@ const personalizedPrediction = {
       ]
         .filter(Boolean)
         .join(" "),
+  prediction.primaryTheme.manifestationId === null &&
+primaryAreaPracticalGuidance?.guidance &&
+!prediction.primaryTheme.action
+  .toLowerCase()
+  .includes(
+    primaryAreaPracticalGuidance.guidance
+      .toLowerCase()
+  )
+  ? primaryAreaPracticalGuidance.guidance
+  : null,
+]
+  .filter(Boolean)
+  .join(" "),
 
 avoid:
   prediction.primaryTheme.manifestationId === null
@@ -4670,8 +5090,21 @@ avoid:
       : null,
 };
 return {
+  realLifeCareerGuidancePreview,
   ...personalizedPrediction,
   dailyComparison,
+  ...(process.env.NODE_ENV === "development"
+  ? {
+      primaryAreaPracticalGuidancePreview: {
+        area: prediction.primaryTheme?.area ?? null,
+        priorityScore: prediction.primaryTheme?.priorityScore ?? null,
+        manifestationId:
+          prediction.primaryTheme?.manifestationId ?? null,
+        evidence: primaryGuidanceEvidence,
+        guidance: primaryAreaPracticalGuidance,
+      },
+    }
+  : {}),
   ...(process.env.NODE_ENV === "development"
   ? { moonTriggerNatalD9 }
   : {}),
@@ -4683,6 +5116,9 @@ return {
     : {}),
     ...(process.env.NODE_ENV === "development"
   ? { moonAllAreaEventCandidates }
+  : {}),
+  ...(process.env.NODE_ENV === "development"
+  ? { realLifeEducationNarrativePreview }
   : {}),
   ...(process.env.NODE_ENV === "development"
   ? { moonMoneyHouseEvidence }

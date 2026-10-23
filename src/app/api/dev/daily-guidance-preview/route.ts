@@ -1,7 +1,13 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { buildDataEngine } from "@/server/dataEngine/buildDataEngine";
-
+import {
+  testRealLifeEventResolver,
+  testPositiveRealLifeEventResolver,
+  testRealLifeEventRepetition,
+  testEqualStrengthEventRepetition,
+  testSupportedSituationAssessment,
+} from "../../../../server/astrology-engine/narrative/realLifeEventNarrative";
 export const runtime = "nodejs";
 
 export async function GET(request: NextRequest) {
@@ -17,12 +23,12 @@ export async function GET(request: NextRequest) {
     "2026-10-20";
 
  if (
-  !/^2026-(09-(2[7-9]|30)|10-(0[1-3]))$/.test(date)
+  !/^2026-(09-(2[7-9]|30)|10-(0[1-9]|[12][0-9]|3[01]))$/.test(date)
 ) {
   return NextResponse.json(
     {
       error:
-        "Select a date from 2026-09-27 to 2026-10-03.",
+        "Select a date from 2026-09-27 to 2026-10-31.",
     },
     { status: 400 }
   );
@@ -62,6 +68,11 @@ export async function GET(request: NextRequest) {
 
  return NextResponse.json({
   date,
+  realLifeEventTest: testRealLifeEventResolver(),
+  realLifeEventPositiveTest: testPositiveRealLifeEventResolver(),
+  realLifeEventRepetitionTest: testRealLifeEventRepetition(),
+  realLifeEventEqualStrengthTest: testEqualStrengthEventRepetition(),
+  realLifeEventSupportedSituationTest: testSupportedSituationAssessment(),
    fullPrediction: {
     overallTone: prediction.overallTone,
     primaryTheme: prediction.primaryTheme,
@@ -72,6 +83,12 @@ export async function GET(request: NextRequest) {
   moonFirstGuidance: prediction.moonFirstGuidance ?? null,
   moonAllAreaEventCandidates:
   prediction.moonAllAreaEventCandidates ?? null,
+  realLifeEducationNarrativePreview:
+  prediction.realLifeEducationNarrativePreview ?? null,
+  realLifeCareerGuidancePreview:
+  prediction.realLifeCareerGuidancePreview ?? null,
+  primaryAreaPracticalGuidancePreview:
+  prediction.primaryAreaPracticalGuidancePreview ?? null,
   moonMoneyHouseEvidence:
   prediction.moonMoneyHouseEvidence ?? null,
   moonMoneyTransitEvidence:

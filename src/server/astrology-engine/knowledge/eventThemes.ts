@@ -5,6 +5,8 @@ import type {
 
 export type EventThemeId =
   | "career_movement"
+  | "career_interview_invitation"
+  | "career_job_offer"
   | "career_responsibility"
   | "career_recognition"
   | "career_change"
@@ -90,6 +92,8 @@ export type EventThemeDefinition = {
 
   supportingHouses: number[];
 
+  requiredHouses?: number[];
+
   description: string;
 
   discriminators?: EventDiscriminator;
@@ -138,6 +142,53 @@ export const EVENT_THEMES:
       "mixed",
       "neutral",
     ],
+  },
+},
+{
+  id: "career_interview_invitation",
+  area: "career",
+  label: "Job interview invitation",
+  primaryHouses: [6, 10],
+  supportingHouses: [3, 11],
+  requiredHouses: [3],
+  description:
+    "Receiving an invitation, scheduling request or communication regarding a job interview.",
+  discriminators: {
+    signatures: [
+      {
+        planet: "Mercury",
+        sources: ["lordship", "natal_placement"],
+      },
+      {
+        planet: "Saturn",
+        sources: ["lordship", "natal_placement"],
+      },
+    ],
+    polarity: ["supportive", "mixed"],
+  },
+
+},
+{
+  id: "career_job_offer",
+  area: "career",
+  label: "Job offer received",
+  primaryHouses: [6, 10, 11],
+  supportingHouses: [2, 3],
+  requiredHouses: [11],
+  description:
+    "Receiving a formal employment offer, offer letter, or confirmation of a new job opportunity.",
+  discriminators: {
+    signatures: [
+      {
+        planet: "Jupiter",
+        sources: ["lordship", "natal_placement"],
+      },
+      {
+        planet: "Mercury",
+        sources: ["lordship", "natal_placement"],
+      },
+    ],
+    polarity: ["supportive"],
   },
 },
     {

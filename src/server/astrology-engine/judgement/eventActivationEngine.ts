@@ -81,7 +81,6 @@ discriminatorSourceMatches: (
 )[];
 
 matchedDiscriminatorEvidence: {
-
   house: number;
   planet: PlanetName;
   source:
@@ -138,7 +137,7 @@ moonEvidence?: {
 };
 export type EventActivation = {
   area: LifeArea;
-
+  activationSource?: "dasha_transit" | "moon_only";
   timingScore: number;
 
   strength: EventActivationStrength;
@@ -155,9 +154,10 @@ houseEvidence: {
   planet: PlanetName;
 
   source:
-    | "lordship"
-    | "natal_placement"
-    | "dispositor";
+  | "lordship"
+  | "natal_placement"
+  | "dispositor"
+  | "natal_aspect";
 
   area: LifeArea;
 
@@ -168,15 +168,17 @@ rankedHouses: {
 
   score: number;
 
-  confirmationCount: number;
+    confirmationCount: number;
   planetConfirmationCount: number;
+  directPlanetConfirmationCount?: number;
   planets: PlanetName[];
 
   sources: (
-    | "lordship"
-    | "natal_placement"
-    | "dispositor"
-  )[];
+  | "lordship"
+  | "natal_placement"
+  | "dispositor"
+  | "natal_aspect"
+)[];
 }[];
 candidateEvents: CandidateEventTheme[];
 reasons: string[];
@@ -259,7 +261,7 @@ function getActivatedHouses(
     (a, b) => a - b
   );
 }
-function rankHouseEvidence(
+export function rankHouseEvidence(
   evidence: EventActivation["houseEvidence"]
 ): EventActivation["rankedHouses"] {
   const houseMap = new Map<
@@ -317,7 +319,20 @@ function rankHouseEvidence(
       ],
     });
   }
+  for (const rankedHouse of houseMap.values()) {
+    const directPlanets = new Set(
+      evidence
+        .filter(
+          (item) =>
+            item.house === rankedHouse.house &&
+            item.source !== "natal_aspect"
+        )
+        .map((item) => item.planet)
+    );
 
+    rankedHouse.directPlanetConfirmationCount =
+      directPlanets.size;
+  }
   return [
   ...houseMap.values(),
 ].sort((a, b) => {
@@ -354,7 +369,21 @@ function getCandidateConfidence(
 
   return "low";
 }
+export function meetsRequiredHouseEvidence(
+  requiredHouses: number[],
+  rankedHouses: EventActivation["rankedHouses"]
+): boolean {
+  return requiredHouses.every((house) => {
+    const rankedHouse = rankedHouses.find(
+      (item) => item.house === house
+    );
 
+    return (
+      rankedHouse !== undefined &&
+      (rankedHouse.directPlanetConfirmationCount ?? 0) >= 2
+    );
+  });
+}
 function buildCandidateEventThemes(
   area: LifeArea,
 
@@ -618,7 +647,14 @@ const confidenceScore =
   );
 const matchedDiscriminatorEvidence =
   houseEvidence.filter(
-    (evidence) => {
+    (
+      evidence
+    ): evidence is typeof evidence & {
+      source:
+        | "lordship"
+        | "natal_placement"
+        | "dispositor";
+    } => {
       if (
         !matchedPrimaryHouses.includes(
           evidence.house
@@ -629,7 +665,10 @@ const matchedDiscriminatorEvidence =
       ) {
         return false;
       }
-
+if (evidence.source === "natal_aspect") {
+  return false;
+}
+const directSource = evidence.source;
       return (
         theme.discriminators?.signatures?.some(
           (signature) => {
@@ -648,8 +687,8 @@ const matchedDiscriminatorEvidence =
             }
 
             return signature.sources.includes(
-              evidence.source
-            );
+  directSource
+);
           }
         ) ?? false
       );
@@ -985,11 +1024,22 @@ discriminatorScore,
 confidence,
 };
     })
-        .filter(
-      (theme) =>
-        theme.matchedPrimaryHouses
-          .length > 0
-    )
+        .filter((candidate) => {
+  if (candidate.matchedPrimaryHouses.length === 0) {
+    return false;
+  }
+
+  const definition = EVENT_THEMES.find(
+    (theme) => theme.id === candidate.id
+  );
+
+  const requiredHouses = definition?.requiredHouses ?? [];
+
+  return meetsRequiredHouseEvidence(
+  requiredHouses,
+  rankedHouses
+);
+})
     .sort((a, b) => {
   if (
     b.manifestationScore !==
@@ -1300,14 +1350,37 @@ return {
     JSON.stringify(moonOnlyThemeEvidence)
   );
 }
-  const activations: EventActivation[] =
-    params.synthesis.areaSyntheses.map(
+  const evaluationAreas = [
+  ...params.synthesis.areaSyntheses,
+  ...moonOnlyAreas.map((area) => ({
+    area,
+    dashaScore: 0,
+    dashaConfirmationCount: 0,
+    strongestTransitImportance: 0,
+    transitConfirmationCount: 0,
+    transitPlanetConfirmationCount: 0,
+    supportiveCount: 0,
+    challengingCount: 0,
+    mixedCount: 0,
+    dashaPlanets: [] as PlanetName[],
+    transitSources: [] as string[],
+    transitMatches: [] as DashaTransitMatch[],
+    timingScore: 0,
+    polarityScore: 0,
+    timingStrength: "weak" as const,
+    activationPolarity: "neutral" as const,
+  })),
+];
+
+const activations: EventActivation[] =
+  evaluationAreas.map(
   (areaSynthesis) => {
     const houseEvidence =
       getDashaHouseEvidence(
         params.dasha,
         areaSynthesis.area
       );
+
     const activatedHouses =
   getActivatedHouses(
     houseEvidence
@@ -1317,6 +1390,44 @@ const rankedHouses =
   rankHouseEvidence(
     houseEvidence
   );
+
+if (
+  process.env.NODE_ENV === "development" &&
+  areaSynthesis.area === "career"
+) {
+  console.log(
+    "[CAREER EVENT HOUSE ELIGIBILITY]",
+    JSON.stringify(
+      {
+        activatedHouses,
+        requiredHouseEvidence: [3, 11].map((house) => {
+          const ranked = rankedHouses.find(
+            (item) => item.house === house
+          );
+
+          return {
+            house,
+            activated: activatedHouses.includes(house),
+            directPlanetConfirmationCount:
+              ranked?.directPlanetConfirmationCount ?? 0,
+            totalPlanetConfirmationCount:
+              ranked?.planetConfirmationCount ?? 0,
+            planets: ranked?.planets ?? [],
+            evidence: houseEvidence
+              .filter((item) => item.house === house)
+              .map((item) => ({
+                planet: item.planet,
+                source: item.source,
+                score: item.score,
+              })),
+          };
+        }),
+      },
+      null,
+      2
+    )
+  );
+}
 
 const candidateEvents = buildCandidateEventThemes(
   areaSynthesis.area,
@@ -1574,9 +1685,10 @@ if (
   console.log(
     "[EVENT CONFIRMATION DIAGNOSTIC]",
     diagnoseEventConfirmation(
-      moonAdjustedEvents[0],
-      moonAdjustedEvents.slice(1)
-    )
+  moonAdjustedEvents[0],
+  moonAdjustedEvents.slice(1),
+  rankedHouses
+)
   );
 }
   if (
@@ -1595,7 +1707,9 @@ if (
 }
     return {
         area: areaSynthesis.area,
-
+        activationSource: moonOnlyAreas.includes(areaSynthesis.area)
+  ? "moon_only"
+  : "dasha_transit",
         timingScore:
           areaSynthesis.timingScore,
 
