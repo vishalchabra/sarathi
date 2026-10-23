@@ -124,6 +124,8 @@ discriminatorScore: number;
     | "moderate"
     | "low";
 hasMoonSambandhaConfirmation?: boolean;
+moonAdmissionEligible?: boolean;
+moonAdmissionPrimaryHouses?: number[];
 moonEvidence?: {
   source: "nakshatraLord" | "navamsaLord";
   planet: PlanetName;
@@ -407,7 +409,15 @@ moonNakshatraLord?: PlanetName
 ,
 natalPositions?: Partial<
   Record<PlanetName, NatalPlanetPosition>
->
+>,
+moonDailyEvidence: {
+  source: "nakshatraLord" | "navamsaLord";
+  planet: PlanetName;
+  ruledHouses: number[];
+  natalHouse: number | null;
+  connectsDashaDirectly: boolean;
+}[] = [],
+moonTransitHouse?: number
 ): CandidateEventTheme[] {
      const activatedHouses =
     rankedHouses.map(
@@ -418,6 +428,36 @@ natalPositions?: Partial<
       (theme) => theme.area === area
     )
     .map((theme) => {
+      const moonAdmissionPrimaryHouses = [
+  ...new Set(
+    moonDailyEvidence
+      .filter((evidence) =>
+        theme.discriminators?.signatures?.some(
+          (signature) => signature.planet === evidence.planet
+        ) ?? false
+      )
+      .flatMap((evidence) => {
+        const connectedHouses = [
+          ...evidence.ruledHouses,
+          ...(evidence.natalHouse !== null
+            ? [evidence.natalHouse]
+            : []),
+        ];
+
+        return theme.primaryHouses.filter((house) =>
+          connectedHouses.includes(house)
+        );
+      })
+  ),
+];
+
+const moonTransitPrimaryMatch =
+  moonTransitHouse !== undefined &&
+  theme.primaryHouses.includes(moonTransitHouse);
+
+const moonAdmissionEligible =
+  moonAdmissionPrimaryHouses.length > 0 ||
+  moonTransitPrimaryMatch;
       const eventSambandhaEvidence =
   resolveEventSambandha({
     primaryHouses: theme.primaryHouses,
@@ -974,6 +1014,8 @@ const confidence =
   id: theme.id,
   label: theme.label,
   area: theme.area,
+  moonAdmissionEligible,
+moonAdmissionPrimaryHouses,
   description:
     theme.description,
 
@@ -1024,10 +1066,14 @@ discriminatorScore,
 confidence,
 };
     })
-        .filter((candidate) => {
-  if (candidate.matchedPrimaryHouses.length === 0) {
-    return false;
-  }
+  .filter((candidate) => {
+  
+ if (
+  candidate.matchedPrimaryHouses.length === 0 &&
+  !candidate.moonAdmissionEligible
+) {
+  return false;
+}
 
   const definition = EVENT_THEMES.find(
     (theme) => theme.id === candidate.id
@@ -1437,8 +1483,10 @@ const candidateEvents = buildCandidateEventThemes(
   areaSynthesis.timingScore,
   areaSynthesis.activationPolarity,
   params.activatedSambandha ?? [],
-  moonNakshatraLord,
-  params.natalPositions
+moonNakshatraLord,
+params.natalPositions,
+moonDailyEvidence,
+params.transit.moonHouse
 ).filter((event) =>
   isEventAgeAppropriate(event.id, params.age)
 );
