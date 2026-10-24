@@ -1263,15 +1263,23 @@ const natalBase = {
     reportPlanets.find((p: any) => p.planet === "Moon")?.lon ?? null,
 
   ascendant: {
-    sign: ascSign,
-    signNum: ascSignNum,
-    degree:
-      typeof ascLon === "number"
-        ? Number((ascLon % 30).toFixed(2))
-        : null,
-    house: 1,
-    lon: typeof ascLon === "number" ? ascLon : null,
-  },
+  sign: ascSign,
+  signNum: ascSignNum,
+  degree:
+    typeof ascLon === "number"
+      ? Number((((ascLon % 30) + 30) % 30).toFixed(2))
+      : null,
+  house: 1,
+  lon: typeof ascLon === "number" ? ascLon : null,
+  nakshatra:
+    typeof ascLon === "number"
+      ? getNakshatraAndPadaFromLon(ascLon).nakshatra
+      : null,
+  pada:
+    typeof ascLon === "number"
+      ? getNakshatraAndPadaFromLon(ascLon).pada
+      : null,
+},
 
   planets: reportPlanets,
   aspects: natalAspects,

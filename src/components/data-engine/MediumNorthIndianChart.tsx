@@ -57,6 +57,15 @@ type HouseAspectMarker = {
 type MediumNorthIndianChartProps = {
   title?: string;
   ascSign?: string | null;
+  ascDegree?: number | null;
+    ascendantDetails?: {
+    sign?: string | null;
+    signNum?: number | null;
+    degree?: number | null;
+    lon?: number | null;
+    nakshatra?: string | null;
+    pada?: number | null;
+  } | null;
   planets?: ChartPlanet[];
   transitPlanets?: ChartPlanet[];
   onPlanetClick?: (planet: ChartPlanet) => void;
@@ -808,6 +817,8 @@ function getTransitSambandh(
 export default function MediumNorthIndianChart({
   title = "North Indian Chart",
   ascSign,
+  ascDegree = null,
+  ascendantDetails = null,
   planets = [],
   transitPlanets = [],
   onPlanetClick,
@@ -829,8 +840,10 @@ export default function MediumNorthIndianChart({
 highlightPlanets = [],
 placementMode = "sign",
 }: MediumNorthIndianChartProps) {
+  
   const [selected, setSelected] = useState<ChartPlanet | null>(null);
   const [hovered, setHovered] = useState<ChartPlanet | null>(null);
+  const [showAscendantDetails, setShowAscendantDetails] = useState(false);
   const [showDegreesOnChart, setShowDegreesOnChart] = useState(true);
   const [showNakshatraOnChart, setShowNakshatraOnChart] = useState(false);
   const layout = useMemo(() => getLayoutConfig(title, layoutVariant), [title, layoutVariant]);
@@ -1060,13 +1073,31 @@ const technicalRow = technicalBadges.length ? (
         }`}
         style={{ transform: houseLabelShift }}
       >
-        {houseLabel}
+                {houseLabel}
         {typeof houseSarva === "number" ? (
           <span className="ml-1 text-[9px] font-medium text-slate-400">
             {houseSarva}
           </span>
         ) : null}
       </div>
+
+      {isAscHouse &&
+  showDegreesOnChart &&
+  typeof ascDegree === "number" &&
+  Number.isFinite(ascDegree) && (
+    <button
+      type="button"
+      onClick={() => {
+        setSelected(null);
+        setHovered(null);
+        setShowAscendantDetails(true);
+      }}
+      className="mt-1 cursor-pointer rounded px-1 text-[10px] font-semibold leading-none text-indigo-700 hover:bg-indigo-50 hover:underline"
+      title="Click to view Ascendant details"
+    >
+      Asc {ascDegree.toFixed(2)}°
+    </button>
+  )}
     </div>
 
     {technicalPlacement === "top" ? (
@@ -1101,9 +1132,11 @@ const technicalRow = technicalBadges.length ? (
                           )
                         }
                         onClick={() => {
-                          setSelected(p);
-                          onPlanetClick?.(p);
-                        }}
+  setShowAscendantDetails(false);
+  setHovered(null);
+  setSelected(p);
+  onPlanetClick?.(p);
+}}
                         className={`${planetButtonSizeClass} font-medium leading-none shadow-sm transition ${
                           p.isSynastryOverlay
                             ? p.retrograde
@@ -1230,6 +1263,90 @@ const technicalRow = technicalBadges.length ? (
           Retrograde Border
         </span>
       </div>
+
+{showPlanetDetails && showAscendantDetails && ascendantDetails ? (
+  <div className="mt-4 rounded-xl border border-[color:var(--border)] bg-slate-50 p-4 shadow-sm">
+    <div className="text-sm font-semibold text-slate-900">
+      Ascendant (Lagna)
+    </div>
+
+    <div className="mt-2 grid grid-cols-2 gap-3 text-xs text-slate-900/80 md:grid-cols-4">
+      <div>
+        <div className="text-[10px] uppercase tracking-wide">Sign</div>
+        <div className="mt-1">{ascendantDetails.sign ?? "—"}</div>
+      </div>
+
+      <div>
+        <div className="text-[10px] uppercase tracking-wide">Degree</div>
+        <div className="mt-1">
+          {typeof ascendantDetails.degree === "number"
+            ? `${ascendantDetails.degree.toFixed(2)}°`
+            : "—"}
+        </div>
+      </div>
+
+      <div>
+        <div className="text-[10px] uppercase tracking-wide">Sign Lord</div>
+        <div className="mt-1">
+          {({
+            Aries: "Mars",
+            Taurus: "Venus",
+            Gemini: "Mercury",
+            Cancer: "Moon",
+            Leo: "Sun",
+            Virgo: "Mercury",
+            Libra: "Venus",
+            Scorpio: "Mars",
+            Sagittarius: "Jupiter",
+            Capricorn: "Saturn",
+            Aquarius: "Saturn",
+            Pisces: "Jupiter",
+          } as Record<string, string>)[ascendantDetails.sign ?? ""] ?? "—"}
+        </div>
+      </div>
+
+      <div>
+        <div className="text-[10px] uppercase tracking-wide">House</div>
+        <div className="mt-1">1</div>
+      </div>
+
+      <div>
+        <div className="text-[10px] uppercase tracking-wide">Nakshatra</div>
+        <div className="mt-1">
+          {ascendantDetails.nakshatra ?? "—"}
+        </div>
+      </div>
+
+      <div>
+        <div className="text-[10px] uppercase tracking-wide">
+          Nakshatra Lord
+        </div>
+        <div className="mt-1">
+          {({
+            Ke: "Ketu",
+            Ve: "Venus",
+            Su: "Sun",
+            Mo: "Moon",
+            Ma: "Mars",
+            Ra: "Rahu",
+            Ju: "Jupiter",
+            Sa: "Saturn",
+            Me: "Mercury",
+          } as Record<string, string>)[
+            NAKSHATRA_LORD_SHORT[ascendantDetails.nakshatra ?? ""]
+          ] ?? "—"}
+        </div>
+      </div>
+
+      <div>
+        <div className="text-[10px] uppercase tracking-wide">Pada</div>
+        <div className="mt-1">
+          {ascendantDetails.pada ?? "—"}
+        </div>
+      </div>
+    </div>
+  </div>
+) : null}
 
       {showPlanetDetails && activePlanet ? (
         <div className="mt-4 rounded-xl border border-[color:var(--border)] bg-slate-50 p-4 shadow-sm">

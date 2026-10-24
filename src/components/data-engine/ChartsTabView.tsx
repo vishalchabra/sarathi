@@ -2066,6 +2066,8 @@ export default function ChartsTabView({
   setSelectedDateISO,
   selectedDateChartLabel,
   natalAscSign,
+  natalAscDegree,
+  natalAscendant,
   natalPlanets,
   natalStrengths,
   vargaMap,
@@ -2095,6 +2097,15 @@ export default function ChartsTabView({
   setSelectedDateISO: (value: string) => void;
   selectedDateChartLabel?: string;
   natalAscSign: string | null;
+  natalAscDegree?: number | null;
+   natalAscendant?: {
+    sign?: string | null;
+    signNum?: number | null;
+    degree?: number | null;
+    lon?: number | null;
+    nakshatra?: string | null;
+    pada?: number | null;
+  } | null;
   natalPlanets: any[];
   natalStrengths?: any[];
   vargaMap: Record<string, any>;
@@ -2622,6 +2633,8 @@ return {
     <MediumNorthIndianChart
       title=""
       ascSign={natalAscSign}
+      ascDegree={natalAscDegree}
+      ascendantDetails={natalAscendant}
       planets={d1PlanetsWithBhava}
       transitPlanets={
         showTransitOverlay

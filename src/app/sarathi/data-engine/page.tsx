@@ -1964,10 +1964,10 @@ if (!accessAllowed) {
             </div>
           </Link>
           <div className="flex items-center gap-3">
-            <span className="hidden rounded-full border border-amber-300/40 bg-amber-100 px-3 py-1 text-xs text-amber-800 md:inline-flex">
-              Pro astrologer view
-            </span>
-          </div>
+  <span className="hidden rounded-full border border-amber-300/40 bg-amber-100 px-3 py-1 text-xs text-amber-800 md:inline-flex">
+    Pro astrologer view
+  </span>
+</div>
         </div>
       </header>
 
@@ -2135,13 +2135,20 @@ if (!accessAllowed) {
   ) : null}
 
   <button
-    type="button"
-    onClick={handleGenerate}
-    disabled={loading}
-    className={primaryButtonClass}
-  >
-    {loading ? "Generating..." : "Generate Data Engine"}
-  </button>
+  type="button"
+  onClick={handleGenerate}
+  disabled={loading}
+  className={primaryButtonClass}
+>
+  {loading ? "Generating..." : "Generate Data Engine"}
+</button>
+
+<Link
+  href="/sarathi/data-engine/clients"
+  className="inline-flex items-center justify-center rounded-xl border border-violet-300 bg-violet-50 px-7 py-3 text-sm font-semibold text-violet-700 shadow-sm transition hover:bg-violet-100"
+>
+  Client Management (CRM)
+</Link>
 </div>
 {data && (
   <div className="mt-6 flex gap-3">
@@ -2985,6 +2992,8 @@ nabhasaYogas={data?.foundations?.nabhasaYogas ?? data?.nabhasaYogas}
   setSelectedDateISO={setSelectedDateISO}
   selectedDateChartLabel={`Showing chart date: ${selectedDateISO}`}
   natalAscSign={natal?.ascendant?.sign ?? null}
+  natalAscDegree={natal?.ascendant?.degree ?? null}
+  natalAscendant={natal?.ascendant ?? null}
   natalPlanets={planets}
   natalStrengths={natalStrengths}
   vargaMap={vargaMap}
