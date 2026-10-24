@@ -1476,12 +1476,18 @@ matchedTransitDiscriminatorEvidence:
     })) ?? [],
 };
 
-        return {
-          area,
-          eventCandidates: moonEventCandidates,
-          transitContext: moonNarrativeTransitContext,
-          ...buildMoonThemeGuidance(area),
-         explanation: (() => {
+        const baseGuidance = buildMoonThemeGuidance(area);
+
+
+const personalizedPrediction = baseGuidance.prediction;
+
+return {
+  area,
+  eventCandidates: moonEventCandidates,
+  transitContext: moonNarrativeTransitContext,
+  ...baseGuidance,
+  prediction: personalizedPrediction,
+  explanation: (() => {
   if (!moonNarrativeTransitContext) return null;
 
   const context = moonNarrativeTransitContext;
@@ -2366,22 +2372,22 @@ const personalizedEducationFocusPrediction =
   leadingEducationFocusCandidate
     ? [
         leadingEducationFocusCandidate.id === "education_challenge" &&
-leadingEducationFocusCandidate.matchedTransitDiscriminatorEvidence.length > 0
-  ? "A learning-related matter may require extra patience or a closer review of your approach today."
+        leadingEducationFocusCandidate.matchedTransitDiscriminatorEvidence.length > 0
+          ? "A subject or learning-related responsibility may prove more demanding than expected today."
           : leadingEducationFocusCandidate.id === "education_progress"
-          ? "You may find an opportunity to make steady progress in something you are studying or trying to understand."
+          ? "You may notice progress in a subject or skill you have been working to develop."
           : leadingEducationFocusCandidate.matchedPrimaryHouses.includes(5) &&
             leadingEducationFocusCandidate.matchedPrimaryHouses.includes(9)
-          ? "Today may be a good time to deepen your understanding of something you are learning or exploring."
+          ? "A learning opportunity may encourage you to connect practical understanding with a broader perspective."
           : leadingEducationFocusCandidate.matchedPrimaryHouses.includes(5)
-          ? "Your attention may turn towards learning, problem-solving or developing a skill."
+          ? "A subject requiring concentration, creative thinking or problem-solving may occupy your attention today."
           : leadingEducationFocusCandidate.matchedPrimaryHouses.includes(9)
-          ? "Exploring a different perspective or seeking guidance may help deepen your understanding."
-          : "Learning and educational priorities may deserve some attention today.",
+          ? "Guidance from someone experienced, or exposure to a different perspective, may help clarify something you are trying to understand."
+          : "An existing learning or educational priority may require your attention today.",
         eventStageV2.stage === "stabilizing" &&
         padaExpressionModeV2.mode === "adjustment"
-          ? "Revisiting your approach or making a small adjustment could help bring greater clarity."
-          : "Focus on understanding and steady progress rather than expecting an immediate result.",
+          ? "A small adjustment to your approach could help you work through what remains unclear."
+          : "The value may lie in gaining clarity rather than reaching an immediate conclusion.",
       ].join(" ")
     : null;
 const careerEventExpressionV2 =
@@ -5044,11 +5050,10 @@ const personalizedPrediction = {
       ? {
           ...prediction.primaryTheme,
 
-          prediction:
-  prediction.primaryTheme.manifestationId === null
-    ? personalizedMindFocusPrediction ??
-      personalizedEducationFocusPrediction ??
-      prediction.primaryTheme.prediction
+          prediction: prediction.primaryTheme.manifestationId === null
+  ? personalizedMindFocusPrediction ??
+    personalizedEducationFocusPrediction ??
+    prediction.primaryTheme.prediction
     : [
         narrativeVariant?.prediction ??
           prediction.primaryTheme.prediction,

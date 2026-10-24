@@ -1246,31 +1246,31 @@ mixed: [
     ],
 
     mixed: [
-      {
-        prediction:
-          "An incoming financial matter may show movement today, although the final amount, timing or conditions could still require clarification.",
-        action:
-          "Follow up on pending receipts and check the practical details.",
-        avoid:
-          "Avoid treating partial progress as a completed financial outcome.",
-      },
-      {
-        prediction:
-          "A financial opportunity may develop gradually today. There could be encouraging signs alongside details that still need attention.",
-        action:
-          "Review the opportunity and identify what remains unresolved.",
-        avoid:
-          "Don't commit additional resources before understanding the full picture.",
-      },
-      {
-        prediction:
-          "Money-related developments may bring both opportunity and practical considerations today. Allow the situation to become clearer before making larger plans.",
-        action:
-          "Confirm the status of expected payments and review your priorities.",
-        avoid:
-          "Avoid making decisions based on an estimated or unconfirmed receipt.",
-      },
-    ],
+  {
+    prediction:
+      "An expected payment or financial receipt may show progress today, but its timing, amount or conditions could still need confirmation.",
+    action:
+      "Check the status of pending payments and clarify any outstanding details.",
+    avoid:
+      "Don't count on funds being available until the receipt is confirmed.",
+  },
+  {
+    prediction:
+      "A financial opportunity may be taking shape, although some details remain unresolved. Progress is possible, but the next practical step matters more than an immediate outcome.",
+    action:
+      "Identify what's still pending and take one concrete step to move the matter forward.",
+    avoid:
+      "Avoid committing additional money or resources before the terms are clear.",
+  },
+  {
+    prediction:
+      "A financial matter may present both possibilities and uncertainties today. There may be room for progress, but the final outcome still needs clarification.",
+    action:
+      "Review expected receipts, confirm what is actually available and prioritise your next financial decision.",
+    avoid:
+      "Don't make commitments based on estimated income or an unconfirmed payment.",
+  },
+],
   },
 };
 

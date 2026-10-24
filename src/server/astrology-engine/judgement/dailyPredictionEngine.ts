@@ -410,7 +410,7 @@ if (!manifestation) {
 }
 
   return addPolarityContext(
-    "Your mental and emotional space is more active today. Different thoughts or feelings may compete for attention, so allow yourself time to process them before deciding what deserves your energy."
+    "Thoughts, emotions and personal concerns may compete for attention today. A situation could feel more significant than it initially appears, particularly if it touches on an existing worry or expectation."
   );
 }
 
@@ -420,74 +420,74 @@ if (!manifestation) {
       );
 
     case "relationships":
-      return addPolarityContext(
-        "One-to-one relationships are more active today. Something in an important interaction may deserve attention, although the direction of the situation may become clearer through conversation and response."
-      );
+  return addPolarityContext(
+    "Personal relationships and one-to-one interactions are in focus today. Pay attention to expectations, communication and how responsibilities are shared. A thoughtful conversation may help clarify matters that feel unresolved."
+  );
 
-    case "career":
-      return addPolarityContext(
-        "Work and professional responsibilities are strongly activated today. Something may require your attention, initiative or practical response, even if the exact direction is not immediately clear."
-      );
+case "career":
+  return addPolarityContext(
+    "Professional responsibilities take priority today. An existing task, decision or commitment may benefit from closer attention. Focus on what you can move forward rather than trying to resolve everything at once."
+  );
 
-    case "money":
-      return addPolarityContext(
-        "Money and resources deserve closer attention today. There may be more than one financial consideration in play, making it useful to understand the practical picture before deciding what matters most."
-      );
+case "money":
+  return addPolarityContext(
+    "Financial commitments and available resources may require balancing today. Pending receipts, upcoming expenses or an existing obligation could influence which financial priority deserves attention first."
+  );
 
-    case "health":
-      return addPolarityContext(
-        "Your wellbeing and daily routine deserve greater awareness today. Notice how your energy and body respond to your usual pace rather than pushing through changes without acknowledging them."
-      );
+case "health":
+  return addPolarityContext(
+    "Your daily routine and wellbeing deserve attention today. Notice whether your current pace supports your energy and concentration, and make practical adjustments where needed rather than ignoring signs of strain."
+  );
 
-    case "family":
-      return addPolarityContext(
-        "Family matters may require more of your involvement today. The situation may call for attention, support or a practical response, so deal with what actually emerges rather than anticipating problems."
-      );
+case "family":
+  return addPolarityContext(
+    "Family responsibilities and personal expectations may need balancing today. Consider whether someone needs your support, a pending discussion needs attention or an existing commitment requires coordination."
+  );
 
-    case "home":
-      return addPolarityContext(
-        "Home and domestic matters are more active today. There may be something practical to organise, adjust or give attention to, but allow the immediate priority to become clear before making unnecessary changes."
-      );
+case "home":
+  return addPolarityContext(
+    "Domestic priorities may benefit from a little organisation today. Review any pending household responsibilities, arrangements or decisions, and address what is most relevant rather than creating unnecessary changes."
+  );
 
-    case "travel":
-      return addPolarityContext(
-        "Travel, movement or matters connected with distance may need more attention today. Keep practical arrangements in view and leave enough flexibility for the situation to develop."
-      );
+case "travel":
+  return addPolarityContext(
+    "Travel plans, movement or matters involving distance deserve practical attention today. Check existing arrangements, timings and commitments, allowing flexibility where details remain uncertain."
+  );
 
     case "spirituality":
-      return addPolarityContext(
-        "Your reflective and spiritual side is more active today. You may benefit from creating some quiet space to reconnect inwardly without feeling that you need to arrive at an immediate answer."
-      );
+  return addPolarityContext(
+    "A quieter, more reflective approach may serve you well today. Time spent in prayer, meditation or personal reflection could help you gain perspective on something that has been occupying your thoughts. Avoid forcing an answer before you feel ready."
+  );
 
-    case "education":
-      return addPolarityContext(
-        "Learning, study or an educational matter is more active today. Give attention to what genuinely needs progress rather than trying to cover too many priorities at once."
-      );
+case "education":
+  return addPolarityContext(
+    "Learning, study or an important question may come into focus today. A subject that previously seemed unclear could benefit from a different perspective, additional information or guidance from someone experienced."
+  );
 
-    case "publicImage":
-      return addPolarityContext(
-        "Visibility and how others perceive you are more active themes today. Be conscious of how you present yourself, while avoiding the need to manage every impression around you."
-      );
+case "publicImage":
+  return addPolarityContext(
+    "How you present yourself and respond to others may carry greater significance today. Be mindful of your words, professional conduct and commitments, particularly where your credibility or reputation matters. Consistency may prove more valuable than seeking immediate recognition."
+  );
 
-    case "hiddenMatters":
-      return addPolarityContext(
-        "Something beneath the surface may deserve closer observation today. More than one interpretation may be possible, so allow information and understanding to develop before drawing conclusions."
-      );
+case "hiddenMatters":
+  return addPolarityContext(
+    "A situation may have details that are not yet fully understood. Rather than relying on assumptions or incomplete information, take time to examine what you know and what still needs clarification. Discretion and patience may help you avoid unnecessary complications."
+  );
 
-    case "communication":
-      return addPolarityContext(
-        "Conversations, messages and information exchange are more active today. Pay attention not only to what is being said, but also to whether intentions and expectations are being understood clearly."
-      );
+case "communication":
+  return addPolarityContext(
+    "An important conversation, message or exchange of information may benefit from extra care today. Express your intentions clearly, listen to the other person's perspective and confirm details where misunderstandings could create complications."
+  );
 
-    case "property":
-      return addPolarityContext(
-        "Property, housing or asset-related matters may require some practical attention today. Focus first on understanding what actually needs to be handled before making a larger decision."
-      );
+case "property":
+  return addPolarityContext(
+    "Property, housing or asset-related responsibilities may benefit from closer review today. Whether dealing with maintenance, documentation, expenses or an existing decision, focus on understanding the practical requirements before taking the next step."
+  );
 
-    default:
-      return addPolarityContext(
-        `${priority.area} is more active today. Give the area some additional attention while allowing the most relevant development to become clearer.`
-      );
+default:
+  return addPolarityContext(
+    `Matters connected with ${priority.area} may deserve attention today. Focus on existing responsibilities and any developments that become clear, rather than making decisions based on assumptions.`
+  );
   }
 }
 
