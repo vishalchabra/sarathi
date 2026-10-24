@@ -30,7 +30,7 @@ export const DAILY_NARRATIVE_VARIANTS: NarrativeLibrary = {
         summary:
           "Shared intentions within an important relationship may become clearer today.",
         prediction:
-          "An important relationship may offer an opportunity to discuss commitment, expectations or future plans constructively. Greater mutual understanding could help clarify the direction of the connection.",
+          "A conversation about where an important relationship is heading may open the door to clearer plans or a more definite commitment today. It may involve an existing expectation about time, shared responsibilities or the next stage of a connection, rather than a completely new development. This may clarify what is genuinely possible now while leaving some details of a longer-term commitment open.",
         action:
           "Discuss an important shared expectation or future priority with openness.",
         avoid:
@@ -40,7 +40,7 @@ export const DAILY_NARRATIVE_VARIANTS: NarrativeLibrary = {
         summary:
           "A constructive approach to commitment may strengthen understanding in an important relationship.",
         prediction:
-          "Questions about the future direction of an important relationship may develop positively today. There may be room to establish greater clarity about shared intentions or responsibilities.",
+          "Someone important may show greater willingness to discuss a shared future, including what each of you is prepared to take on. The exchange could bring into focus a decision that has been discussed before but not yet translated into practical arrangements. The significance lies in whether intentions are becoming more concrete, not in assuming that every promise is final.",
         action:
           "Identify an expectation or commitment that would benefit from a clear discussion.",
         avoid:
@@ -50,7 +50,7 @@ export const DAILY_NARRATIVE_VARIANTS: NarrativeLibrary = {
         summary:
           "An important relationship may benefit from greater clarity about shared expectations.",
         prediction:
-          "Commitment or longer-term intentions may become more relevant in an existing relationship today. Supportive conditions could help both sides explore what they want from the connection.",
+          "A relationship could reach a useful turning point as shared intentions, responsibilities or longer-term plans are discussed more openly. Even a small change in how someone expresses their intentions could make the direction of the relationship easier to understand. You may leave with a better sense of the direction of the connection, even if an agreement takes more time.",
         action:
           "Make time to understand each other's priorities and discuss a practical next step.",
         avoid:
@@ -63,7 +63,7 @@ export const DAILY_NARRATIVE_VARIANTS: NarrativeLibrary = {
         summary:
           "Commitment and expectations within an important relationship may require closer examination today.",
         prediction:
-          "Questions about commitment or the future direction of a relationship may feel more demanding today. Differences in expectations could require careful discussion before either person makes a decision.",
+          "A discussion about commitment may reveal that you and someone important are not yet ready for the same next step. It may involve an existing expectation about time, shared responsibilities or the next stage of a connection, rather than a completely new development. This may clarify what is genuinely possible now while leaving some details of a longer-term commitment open.",
         action:
           "Clarify the expectations that are creating uncertainty or pressure.",
         avoid:
@@ -73,7 +73,7 @@ export const DAILY_NARRATIVE_VARIANTS: NarrativeLibrary = {
         summary:
           "Differences in shared intentions may require patience and clear communication.",
         prediction:
-          "An important relationship may bring questions about responsibilities, commitment or future plans into focus. Both sides may need more time to understand where their expectations differ.",
+          "An existing relationship may face a difficult conversation about timing, responsibilities or what each person expects for the future. The exchange could bring into focus a decision that has been discussed before but not yet translated into practical arrangements. The significance lies in whether intentions are becoming more concrete, not in assuming that every promise is final.",
         action:
           "Discuss the specific expectations that need clarification without demanding an immediate answer.",
         avoid:
@@ -83,7 +83,7 @@ export const DAILY_NARRATIVE_VARIANTS: NarrativeLibrary = {
         summary:
           "A relationship commitment may need realistic expectations and thoughtful consideration.",
         prediction:
-          "An existing commitment or proposed future arrangement may require closer attention today. Practical concerns or differing priorities could make an immediate agreement difficult.",
+          "A proposed commitment or shared arrangement may meet practical objections, making agreement harder to reach today. Even a small change in how someone expresses their intentions could make the direction of the relationship easier to understand. You may leave with a better sense of the direction of the connection, even if an agreement takes more time.",
         action:
           "Review the responsibilities involved and identify which questions remain unresolved.",
         avoid:
@@ -96,7 +96,7 @@ export const DAILY_NARRATIVE_VARIANTS: NarrativeLibrary = {
         summary:
           "An important relationship may move toward greater clarity while some expectations remain unresolved.",
         prediction:
-          "Commitment or shared intentions may become more relevant today. There may be constructive opportunities to discuss the future, although practical questions could still require attention.",
+          "A conversation about commitment could move forward, though a difference over timing or responsibilities may remain unresolved. It may involve an existing expectation about time, shared responsibilities or the next stage of a connection, rather than a completely new development. This may clarify what is genuinely possible now while leaving some details of a longer-term commitment open.",
         action:
           "Explore shared priorities while identifying the details that need further discussion.",
         avoid:
@@ -106,7 +106,7 @@ export const DAILY_NARRATIVE_VARIANTS: NarrativeLibrary = {
         summary:
           "Questions about commitment may bring constructive discussion alongside a need for adjustment.",
         prediction:
-          "An important relationship may offer an opportunity to clarify longer-term expectations today. Differences in timing, priorities or responsibilities could influence the next steps.",
+          "Someone important may be open to discussing the future, but the details of what each person can promise could still need work. The exchange could bring into focus a decision that has been discussed before but not yet translated into practical arrangements. The significance lies in whether intentions are becoming more concrete, not in assuming that every promise is final.",
         action:
           "Discuss what each person is ready to commit to and where more clarity is needed.",
         avoid:
@@ -116,7 +116,7 @@ export const DAILY_NARRATIVE_VARIANTS: NarrativeLibrary = {
         summary:
           "Balancing shared intentions with practical expectations may be important today.",
         prediction:
-          "The future direction of an important relationship may come into focus. There may be room for progress, although both sides could need additional time to align their expectations.",
+          "A relationship may take a step toward a clearer direction without reaching a final agreement on shared expectations. Even a small change in how someone expresses their intentions could make the direction of the relationship easier to understand. You may leave with a better sense of the direction of the connection, even if an agreement takes more time.",
         action:
           "Identify one shared priority and agree on a realistic next step.",
         avoid:
@@ -130,7 +130,7 @@ export const DAILY_NARRATIVE_VARIANTS: NarrativeLibrary = {
         summary:
           "A sensitive relationship matter may offer an opportunity to improve understanding today.",
         prediction:
-          "Some tension may surface in an important relationship today, but there may be room to address the concern constructively. A patient exchange could help both sides understand what needs attention.",
+          "A disagreement or sensitive remark may arise in an important relationship, but the exchange could also clear up an existing misunderstanding. The immediate issue may be relatively small, while the reaction reflects expectations or feelings that have been building for some time. The exchange may help identify the real source of friction, although understanding it is not the same as resolving it.",
         action:
           "Address the immediate concern calmly and listen to the other person's perspective.",
         avoid:
@@ -140,7 +140,7 @@ export const DAILY_NARRATIVE_VARIANTS: NarrativeLibrary = {
         summary:
           "Thoughtful handling of relationship tension may help restore cooperation.",
         prediction:
-          "An important interaction may involve some sensitivity today. A willingness to acknowledge different perspectives could help prevent the concern from becoming a larger disagreement.",
+          "A moment of friction with someone close may ease when an overlooked concern is acknowledged. What matters may be less the first remark and more the concern that becomes visible as the exchange continues. This could be a temporary strain rather than a reliable indication of the relationship’s longer-term direction.",
         action:
           "Identify the specific issue and look for a practical area of agreement.",
         avoid:
@@ -150,7 +150,7 @@ export const DAILY_NARRATIVE_VARIANTS: NarrativeLibrary = {
         summary:
           "Patience may help turn a sensitive interaction into an opportunity for greater clarity.",
         prediction:
-          "An existing relationship concern may become more noticeable today. Supportive conditions could make it easier to discuss the issue without allowing temporary frustration to dominate the interaction.",
+          "An unresolved relationship issue may resurface, offering a chance to discuss it more calmly than before. The situation could reveal a difference in how each person understood an earlier conversation or commitment. The outcome may depend on whether the underlying concern becomes clearer, not on who has the final word.",
         action:
           "Choose an appropriate moment to discuss the concern and remain open to clarification.",
         avoid:
@@ -163,7 +163,7 @@ export const DAILY_NARRATIVE_VARIANTS: NarrativeLibrary = {
         summary:
           "Relationship tension may require additional patience and emotional restraint today.",
         prediction:
-          "An important relationship may feel more sensitive today. Differences in expectations or reactions could increase friction, particularly if an existing concern remains unresolved.",
+          "A difference in expectations may trigger a tense exchange with someone important, especially around an issue that has been left unsettled. The immediate issue may be relatively small, while the reaction reflects expectations or feelings that have been building for some time. The exchange may help identify the real source of friction, although understanding it is not the same as resolving it.",
         action:
           "Give yourself time to understand the concern before responding.",
         avoid:
@@ -173,7 +173,7 @@ export const DAILY_NARRATIVE_VARIANTS: NarrativeLibrary = {
         summary:
           "An existing relationship concern may become more demanding today.",
         prediction:
-          "Tension within an important connection may require closer attention. Communication could become difficult if either person feels misunderstood or pressured.",
+          "A conversation with someone close could become strained if either person feels unheard or pressured to respond. What matters may be less the first remark and more the concern that becomes visible as the exchange continues. This could be a temporary strain rather than a reliable indication of the relationship’s longer-term direction.",
         action:
           "Focus on the immediate issue and clarify what each person is trying to communicate.",
         avoid:
@@ -183,7 +183,7 @@ export const DAILY_NARRATIVE_VARIANTS: NarrativeLibrary = {
         summary:
           "A sensitive interaction may benefit from clear boundaries and a measured response.",
         prediction:
-          "An important relationship may involve disagreement or heightened sensitivity today. Trying to force an immediate resolution could make the interaction more difficult.",
+          "An ordinary interaction may escalate into disagreement if frustration from an earlier issue enters the conversation. The situation could reveal a difference in how each person understood an earlier conversation or commitment. The outcome may depend on whether the underlying concern becomes clearer, not on who has the final word.",
         action:
           "Maintain a calm approach and establish when the issue can be discussed constructively.",
         avoid:
@@ -196,7 +196,7 @@ export const DAILY_NARRATIVE_VARIANTS: NarrativeLibrary = {
         summary:
           "A sensitive relationship matter may bring both friction and an opportunity for understanding.",
         prediction:
-          "Some tension may arise within an important relationship today. Although the interaction could feel uncomfortable, it may also reveal an expectation or concern that needs clarification.",
+          "A sensitive exchange may begin with friction but reveal what has been troubling one or both people. The immediate issue may be relatively small, while the reaction reflects expectations or feelings that have been building for some time. The exchange may help identify the real source of friction, although understanding it is not the same as resolving it.",
         action:
           "Acknowledge the disagreement and look for one issue both sides can address.",
         avoid:
@@ -206,7 +206,7 @@ export const DAILY_NARRATIVE_VARIANTS: NarrativeLibrary = {
         summary:
           "Managing relationship tension may require balancing openness with patience.",
         prediction:
-          "An important connection may feel more sensitive today. There may be an opportunity to improve understanding, although differences in perspective could require further discussion.",
+          "Someone important may raise a concern that leads to both useful honesty and temporary discomfort. What matters may be less the first remark and more the concern that becomes visible as the exchange continues. This could be a temporary strain rather than a reliable indication of the relationship’s longer-term direction.",
         action:
           "Express your concern clearly while allowing the other person space to respond.",
         avoid:
@@ -216,7 +216,7 @@ export const DAILY_NARRATIVE_VARIANTS: NarrativeLibrary = {
         summary:
           "A measured response may help prevent temporary relationship tension from becoming a larger issue.",
         prediction:
-          "An interaction with someone important may involve both cooperation and moments of friction today. How the concern is addressed could influence whether the conversation becomes more constructive.",
+          "A relationship conversation could alternate between cooperation and disagreement before the immediate issue becomes clearer. The situation could reveal a difference in how each person understood an earlier conversation or commitment. The outcome may depend on whether the underlying concern becomes clearer, not on who has the final word.",
         action:
           "Separate the immediate disagreement from the broader relationship and focus on a practical next step.",
         avoid:
@@ -230,7 +230,7 @@ export const DAILY_NARRATIVE_VARIANTS: NarrativeLibrary = {
         summary:
           "An important conversation may bring greater clarity to a relationship today.",
         prediction:
-          "A meaningful discussion with someone important may develop constructively today. Supportive conditions could help both sides express their views and understand each other's expectations.",
+          "A conversation with someone important may bring a useful answer or clarify a shared decision today. The exchange may concern a question that has been waiting for a clear response, especially where expectations have not been stated openly. The value of the exchange may be greater clarity about where each person stands, even if a final answer is not reached.",
         action:
           "Make time for a conversation that could improve mutual understanding.",
         avoid:
@@ -240,7 +240,7 @@ export const DAILY_NARRATIVE_VARIANTS: NarrativeLibrary = {
         summary:
           "Open communication may help strengthen understanding in an important relationship.",
         prediction:
-          "An important relationship conversation may offer an opportunity to clarify feelings, expectations or a shared concern. A thoughtful exchange could help establish common ground.",
+          "Someone close may be more willing to discuss feelings, expectations or a matter that has been difficult to raise. A message or face-to-face conversation could add context that was missing from an earlier interaction. It could narrow an existing uncertainty without settling every expectation connected to the relationship.",
         action:
           "Express your perspective clearly and invite the other person to share theirs.",
         avoid:
@@ -250,7 +250,7 @@ export const DAILY_NARRATIVE_VARIANTS: NarrativeLibrary = {
         summary:
           "A constructive discussion may help an important relationship move forward.",
         prediction:
-          "Communication within an important relationship may be more productive today. A conversation that requires attention could benefit from openness and a willingness to listen.",
+          "A pending relationship conversation could move forward, helping both people understand where they stand. What initially sounds straightforward may carry a second question about timing, availability or what happens next. The conversation may change your understanding of the situation more than it changes the situation itself.",
         action:
           "Address a relevant topic directly while remaining receptive to another perspective.",
         avoid:
@@ -263,7 +263,7 @@ export const DAILY_NARRATIVE_VARIANTS: NarrativeLibrary = {
         summary:
           "An important relationship conversation may require additional sensitivity today.",
         prediction:
-          "A significant discussion may arise in an important relationship, but differing expectations or emotional sensitivity could make communication more demanding.",
+          "An important relationship discussion may be harder than expected if both sides approach the issue with different assumptions. The exchange may concern a question that has been waiting for a clear response, especially where expectations have not been stated openly. The value of the exchange may be greater clarity about where each person stands, even if a final answer is not reached.",
         action:
           "Choose your words carefully and clarify the issue before responding.",
         avoid:
@@ -273,7 +273,7 @@ export const DAILY_NARRATIVE_VARIANTS: NarrativeLibrary = {
         summary:
           "Careful communication may help you navigate a sensitive relationship matter.",
         prediction:
-          "A conversation about an important relationship issue may require patience today. Differences in perspective could make it harder to reach an immediate understanding.",
+          "A conversation about an unresolved concern could stall when emotions or competing expectations enter the exchange. A message or face-to-face conversation could add context that was missing from an earlier interaction. It could narrow an existing uncertainty without settling every expectation connected to the relationship.",
         action:
           "Focus on the specific concern and allow enough time for both sides to explain their views.",
         avoid:
@@ -283,7 +283,7 @@ export const DAILY_NARRATIVE_VARIANTS: NarrativeLibrary = {
         summary:
           "A difficult conversation may benefit from patience and clearer expectations.",
         prediction:
-          "Communication within an important relationship may feel more complicated today. An existing concern or differing expectations could require a measured discussion.",
+          "A message or discussion with someone important may need clarification before either person can reach a decision. What initially sounds straightforward may carry a second question about timing, availability or what happens next. The conversation may change your understanding of the situation more than it changes the situation itself.",
         action:
           "Clarify what needs to be discussed and identify a practical next step.",
         avoid:
@@ -296,7 +296,7 @@ export const DAILY_NARRATIVE_VARIANTS: NarrativeLibrary = {
         summary:
           "An important conversation may bring useful clarity alongside some differences in perspective.",
         prediction:
-          "A relationship discussion may offer an opportunity for greater understanding today, although differing expectations could require additional explanation or compromise.",
+          "A meaningful conversation may settle one relationship question while leaving another open. The exchange may concern a question that has been waiting for a clear response, especially where expectations have not been stated openly. The value of the exchange may be greater clarity about where each person stands, even if a final answer is not reached.",
         action:
           "Communicate your perspective openly and identify the points that still need clarification.",
         avoid:
@@ -306,7 +306,7 @@ export const DAILY_NARRATIVE_VARIANTS: NarrativeLibrary = {
         summary:
           "Thoughtful communication may help an important relationship discussion develop constructively.",
         prediction:
-          "A significant conversation may help clarify a relationship matter today. There may be areas of agreement alongside concerns that require further attention.",
+          "An exchange with someone close could reveal useful common ground alongside a difference that needs further discussion. A message or face-to-face conversation could add context that was missing from an earlier interaction. It could narrow an existing uncertainty without settling every expectation connected to the relationship.",
         action:
           "Build on the points you agree about while discussing unresolved expectations.",
         avoid:
@@ -316,7 +316,7 @@ export const DAILY_NARRATIVE_VARIANTS: NarrativeLibrary = {
         summary:
           "A relationship conversation may create progress while leaving some questions open.",
         prediction:
-          "Communication with someone important may become more significant today. An open exchange could improve understanding, although complete clarity may require more than one discussion.",
+          "A pending relationship discussion may move forward, though the final understanding could take another conversation. What initially sounds straightforward may carry a second question about timing, availability or what happens next. The conversation may change your understanding of the situation more than it changes the situation itself.",
         action:
           "Focus on understanding the immediate issue and agree on any necessary follow-up.",
         avoid:
@@ -330,7 +330,7 @@ export const DAILY_NARRATIVE_VARIANTS: NarrativeLibrary = {
         summary:
           "A warmer and more cooperative atmosphere may strengthen an important relationship today.",
         prediction:
-          "An important relationship may feel more harmonious today. Greater openness and cooperation could help you enjoy the connection or make progress on a shared matter.",
+          "A warmer exchange or thoughtful gesture may improve the atmosphere in an important relationship today. The change may show itself through a warmer response, an easier conversation or willingness to cooperate on something ordinary. This could make the connection feel more settled for the day without implying that every older concern has disappeared.",
         action:
           "Make time for a positive interaction and express appreciation where it feels appropriate.",
         avoid:
@@ -340,7 +340,7 @@ export const DAILY_NARRATIVE_VARIANTS: NarrativeLibrary = {
         summary:
           "Mutual understanding may create a positive atmosphere in an important relationship.",
         prediction:
-          "Supportive relationship dynamics may make it easier to connect with someone important today. A willingness to listen and cooperate could strengthen an existing bond.",
+          "Someone close may respond more openly than expected, making it easier to reconnect or enjoy time together. A small gesture or shared moment could shift the tone of an interaction that has recently felt distant or routine. The positive shift may be modest but meaningful because it changes the atmosphere around an existing connection.",
         action:
           "Build on an area of agreement or do something thoughtful for the relationship.",
         avoid:
@@ -350,7 +350,7 @@ export const DAILY_NARRATIVE_VARIANTS: NarrativeLibrary = {
         summary:
           "Cooperation and thoughtful communication may bring greater harmony to a relationship.",
         prediction:
-          "An important connection may benefit from a more cooperative tone today. Shared interests or a constructive interaction could help reinforce mutual understanding.",
+          "A shared activity or constructive conversation could restore a sense of cooperation with someone important. The improvement may be noticeable in how comfortably you communicate, even if no major relationship decision is involved. What stands out may be renewed ease and cooperation rather than a dramatic relationship milestone.",
         action:
           "Use the supportive atmosphere to strengthen an existing connection.",
         avoid:
@@ -363,7 +363,7 @@ export const DAILY_NARRATIVE_VARIANTS: NarrativeLibrary = {
         summary:
           "Greater harmony may be possible, although an existing concern could need attention first.",
         prediction:
-          "An important relationship may offer an opportunity for improved understanding today, but unresolved tension or differing expectations could make cooperation more difficult.",
+          "An attempt to restore harmony may run into an unresolved concern that cannot be ignored today. The change may show itself through a warmer response, an easier conversation or willingness to cooperate on something ordinary. This could make the connection feel more settled for the day without implying that every older concern has disappeared.",
         action:
           "Acknowledge the immediate concern and look for an area where both sides can agree.",
         avoid:
@@ -373,7 +373,7 @@ export const DAILY_NARRATIVE_VARIANTS: NarrativeLibrary = {
         summary:
           "Restoring cooperation in an important relationship may require patience today.",
         prediction:
-          "A relationship may move toward greater harmony, although sensitivity around an existing matter could affect how easily both people communicate.",
+          "A relationship may feel calmer on the surface while a difference in expectations still affects an important interaction. A small gesture or shared moment could shift the tone of an interaction that has recently felt distant or routine. The positive shift may be modest but meaningful because it changes the atmosphere around an existing connection.",
         action:
           "Approach the interaction calmly and clarify the concern that is affecting cooperation.",
         avoid:
@@ -383,7 +383,7 @@ export const DAILY_NARRATIVE_VARIANTS: NarrativeLibrary = {
         summary:
           "An important relationship may benefit from a careful approach to rebuilding understanding.",
         prediction:
-          "There may be room to improve the atmosphere in an important relationship today, but differences in expectations could require additional attention.",
+          "Someone close may welcome a more peaceful exchange but remain hesitant about a matter that caused earlier tension. The improvement may be noticeable in how comfortably you communicate, even if no major relationship decision is involved. What stands out may be renewed ease and cooperation rather than a dramatic relationship milestone.",
         action:
           "Focus on one practical step that could improve cooperation.",
         avoid:
@@ -396,7 +396,7 @@ export const DAILY_NARRATIVE_VARIANTS: NarrativeLibrary = {
         summary:
           "An important relationship may move toward greater harmony with some mutual adjustment.",
         prediction:
-          "A relationship may offer opportunities for connection today, although differing needs or expectations could require flexibility from both sides.",
+          "A pleasant interaction may bring you closer to someone important, even if one unresolved issue remains. The change may show itself through a warmer response, an easier conversation or willingness to cooperate on something ordinary. This could make the connection feel more settled for the day without implying that every older concern has disappeared.",
         action:
           "Build on areas of agreement while making space for the differences that remain.",
         avoid:
@@ -406,7 +406,7 @@ export const DAILY_NARRATIVE_VARIANTS: NarrativeLibrary = {
         summary:
           "Cooperation may improve when both sides balance connection with realistic expectations.",
         prediction:
-          "An important relationship may become more cooperative today. Some matters could develop positively, while others may still require patience or compromise.",
+          "Cooperation with someone close could improve, though different needs may require a small compromise. A small gesture or shared moment could shift the tone of an interaction that has recently felt distant or routine. The positive shift may be modest but meaningful because it changes the atmosphere around an existing connection.",
         action:
           "Identify a shared priority and discuss a practical way to move forward.",
         avoid:
@@ -416,7 +416,7 @@ export const DAILY_NARRATIVE_VARIANTS: NarrativeLibrary = {
         summary:
           "A constructive interaction may strengthen harmony while revealing areas that need further understanding.",
         prediction:
-          "There may be an opportunity to improve the atmosphere in a relationship today, although maintaining that progress could depend on how both people handle differing perspectives.",
+          "A relationship may feel easier today after a constructive exchange, without every outstanding concern being settled. The improvement may be noticeable in how comfortably you communicate, even if no major relationship decision is involved. What stands out may be renewed ease and cooperation rather than a dramatic relationship milestone.",
         action:
           "Encourage an open exchange and recognise the areas where cooperation is already working.",
         avoid:
@@ -430,7 +430,7 @@ export const DAILY_NARRATIVE_VARIANTS: NarrativeLibrary = {
         summary:
           "Giving an important relationship more attention may strengthen your connection today.",
         prediction:
-          "An important relationship may benefit from your time and presence today. Supportive conditions could make it easier to understand what the other person needs or strengthen an existing connection.",
+          "Someone important may reach out, seek your time or become more involved in your day, creating an opportunity to reconnect. This could come through a request for time, an unexpected message or a conversation that brings an existing connection into focus. The interaction may show which part of the relationship currently needs recognition, without defining its entire future.",
         action:
           "Make time for a meaningful interaction and listen to what matters to the other person.",
         avoid:
@@ -440,7 +440,7 @@ export const DAILY_NARRATIVE_VARIANTS: NarrativeLibrary = {
         summary:
           "A thoughtful interaction may help you better understand an important relationship.",
         prediction:
-          "Someone important in your life may benefit from greater attention today. A conversation or considerate gesture could help you understand the current needs of the relationship.",
+          "A conversation or gesture from someone close may reveal a need that has not been expressed clearly before. The person involved may be responding to something already happening between you, rather than introducing an entirely new issue. The significance may lie in understanding the other person’s immediate expectations rather than reaching a major conclusion.",
         action:
           "Check in with someone important and give the interaction your full attention.",
         avoid:
@@ -450,7 +450,7 @@ export const DAILY_NARRATIVE_VARIANTS: NarrativeLibrary = {
         summary:
           "Being more present in an important relationship may create an opportunity for connection.",
         prediction:
-          "An existing one-to-one connection may become more prominent today. Giving it thoughtful attention could encourage greater openness or mutual understanding.",
+          "An important connection may come to the foreground through a message, meeting or request for your attention. A seemingly routine interaction could reveal that someone needs more clarity, availability or acknowledgement than usual. This could make an existing need more visible, even if the interaction itself remains relatively ordinary.",
         action:
           "Create space for an interaction that has been receiving less attention than it deserves.",
         avoid:
@@ -463,7 +463,7 @@ export const DAILY_NARRATIVE_VARIANTS: NarrativeLibrary = {
         summary:
           "An important relationship may need additional attention and patience today.",
         prediction:
-          "An existing relationship may require more of your attention, particularly if expectations or responses have become difficult to understand. Taking time to clarify the situation may help.",
+          "Someone close may feel overlooked or ask for more of your time when other responsibilities are competing for attention. This could come through a request for time, an unexpected message or a conversation that brings an existing connection into focus. The interaction may show which part of the relationship currently needs recognition, without defining its entire future.",
         action:
           "Ask what needs attention and listen before deciding how to respond.",
         avoid:
@@ -473,7 +473,7 @@ export const DAILY_NARRATIVE_VARIANTS: NarrativeLibrary = {
         summary:
           "Unaddressed expectations may make an important relationship more demanding today.",
         prediction:
-          "A one-to-one connection may need closer attention today. Differences in availability, expectations or communication could make the interaction more sensitive.",
+          "A delayed response or mismatch in availability could create sensitivity in an important relationship. The person involved may be responding to something already happening between you, rather than introducing an entirely new issue. The significance may lie in understanding the other person’s immediate expectations rather than reaching a major conclusion.",
         action:
           "Clarify what each person reasonably expects from the interaction.",
         avoid:
@@ -483,7 +483,7 @@ export const DAILY_NARRATIVE_VARIANTS: NarrativeLibrary = {
         summary:
           "A sensitive relationship matter may benefit from careful attention today.",
         prediction:
-          "Someone important may need more attention, or you may become more aware of an unmet expectation within the relationship. A patient approach could help clarify the underlying concern.",
+          "An unmet expectation may become visible when someone important seeks support or reassurance. A seemingly routine interaction could reveal that someone needs more clarity, availability or acknowledgement than usual. This could make an existing need more visible, even if the interaction itself remains relatively ordinary.",
         action:
           "Address the immediate concern without making assumptions about the wider relationship.",
         avoid:
@@ -496,7 +496,7 @@ export const DAILY_NARRATIVE_VARIANTS: NarrativeLibrary = {
         summary:
           "An important relationship may benefit from attention while requiring some adjustment.",
         prediction:
-          "A one-to-one relationship may become more active today, offering an opportunity for greater understanding alongside expectations that still need clarification.",
+          "Someone important may seek more contact today, although finding time or agreeing on expectations could take adjustment. This could come through a request for time, an unexpected message or a conversation that brings an existing connection into focus. The interaction may show which part of the relationship currently needs recognition, without defining its entire future.",
         action:
           "Make time for the relationship while discussing what each person can realistically offer.",
         avoid:
@@ -506,7 +506,7 @@ export const DAILY_NARRATIVE_VARIANTS: NarrativeLibrary = {
         summary:
           "Giving a relationship thoughtful attention may reveal both opportunities and unresolved needs.",
         prediction:
-          "An important connection may benefit from greater involvement today, although differing priorities or expectations could influence how the interaction develops.",
+          "A meaningful interaction may bring you closer to someone while revealing a need that still requires attention. The person involved may be responding to something already happening between you, rather than introducing an entirely new issue. The significance may lie in understanding the other person’s immediate expectations rather than reaching a major conclusion.",
         action:
           "Listen to the other person's perspective and explain your own availability clearly.",
         avoid:
@@ -516,7 +516,7 @@ export const DAILY_NARRATIVE_VARIANTS: NarrativeLibrary = {
         summary:
           "An important interaction may help clarify what a relationship currently needs.",
         prediction:
-          "A relationship may draw more of your attention today. The interaction could strengthen understanding while also highlighting an issue that requires further discussion.",
+          "A relationship could become more prominent through a conversation or request, with both connection and practical demands involved. A seemingly routine interaction could reveal that someone needs more clarity, availability or acknowledgement than usual. This could make an existing need more visible, even if the interaction itself remains relatively ordinary.",
         action:
           "Focus on one meaningful interaction and identify anything that needs a follow-up conversation.",
         avoid:
@@ -530,7 +530,7 @@ export const DAILY_NARRATIVE_VARIANTS: NarrativeLibrary = {
         summary:
           "An important relationship may benefit from greater understanding and connection today.",
         prediction:
-          "Your interactions with someone important may carry a more cooperative tone today. There may be an opportunity to strengthen mutual understanding through a thoughtful conversation or gesture.",
+          "A conversation or thoughtful gesture may improve understanding with someone important today. The interaction may involve a familiar person and an issue that has already been present in the background. The exchange may offer a clearer picture of the connection while leaving its broader direction unchanged.",
         action:
           "Give an important relationship your attention and make room for meaningful interaction.",
         avoid:
@@ -540,7 +540,7 @@ export const DAILY_NARRATIVE_VARIANTS: NarrativeLibrary = {
         summary:
           "A constructive approach to an important connection may strengthen mutual understanding.",
         prediction:
-          "Relationships are highlighted in a supportive way today. An existing connection may benefit from greater openness, cooperation or a willingness to understand another perspective.",
+          "An existing connection could become more cooperative after a useful exchange or shared decision. A message, practical request or informal conversation could make the current state of a connection more apparent. The importance of the moment may be in what becomes understood, rather than in a major event or commitment.",
         action:
           "Initiate a useful conversation or express appreciation where it feels appropriate.",
         avoid:
@@ -550,7 +550,7 @@ export const DAILY_NARRATIVE_VARIANTS: NarrativeLibrary = {
         summary:
           "Supportive relationship dynamics may create room for a meaningful interaction today.",
         prediction:
-          "An important one-to-one connection may offer an opportunity for cooperation or greater clarity. Small, thoughtful actions could help strengthen the interaction.",
+          "Someone important may offer support or respond positively to an effort to reconnect. Even without a major turning point, the way someone responds may offer useful insight into the relationship. This could bring a modest shift in understanding without settling every issue connected to the relationship.",
         action:
           "Make time for a person or conversation that deserves your attention.",
         avoid:
@@ -563,7 +563,7 @@ export const DAILY_NARRATIVE_VARIANTS: NarrativeLibrary = {
         summary:
           "An important relationship may require patience and thoughtful communication today.",
         prediction:
-          "An interaction with someone important may feel more demanding today. Differences in expectations or communication could require additional care before the situation becomes clearer.",
+          "A conversation with someone important may expose a difference in expectations that needs careful handling. The interaction may involve a familiar person and an issue that has already been present in the background. The exchange may offer a clearer picture of the connection while leaving its broader direction unchanged.",
         action:
           "Listen carefully and clarify expectations before deciding how to respond.",
         avoid:
@@ -573,7 +573,7 @@ export const DAILY_NARRATIVE_VARIANTS: NarrativeLibrary = {
         summary:
           "Greater sensitivity in relationships may call for a measured approach.",
         prediction:
-          "A one-to-one relationship may require closer attention today, particularly where existing concerns or differing priorities make communication less straightforward.",
+          "An existing relationship could feel strained by a delayed response, competing priorities or an unresolved concern. A message, practical request or informal conversation could make the current state of a connection more apparent. The importance of the moment may be in what becomes understood, rather than in a major event or commitment.",
         action:
           "Address the immediate concern calmly and focus on what can be clarified.",
         avoid:
@@ -583,7 +583,7 @@ export const DAILY_NARRATIVE_VARIANTS: NarrativeLibrary = {
         summary:
           "Careful handling of an important interaction may help prevent unnecessary friction.",
         prediction:
-          "Relationships may feel more sensitive today. A conversation or response could require patience, especially if both people are approaching the situation from different perspectives.",
+          "A sensitive exchange may require clarification before a misunderstanding affects an important connection. Even without a major turning point, the way someone responds may offer useful insight into the relationship. This could bring a modest shift in understanding without settling every issue connected to the relationship.",
         action:
           "Give the interaction enough time and ask questions before drawing conclusions.",
         avoid:
@@ -596,7 +596,7 @@ export const DAILY_NARRATIVE_VARIANTS: NarrativeLibrary = {
         summary:
           "An important relationship may offer an opportunity for understanding alongside some practical differences.",
         prediction:
-          "Your interactions with someone important may bring both cooperation and matters that require clarification. A balanced approach could help you make constructive use of the conversation.",
+          "An important interaction may bring both a helpful exchange and a difference that still needs attention. The interaction may involve a familiar person and an issue that has already been present in the background. The exchange may offer a clearer picture of the connection while leaving its broader direction unchanged.",
         action:
           "Build on areas of agreement while addressing unresolved expectations.",
         avoid:
@@ -606,7 +606,7 @@ export const DAILY_NARRATIVE_VARIANTS: NarrativeLibrary = {
         summary:
           "Relationship matters may benefit from balancing openness with realistic expectations.",
         prediction:
-          "An important connection may become more active today. There may be room for greater understanding, although different needs or priorities could require some adjustment.",
+          "Someone close may be receptive to discussion, although expectations or availability could remain out of step. A message, practical request or informal conversation could make the current state of a connection more apparent. The importance of the moment may be in what becomes understood, rather than in a major event or commitment.",
         action:
           "Communicate your perspective clearly while remaining receptive to the other person's needs.",
         avoid:
@@ -616,7 +616,7 @@ export const DAILY_NARRATIVE_VARIANTS: NarrativeLibrary = {
         summary:
           "A thoughtful approach may help an important relationship develop constructively today.",
         prediction:
-          "A relationship may offer opportunities for connection alongside questions that still need attention. Progress may depend on balancing your own expectations with those of the other person.",
+          "A relationship matter could move toward greater understanding without resolving every practical concern today. Even without a major turning point, the way someone responds may offer useful insight into the relationship. This could bring a modest shift in understanding without settling every issue connected to the relationship.",
         action:
           "Identify one issue where greater clarity or cooperation would be useful.",
         avoid:
@@ -630,7 +630,7 @@ workload_service: {
       summary:
         "A productive approach to your workload may help you make steady progress today.",
       prediction:
-        "Your daily work and practical responsibilities are highlighted today. Supportive conditions may help you clear pending tasks and make progress on existing commitments.",
+        "A pending task may move toward completion today, particularly if it has been waiting for your attention or a final detail. The development may involve an existing assignment, an incoming request or a practical detail that affects the day schedule. The day may bring measurable progress on one responsibility while another remains dependent on timing or coordination.",
       action:
         "Identify the most important pending task and give it focused attention.",
       avoid:
@@ -640,7 +640,7 @@ workload_service: {
       summary:
         "Organising your work effectively may create room for meaningful progress.",
       prediction:
-        "An active workday may provide an opportunity to improve efficiency, resolve outstanding tasks or bring greater order to your responsibilities.",
+        "An opportunity to clear an outstanding work item or improve a routine process may arise during the day. A task that seemed settled could depend on another individual’s response, an additional check or a change in priority. The main effect could be a shift in workload pressure rather than the completion of everything currently pending.",
       action:
         "Organise your workload and address an outstanding matter that can realistically be completed.",
       avoid:
@@ -650,7 +650,7 @@ workload_service: {
       summary:
         "Practical progress may come through consistent attention to your daily responsibilities.",
       prediction:
-        "Your workload may be more active today, with constructive conditions for handling tasks and meeting existing obligations.",
+        "A practical responsibility may progress more smoothly than expected, freeing time for another existing commitment. The pace of the day may be shaped by how routine responsibilities interact with one matter that needs closer attention. This may clarify which work item is genuinely moving and which still depends on factors outside your control.",
       action:
         "Use the available momentum to move an important task toward completion.",
       avoid:
@@ -663,7 +663,7 @@ workload_service: {
       summary:
         "A demanding workload may require clearer priorities and careful time management.",
       prediction:
-        "Work tasks and practical obligations may place greater demands on your time today. Competing priorities could make it important to distinguish urgent matters from those that can wait.",
+        "An unexpected request or competing deadline may interrupt your planned workload today. The development may involve an existing assignment, an incoming request or a practical detail that affects the day schedule. The day may bring measurable progress on one responsibility while another remains dependent on timing or coordination.",
       action:
         "Rank your tasks by urgency and importance before committing your time.",
       avoid:
@@ -673,7 +673,7 @@ workload_service: {
       summary:
         "Managing competing work demands may require additional discipline today.",
       prediction:
-        "Your workload may feel heavier or less predictable today. Interruptions, unfinished tasks or additional requests could affect your usual pace.",
+        "Unfinished tasks or new demands could make your working day heavier than anticipated. A task that seemed settled could depend on another individual’s response, an additional check or a change in priority. The main effect could be a shift in workload pressure rather than the completion of everything currently pending.",
       action:
         "Set realistic priorities and communicate any constraints that affect delivery.",
       avoid:
@@ -683,7 +683,7 @@ workload_service: {
       summary:
         "A measured approach may help you navigate increased practical demands.",
       prediction:
-        "An existing work responsibility may require more time or effort than expected. Concentrating on manageable steps could help you maintain progress.",
+        "A responsibility that appeared straightforward may require additional time, coordination or corrections. The pace of the day may be shaped by how routine responsibilities interact with one matter that needs closer attention. This may clarify which work item is genuinely moving and which still depends on factors outside your control.",
       action:
         "Break the most demanding task into practical steps and address them systematically.",
       avoid:
@@ -696,7 +696,7 @@ workload_service: {
       summary:
         "Your workload may bring opportunities for progress alongside competing demands.",
       prediction:
-        "Daily work responsibilities may be active today. You could make useful progress on existing tasks, although interruptions or additional demands may require some adjustment.",
+        "A pending task may progress, but interruptions or another request could slow its completion. The development may involve an existing assignment, an incoming request or a practical detail that affects the day schedule. The day may bring measurable progress on one responsibility while another remains dependent on timing or coordination.",
       action:
         "Protect time for an important task while leaving room for necessary changes.",
       avoid:
@@ -706,7 +706,7 @@ workload_service: {
       summary:
         "Balancing productivity with realistic expectations may be important today.",
       prediction:
-        "There may be constructive momentum around your workload, but managing several responsibilities at once could require careful planning.",
+        "You may clear part of your workload while discovering that another responsibility needs attention. A task that seemed settled could depend on another individual’s response, an additional check or a change in priority. The main effect could be a shift in workload pressure rather than the completion of everything currently pending.",
       action:
         "Choose the tasks that will make the greatest practical difference and organise your time accordingly.",
       avoid:
@@ -716,7 +716,7 @@ workload_service: {
       summary:
         "Steady progress may depend on how effectively you manage today's practical demands.",
       prediction:
-        "Your daily responsibilities may offer opportunities to resolve pending work, although competing priorities could affect the pace of completion.",
+        "An existing task could move closer to completion, although competing priorities may change the day's pace. The pace of the day may be shaped by how routine responsibilities interact with one matter that needs closer attention. This may clarify which work item is genuinely moving and which still depends on factors outside your control.",
       action:
         "Focus on completing one meaningful priority before moving to less urgent tasks.",
       avoid:
@@ -730,7 +730,7 @@ career_responsibility: {
       summary:
         "Taking ownership of an important responsibility may support professional progress today.",
       prediction:
-        "Your professional responsibilities are highlighted today. An opportunity to demonstrate reliability or take greater ownership of an existing priority may emerge.",
+        "You may be asked to take ownership of an important task or make a decision that brings your judgement into view. The situation may involve expectations from a colleague, manager or client rather than a formal change in position. The moment may increase the visibility of your role without necessarily signalling a promotion or lasting change in authority.",
       action:
         "Take responsibility for an important task and establish a clear next step.",
       avoid:
@@ -740,7 +740,7 @@ career_responsibility: {
       summary:
         "Your approach to professional responsibilities may strengthen confidence in your work.",
       prediction:
-        "An important responsibility may give you an opportunity to demonstrate sound judgement and dependable execution today.",
+        "A manager, colleague or client may rely on you to handle a responsibility that requires dependable follow-through. A familiar workstream could suddenly require clearer ownership, coordination or a decision about who handles the next step. The development could clarify what others expect from you while leaving the scope of the responsibility open.",
       action:
         "Clarify expectations and deliver on a priority within your control.",
       avoid:
@@ -750,7 +750,7 @@ career_responsibility: {
       summary:
         "Greater responsibility may provide an opportunity to demonstrate leadership today.",
       prediction:
-        "Professional expectations may increase in a constructive way. How you organise and handle your responsibilities could become particularly relevant.",
+        "An opportunity to lead or coordinate an existing work priority may arise, giving your contribution greater visibility. The responsibility may be visible through an ordinary discussion or deliverable, even without any immediate change in title. This may be a test of professional judgement in an existing situation rather than a completely new opportunity.",
       action:
         "Prioritise the responsibility where your involvement can make the greatest difference.",
       avoid:
@@ -763,7 +763,7 @@ career_responsibility: {
       summary:
         "Increased professional demands may require careful prioritisation today.",
       prediction:
-        "Work responsibilities may feel heavier today, particularly where expectations are increasing or several matters require your involvement.",
+        "An additional responsibility may be placed on you before the resources or expectations are fully clear. The situation may involve expectations from a colleague, manager or client rather than a formal change in position. The moment may increase the visibility of your role without necessarily signalling a promotion or lasting change in authority.",
       action:
         "Clarify which responsibilities are most urgent and address them systematically.",
       avoid:
@@ -773,7 +773,7 @@ career_responsibility: {
       summary:
         "Professional accountability may bring additional pressure today.",
       prediction:
-        "An existing responsibility may require closer attention, with increased expectations or practical complications making the situation more demanding.",
+        "A work decision or deliverable may attract closer scrutiny, increasing the pressure around an existing commitment. A familiar workstream could suddenly require clearer ownership, coordination or a decision about who handles the next step. The development could clarify what others expect from you while leaving the scope of the responsibility open.",
       action:
         "Review the outstanding requirements and communicate any constraints clearly.",
       avoid:
@@ -783,7 +783,7 @@ career_responsibility: {
       summary:
         "Managing professional expectations may require a measured approach.",
       prediction:
-        "Your responsibilities may involve competing demands today. A practical response will be more useful than trying to satisfy every expectation immediately.",
+        "Competing requests from others could leave you responsible for more than can reasonably be completed at once. The responsibility may be visible through an ordinary discussion or deliverable, even without any immediate change in title. This may be a test of professional judgement in an existing situation rather than a completely new opportunity.",
       action:
         "Agree on realistic priorities and establish clear timelines where possible.",
       avoid:
@@ -796,7 +796,7 @@ career_responsibility: {
       summary:
         "Greater professional responsibility may bring opportunity alongside additional demands.",
       prediction:
-        "Your responsibilities may become more prominent today, offering an opportunity to demonstrate ownership while requiring careful management of expectations.",
+        "A new or expanded responsibility may create an opportunity to demonstrate reliability while adding pressure to your schedule. The situation may involve expectations from a colleague, manager or client rather than a formal change in position. The moment may increase the visibility of your role without necessarily signalling a promotion or lasting change in authority.",
       action:
         "Take ownership of the priority you can realistically advance.",
       avoid:
@@ -806,7 +806,7 @@ career_responsibility: {
       summary:
         "Professional expectations may require a balance of initiative and practicality.",
       prediction:
-        "An important work responsibility may present constructive possibilities, although additional demands or competing priorities could require adjustment.",
+        "You may be trusted with an important task, although its scope or deadline could require negotiation. A familiar workstream could suddenly require clearer ownership, coordination or a decision about who handles the next step. The development could clarify what others expect from you while leaving the scope of the responsibility open.",
       action:
         "Clarify expectations and organise the resources needed to deliver.",
       avoid:
@@ -816,7 +816,7 @@ career_responsibility: {
       summary:
         "Handling an important responsibility thoughtfully may support steady progress.",
       prediction:
-        "Your professional role may call for greater involvement today. There may be room to demonstrate reliability, provided you remain realistic about the demands involved.",
+        "An existing responsibility could gain visibility today, bringing both recognition of your role and higher expectations. The responsibility may be visible through an ordinary discussion or deliverable, even without any immediate change in title. This may be a test of professional judgement in an existing situation rather than a completely new opportunity.",
       action:
         "Identify the most valuable contribution you can make and communicate your approach.",
       avoid:
@@ -830,7 +830,7 @@ career_change: {
       summary:
         "A change in your professional direction may begin to take shape today.",
       prediction:
-        "An existing professional situation may present an opportunity for change. Pay attention to developments that could open a different direction or way of working.",
+        "A conversation, message or development may open up a possible change in your role, responsibilities or working arrangement. This may emerge through a conversation, revised expectation or update about an option that has already been considered. The information may help define the next stage of a possible transition without making the outcome certain.",
       action:
         "Explore the practical implications of an emerging professional opportunity.",
       avoid:
@@ -840,7 +840,7 @@ career_change: {
       summary:
         "Professional change may offer an opportunity to explore a new direction.",
       prediction:
-        "Your work situation may be moving toward a different arrangement, responsibility or direction. Today's developments could help clarify the possibilities.",
+        "You may hear about an alternative professional direction or receive information that makes a transition more realistic. The development could relate to the practical terms of a possible transition rather than an immediate decision to move. The development could shift how realistic an option appears, while leaving a formal decision for another time.",
       action:
         "Gather the information needed to evaluate the potential change.",
       avoid:
@@ -850,7 +850,7 @@ career_change: {
       summary:
         "Constructive movement may help clarify a possible professional transition.",
       prediction:
-        "A potential change in your professional circumstances may become more relevant today. Consider how an emerging opportunity fits your longer-term priorities.",
+        "An existing opportunity for a role or work change could move a step closer through a useful discussion or update. An existing professional possibility may become easier to evaluate as another detail about timing or responsibilities emerges. This may be an intermediate step in a longer process rather than an immediate change in employment or role.",
       action:
         "Review the next practical step in a possible professional transition.",
       avoid:
@@ -863,7 +863,7 @@ career_change: {
       summary:
         "Professional change may require patience and careful adjustment today.",
       prediction:
-        "A change in your work situation may involve uncertainty or resistance. Give yourself time to understand the practical implications before deciding how to respond.",
+        "A planned professional change may face a delay, objection or requirement that was not previously clear. This may emerge through a conversation, revised expectation or update about an option that has already been considered. The information may help define the next stage of a possible transition without making the outcome certain.",
       action:
         "Identify the main obstacle affecting the potential change.",
       avoid:
@@ -873,7 +873,7 @@ career_change: {
       summary:
         "An evolving work situation may require greater flexibility.",
       prediction:
-        "Professional circumstances may be shifting, but the direction could remain unsettled. Additional information may be needed before the next step becomes clear.",
+        "News about a possible role or workplace change could be less definite than expected, leaving the next step uncertain. The development could relate to the practical terms of a possible transition rather than an immediate decision to move. The development could shift how realistic an option appears, while leaving a formal decision for another time.",
       action:
         "Clarify outstanding questions about the developing situation.",
       avoid:
@@ -883,7 +883,7 @@ career_change: {
       summary:
         "Careful planning may help you navigate an unsettled professional situation.",
       prediction:
-        "A potential professional transition may bring additional demands or complications today. Focus on understanding what can realistically be changed.",
+        "A proposed transition may become more complicated when practical conditions or existing commitments come into view. An existing professional possibility may become easier to evaluate as another detail about timing or responsibilities emerges. This may be an intermediate step in a longer process rather than an immediate change in employment or role.",
       action:
         "Review your options and the practical consequences of each.",
       avoid:
@@ -896,7 +896,7 @@ career_change: {
       summary:
         "A possible professional change may bring opportunity alongside uncertainty.",
       prediction:
-        "Your professional direction may be evolving, with encouraging possibilities as well as practical questions that still need answers.",
+        "A possible role or work change may show progress today, though timing or terms could still be unsettled. This may emerge through a conversation, revised expectation or update about an option that has already been considered. The information may help define the next stage of a possible transition without making the outcome certain.",
       action:
         "Explore the opportunity while clarifying the unresolved details.",
       avoid:
@@ -906,7 +906,7 @@ career_change: {
       summary:
         "Professional developments may call for both initiative and patience.",
       prediction:
-        "A change in your work situation may offer a useful opening, although the timing or practical arrangements could require adjustment.",
+        "An encouraging professional conversation may open a door while leaving important conditions to be negotiated. The development could relate to the practical terms of a possible transition rather than an immediate decision to move. The development could shift how realistic an option appears, while leaving a formal decision for another time.",
       action:
         "Take a measured step toward understanding the potential transition.",
       avoid:
@@ -916,7 +916,7 @@ career_change: {
       summary:
         "An evolving professional situation may require a balanced approach.",
       prediction:
-        "A possible change in your professional circumstances may become clearer today, but competing considerations could influence your next steps.",
+        "You may receive a useful update about a career transition, but a final decision or arrangement may take longer. An existing professional possibility may become easier to evaluate as another detail about timing or responsibilities emerges. This may be an intermediate step in a longer process rather than an immediate change in employment or role.",
       action:
         "Compare the available options against your existing priorities.",
       avoid:
@@ -928,7 +928,7 @@ career_change: {
     supportive: [
       {
         prediction:
-          "Your professional priorities are active today, with supportive conditions for making practical progress. Focus on the work that already needs your attention.",
+          "A pending work matter may move forward through a timely conversation, decision or completed task today. The matter may be one already on your desk, with progress depending on a response, decision or completed piece of work. The significance may be clearer direction on an existing priority, rather than a major professional breakthrough.",
         action:
           "Choose one important professional priority and move it forward.",
         avoid:
@@ -939,7 +939,7 @@ career_change: {
       },
       {
         prediction:
-          "Today offers an opportunity to bring greater direction to your work. A measured approach to existing responsibilities may help you make constructive progress.",
+          "You may receive a useful response on an existing professional priority, making the next step clearer. A familiar responsibility could become more prominent through a meeting, request or update from someone involved. This could help distinguish what is moving forward from what still requires another decision or response.",
         action:
           "Identify the task or conversation that would make the greatest practical difference.",
         avoid:
@@ -950,7 +950,7 @@ summary:
       },
       {
         prediction:
-          "Professional matters deserve your attention today. You may find it useful to take initiative on an existing priority rather than waiting for every detail to become clear.",
+          "A routine work issue could present an opening to make progress or take initiative on something already underway. What changes today may be the clarity of the next step rather than the overall direction of your work. The outcome may be incremental but still useful because it makes the next phase of work easier to understand.",
         action:
           "Take a practical step on a work matter within your control.",
         avoid:
@@ -966,7 +966,7 @@ challenging: [
     summary:
       "Professional demands may require a more measured approach today.",
     prediction:
-      "Work responsibilities may demand additional attention today. Focus on resolving the most immediate issue rather than trying to address every concern at once.",
+      "A work matter may be delayed by competing expectations, an unanswered question or a practical obstacle. The matter may be one already on your desk, with progress depending on a response, decision or completed piece of work. The significance may be clearer direction on an existing priority, rather than a major professional breakthrough.",
     action:
       "Identify the most pressing professional responsibility and establish a practical next step.",
     avoid:
@@ -976,7 +976,7 @@ challenging: [
     summary:
       "A work-related challenge may call for patience and clearer priorities.",
     prediction:
-      "Your professional situation may involve competing expectations or practical obstacles today. Clarifying what needs attention first could help you manage the pressure.",
+      "An unexpected request or disagreement over priorities could make an existing professional task harder to complete. A familiar responsibility could become more prominent through a meeting, request or update from someone involved. This could help distinguish what is moving forward from what still requires another decision or response.",
     action:
       "Review your priorities and communicate any constraints clearly.",
     avoid:
@@ -986,7 +986,7 @@ challenging: [
     summary:
       "Careful handling of professional responsibilities may help you navigate today's pressure.",
     prediction:
-      "An existing work matter may require additional effort or adjustment today. A measured response could be more useful than trying to force immediate progress.",
+      "Progress on a work commitment may slow today while another person reviews or questions the next step. What changes today may be the clarity of the next step rather than the overall direction of your work. The outcome may be incremental but still useful because it makes the next phase of work easier to understand.",
     action:
       "Address the practical obstacle within your control.",
     avoid:
@@ -999,7 +999,7 @@ mixed: [
     summary:
       "Professional matters may bring both progress and additional demands today.",
     prediction:
-      "Your work priorities may offer opportunities for progress alongside responsibilities that require adjustment. Focus on what can realistically move forward.",
+      "A professional matter may show encouraging movement, though an additional request or condition could slow completion. The matter may be one already on your desk, with progress depending on a response, decision or completed piece of work. The significance may be clearer direction on an existing priority, rather than a major professional breakthrough.",
     action:
       "Separate the opportunities you can act on from matters that still need clarification.",
     avoid:
@@ -1009,7 +1009,7 @@ mixed: [
     summary:
       "Balancing opportunity with existing responsibilities may be important today.",
     prediction:
-      "Your professional situation may show constructive movement, although competing expectations could require some flexibility in your approach.",
+      "A useful discussion at work may clarify part of a pending issue while leaving a practical detail unresolved. A familiar responsibility could become more prominent through a meeting, request or update from someone involved. This could help distinguish what is moving forward from what still requires another decision or response.",
     action:
       "Advance one important priority while keeping other commitments in view.",
     avoid:
@@ -1019,7 +1019,7 @@ mixed: [
     summary:
       "Steady progress at work may depend on managing competing priorities.",
     prediction:
-      "There may be room to move a professional matter forward today, but the pace or direction could require adjustment as other demands emerge.",
+      "You may advance an existing work priority today, but changing demands could affect how far it progresses. What changes today may be the clarity of the next step rather than the overall direction of your work. The outcome may be incremental but still useful because it makes the next phase of work easier to understand.",
     action:
       "Choose a realistic next step and adjust your schedule where necessary.",
     avoid:
@@ -1032,7 +1032,7 @@ mixed: [
     supportive: [
       {
         prediction:
-          "A professional conversation or development may help move an existing work matter forward today. Stay attentive to opportunities that are already taking shape.",
+          "A pending professional conversation or decision may receive a useful response today, moving an existing matter forward. The development could arrive through a follow-up, meeting or response from someone already involved in the matter. The progress may be genuine but partial, with a final outcome still dependent on another step or decision.",
         action:
           "Follow up on a relevant conversation or pending professional matter.",
         avoid:
@@ -1040,7 +1040,7 @@ mixed: [
       },
       {
         prediction:
-          "Your professional situation may gain momentum through communication, coordination or progress on an existing priority.",
+          "A colleague, manager or external contact may provide an update that creates momentum around a work priority. An existing professional discussion may become more concrete as another requirement or next step comes into view. This could improve the visibility of a professional opportunity without confirming its ultimate result.",
         action:
           "Identify the work matter where a timely follow-up could make a difference.",
         avoid:
@@ -1048,7 +1048,7 @@ mixed: [
       },
       {
         prediction:
-          "There may be constructive movement around an important professional priority today, even if the longer-term outcome is not yet settled.",
+          "An important professional matter could advance through a meeting, follow-up or confirmation of the next step. The movement may be visible in communication or coordination before it becomes a completed result. The change may be in momentum and clarity rather than in a completed agreement or decision.",
         action:
           "Take one practical step to advance the professional matter already in motion.",
         avoid:
@@ -1058,7 +1058,7 @@ mixed: [
     challenging: [
       {
         prediction:
-          "A professional matter may require extra effort to move forward today. Resistance or competing expectations could make progress less straightforward.",
+          "An anticipated professional response may be delayed or come with an objection that requires further work. The development could arrive through a follow-up, meeting or response from someone already involved in the matter. The progress may be genuine but partial, with a final outcome still dependent on another step or decision.",
         action:
           "Clarify what is holding up the matter and address the most practical obstacle.",
         avoid:
@@ -1066,7 +1066,7 @@ mixed: [
       },
       {
         prediction:
-          "Movement in your professional situation may come with additional pressure or an unexpected adjustment.",
+          "Progress on a work matter could stall while someone else considers the decision or requests more information. An existing professional discussion may become more concrete as another requirement or next step comes into view. This could improve the visibility of a professional opportunity without confirming its ultimate result.",
         action:
           "Review your approach and identify where greater flexibility may help.",
         avoid:
@@ -1074,7 +1074,7 @@ mixed: [
       },
       {
         prediction:
-          "An active work matter may need careful handling today, particularly where progress depends on other people's decisions.",
+          "A developing professional opportunity may encounter a change in timing or expectations before it can advance. The movement may be visible in communication or coordination before it becomes a completed result. The change may be in momentum and clarity rather than in a completed agreement or decision.",
         action:
           "Follow up constructively and confirm the next agreed step.",
         avoid:
@@ -1084,7 +1084,7 @@ mixed: [
     mixed: [
       {
         prediction:
-          "A professional matter may show movement today, although some details or expectations could still require adjustment.",
+          "A work-related conversation may bring progress, although another condition or approval could still be pending. The development could arrive through a follow-up, meeting or response from someone already involved in the matter. The progress may be genuine but partial, with a final outcome still dependent on another step or decision.",
         action:
           "Build on the progress available while clarifying what remains unresolved.",
         avoid:
@@ -1092,7 +1092,7 @@ mixed: [
       },
       {
         prediction:
-          "There may be an opening to advance an existing work priority, alongside conditions that call for patience.",
+          "An encouraging professional update may arrive alongside a request for further clarification or adjustment. An existing professional discussion may become more concrete as another requirement or next step comes into view. This could improve the visibility of a professional opportunity without confirming its ultimate result.",
         action:
           "Use the opportunity to move the discussion forward without rushing the outcome.",
         avoid:
@@ -1100,7 +1100,7 @@ mixed: [
       },
       {
         prediction:
-          "Your professional situation may develop through a combination of useful progress and additional demands today.",
+          "An existing work matter could move forward in stages today rather than reaching its final outcome. The movement may be visible in communication or coordination before it becomes a completed result. The change may be in momentum and clarity rather than in a completed agreement or decision.",
         action:
           "Separate what can move forward now from what still needs clarification.",
         avoid:
@@ -1113,7 +1113,7 @@ mixed: [
     supportive: [
       {
         prediction:
-          "Your contribution may receive greater attention today. An existing achievement or effort could become more visible to the people who matter professionally.",
+          "Someone at work may acknowledge a recent contribution or give your completed work greater visibility today. The attention may centre on a recent result, a decision you helped shape or work that others are now reviewing. The attention could influence how your work is understood, but it should not be equated with a confirmed reward.",
         action:
           "Communicate a relevant accomplishment clearly and factually.",
         avoid:
@@ -1121,7 +1121,7 @@ mixed: [
       },
       {
         prediction:
-          "Professional visibility may improve today, creating an opportunity for your work to be acknowledged.",
+          "A result, presentation or professional contribution may attract positive attention from someone whose opinion matters. Feedback could come through a meeting, a direct comment or a request to explain how a result was achieved. This may bring greater visibility alongside expectations that are still taking shape.",
         action:
           "Present your progress or completed work where it is relevant.",
         avoid:
@@ -1129,7 +1129,7 @@ mixed: [
       },
       {
         prediction:
-          "An important piece of work may attract constructive attention today, making your professional contribution more noticeable.",
+          "You may receive encouraging feedback or an opportunity to demonstrate the value of work already completed. The situation may reveal how your contribution is being perceived, even if no formal reward or decision follows today. The moment may say more about the reception of your work than about any immediate change in position.",
         action:
           "Be prepared to explain the results and value of your work.",
         avoid:
@@ -1139,7 +1139,7 @@ mixed: [
     challenging: [
       {
         prediction:
-          "Your professional contribution may come under closer examination today. Greater visibility could bring questions or increased expectations.",
+          "Your work may attract questions or scrutiny today, particularly around a result or decision that needs explanation. The attention may centre on a recent result, a decision you helped shape or work that others are now reviewing. The attention could influence how your work is understood, but it should not be equated with a confirmed reward.",
         action:
           "Prepare the facts behind your work and respond to feedback constructively.",
         avoid:
@@ -1147,7 +1147,7 @@ mixed: [
       },
       {
         prediction:
-          "Attention around your work may increase, but acknowledgement could be accompanied by scrutiny.",
+          "A professional contribution could be reviewed more closely than expected, with feedback that feels demanding. Feedback could come through a meeting, a direct comment or a request to explain how a result was achieved. This may bring greater visibility alongside expectations that are still taking shape.",
         action:
           "Communicate your contribution accurately and address any gaps directly.",
         avoid:
@@ -1155,7 +1155,7 @@ mixed: [
       },
       {
         prediction:
-          "Professional visibility may feel demanding today, particularly if your results or decisions need additional explanation.",
+          "Increased attention from colleagues or management may bring pressure to justify a result or address a gap. The situation may reveal how your contribution is being perceived, even if no formal reward or decision follows today. The moment may say more about the reception of your work than about any immediate change in position.",
         action:
           "Focus on evidence, clarity and a measured professional response.",
         avoid:
@@ -1165,7 +1165,7 @@ mixed: [
     mixed: [
       {
         prediction:
-          "Your work may receive greater attention today, bringing an opportunity for acknowledgement alongside additional expectations.",
+          "Your contribution may receive positive attention today, although it could also lead to new expectations. The attention may centre on a recent result, a decision you helped shape or work that others are now reviewing. The attention could influence how your work is understood, but it should not be equated with a confirmed reward.",
         action:
           "Highlight your contribution while remaining prepared for questions.",
         avoid:
@@ -1173,7 +1173,7 @@ mixed: [
       },
       {
         prediction:
-          "Professional recognition may be an active theme, although the attention could also reveal areas requiring further work.",
+          "Feedback on your work may include appreciation alongside questions about what remains unfinished. Feedback could come through a meeting, a direct comment or a request to explain how a result was achieved. This may bring greater visibility alongside expectations that are still taking shape.",
         action:
           "Present your achievements clearly and remain open to constructive feedback.",
         avoid:
@@ -1181,7 +1181,7 @@ mixed: [
       },
       {
         prediction:
-          "An existing professional contribution may become more visible today. How you handle the resulting expectations may be as important as the attention itself.",
+          "An achievement may become more visible, but recognition could be accompanied by requests for further results. The situation may reveal how your contribution is being perceived, even if no formal reward or decision follows today. The moment may say more about the reception of your work than about any immediate change in position.",
         action:
           "Use the opportunity to demonstrate reliability and communicate progress.",
         avoid:
@@ -1194,7 +1194,7 @@ mixed: [
     supportive: [
       {
         prediction:
-          "A pending payment or financial opportunity may show encouraging movement today. Keep an eye on developments that could strengthen your available resources.",
+          "A pending payment, reimbursement or expected receipt may show encouraging movement today. You could receive a response, confirmation of a next step or an indication that the matter is progressing. This points to forward movement rather than a guarantee that the funds will arrive immediately.",
         action:
           "Follow up on an outstanding payment or financial opportunity.",
         avoid:
@@ -1202,7 +1202,7 @@ mixed: [
       },
       {
         prediction:
-          "Money-related matters may move in a constructive direction. An existing financial opportunity could progress or become clearer.",
+          "You may receive a useful update about money owed to you or an existing financial opportunity. A conversation, message or status change could make the next step clearer, particularly if you have been waiting for a response. The update may be encouraging, but the amount and timing should still be verified.",
         action:
           "Review incoming financial developments and confirm the details.",
         avoid:
@@ -1210,7 +1210,7 @@ mixed: [
       },
       {
         prediction:
-          "There may be an opportunity to improve your financial position today, particularly through a payment, reimbursement or existing financial matter.",
+          "An expected financial receipt or opportunity could move closer to confirmation, improving clarity about available funds. You may learn more about when a payment can be expected or what remains to be completed. This could help you plan more confidently, even if the money has not yet reached your account.",
         action:
           "Check the status of pending receipts and organise your next steps.",
         avoid:
@@ -1221,7 +1221,7 @@ mixed: [
     challenging: [
       {
         prediction:
-          "An expected payment or financial opportunity may require additional attention today. Delays or conditions could affect how quickly matters progress.",
+          "An expected payment may be delayed or require an additional document, approval or follow-up. A response could reveal a missing step or a longer timeline than anticipated. The important distinction today may be between a payment that is still progressing and one that is actually ready to be received.",
         action:
           "Check outstanding payments and clarify any pending requirements.",
         avoid:
@@ -1229,7 +1229,7 @@ mixed: [
       },
       {
         prediction:
-          "Incoming financial matters may involve extra follow-up. Review the practical details before making plans around a possible receipt.",
+          "A financial receipt you were counting on could take longer than anticipated or arrive with conditions. You may need to clarify a timeline, deduction or requirement before treating the amount as available. This does not necessarily mean the opportunity is lost, but it may affect what you can safely plan around today.",
         action:
           "Contact the relevant person or organisation about pending funds.",
         avoid:
@@ -1237,7 +1237,7 @@ mixed: [
       },
       {
         prediction:
-          "Progress on an incoming payment may be slower or less straightforward than expected. A careful approach will help you manage the situation.",
+          "An update about incoming money may reveal a timing issue, deduction or requirement that needs attention. A payment you expected to be straightforward could involve another confirmation or follow-up. You may gain useful clarity about the obstacle today, even if resolving it takes longer.",
         action:
           "Review the timeline and documentation for an outstanding payment.",
         avoid:
@@ -1248,7 +1248,7 @@ mixed: [
     mixed: [
   {
     prediction:
-      "An expected payment or financial receipt may show progress today, but its timing, amount or conditions could still need confirmation.",
+      "An expected payment may move forward today, although its timing or final amount could still need confirmation. A message, follow-up or change in status could show that the matter is progressing. Treat this as a useful step toward clarity rather than proof that the full amount is ready to use.",
     action:
       "Check the status of pending payments and clarify any outstanding details.",
     avoid:
@@ -1256,7 +1256,7 @@ mixed: [
   },
   {
     prediction:
-      "A financial opportunity may be taking shape, although some details remain unresolved. Progress is possible, but the next practical step matters more than an immediate outcome.",
+      "A financial opportunity may show encouraging signs, but an outstanding condition could delay the outcome. You may hear something positive about a pending receipt or financial arrangement while also learning that a further step is needed. The day may therefore bring progress in understanding the opportunity without completing it.",
     action:
       "Identify what's still pending and take one concrete step to move the matter forward.",
     avoid:
@@ -1264,7 +1264,7 @@ mixed: [
   },
   {
     prediction:
-      "A financial matter may present both possibilities and uncertainties today. There may be room for progress, but the final outcome still needs clarification.",
+      "You may receive a useful update about incoming funds without the receipt itself being fully settled. A response, status change or follow-up could clarify whether an expected payment is moving forward and what remains outstanding. This looks more like progress toward certainty than a completed receipt, so any financial decision should reflect what has actually been confirmed.",
     action:
       "Review expected receipts, confirm what is actually available and prioritise your next financial decision.",
     avoid:

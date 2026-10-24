@@ -359,6 +359,10 @@ function buildThemePrediction(
 const addPolarityContext = (
   basePrediction: string
 ): string => {
+  // Complete narratives already contain their own context.
+  // Preserve polarity additions for shorter predictions.
+  const sentenceCount = (basePrediction.match(/[.!?](?:\s|$)/g) ?? []).length;
+  if (sentenceCount >= 3) return basePrediction;
   if (priority.polarity === "supportive") {
     return `${basePrediction} Conditions are generally supportive, so steady progress is possible.`;
   }
@@ -403,85 +407,85 @@ if (!manifestation) {
   leadingCandidate.matchedPrimaryHouses.includes(4)
 ) {
   return (
-    "Emotional stability and peace of mind are highlighted today. " +
-    "The Moon-linked activation of the fourth house brings attention " +
-    "to your emotional foundation, inner security and personal comfort."
+    "Emotional steadiness and the need for a sense of security may become more noticeable today. " +
+    "The emphasis on inner comfort may draw your attention " +
+    "to familiar surroundings and personal expectations, without confirming a particular emotional event."
   );
 }
 
   return addPolarityContext(
-    "Thoughts, emotions and personal concerns may compete for attention today. A situation could feel more significant than it initially appears, particularly if it touches on an existing worry or expectation."
+    "Your attention may shift between personal concerns and the demands of the day, making it harder to judge which issue deserves the most weight. An existing worry or expectation could colour how you interpret an ordinary interaction, even if nothing decisive has happened. The emphasis is on sorting immediate concerns from unresolved feelings, rather than expecting one particular emotional event."
   );
 }
 
     case "children":
       return addPolarityContext(
-        "Matters involving children may draw more of your attention today. The exact reason may become clearer as the day develops, so stay observant rather than assuming what needs to happen."
+        "Children or child-related responsibilities may occupy more of your attention than usual, even without a particular development being indicated. The emphasis could fall on everyday needs, shared time or an existing matter that has not yet been settled. What stands out is the need for involvement and understanding, rather than a definite milestone or problem."
       );
 
     case "relationships":
   return addPolarityContext(
-    "Personal relationships and one-to-one interactions are in focus today. Pay attention to expectations, communication and how responsibilities are shared. A thoughtful conversation may help clarify matters that feel unresolved."
+    "A close relationship or one-to-one interaction may feel more important today, especially where expectations have not been clearly expressed. The tone of an ordinary exchange could reveal differences in priorities or a need for greater understanding, without necessarily signalling a disagreement. The broader theme is how connection and mutual expectations are being experienced, not a confirmed relationship turning point."
   );
 
 case "career":
   return addPolarityContext(
-    "Professional responsibilities take priority today. An existing task, decision or commitment may benefit from closer attention. Focus on what you can move forward rather than trying to resolve everything at once."
+    "Work and professional expectations may take up more mental space today, particularly where several existing priorities compete for attention. A routine responsibility or pending decision could feel more consequential because its next stage is not yet clear. This points to a day of professional emphasis and developing priorities, rather than a confirmed change of role or recognition."
   );
 
 case "money":
   return addPolarityContext(
-    "Financial commitments and available resources may require balancing today. Pending receipts, upcoming expenses or an existing obligation could influence which financial priority deserves attention first."
+    "Financial matters may occupy more of your attention today, particularly the balance between what is available and what may soon be needed. An existing payment, expense or commitment could shape your sense of financial flexibility, even if no transaction is confirmed. The emphasis is on how current obligations fit together, rather than on a definite gain or loss."
   );
 
 case "health":
   return addPolarityContext(
-    "Your daily routine and wellbeing deserve attention today. Notice whether your current pace supports your energy and concentration, and make practical adjustments where needed rather than ignoring signs of strain."
+    "Your sense of energy and physical comfort may be more noticeable against the demands of your normal routine today. The difference between a manageable pace and an overloaded schedule could become apparent through ordinary activities, without indicating a particular health problem. This is a general wellbeing emphasis, not evidence of illness or a specific physical event."
   );
 
 case "family":
   return addPolarityContext(
-    "Family responsibilities and personal expectations may need balancing today. Consider whether someone needs your support, a pending discussion needs attention or an existing commitment requires coordination."
+    "Family matters may feel more present today, particularly where individual needs and shared responsibilities overlap. An existing expectation or unfinished household conversation could influence the mood even if no new issue emerges. The broader pattern concerns how support and obligations are shared, rather than a confirmed family dispute or development."
   );
 
 case "home":
   return addPolarityContext(
-    "Domestic priorities may benefit from a little organisation today. Review any pending household responsibilities, arrangements or decisions, and address what is most relevant rather than creating unnecessary changes."
+    "Home and domestic life may draw your attention through ordinary responsibilities or an arrangement that remains unfinished. The space around you, or the demands attached to it, could feel more significant than usual without pointing to a definite change of residence. The emphasis is on the condition of your immediate environment and its effect on daily comfort."
   );
 
 case "travel":
   return addPolarityContext(
-    "Travel plans, movement or matters involving distance deserve practical attention today. Check existing arrangements, timings and commitments, allowing flexibility where details remain uncertain."
+    "Movement, distance or travel-related arrangements may occupy some of your attention today, whether or not a journey actually takes place. An existing plan or timing question could feel more relevant as other commitments come into view. This suggests a focus on mobility and coordination, not a confirmed trip, delay or disruption."
   );
 
     case "spirituality":
   return addPolarityContext(
-    "A quieter, more reflective approach may serve you well today. Time spent in prayer, meditation or personal reflection could help you gain perspective on something that has been occupying your thoughts. Avoid forcing an answer before you feel ready."
+    "Questions of meaning, belief or personal direction may occupy more of your inner attention today. A familiar practice, teaching or recent experience could take on added significance as you reflect on it, without implying a particular spiritual encounter. The emphasis is on an evolving inner perspective rather than a definite revelation or external sign."
   );
 
 case "education":
   return addPolarityContext(
-    "Learning, study or an important question may come into focus today. A subject that previously seemed unclear could benefit from a different perspective, additional information or guidance from someone experienced."
+    "Learning or an unresolved question may hold your attention today, especially where understanding is still developing. An existing topic could seem more complex or more relevant as you connect it with what you already know, without guaranteeing a result or breakthrough. The theme is a gradual shift in comprehension rather than a confirmed academic outcome."
   );
 
 case "publicImage":
   return addPolarityContext(
-    "How you present yourself and respond to others may carry greater significance today. Be mindful of your words, professional conduct and commitments, particularly where your credibility or reputation matters. Consistency may prove more valuable than seeking immediate recognition."
+    "Your public or professional presence may feel more significant today, particularly in situations where others form impressions from ordinary interactions. A familiar responsibility or exchange could bring your credibility into focus without confirming praise, criticism or recognition. The broader emphasis is on visibility and how your conduct is interpreted, not a definite change in status."
   );
 
 case "hiddenMatters":
   return addPolarityContext(
-    "A situation may have details that are not yet fully understood. Rather than relying on assumptions or incomplete information, take time to examine what you know and what still needs clarification. Discretion and patience may help you avoid unnecessary complications."
+    "Something in the background of an existing situation may feel unresolved today, even if no new information comes to light. Unanswered questions or mixed impressions could make the issue seem more complicated than it first appeared. The emphasis is on uncertainty and the limits of what is known, rather than a confirmed disclosure or hidden problem."
   );
 
 case "communication":
   return addPolarityContext(
-    "An important conversation, message or exchange of information may benefit from extra care today. Express your intentions clearly, listen to the other person's perspective and confirm details where misunderstandings could create complications."
+    "Messages, conversations or the exchange of information may play a larger role in your day than usual. An ordinary interaction could carry more weight because expectations or details are not yet fully shared, without indicating a definite disagreement. The broader theme is how meaning passes between people and where understanding remains incomplete."
   );
 
 case "property":
   return addPolarityContext(
-    "Property, housing or asset-related responsibilities may benefit from closer review today. Whether dealing with maintenance, documentation, expenses or an existing decision, focus on understanding the practical requirements before taking the next step."
+    "Property, housing or an existing asset-related responsibility may be more prominent in your thoughts today. A practical detail or outstanding decision could seem more relevant as you consider its place among other commitments, without confirming a purchase, sale or complication. The emphasis is on the state of an existing matter rather than a definite property event."
   );
 
 default:
@@ -867,13 +871,13 @@ case "property_complication":
     return "Avoid unnecessary financial commitments until the practical details are clear.";
 
   case "health":
-    return "Review your sleep, meals, hydration and activity levels. Notice any changes in how you feel and make sensible adjustments to your routine.";
+    return "Avoid dismissing persistent changes in energy or comfort, or pushing through strain without considering what your body needs.";
 
   case "family":
-     return "Check whether a family member needs your time or support, address any pending household discussion, and keep your commitments manageable.";
+     return "Avoid taking on every family obligation automatically or letting unspoken expectations create unnecessary tension.";
 
   case "home":
-     return "Review any pending household tasks, maintenance needs or domestic arrangements. Address the most important practical matter first.";
+     return "Avoid letting minor domestic concerns escalate or making unnecessary changes before understanding what actually needs attention.";
 
   case "travel":
     return "Avoid relying on rushed plans or leaving important arrangements until the last moment.";
@@ -885,16 +889,16 @@ case "property_complication":
     return "Avoid scattering your attention across too many subjects or priorities.";
 
   case "publicImage":
-  return "Review how you present your work and communicate with others. Make sure your contributions and important messages are clear, accurate and professional.";
+  return "Avoid making promises you cannot support or reacting defensively to how others may perceive your work.";
 
 case "hiddenMatters":
-  return "Review any information or unresolved details that need clarification. Avoid drawing conclusions until you have a clearer understanding of the situation.";
+  return "Avoid drawing conclusions from incomplete information or sharing sensitive details before the situation is clear.";
 
 case "communication":
-  return "Follow up on important messages, clarify any outstanding questions, and check that your instructions or expectations have been understood.";
+  return "Avoid assuming that an important message was understood or replying impulsively when details remain unclear.";
 
 case "property":
-  return "Review any pending property, housing or asset-related decisions. Check documents, costs and practical obligations before taking the next step.";
+  return "Avoid rushing property-related commitments or overlooking documents, costs and practical obligations.";
 
   default:
     return "Avoid unnecessary reactions or rushed decisions.";

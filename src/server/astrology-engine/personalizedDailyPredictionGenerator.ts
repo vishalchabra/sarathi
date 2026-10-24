@@ -1982,7 +1982,14 @@ const primaryGuidanceCandidate =
             (other) => other.id !== candidate.id
           ),
           primaryActivation?.rankedHouses
-        ).status === "AREA_CONFIRMED"
+        ).status === "AREA_CONFIRMED" ||
+diagnoseEventConfirmation(
+  candidate,
+  primaryGuidancePriority.candidateEvents.filter(
+    (other) => other.id !== candidate.id
+  ),
+  primaryActivation?.rankedHouses
+).status === "EVENT_SUPPORTED"
       )
   ) ??
   null;
@@ -2223,6 +2230,41 @@ pada:
   moonPadaData?.pada ?? null,
       })
     : null;
+// Narrative-only expression of an already supported event.
+// Do not promote AREA_CONFIRMED or EVENT_UNRESOLVED candidates into event claims.
+// This leaves manifestation selection, scoring and confirmation untouched.
+const tentativeEventNarrative =
+  prediction.primaryTheme?.manifestationId === null &&
+  primaryGuidanceCandidate &&
+  primaryGuidanceConfirmation?.status === "EVENT_SUPPORTED" &&
+  primaryGuidanceConfirmation.primaryHouses.length > 0 &&
+  primaryGuidanceConfirmation.overlappingDiscriminatorPlanets.length > 0 &&
+  primaryGuidanceHasDirectDashaHouseEvidence
+    ? selectDailyNarrativeVariant({
+        manifestationId: primaryGuidanceCandidate.id,
+        polarity: prediction.primaryTheme.polarity,
+        selectedDateISO: input.selectedDateISO,
+        profileKey: input.profileKey,
+        nakshatra: moonPadaData?.nakshatra ?? null,
+        pada: moonPadaData?.pada ?? null,
+      })
+    : null;
+if (process.env.NODE_ENV === "development") {
+  console.log("[EVENT NARRATIVE HANDOFF]", {
+    area: prediction.primaryTheme?.area,
+    manifestationId: prediction.primaryTheme?.manifestationId,
+    candidateId: primaryGuidanceCandidate?.id ?? null,
+    confirmationStatus: primaryGuidanceConfirmation?.status ?? null,
+    primaryHouses:
+      primaryGuidanceConfirmation?.primaryHouses ?? [],
+    overlappingDiscriminatorPlanets:
+      primaryGuidanceConfirmation?.overlappingDiscriminatorPlanets ?? [],
+    hasDirectDashaHouseEvidence:
+      primaryGuidanceHasDirectDashaHouseEvidence,
+    tentativeNarrativeAvailable:
+      tentativeEventNarrative !== null,
+  });
+}
 const moonPadaAction =
   currentMoonPadaInterpretation?.actionStyles?.length
     ? currentMoonPadaInterpretation.actionStyles[
@@ -5051,7 +5093,8 @@ const personalizedPrediction = {
           ...prediction.primaryTheme,
 
           prediction: prediction.primaryTheme.manifestationId === null
-  ? personalizedMindFocusPrediction ??
+  ? tentativeEventNarrative?.prediction ??
+    personalizedMindFocusPrediction ??
     personalizedEducationFocusPrediction ??
     prediction.primaryTheme.prediction
     : [
@@ -5064,7 +5107,7 @@ const personalizedPrediction = {
 
   action: [
   prediction.primaryTheme.manifestationId === null
-    ? prediction.primaryTheme.action
+    ? tentativeEventNarrative?.action ?? prediction.primaryTheme.action
     : [
         narrativeVariant?.action ??
           prediction.primaryTheme.action,
@@ -5088,7 +5131,7 @@ primaryAreaPracticalGuidance?.guidance &&
 
 avoid:
   prediction.primaryTheme.manifestationId === null
-    ? prediction.primaryTheme.avoid
+    ? tentativeEventNarrative?.avoid ?? prediction.primaryTheme.avoid
     : contextualMoonCaution ??
       prediction.primaryTheme.avoid,
         }
