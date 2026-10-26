@@ -53,14 +53,21 @@ export async function POST(
      * This prevents unauthenticated callers
      * from invoking the Data Engine directly.
      */
-    const supabase =
-      await createClient();
+   const supabase = await createClient();
 
-    const {
-      data: { user },
-      error: authError,
-    } =
-      await supabase.auth.getUser();
+const authorization = request.headers.get("authorization");
+const bearerToken = authorization?.startsWith("Bearer ")
+  ? authorization.slice(7).trim()
+  : null;
+
+const {
+  data: { user },
+  error: authError,
+} = authorization
+  ? bearerToken
+    ? await supabase.auth.getUser(bearerToken)
+    : { data: { user: null }, error: new Error("Invalid authorization header") }
+  : await supabase.auth.getUser();
 
     if (authError || !user) {
       return NextResponse.json(

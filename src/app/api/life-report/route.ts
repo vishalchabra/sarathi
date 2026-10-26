@@ -25,7 +25,7 @@
   } from "@/server/astro/overviewEngine";
   import { buildHiddenPattern } from "@/server/astro/hiddenPatternEngine";
   import { buildLifePatternMap } from "@/server/astro/lifePatternEngine";
-
+  import { createClient as createSupabaseClient } from "@supabase/supabase-js";
   export const runtime = "nodejs";
   export const dynamic = "force-dynamic";
   export const revalidate = 0;
@@ -1763,11 +1763,25 @@ if (!transitNowFacts.length && Array.isArray(topTransits) && topTransits.length 
  export async function POST(req: Request) {
   const supabase = await createClient();
 
+  const authorization = req.headers.get("authorization");
+
+  const bearerToken = authorization?.startsWith("Bearer ")
+    ? authorization.slice(7).trim()
+    : null;
+
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+    error: authError,
+  } = authorization
+    ? bearerToken
+      ? await supabase.auth.getUser(bearerToken)
+      : {
+          data: { user: null },
+          error: new Error("Invalid authorization header"),
+        }
+    : await supabase.auth.getUser();
 
-  if (!user) {
+  if (authError || !user) {
     return NextResponse.json(
       {
         ok: false,
@@ -1778,7 +1792,28 @@ if (!transitNowFacts.length && Array.isArray(topTransits) && topTransits.length 
     );
   }
 
-  const entitlements = await getUserEntitlements(user.id);
+  const entitlementClient = bearerToken
+  ? createSupabaseClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        global: {
+          headers: {
+            Authorization: `Bearer ${bearerToken}`,
+          },
+        },
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false,
+        },
+      }
+    )
+  : supabase;
+
+const entitlements = await getUserEntitlements(
+  user.id,
+  entitlementClient
+);
 
   if (!entitlements.lifeReport.allowed) {
     return NextResponse.json(

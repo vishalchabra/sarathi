@@ -1,6 +1,6 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
-
+import type { SupabaseClient } from "@supabase/supabase-js";
 const FREE_ASK_LIMIT = 1;
 
 type Plan = "free" | "pro" | "premium";
@@ -48,9 +48,10 @@ function isActiveSubscription(sub: any) {
 }
 
 export async function getUserEntitlements(
-  userId: string
+  userId: string,
+  authenticatedClient?: SupabaseClient
 ): Promise<UserEntitlements> {
-  const supabase = await createClient();
+  const supabase = authenticatedClient ?? await createClient();
 
   const { data: profile } = await supabase
     .from("profiles")

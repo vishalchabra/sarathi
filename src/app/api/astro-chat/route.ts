@@ -3,6 +3,7 @@ export const runtime = "nodejs";
 import "server-only";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { getUserEntitlements } from "@/server/auth/getUserEntitlements";
 import { logQuestionUsage } from "@/server/access/logQuestionUsage";
 import { inferCareer } from "@/server/astro/inference/career";
@@ -18264,11 +18265,24 @@ const matcherDevMode =
   requestURL.searchParams.get("matcherDev") === "1";
     const supabase = await createClient();
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+const authorization = req.headers.get("authorization");
+const bearerToken = authorization?.startsWith("Bearer ")
+  ? authorization.slice(7).trim()
+  : null;
 
-    if (!user) {
+const {
+  data: { user },
+  error: authError,
+} = authorization
+  ? bearerToken
+    ? await supabase.auth.getUser(bearerToken)
+    : {
+        data: { user: null },
+        error: new Error("Invalid authorization header"),
+      }
+  : await supabase.auth.getUser();
+
+    if (authError || !user) {
       return NextResponse.json(
         {
           ok: false,
@@ -18280,7 +18294,28 @@ const matcherDevMode =
       );
     }
 
-    const entitlements = await getUserEntitlements(user.id);
+    const entitlementClient = bearerToken
+  ? createSupabaseClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        global: {
+          headers: {
+            Authorization: `Bearer ${bearerToken}`,
+          },
+        },
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false,
+        },
+      }
+    )
+  : supabase;
+
+const entitlements = await getUserEntitlements(
+  user.id,
+  entitlementClient
+);
 
     if (
   !matcherDevMode &&
