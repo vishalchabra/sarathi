@@ -1554,7 +1554,7 @@ useEffect(() => {
 
   const nextScale = Math.min(
     1.5,
-    availableWidth / layout.outerRect.width
+    availableWidth / layout.frameWidth
   );
 
   setChartScale(nextScale);
@@ -1661,20 +1661,20 @@ const transitPlanetsByHouse = useMemo(
   className="relative mx-auto overflow-hidden rounded-2xl bg-white ring-1 ring-slate-200 shadow-sm"
   style={{
     width: "100%",
-    height: layout.outerRect.height * chartScale,
+    height: layout.frameHeight * chartScale,
   }}
 >
-    <div
+  <div
     style={{
-  position: "absolute",
-  left: -layout.outerRect.x * chartScale,
-  top: -layout.outerRect.y * chartScale,
-  width: layout.frameWidth,
-  height: layout.frameHeight,
-  transform: `scale(${chartScale})`,
-  transformOrigin: "top left",
-}}
-    >
+      position: "absolute",
+      left: 0,
+      top: 0,
+      width: layout.frameWidth,
+      height: layout.frameHeight,
+      transform: `scale(${chartScale})`,
+      transformOrigin: "top left",
+    }}
+  >
           <svg
             viewBox={`0 0 ${layout.frameWidth} ${layout.frameHeight}`}
             className="absolute inset-0 h-full w-full"
@@ -1714,7 +1714,7 @@ const transitPlanetsByHouse = useMemo(
   showArudhas,
   showUpagrahas
 );
-const technicalPlacement = TECHNICAL_PLACEMENT[anchor.house] ?? "bottom";
+
 const planetLayout = getPlanetCardPlacements(
   anchor.house,
   layout,
@@ -1727,32 +1727,7 @@ const planetLayout = getPlanetCardPlacements(
   }
 );
 const planetDensity = planetLayout.density;
-const technicalRow = technicalBadges.length ? (
-  <div
-    className="flex w-full flex-wrap justify-center gap-x-[4px] gap-y-0"
-    style={{
-      lineHeight: "8px",
-      maxHeight: "16px",
-      overflow: "hidden",
-    }}
-  >
-    {technicalBadges.map((badge) => (
-      <span
-        key={`${anchor.house}-${badge.key}`}
-        title={badge.title}
-        className={
-          badge.type === "arudha"
-            ? "text-[6px] font-semibold text-fuchsia-600"
-            : badge.type === "upagraha"
-              ? "text-[6px] font-semibold text-violet-600"
-              : "text-[6px] font-semibold text-cyan-600"
-        }
-      >
-        {badge.label}
-      </span>
-    ))}
-  </div>
-) : null;
+
             const houseSarva = sarvaAshtakvarga?.[anchor.house - 1];
             const houseCenter = getHouseCentroid(anchor.house, layout);
             return (
@@ -1803,12 +1778,6 @@ const technicalRow = technicalBadges.length ? (
             </button>
           ) : null}
         </div>
-
-        {technicalPlacement === "top" && technicalRow ? (
-          <div className="absolute z-10 pointer-events-none" style={{ left: anchor.x - anchor.width / 2, top: anchor.y - 10, width: anchor.width }}>
-            {technicalRow}
-          </div>
-        ) : null}
 
         {shownPlanets.map((p, idx) => {
           const placement = planetLayout.placements[idx];
@@ -1879,19 +1848,56 @@ const technicalRow = technicalBadges.length ? (
                   </span>
                 ) : null}
               </span>
-            </button>
+                        </button>
           );
         })}
-
-        {technicalPlacement === "bottom" && technicalRow ? (
-          <div className="absolute z-10 pointer-events-none" style={{ left: anchor.x - anchor.width / 2, top: anchor.y + 24, width: anchor.width }}>
-            {technicalRow}
-          </div>
-        ) : null}
       </div>
-            );
-          })}
+    );
+  })}
 
+{/* Independent technical overlay: outside house clipping layers */}
+{layout.anchors.map((anchor) => {
+  const badges = getTechnicalBadges(
+    arudhasByHouse.get(anchor.house) ?? [],
+    markersByHouse.get(anchor.house) ?? [],
+    showArudhas,
+    showUpagrahas
+  );
+
+  if (!badges.length) return null;
+
+  const placement = TECHNICAL_PLACEMENT[anchor.house] ?? "bottom";
+
+  return (
+    <div
+      key={`technical-overlay-${anchor.house}`}
+      className="pointer-events-none absolute z-20 flex flex-wrap justify-center gap-x-[4px] gap-y-0"
+      style={{
+        left: anchor.x - anchor.width / 2,
+        top: placement === "top" ? anchor.y - 10 : anchor.y + 24,
+        width: anchor.width,
+        lineHeight: "10px",
+        overflow: "visible",
+      }}
+    >
+      {badges.map((badge) => (
+        <span
+          key={`${anchor.house}-${badge.key}`}
+          title={badge.title}
+          className={
+            badge.type === "arudha"
+              ? "text-[6px] font-semibold text-fuchsia-600"
+              : badge.type === "upagraha"
+                ? "text-[6px] font-semibold text-violet-600"
+                : "text-[6px] font-semibold text-cyan-600"
+          }
+        >
+          {badge.label}
+        </span>
+      ))}
+    </div>
+  );
+})}
           {/* Professional outer house-aspect rail: outside the chart lines, not inside houses. */}
           {showAspects ? Array.from({ length: 12 }, (_, i) => i + 1).map((house) => {
             const rows = aspectsByHouse.get(house) ?? [];

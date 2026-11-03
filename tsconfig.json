@@ -34,5 +34,9 @@
     "**/*.css",
     ".next/types/**/*.ts"
   ],
- "exclude": ["node_modules", "console-cleanup-backup"]
+ "exclude": [
+  "node_modules",
+  "console-cleanup-backup",
+  "mobile"
+]
 }
