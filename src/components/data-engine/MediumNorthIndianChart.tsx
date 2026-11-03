@@ -235,7 +235,7 @@ const PRIMARY_LAYOUT: LayoutConfig = {
     { house: 2, x: 230, y: 86, width: 96, minHeight: 112 },
     { house: 12, x: 490, y: 86, width: 96, minHeight: 112 },
 
-    { house: 3, x: 146, y: 176, width: 96, minHeight: 112 },
+    { house: 3, x: 158, y: 176, width: 96, minHeight: 112 },
     { house: 1, x: 360, y: 146, width: 120, minHeight: 112 },
     { house: 11, x: 574, y: 176, width: 96, minHeight: 112 },
 
@@ -520,6 +520,682 @@ function getMarkerTitle(marker: ChartMarker) {
 
   return parts.join(" • ");
 }
+function getHouseClipPath(house: number, layout: LayoutConfig) {
+  const { x, y, width, height } = layout.outerRect;
+
+  const left = { x, y: y + height / 2 };
+  const top = { x: x + width / 2, y };
+  const right = { x: x + width, y: y + height / 2 };
+  const bottom = { x: x + width / 2, y: y + height };
+
+  const topLeft = { x, y };
+  const topRight = { x: x + width, y };
+  const bottomLeft = { x, y: y + height };
+  const bottomRight = { x: x + width, y: y + height };
+  const center = { x: x + width / 2, y: y + height / 2 };
+
+  const midpoint = (a: { x: number; y: number }, b: { x: number; y: number }) => ({
+    x: (a.x + b.x) / 2,
+    y: (a.y + b.y) / 2,
+  });
+
+  const ul = midpoint(top, left);
+  const ur = midpoint(top, right);
+  const lr = midpoint(right, bottom);
+  const ll = midpoint(bottom, left);
+
+  const polygons: Record<number, { x: number; y: number }[]> = {
+    1: [top, ur, center, ul],
+    2: [topLeft, top, ul],
+    3: [topLeft, ul, left],
+    4: [left, ll, center, ul],
+    5: [bottomLeft, left, ll],
+    6: [bottomLeft, ll, bottom],
+    7: [bottom, lr, center, ll],
+    8: [bottomRight, bottom, lr],
+    9: [bottomRight, lr, right],
+    10: [right, ur, center, lr],
+    11: [topRight, ur, right],
+    12: [topRight, top, ur],
+  };
+
+  const points = polygons[house];
+
+  if (!points) return "none";
+
+  return `polygon(${points
+    .map(p =>
+      `${(p.x / layout.frameWidth) * 100}% ${(p.y / layout.frameHeight) * 100}%`
+    )
+    .join(", ")})`;
+}
+
+function getHousePolygon(house: number, layout: LayoutConfig) {
+  const { x, y, width, height } = layout.outerRect;
+
+  const left = { x, y: y + height / 2 };
+  const top = { x: x + width / 2, y };
+  const right = { x: x + width, y: y + height / 2 };
+  const bottom = { x: x + width / 2, y: y + height };
+
+  const topLeft = { x, y };
+  const topRight = { x: x + width, y };
+  const bottomLeft = { x, y: y + height };
+  const bottomRight = { x: x + width, y: y + height };
+  const center = { x: x + width / 2, y: y + height / 2 };
+
+  const midpoint = (a: { x: number; y: number }, b: { x: number; y: number }) => ({
+    x: (a.x + b.x) / 2,
+    y: (a.y + b.y) / 2,
+  });
+
+  const ul = midpoint(top, left);
+  const ur = midpoint(top, right);
+  const lr = midpoint(right, bottom);
+  const ll = midpoint(bottom, left);
+
+  const polygons: Record<number, { x: number; y: number }[]> = {
+    1: [top, ur, center, ul],
+    2: [topLeft, top, ul],
+    3: [topLeft, ul, left],
+    4: [left, ll, center, ul],
+    5: [bottomLeft, left, ll],
+    6: [bottomLeft, ll, bottom],
+    7: [bottom, lr, center, ll],
+    8: [bottomRight, bottom, lr],
+    9: [bottomRight, lr, right],
+    10: [right, ur, center, lr],
+    11: [topRight, ur, right],
+    12: [topRight, top, ur],
+  };
+
+  return polygons[house] ?? [];
+}
+
+function getHouseCentroid(house: number, layout: LayoutConfig) {
+  const polygon = getHousePolygon(house, layout);
+  if (polygon.length < 3) {
+    return { x: layout.outerRect.x + layout.outerRect.width / 2, y: layout.outerRect.y + layout.outerRect.height / 2 };
+  }
+
+  // Area-weighted polygon centroid (works for both triangular and diamond houses).
+  let twiceArea = 0;
+  let x = 0;
+  let y = 0;
+
+  for (let i = 0; i < polygon.length; i += 1) {
+    const current = polygon[i];
+    const next = polygon[(i + 1) % polygon.length];
+    const cross = current.x * next.y - next.x * current.y;
+    twiceArea += cross;
+    x += (current.x + next.x) * cross;
+    y += (current.y + next.y) * cross;
+  }
+
+  if (Math.abs(twiceArea) < 0.000001) {
+    return {
+      x: polygon.reduce((sum, point) => sum + point.x, 0) / polygon.length,
+      y: polygon.reduce((sum, point) => sum + point.y, 0) / polygon.length,
+    };
+  }
+
+  return {
+    x: x / (3 * twiceArea),
+    y: y / (3 * twiceArea),
+  };
+}
+
+function isPointInsidePolygon(
+  point: { x: number; y: number },
+  polygon: { x: number; y: number }[]
+) {
+  let inside = false;
+
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const a = polygon[i];
+    const b = polygon[j];
+
+    const crosses =
+      (a.y > point.y) !== (b.y > point.y) &&
+      point.x < ((b.x - a.x) * (point.y - a.y)) / (b.y - a.y) + a.x;
+
+    if (crosses) inside = !inside;
+  }
+
+  return inside;
+}
+
+function getHouseSafeRect(house: number, layout: LayoutConfig) {
+  const polygon = getHousePolygon(house, layout);
+
+  if (polygon.length < 3) {
+    return { left: 0, top: 0, width: 0, height: 0 };
+  }
+
+  const minX = Math.min(...polygon.map(p => p.x));
+  const maxX = Math.max(...polygon.map(p => p.x));
+  const minY = Math.min(...polygon.map(p => p.y));
+  const maxY = Math.max(...polygon.map(p => p.y));
+
+  // Determine polygon orientation.
+  let signedArea = 0;
+
+  for (let i = 0; i < polygon.length; i++) {
+    const a = polygon[i];
+    const b = polygon[(i + 1) % polygon.length];
+    signedArea += a.x * b.y - b.x * a.y;
+  }
+
+  const orientation = signedArea >= 0 ? 1 : -1;
+  const margin = 9;
+
+  // Each edge defines an inward half-plane.
+  const edges = polygon.map((a, i) => {
+    const b = polygon[(i + 1) % polygon.length];
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
+
+    const nx = orientation * dy;
+    const ny = orientation * -dx;
+
+    return {
+      nx,
+      ny,
+      c:
+        orientation * (dy * a.x - dx * a.y) -
+        margin * Math.hypot(nx, ny),
+    };
+  });
+
+  let bestArea = 0;
+  let bestRect = {
+    left: 0,
+    top: 0,
+    width: 0,
+    height: 0,
+  };
+
+  const maxHalfWidth = (maxX - minX) / 2;
+  const maxHalfHeight = (maxY - minY) / 2;
+
+  // Search different rectangle centres throughout the house.
+  for (let cx = minX; cx <= maxX; cx += 4) {
+    for (let cy = minY; cy <= maxY; cy += 4) {
+
+      // Test progressively wider rectangles.
+      for (
+        let halfWidth = 14;
+        halfWidth <= maxHalfWidth;
+        halfWidth += 4
+      ) {
+        let allowedHalfHeight = maxHalfHeight;
+        let valid = true;
+
+        for (const edge of edges) {
+          const remaining =
+            edge.c -
+            edge.nx * cx -
+            edge.ny * cy -
+            Math.abs(edge.nx) * halfWidth;
+
+          if (Math.abs(edge.ny) < 0.000001) {
+            if (remaining < 0) {
+              valid = false;
+              break;
+            }
+          } else {
+            allowedHalfHeight = Math.min(
+              allowedHalfHeight,
+              remaining / Math.abs(edge.ny)
+            );
+          }
+        }
+
+        if (!valid || allowedHalfHeight < 14) continue;
+
+        const halfHeight =
+          Math.floor(allowedHalfHeight / 2) * 2;
+
+        const width = halfWidth * 2;
+        const height = halfHeight * 2;
+        const area = width * height;
+
+        if (area > bestArea) {
+          bestArea = area;
+
+          bestRect = {
+            left: cx - halfWidth,
+            top: cy - halfHeight,
+            width,
+            height,
+          };
+        }
+      }
+    }
+  }
+
+  return bestRect;
+}
+
+type DynamicPlanetLayout = {
+  columns: number;
+  density: "normal" | "medium" | "tight";
+  columnGap: number;
+  rowGap: number;
+  buttonPadding: string;
+  buttonMinHeight: number;
+  degreeFontSize: number;
+  labelFontSize: number;
+  nakshatraFontSize: number;
+};
+
+/** Calculate a readable planet grid from each house's actual safe area. */
+function calculateHousePlanetLayout(
+  totalPlanets: number,
+  width: number,
+  height: number,
+  options: {
+    showDegrees: boolean;
+    showNakshatra: boolean;
+    compact: boolean;
+    isAscHouse: boolean;
+    hasAscDegree: boolean;
+    technicalBadgeCount: number;
+  }
+): DynamicPlanetLayout {
+  const safeWidth = Math.max(24, width);
+  const safeHeight = Math.max(24, height);
+
+  if (totalPlanets <= 0) {
+    return {
+      columns: 1, density: "normal", columnGap: 3, rowGap: 3,
+      buttonPadding: "2px 3px", buttonMinHeight: 18,
+      degreeFontSize: 8, labelFontSize: 9, nakshatraFontSize: 7,
+    };
+  }
+
+  const headerHeight = 17 + (options.isAscHouse && options.hasAscDegree ? 13 : 0);
+  const technicalHeight = options.technicalBadgeCount > 0 ? 13 : 0;
+  const availableGridHeight = Math.max(16, safeHeight - headerHeight - technicalHeight - 10);
+  const candidates: Array<{
+    columns: number; density: "normal" | "medium" | "tight";
+    columnGap: number; rowGap: number; score: number;
+  }> = [];
+
+  for (let columns = 1; columns <= Math.min(totalPlanets, 6); columns += 1) {
+    const columnGap = columns >= 4 ? 2 : 3;
+    const cardWidth = (safeWidth - columnGap * (columns - 1)) / columns;
+    if (cardWidth < 36) continue;
+
+    const rows = Math.ceil(totalPlanets / columns);
+    const density: "normal" | "medium" | "tight" =
+      options.compact || cardWidth < 38 || totalPlanets >= 6
+        ? "tight"
+        : options.showNakshatra || totalPlanets >= 3
+          ? "medium"
+          : "normal";
+
+    const cardHeight =
+      (options.showDegrees ? 8 : 0) +
+      (density === "tight" ? 8 : 9) +
+      (options.showNakshatra ? 8 : 0) +
+      (density === "tight" ? 2 : 4);
+    const rowGap = rows >= 3 ? 1 : 3;
+    const requiredHeight = rows * cardHeight + (rows - 1) * rowGap;
+    const overflow = Math.max(0, requiredHeight - availableGridHeight);
+    const score = overflow * 100 + Math.max(0, 34 - cardWidth) * 20 +
+      rows * 2 + Math.abs(cardWidth - 46) * 0.03;
+
+    candidates.push({ columns, density, columnGap, rowGap, score });
+  }
+
+  if (!candidates.length) {
+    return {
+      columns: 1, density: "tight", columnGap: 2, rowGap: 1,
+      buttonPadding: "1px 2px",
+      buttonMinHeight: Math.max(14, Math.min(18, safeHeight / totalPlanets)),
+      degreeFontSize: 7, labelFontSize: 8, nakshatraFontSize: 6,
+    };
+  }
+
+  candidates.sort((a, b) => a.score - b.score);
+  const best = candidates[0];
+  const tight = best.density === "tight";
+
+  return {
+    columns: best.columns,
+    density: best.density,
+    columnGap: best.columnGap,
+    rowGap: best.rowGap,
+    buttonPadding: tight ? "1px 2px" : "2px 3px",
+    buttonMinHeight: tight ? 15 : 18,
+    degreeFontSize: tight ? 7 : 8,
+    labelFontSize: tight ? 8 : 9,
+    nakshatraFontSize: tight ? 6 : 7,
+  };
+}
+
+
+/**
+ * For crowded triangular houses, use a content band parallel to the triangle's
+ * widest axis-aligned edge. This gives dense planet groups more usable space
+ * without allowing cards to escape the actual house polygon (the parent is
+ * still clipped to that polygon).
+ */
+function getHouseContentRect(house: number, layout: LayoutConfig, totalPlanets: number) {
+  const polygon = getHousePolygon(house, layout);
+  if (totalPlanets < 5 || polygon.length !== 3) return getHouseSafeRect(house, layout);
+
+  const centroid = {
+    x: polygon.reduce((sum, point) => sum + point.x, 0) / polygon.length,
+    y: polygon.reduce((sum, point) => sum + point.y, 0) / polygon.length,
+  };
+
+  const axisAlignedEdges = polygon.map((a, index) => {
+    const b = polygon[(index + 1) % polygon.length];
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
+    const horizontal = Math.abs(dy) < 0.001;
+    const vertical = Math.abs(dx) < 0.001;
+    if (!horizontal && !vertical) return null;
+
+    const length = Math.hypot(dx, dy);
+    const altitude = Math.max(
+      ...polygon
+        .filter((_, pointIndex) => pointIndex !== index && pointIndex !== (index + 1) % polygon.length)
+        .map((point) => horizontal ? Math.abs(point.y - a.y) : Math.abs(point.x - a.x))
+    );
+
+    return { a, b, horizontal, length, altitude };
+  }).filter(Boolean) as Array<{
+    a: { x: number; y: number };
+    b: { x: number; y: number };
+    horizontal: boolean;
+    length: number;
+    altitude: number;
+  }>;
+
+  if (!axisAlignedEdges.length) return getHouseSafeRect(house, layout);
+
+  axisAlignedEdges.sort((a, b) => b.length - a.length);
+  const base = axisAlignedEdges[0];
+  if (base.altitude < 80) return getHouseSafeRect(house, layout);
+
+  const inset = 12;
+  const bandSize = Math.min(112, base.altitude * 0.42);
+  const depth = Math.min(12, base.altitude * 0.05);
+  const farDepth = depth + bandSize;
+  const usableRatio = Math.max(0.28, 1 - farDepth / base.altitude);
+  const usableBase = Math.max(36, base.length * usableRatio - inset * 2);
+
+  if (base.horizontal) {
+    const baseY = base.a.y;
+    const inward = centroid.y < baseY ? -1 : 1;
+    return {
+      left: (base.a.x + base.b.x) / 2 - usableBase / 2,
+      top: inward < 0 ? baseY - farDepth : baseY + depth,
+      width: usableBase,
+      height: bandSize,
+    };
+  }
+
+  const baseX = base.a.x;
+  const inward = centroid.x < baseX ? -1 : 1;
+  return {
+    left: inward < 0 ? baseX - farDepth : baseX + depth,
+    top: (base.a.y + base.b.y) / 2 - usableBase / 2,
+    width: bandSize,
+    height: usableBase,
+  };
+}
+
+type PlanetCardPlacement = { left: number; top: number; width: number; height: number };
+
+/**
+ * Rule-based planet placement:
+ * - Uses the real polygon for each house, not fixed house coordinates.
+ * - Reserves a generous central zone for the house number/Ascendant label.
+ * - Packs multiple cards across each valid row (not just one card per row).
+ * - Tries comfortable card sizes first and only compacts when the geometry
+ *   genuinely requires it.
+ */
+function getPlanetCardPlacements(
+  house: number,
+  layout: LayoutConfig,
+  count: number,
+  options: {
+    showDegrees: boolean;
+    showNakshatra: boolean;
+    isAscHouse: boolean;
+    hasAscDegree: boolean;
+  }
+): {
+  placements: PlanetCardPlacement[];
+  density: "normal" | "medium" | "tight";
+  degreeFontSize: number;
+  labelFontSize: number;
+  nakshatraFontSize: number;
+} {
+  const emptyResult = {
+    placements: [] as PlanetCardPlacement[],
+    density: "normal" as const,
+    degreeFontSize: 8,
+    labelFontSize: 9,
+    nakshatraFontSize: 7,
+  };
+
+  if (count <= 0) return emptyResult;
+
+  const polygon = getHousePolygon(house, layout);
+  if (polygon.length < 3) return emptyResult;
+
+  const minX = Math.min(...polygon.map((p) => p.x));
+  const maxX = Math.max(...polygon.map((p) => p.x));
+  const minY = Math.min(...polygon.map((p) => p.y));
+  const maxY = Math.max(...polygon.map((p) => p.y));
+  const center = getHouseCentroid(house, layout);
+
+  // Keep house numbers and the Ascendant label visually clear.
+  // Reserve only the actual space required by the centred house label.
+const labelWidth = options.isAscHouse
+  ? (options.hasAscDegree ? 74 : 42)
+  : 34;
+
+const labelHeight = options.isAscHouse
+  ? (options.hasAscDegree ? 48 : 34)
+  : 28;
+  const labelRect = {
+    left: center.x - labelWidth / 2,
+    right: center.x + labelWidth / 2,
+    top: center.y - labelHeight / 2,
+    bottom: center.y + labelHeight / 2,
+  };
+
+  const fitsPolygon = (left: number, top: number, width: number, height: number) => {
+    // Check all four corners with a small inset so borders never touch/cross
+    // the house lines. The parent house layer also clips as a final safeguard.
+    const inset = 2;
+    const corners = [
+      { x: left + inset, y: top + inset },
+      { x: left + width - inset, y: top + inset },
+      { x: left + inset, y: top + height - inset },
+      { x: left + width - inset, y: top + height - inset },
+    ];
+    return corners.every((point) => isPointInsidePolygon(point, polygon));
+  };
+
+  let best: PlanetCardPlacement[] = [];
+  let bestWidth = 36;
+  let bestHeight = 22;
+
+  // The wider candidates preserve the premium appearance. Smaller candidates
+  // are considered only when the shape or planet count leaves no alternative.
+  for (let cardWidth = 48; cardWidth >= 18; cardWidth -= 2) {
+    const ultraCompact = cardWidth <= 24;
+const compact = cardWidth <= 36 || count >= 7;
+
+const degreeLine = options.showDegrees
+  ? ultraCompact ? 6 : compact ? 7 : 8
+  : 0;
+
+const labelLine = ultraCompact ? 6 : compact ? 8 : 9;
+
+const nakshatraLine = options.showNakshatra
+  ? ultraCompact ? 5 : compact ? 6 : 7
+  : 0;
+
+const cardHeight =
+  (ultraCompact ? 2 : 4) +
+  degreeLine +
+  labelLine +
+  nakshatraLine;
+
+const gap = cardWidth <= 22 ? 1 : cardWidth <= 34 ? 2 : 4;
+
+const rowStep = cardHeight + (count >= 7 ? 2 : 4);
+
+    let bestForWidth: PlanetCardPlacement[] = [];
+    let bestOffsetScore = Number.POSITIVE_INFINITY;
+
+    // Shift the row grid in small increments to find the best fit for
+    // irregular triangles and diamonds.
+    for (let offset = 0; offset < rowStep; offset += 2) {
+      const rows: PlanetCardPlacement[][] = [];
+
+      for (let top = minY + offset; top + cardHeight <= maxY; top += rowStep) {
+        const validXs: number[] = [];
+
+        for (let left = minX + 2; left + cardWidth <= maxX - 2; left += 2) {
+          const overlapsLabel =
+            left < labelRect.right &&
+            left + cardWidth > labelRect.left &&
+            top < labelRect.bottom &&
+            top + cardHeight > labelRect.top;
+
+          if (!overlapsLabel && fitsPolygon(left, top, cardWidth, cardHeight)) {
+            validXs.push(left);
+          }
+        }
+
+        if (!validXs.length) continue;
+
+        // Split the row into continuous usable horizontal runs.
+        const runs: Array<[number, number]> = [];
+        let runStart = validXs[0];
+        let previous = validXs[0];
+
+        for (let i = 1; i <= validXs.length; i += 1) {
+          const current = validXs[i];
+
+          if (i < validXs.length && current - previous <= 2.1) {
+            previous = current;
+            continue;
+          }
+
+          runs.push([runStart, previous]);
+
+          if (i < validXs.length) runStart = current;
+          previous = current;
+        }
+
+        const rowSlots: PlanetCardPlacement[] = [];
+
+        for (const [start, end] of runs) {
+          // `end` is the last valid LEFT coordinate, not the right edge.
+          // Advancing by cardWidth + gap lets several cards occupy one run.
+          for (let left = start; left <= end + 0.5; left += cardWidth + gap) {
+            if (fitsPolygon(left, top, cardWidth, cardHeight)) {
+              rowSlots.push({
+                left,
+                top,
+                width: cardWidth,
+                height: cardHeight,
+              });
+            }
+          }
+        }
+
+        // Prefer slots nearer the house centre, while keeping the label zone
+        // empty. This gives balanced layouts on both sides of the label.
+        if (rowSlots.length) {
+          rowSlots.sort(
+            (a, b) =>
+              Math.abs(a.left + a.width / 2 - center.x) -
+              Math.abs(b.left + b.width / 2 - center.x)
+          );
+          rows.push(rowSlots);
+        }
+      }
+
+      // Fill rows nearest the centre first, then move outward symmetrically.
+      rows.sort((a, b) => {
+        const ay = a[0].top + cardHeight / 2;
+        const by = b[0].top + cardHeight / 2;
+        return Math.abs(ay - center.y) - Math.abs(by - center.y);
+      });
+
+      const candidate = rows.flat().slice(0, count);
+      const score =
+        candidate.length === count
+          ? candidate.reduce(
+              (sum, item) =>
+                sum +
+                Math.abs(item.top + item.height / 2 - center.y) * 1.2 +
+                Math.abs(item.left + item.width / 2 - center.x) * 0.15,
+              0
+            )
+          : Number.POSITIVE_INFINITY;
+
+      if (
+        candidate.length > bestForWidth.length ||
+        (candidate.length === bestForWidth.length && score < bestOffsetScore)
+      ) {
+        bestForWidth = candidate;
+        bestOffsetScore = score;
+      }
+    }
+
+    if (bestForWidth.length > best.length) {
+      best = bestForWidth;
+      bestWidth = cardWidth;
+      bestHeight = cardHeight;
+    }
+
+    // Stop at the largest card width that accommodates every planet.
+    if (bestForWidth.length >= count) {
+      best = bestForWidth;
+      bestWidth = cardWidth;
+      bestHeight = cardHeight;
+      break;
+    }
+  }
+
+  const density =
+    bestWidth <= 34 || count >= 7
+      ? "tight"
+      : count >= 3 || options.showNakshatra
+        ? "medium"
+        : "normal";
+
+  return {
+    placements: best,
+    density,
+    degreeFontSize:
+  bestWidth <= 22 ? 5 :
+  bestWidth <= 30 ? 6 :
+  bestWidth <= 36 ? 7 : 8,
+
+labelFontSize:
+  bestWidth <= 22 ? 6 :
+  bestWidth <= 30 ? 7 :
+  density === "tight" ? 8 : 9,
+
+nakshatraFontSize:
+  bestWidth <= 22 ? 5 :
+  bestWidth <= 30 ? 5 :
+  bestWidth <= 36 ? 6 : 7,
+  };
+}
 
 function getHouseSignNumber(house: number, ascSign?: string | null) {
   const ascIndex = getAscSignIndex(ascSign);
@@ -685,25 +1361,43 @@ function getNakshatraShort(nakshatra?: string | null) {
   return map[nakshatra] ?? nakshatra.slice(0, 2);
 }
 
-function getPlanetButtonDensity(totalPlanets: number, showNakshatra: boolean, compact: boolean) {
-  if (compact || totalPlanets >= 5) return "tight";
+function getPlanetButtonDensity(
+  totalPlanets: number,
+  showNakshatra: boolean,
+  compact: boolean
+) {
+  if (compact) return "tight";
   if (showNakshatra || totalPlanets >= 3) return "medium";
   return "normal";
 }
 
-function getPlanetButtonSizeClass(density: "normal" | "medium" | "tight") {
-  if (density === "tight") return "min-w-[26px] rounded px-1 py-[1px] text-[8px]";
-  if (density === "medium") return "min-w-[29px] rounded-md px-1 py-[2px] text-[9px]";
-  return "min-w-[32px] rounded-md px-1.5 py-0.5 text-[10px]";
+function getPlanetButtonSizeClass(
+  density: "normal" | "medium" | "tight"
+) {
+  if (density === "tight") {
+    return "min-w-[38px] rounded-md px-1 py-[3px] text-[10px]";
+  }
+
+  if (density === "medium") {
+    return "min-w-[42px] rounded-md px-1 py-[3px] text-[10px]";
+  }
+
+  return "min-w-[44px] rounded-md px-1.5 py-[3px] text-[11px]";
 }
 
-function getPlanetDegreeClass(isTransitPlanet: boolean, density: "normal" | "medium" | "tight") {
-  const size = density === "tight" ? "text-[6px]" : "text-[7px]";
-  return `${size} mt-[1px] font-semibold ${isTransitPlanet ? "text-emerald-700" : "text-orange-700"}`;
+function getPlanetDegreeClass(
+  isTransitPlanet: boolean,
+  density: "normal" | "medium" | "tight"
+) {
+  return `text-[9px] mt-[2px] font-semibold ${
+    isTransitPlanet ? "text-emerald-700" : "text-orange-700"
+  }`;
 }
 
-function getNakshatraClass(density: "normal" | "medium" | "tight") {
-  return `${density === "tight" ? "text-[6px]" : "text-[7px]"} mt-[1px] font-medium text-slate-500`;
+function getNakshatraClass(
+  density: "normal" | "medium" | "tight"
+) {
+  return "text-[8px] mt-[2px] font-medium text-slate-500";
 }
 function getHouseAspectsByHouse(vedicAspects: any, referenceHouse = 1) {
   const map = new Map<number, HouseAspectMarker[]>();
@@ -850,15 +1544,21 @@ placementMode = "sign",
   const chartBoxRef = useRef<HTMLDivElement | null>(null);
 const [chartScale, setChartScale] = useState(1);
 
+
 useEffect(() => {
   const el = chartBoxRef.current;
   if (!el) return;
 
   const updateScale = () => {
-    const availableWidth = el.clientWidth;
-    const nextScale = Math.min(1, availableWidth / layout.frameWidth);
-    setChartScale(nextScale);
-  };
+  const availableWidth = el.clientWidth;
+
+  const nextScale = Math.min(
+    1.5,
+    availableWidth / layout.outerRect.width
+  );
+
+  setChartScale(nextScale);
+};
 
   updateScale();
 
@@ -867,6 +1567,7 @@ useEffect(() => {
 
   return () => observer.disconnect();
 }, [layout.frameWidth]);
+
   const pct = (value: number, total: number) => `${(value / total) * 100}%`;
   const displayPlanets = useMemo(() => {
   if (placementMode === "house") {
@@ -956,21 +1657,23 @@ const transitPlanetsByHouse = useMemo(
       <div className="mt-4">
         <div className="min-w-0">
       <div ref={chartBoxRef} className="mt-4 w-full overflow-hidden">
-  <div
-    className="relative mx-auto rounded-2xl bg-white ring-1 ring-slate-200 shadow-sm"
-    style={{
-      width: layout.frameWidth * chartScale,
-      height: layout.frameHeight * chartScale,
-    }}
-  >
+ <div
+  className="relative mx-auto overflow-hidden rounded-2xl bg-white ring-1 ring-slate-200 shadow-sm"
+  style={{
+    width: "100%",
+    height: layout.outerRect.height * chartScale,
+  }}
+>
     <div
-      className="absolute left-0 top-0 overflow-visible"
-      style={{
-        width: layout.frameWidth,
-        height: layout.frameHeight,
-        transform: `scale(${chartScale})`,
-        transformOrigin: "top left",
-      }}
+    style={{
+  position: "absolute",
+  left: -layout.outerRect.x * chartScale,
+  top: -layout.outerRect.y * chartScale,
+  width: layout.frameWidth,
+  height: layout.frameHeight,
+  transform: `scale(${chartScale})`,
+  transformOrigin: "top left",
+}}
     >
           <svg
             viewBox={`0 0 ${layout.frameWidth} ${layout.frameHeight}`}
@@ -1002,9 +1705,6 @@ const transitPlanetsByHouse = useMemo(
             const shownPlanets = [...housePlanets, ...houseTransitPlanets];
             const isAscHouse = anchor.house === 1;
             const houseLabel = getHouseSignNumber(anchor.house, ascSign);
-            const houseLabelShift = layout.houseLabelShifts?.[anchor.house] ?? "translateY(0px)";
-            const planetShift = layout.housePlanetShifts[anchor.house] ?? "translate(0,0)";
-            const houseMaxHeight = layout.houseMaxHeights?.[anchor.house] ?? 46;
             const allForTitle = [...housePlanets, ...houseTransitPlanets];
             const houseArudhas = arudhasByHouse.get(anchor.house) ?? [];
             const houseMarkers = markersByHouse.get(anchor.house) ?? [];
@@ -1015,18 +1715,18 @@ const transitPlanetsByHouse = useMemo(
   showUpagrahas
 );
 const technicalPlacement = TECHNICAL_PLACEMENT[anchor.house] ?? "bottom";
-const technicalTransform =
-  HOUSE_TECHNICAL_ROW_SHIFTS[anchor.house] ?? "translateY(0px)";
-const houseContentShift =
-  HOUSE_CONTENT_SHIFT[anchor.house] ?? "translateY(0px)";
-const housePlanetWrapShift =
-  HOUSE_PLANET_WRAPS[anchor.house] ?? "translate(0px, 0px)";
-const planetDensity = getPlanetButtonDensity(
+const planetLayout = getPlanetCardPlacements(
+  anchor.house,
+  layout,
   shownPlanets.length,
-  showNakshatraOnChart,
-  compactPlanetLabels
+  {
+    showDegrees: showDegreesOnChart,
+    showNakshatra: showNakshatraOnChart,
+    isAscHouse,
+    hasAscDegree: typeof ascDegree === "number" && Number.isFinite(ascDegree),
+  }
 );
-const planetButtonSizeClass = getPlanetButtonSizeClass(planetDensity);
+const planetDensity = planetLayout.density;
 const technicalRow = technicalBadges.length ? (
   <div
     className="flex w-full flex-wrap justify-center gap-x-[4px] gap-y-0"
@@ -1054,154 +1754,141 @@ const technicalRow = technicalBadges.length ? (
   </div>
 ) : null;
             const houseSarva = sarvaAshtakvarga?.[anchor.house - 1];
+            const houseCenter = getHouseCentroid(anchor.house, layout);
             return (
-             <div
+<div
   key={anchor.house}
-  className="absolute"
+  className="absolute inset-0 pointer-events-none"
   style={{
-    left: anchor.x - anchor.width / 2,
-    top: anchor.y,
-    width: anchor.width,
-    minHeight: anchor.minHeight ?? 104,
+    clipPath: getHouseClipPath(anchor.house, layout),
+    WebkitClipPath: getHouseClipPath(anchor.house, layout),
   }}
 >
-  <div style={{ transform: houseContentShift }}>
-    <div className="flex flex-col items-center">
-      <div
-        className={`text-[15px] font-semibold leading-none ${
-          isAscHouse ? "text-indigo-700" : "text-slate-700"
-        }`}
-        style={{ transform: houseLabelShift }}
-      >
-                {houseLabel}
-        {typeof houseSarva === "number" ? (
-          <span className="ml-1 text-[9px] font-medium text-slate-400">
-            {houseSarva}
-          </span>
+        {/* House number is positioned independently at the true geometric centre. */}
+        <div
+          className="absolute z-20 flex flex-col items-center justify-center pointer-events-none"
+          style={{
+            left: houseCenter.x,
+            top: houseCenter.y,
+            transform: "translate(-50%, -50%)",
+            minWidth: "24px",
+            textAlign: "center",
+            whiteSpace: "nowrap",
+          }}
+        >
+          <div
+            className={`text-[15px] font-semibold leading-none ${
+              isAscHouse ? "text-indigo-700" : "text-slate-700"
+            }`}
+          >
+            {houseLabel}
+            {typeof houseSarva === "number" ? (
+              <span className="ml-1 text-[9px] font-medium text-slate-400">
+                {houseSarva}
+              </span>
+            ) : null}
+          </div>
+          {isAscHouse && showDegreesOnChart && typeof ascDegree === "number" && Number.isFinite(ascDegree) ? (
+            <button
+              type="button"
+              onClick={() => {
+                setSelected(null);
+                setHovered(null);
+                setShowAscendantDetails(true);
+              }}
+              className="pointer-events-auto mt-1 cursor-pointer rounded px-1 text-[10px] font-semibold leading-none text-indigo-700 hover:bg-indigo-50 hover:underline"
+              title="Click to view Ascendant details"
+            >
+              Asc {ascDegree.toFixed(2)}°
+            </button>
+          ) : null}
+        </div>
+
+        {technicalPlacement === "top" && technicalRow ? (
+          <div className="absolute z-10 pointer-events-none" style={{ left: anchor.x - anchor.width / 2, top: anchor.y - 10, width: anchor.width }}>
+            {technicalRow}
+          </div>
+        ) : null}
+
+        {shownPlanets.map((p, idx) => {
+          const placement = planetLayout.placements[idx];
+          if (!placement) return null;
+          const isTransitPlanet = !!p.isTransit;
+          const isActive = selected?.planet === p.planet && selected?.isTransit === p.isTransit;
+          const isHovered = hovered?.planet === p.planet && hovered?.isTransit === p.isTransit;
+
+          return (
+            <button
+              key={`${isTransitPlanet ? "transit" : "natal"}-${anchor.house}-${p.planet}-${idx}`}
+              type="button"
+              style={{
+                position: "absolute",
+                left: placement.left,
+                top: placement.top,
+                width: placement.width,
+                height: placement.height,
+                minWidth: 0,
+                minHeight: 0,
+                padding: "1px 1px",
+                lineHeight: 1,
+                borderRadius: "6px",
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                boxSizing: "border-box",
+                textAlign: "center",
+                zIndex: isActive ? 15 : 10,
+                outline: p.retrograde ? "2.5px solid #0ea5e9" : "none",
+                outlineOffset: "-1px",
+              }}
+              onMouseEnter={() => setHovered(p)}
+              onMouseLeave={() => setHovered((curr) =>
+                curr?.planet === p.planet && curr?.isTransit === p.isTransit ? null : curr
+              )}
+              onClick={() => {
+                setShowAscendantDetails(false);
+                setHovered(null);
+                setSelected(p);
+                onPlanetClick?.(p);
+              }}
+              className={`inline-flex flex-col items-center justify-center border font-medium leading-none transition-colors ${
+                highlightSet.has(p.planet)
+                  ? "border-indigo-200 bg-indigo-50 text-indigo-800"
+                  : p.isSynastryOverlay
+                    ? "border-violet-200 bg-violet-50 text-violet-800"
+                    : isTransitPlanet
+                      ? "border-emerald-100 bg-emerald-50/90 text-emerald-800"
+                      : "border-orange-100 bg-orange-50/90 text-orange-800"
+              } ${isActive ? "border-indigo-500 ring-1 ring-indigo-300" : isHovered ? "brightness-95" : "hover:brightness-95"}`}
+              title={getPlanetTitle(p)}
+            >
+              <span className="flex flex-col items-center leading-none">
+                {showDegreesOnChart && typeof p.degree === "number" ? (
+                  <span
+                    className={getPlanetDegreeClass(isTransitPlanet, planetDensity)}
+                    style={{ fontSize: `${planetLayout.degreeFontSize}px`, marginTop: 0, lineHeight: `${planetLayout.degreeFontSize}px` }}
+                  >
+                    {p.degree.toFixed(1)}°
+                  </span>
+                ) : null}
+                <span className="whitespace-nowrap font-semibold" style={{ fontSize: `${planetLayout.labelFontSize}px`, lineHeight: `${planetLayout.labelFontSize}px` }}>
+                  {formatPlanetLabel(p)}
+                </span>
+                {showNakshatraOnChart && getNakshatraShort(p.nakshatra) ? (
+                  <span className={getNakshatraClass(planetDensity)} style={{ fontSize: `${planetLayout.nakshatraFontSize}px`, lineHeight: `${planetLayout.nakshatraFontSize}px` }}>
+                    {getNakshatraShort(p.nakshatra)}
+                  </span>
+                ) : null}
+              </span>
+            </button>
+          );
+        })}
+
+        {technicalPlacement === "bottom" && technicalRow ? (
+          <div className="absolute z-10 pointer-events-none" style={{ left: anchor.x - anchor.width / 2, top: anchor.y + 24, width: anchor.width }}>
+            {technicalRow}
+          </div>
         ) : null}
       </div>
-
-      {isAscHouse &&
-  showDegreesOnChart &&
-  typeof ascDegree === "number" &&
-  Number.isFinite(ascDegree) && (
-    <button
-      type="button"
-      onClick={() => {
-        setSelected(null);
-        setHovered(null);
-        setShowAscendantDetails(true);
-      }}
-      className="mt-1 cursor-pointer rounded px-1 text-[10px] font-semibold leading-none text-indigo-700 hover:bg-indigo-50 hover:underline"
-      title="Click to view Ascendant details"
-    >
-      Asc {ascDegree.toFixed(2)}°
-    </button>
-  )}
-    </div>
-
-    {technicalPlacement === "top" ? (
-  <div
-    className="mt-[3px]"
-    style={{ transform: technicalTransform }}
-  >
-    {technicalRow}
-  </div>
-) : null}
-                <div
-                  className="mt-1 flex flex-wrap content-start justify-center gap-x-1 gap-y-[3px]"
-                  style={{
-                    maxHeight: houseMaxHeight,
-                    transform: `${housePlanetWrapShift} ${planetShift}`,
-                  }}
-                  title={allForTitle.map(getPlanetTitle).join(" • ")}
-                >
-                  {shownPlanets.map((p, idx) => {
-                    const isTransitPlanet = !!p.isTransit;
-                    const isActive = selected?.planet === p.planet && selected?.isTransit === p.isTransit;
-                    const isHovered = hovered?.planet === p.planet && hovered?.isTransit === p.isTransit;
-
-                    return (
-                      <button
-                        key={`${isTransitPlanet ? "transit" : "natal"}-${anchor.house}-${p.planet}-${idx}`}
-                        type="button"
-                        onMouseEnter={() => setHovered(p)}
-                        onMouseLeave={() =>
-                          setHovered((curr) =>
-                            curr?.planet === p.planet && curr?.isTransit === p.isTransit ? null : curr
-                          )
-                        }
-                        onClick={() => {
-  setShowAscendantDetails(false);
-  setHovered(null);
-  setSelected(p);
-  onPlanetClick?.(p);
-}}
-                        className={`${planetButtonSizeClass} font-medium leading-none shadow-sm transition ${
-                          p.isSynastryOverlay
-                            ? p.retrograde
-                              ? "border-2 border-sky-400 bg-violet-50 text-violet-700"
-                              : "border border-violet-200 bg-violet-50 text-violet-700"
-                            : isTransitPlanet
-                              ? p.retrograde
-                                ? isActive
-                                  ? "border-2 border-sky-400 bg-emerald-100 text-emerald-700"
-                                  : isHovered
-                                    ? "border-2 border-sky-400 bg-emerald-50 text-emerald-700"
-                                    : "border-2 border-sky-400 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
-                                : highlightSet.has(p.planet)
-                                  ? "border border-indigo-300 bg-indigo-50 text-indigo-700"
-                                  : isActive
-                                    ? "border border-emerald-200 bg-emerald-100 text-emerald-700"
-                                    : isHovered
-                                      ? "border border-emerald-200 bg-emerald-50 text-emerald-700"
-                                      : "border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
-                              : p.retrograde
-                                ? isActive
-                                  ? "border-2 border-sky-400 bg-orange-100 text-orange-800"
-                                  : isHovered
-                                    ? "border-2 border-sky-400 bg-orange-50 text-orange-700"
-                                    : "border-2 border-sky-400 bg-orange-50 text-orange-700 hover:bg-orange-100"
-                                : p.planet === "Moon"
-                                  ? "border border-orange-200 bg-orange-50 text-orange-700"
-                                  : isActive
-                                    ? "border border-orange-300 bg-orange-100 text-orange-800"
-                                    : isHovered
-                                      ? "border border-orange-200 bg-orange-50 text-orange-700"
-                                      : "border border-orange-200 bg-orange-50 text-orange-700 hover:bg-orange-100"
-                        }`}
-                        title={getPlanetTitle(p)}
-                      >
-                        <span className="flex flex-col items-center leading-none">
-  {showDegreesOnChart && typeof p.degree === "number" ? (
-    <span className={getPlanetDegreeClass(isTransitPlanet, planetDensity)}>
-      {p.degree.toFixed(1)}°
-    </span>
-  ) : null}
-
-  <span className="font-semibold">{formatPlanetLabel(p)}</span>
-
-  {showNakshatraOnChart && getNakshatraShort(p.nakshatra) ? (
-    <span className={getNakshatraClass(planetDensity)}>
-      {getNakshatraShort(p.nakshatra)}
-    </span>
-  ) : null}
-</span>
-                      </button>
-                    );
-                  })}
-                </div>
-
-{technicalPlacement === "bottom" ? (
-  <div
-    className="mt-[3px]"
-    style={{ transform: technicalTransform }}
-  >
-    {technicalRow}
-  </div>
-) : null}
-  </div>
-</div>
             );
           })}
 
