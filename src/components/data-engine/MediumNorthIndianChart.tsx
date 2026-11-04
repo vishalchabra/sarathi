@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
@@ -949,6 +949,61 @@ function getHouseContentRect(house: number, layout: LayoutConfig, totalPlanets: 
   };
 }
 
+
+// Place technical badges inside their house before placing planets.
+// Each badge has a dedicated rectangle; planet cards avoid these rectangles.
+type TechnicalBadge = ReturnType<typeof getTechnicalBadges>[number];
+type TechnicalBadgePlacement = { left: number; top: number; width: number; height: number };
+
+function getTechnicalBadgePlacements(
+  house: number,
+  layout: LayoutConfig,
+  badges: TechnicalBadge[],
+  isAscHouse: boolean,
+  hasAscDegree: boolean
+): TechnicalBadgePlacement[] {
+  if (!badges.length) return [];
+  const polygon = getHousePolygon(house, layout);
+  const center = getHouseCentroid(house, layout);
+  const labelWidth = isAscHouse ? (hasAscDegree ? 74 : 42) : 34;
+  const labelHeight = isAscHouse ? (hasAscDegree ? 48 : 34) : 28;
+  const labelRect = { left: center.x - labelWidth / 2, top: center.y - labelHeight / 2, width: labelWidth, height: labelHeight };
+  const overlaps = (a: TechnicalBadgePlacement, b: TechnicalBadgePlacement, gap = 2) =>
+    a.left < b.left + b.width + gap && a.left + a.width + gap > b.left &&
+    a.top < b.top + b.height + gap && a.top + a.height + gap > b.top;
+  const minX = Math.min(...polygon.map(p => p.x));
+  const maxX = Math.max(...polygon.map(p => p.x));
+  const minY = Math.min(...polygon.map(p => p.y));
+  const maxY = Math.max(...polygon.map(p => p.y));
+  const placed: TechnicalBadgePlacement[] = [];
+  for (const badge of badges) {
+    const width = Math.max(23, badge.label.length * 6 + 10);
+    const height = 15;
+    const candidates: Array<TechnicalBadgePlacement & { score: number }> = [];
+    for (let top = minY + 3; top + height < maxY - 3; top += 3) {
+      for (let left = minX + 3; left + width < maxX - 3; left += 3) {
+        const rect = { left, top, width, height };
+        const corners = [
+          { x: left + 2, y: top + 2 }, { x: left + width - 2, y: top + 2 },
+          { x: left + 2, y: top + height - 2 }, { x: left + width - 2, y: top + height - 2 }
+        ];
+        if (!corners.every(p => isPointInsidePolygon(p, polygon))) continue;
+        if (overlaps(rect, labelRect, 3) || placed.some(p => overlaps(rect, p, 3))) continue;
+        // Prefer the house edge, leaving the centre available for planets.
+        const edgePreference = TECHNICAL_PLACEMENT[house] === "top" ? top : -top;
+        const score = edgePreference * 2 + Math.abs(left + width / 2 - center.x) * 0.35;
+        candidates.push({ ...rect, score });
+      }
+    }
+    candidates.sort((a, b) => a.score - b.score);
+    if (candidates.length) {
+      const { score: _score, ...rect } = candidates[0];
+      placed.push(rect);
+    }
+  }
+  return placed;
+}
+
 type PlanetCardPlacement = { left: number; top: number; width: number; height: number };
 
 /**
@@ -968,6 +1023,7 @@ function getPlanetCardPlacements(
     showNakshatra: boolean;
     isAscHouse: boolean;
     hasAscDegree: boolean;
+    reservedRects?: TechnicalBadgePlacement[];
   }
 ): {
   placements: PlanetCardPlacement[];
@@ -1072,7 +1128,11 @@ const rowStep = cardHeight + (count >= 7 ? 2 : 4);
             top < labelRect.bottom &&
             top + cardHeight > labelRect.top;
 
-          if (!overlapsLabel && fitsPolygon(left, top, cardWidth, cardHeight)) {
+          const overlapsTechnical = (options.reservedRects ?? []).some(rect =>
+            left < rect.left + rect.width + 2 && left + cardWidth + 2 > rect.left &&
+            top < rect.top + rect.height + 2 && top + cardHeight + 2 > rect.top
+          );
+          if (!overlapsLabel && !overlapsTechnical && fitsPolygon(left, top, cardWidth, cardHeight)) {
             validXs.push(left);
           }
         }
@@ -1715,6 +1775,11 @@ const transitPlanetsByHouse = useMemo(
   showUpagrahas
 );
 
+const technicalPlacements = getTechnicalBadgePlacements(
+  anchor.house, layout, technicalBadges, isAscHouse,
+  typeof ascDegree === "number" && Number.isFinite(ascDegree)
+);
+
 const planetLayout = getPlanetCardPlacements(
   anchor.house,
   layout,
@@ -1724,6 +1789,7 @@ const planetLayout = getPlanetCardPlacements(
     showNakshatra: showNakshatraOnChart,
     isAscHouse,
     hasAscDegree: typeof ascDegree === "number" && Number.isFinite(ascDegree),
+    reservedRects: technicalPlacements,
   }
 );
 const planetDensity = planetLayout.density;
@@ -1821,12 +1887,12 @@ const planetDensity = planetLayout.density;
               }}
               className={`inline-flex flex-col items-center justify-center border font-medium leading-none transition-colors ${
                 highlightSet.has(p.planet)
-                  ? "border-indigo-200 bg-indigo-50 text-indigo-800"
+                  ? "border-indigo-400 bg-indigo-100 text-indigo-900"
                   : p.isSynastryOverlay
-                    ? "border-violet-200 bg-violet-50 text-violet-800"
+                    ? "border-violet-400 bg-violet-100 text-violet-900"
                     : isTransitPlanet
-                      ? "border-emerald-100 bg-emerald-50/90 text-emerald-800"
-                      : "border-orange-100 bg-orange-50/90 text-orange-800"
+                      ? "border-emerald-400 bg-emerald-100 text-emerald-900"
+                      : "border-[#E7B5A5] bg-[#FBE9E2] text-[#451A12] font-extrabold"
               } ${isActive ? "border-indigo-500 ring-1 ring-indigo-300" : isHovered ? "brightness-95" : "hover:brightness-95"}`}
               title={getPlanetTitle(p)}
             >
@@ -1855,7 +1921,7 @@ const planetDensity = planetLayout.density;
     );
   })}
 
-{/* Independent technical overlay: outside house clipping layers */}
+{/* Technical labels use reserved, collision-free house positions. */}
 {layout.anchors.map((anchor) => {
   const badges = getTechnicalBadges(
     arudhasByHouse.get(anchor.house) ?? [],
@@ -1863,40 +1929,30 @@ const planetDensity = planetLayout.density;
     showArudhas,
     showUpagrahas
   );
-
-  if (!badges.length) return null;
-
-  const placement = TECHNICAL_PLACEMENT[anchor.house] ?? "bottom";
-
-  return (
-    <div
-      key={`technical-overlay-${anchor.house}`}
-      className="pointer-events-none absolute z-20 flex flex-wrap justify-center gap-x-[4px] gap-y-0"
-      style={{
-        left: anchor.x - anchor.width / 2,
-        top: placement === "top" ? anchor.y - 10 : anchor.y + 24,
-        width: anchor.width,
-        lineHeight: "10px",
-        overflow: "visible",
-      }}
-    >
-      {badges.map((badge) => (
-        <span
-          key={`${anchor.house}-${badge.key}`}
-          title={badge.title}
-          className={
-            badge.type === "arudha"
-              ? "text-[6px] font-semibold text-fuchsia-600"
-              : badge.type === "upagraha"
-                ? "text-[6px] font-semibold text-violet-600"
-                : "text-[6px] font-semibold text-cyan-600"
-          }
-        >
-          {badge.label}
-        </span>
-      ))}
-    </div>
+  const positions = getTechnicalBadgePlacements(
+    anchor.house, layout, badges, anchor.house === 1,
+    typeof ascDegree === "number" && Number.isFinite(ascDegree)
   );
+  return badges.map((badge, index) => {
+    const pos = positions[index];
+    if (!pos) return null;
+    return (
+      <span
+        key={`technical-${anchor.house}-${badge.key}`}
+        title={badge.title ?? badge.label}
+        className={`pointer-events-none absolute z-20 flex items-center justify-center rounded border text-[9px] font-bold leading-none ${
+          badge.type === "arudha"
+            ? "border-fuchsia-300 bg-fuchsia-100 text-fuchsia-800"
+            : badge.type === "upagraha"
+              ? "border-violet-300 bg-violet-100 text-violet-800"
+              : "border-cyan-300 bg-cyan-100 text-cyan-800"
+        }`}
+        style={{ left: pos.left, top: pos.top, width: pos.width, height: pos.height }}
+      >
+        {badge.label}
+      </span>
+    );
+  });
 })}
           {/* Professional outer house-aspect rail: outside the chart lines, not inside houses. */}
           {showAspects ? Array.from({ length: 12 }, (_, i) => i + 1).map((house) => {
