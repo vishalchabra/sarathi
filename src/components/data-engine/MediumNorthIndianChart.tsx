@@ -1879,13 +1879,13 @@ const planetDensity = planetLayout.density;
               onMouseLeave={() => setHovered((curr) =>
                 curr?.planet === p.planet && curr?.isTransit === p.isTransit ? null : curr
               )}
-              onClick={() => {
-                setShowAscendantDetails(false);
-                setHovered(null);
-                setSelected(p);
-                onPlanetClick?.(p);
-              }}
-              className={`inline-flex flex-col items-center justify-center border font-medium leading-none transition-colors ${
+           onClick={() => {
+  setShowAscendantDetails(false);
+  setHovered(null);
+  setSelected(p);
+  onPlanetClick?.(p);
+}}
+              className={`pointer-events-auto cursor-pointer inline-flex flex-col items-center justify-center border font-medium leading-none transition-colors ${
                 highlightSet.has(p.planet)
                   ? "border-indigo-400 bg-indigo-100 text-indigo-900"
                   : p.isSynastryOverlay
@@ -2097,7 +2097,7 @@ const planetDensity = planetLayout.density;
   </div>
 ) : null}
 
-      {showPlanetDetails && activePlanet ? (
+      {activePlanet ? (
         <div className="mt-4 rounded-xl border border-[color:var(--border)] bg-slate-50 p-4 shadow-sm">
           <div className="text-sm font-semibold text-slate-900">{activePlanet?.planet ?? "Planet"}</div>
 
