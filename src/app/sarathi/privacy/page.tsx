@@ -138,6 +138,39 @@ export default function PrivacyPage() {
   obligations and contractual arrangements.
 </P>
 
+      <H>Cookies, analytics and advertising</H>
+      <P>
+        Sārathi uses cookies and similar technologies to operate the website,
+        understand how visitors use our services, and measure the effectiveness
+        of marketing campaigns.
+      </P>
+      <UL>
+        <li>
+          Essential technologies support core website functionality, including
+          authentication, security and account access.
+        </li>
+        <li>
+          Google Analytics may collect information about page visits, browser
+          characteristics, device information and interactions to help us
+          understand and improve website performance.
+        </li>
+        <li>
+          Meta Pixel may collect information about page visits and interactions
+          to measure advertising performance and support advertising activities
+          on Meta platforms, including Facebook and Instagram.
+        </li>
+      </UL>
+      <P>
+        Analytics and advertising providers may process technical identifiers,
+        such as cookies and IP addresses, in accordance with their respective
+        privacy policies. We do not intentionally send birth details, astrology
+        questions or report contents to these advertising tools.
+      </P>
+      <P>
+        Where consent is required, optional analytics and marketing technologies
+        will be activated only after the relevant consent is provided. Visitors
+        may reject optional tracking or change their preferences later.
+      </P>
       <H>6. Data storage and retention</H>
       <P>
         We retain information for as long as reasonably necessary to provide the

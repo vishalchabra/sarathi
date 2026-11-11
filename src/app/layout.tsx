@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 
 import "./globals.css";
 import ServiceWorkerRegister from "@/components/pwa/ServiceWorkerRegister";
-import { GoogleAnalytics } from "@next/third-parties/google";
+import CookieConsent from "@/components/consent/CookieConsent";
+import ConsentTracking from "@/components/consent/ConsentTracking";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.sarathiyourguide.com"),
@@ -206,7 +208,10 @@ export default function RootLayout({
 
         {children}
 
-        <GoogleAnalytics gaId="G-WKFJ595D05" />
+        <CookieConsent />
+        <Suspense fallback={null}>
+          <ConsentTracking />
+        </Suspense>
       </body>
     </html>
   );
