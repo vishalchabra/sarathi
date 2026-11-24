@@ -1,0 +1,54 @@
+# Environment files and credentials
+.env*
+**/.env*
+!.env.example
+!**/.env.example
+**/*.pem
+
+# Local Vercel configuration
+.vercel/
+
+# Dependencies and generated build outputs
+node_modules/
+**/node_modules/
+.next/
+**/.next/
+out/
+build/
+coverage/
+**/*.tsbuildinfo
+
+# Local diagnostic output and audit reports
+*.log
+daily-*.txt
+moon-*.txt
+*-audit.txt
+*-review.txt
+*-regression.json
+*-comparison.txt
+*-inventory.txt
+*-callers.txt
+*-themes.txt
+*-source.txt
+*-diagnostic.txt
+staged-changes.txt
+tree.txt
+vercel-debug-output.txt
+vercel-dry-run*.json
+vercel-files-check.json
+testPadaExpressionModes.ts
+
+# Temporary backups
+console-cleanup-backup/
+**/*.bak
+**/*.bak-*
+**/*.step*.bak
+**/*.backup
+**/*.backup-*
+**/*.backup.*
+**/*.before-*
+**/*.pre-*
+
+# Exclude the entire mobile application
+/mobile/
+vercel-dry-run*.txt
