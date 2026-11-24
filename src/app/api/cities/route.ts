@@ -1,4 +1,4 @@
-﻿import "server-only";
+import "server-only";
 
 import { NextRequest, NextResponse } from "next/server";
 import tzlookup from "tz-lookup";
@@ -129,8 +129,3 @@ export async function GET(request: NextRequest) {
     );
   }
 }
-
-
-
-
-
