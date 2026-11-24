@@ -326,12 +326,31 @@ function signDistance(from?: string | null, to?: string | null) {
   return ((b - a + 12) % 12) + 1;
 }
 
+
+function normalizeNakshatraName(value?: string | null) {
+  return String(value ?? "")
+    .replace(/\s+/g, "")
+    .toLowerCase()
+    .trim();
+}
+
 function nakDistance(from?: string | null, to?: string | null) {
-  const a = NAKSHATRAS.indexOf(clean(from));
-  const b = NAKSHATRAS.indexOf(clean(to));
+  const fromKey = normalizeNakshatraName(from);
+  const toKey = normalizeNakshatraName(to);
+
+  const a = NAKSHATRAS.findIndex(
+    (name) => normalizeNakshatraName(name) === fromKey
+  );
+
+  const b = NAKSHATRAS.findIndex(
+    (name) => normalizeNakshatraName(name) === toKey
+  );
+
   if (a < 0 || b < 0) return null;
+
   return ((b - a + 27) % 27) + 1;
 }
+
 
 function relation(from: string, to: string) {
   const rel = PLANET_RELATION[from];

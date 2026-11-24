@@ -1,7 +1,10 @@
 "use client";
 
 import { buildGunaMilan } from "@/lib/astrology/matchmaking/buildGunaMilan";
-
+import {
+  buildMangalDoshaData,
+  buildMangalCancellationData,
+} from "@/lib/astrology/matchmaking/buildMangalDosha";
 function getAvakhada(data: any) {
   return data?.strength?.avakhada ?? null;
 }
@@ -143,146 +146,6 @@ const SIGN_ORDER = [
   "Pisces",
 ];
 
-function houseFromSign(targetSign?: string | null, referenceSign?: string | null) {
-  const targetIndex = SIGN_ORDER.indexOf(String(targetSign ?? ""));
-  const referenceIndex = SIGN_ORDER.indexOf(String(referenceSign ?? ""));
-
-  if (targetIndex < 0 || referenceIndex < 0) return null;
-
-  return ((targetIndex - referenceIndex + 12) % 12) + 1;
-}
-
-function buildMangalDoshaData(data: any) {
-  const mars = getPlanet(data, "Mars");
-  const moon = getPlanet(data, "Moon");
-  const venus = getPlanet(data, "Venus");
-
-  const ascSign =
-    data?.foundations?.ascendant?.sign ??
-    data?.foundations?.natal?.ascendant?.sign ??
-    null;
-
-  // Exact Lagna-house from the same natal engine used by Charts tab.
-  const marsHouseFromLagna =
-    typeof mars?.house === "number" ? mars.house : null;
-
-  const marsHouseFromMoon = houseFromSign(mars?.sign, moon?.sign);
-  const marsHouseFromVenus = houseFromSign(mars?.sign, venus?.sign);
-
-  const lagnaDosha =
-    typeof marsHouseFromLagna === "number" &&
-    MANGAL_DOSHA_HOUSES.includes(marsHouseFromLagna);
-
-  const moonDosha =
-    typeof marsHouseFromMoon === "number" &&
-    MANGAL_DOSHA_HOUSES.includes(marsHouseFromMoon);
-
-  const venusDosha =
-    typeof marsHouseFromVenus === "number" &&
-    MANGAL_DOSHA_HOUSES.includes(marsHouseFromVenus);
-
-  const count = [lagnaDosha, moonDosha, venusDosha].filter(Boolean).length;
-
-  let level = "None";
-  if (count === 1) level = "Low";
-  if (count === 2) level = "Medium";
-  if (count === 3) level = "High";
-
-  return {
-    mars,
-    moon,
-    venus,
-    ascSign,
-    marsHouseFromLagna,
-    marsHouseFromMoon,
-    marsHouseFromVenus,
-    lagnaDosha,
-    moonDosha,
-    venusDosha,
-    triggerCount: count,
-    level,
-  };
-}
-
-function hasSameHouseConjunction(p1: any, p2: any) {
-  return (
-    p1 &&
-    p2 &&
-    typeof p1.house === "number" &&
-    typeof p2.house === "number" &&
-    p1.house === p2.house
-  );
-}
-
-function hasJupiterAspectOnMars(data: any) {
-  const mars = getPlanet(data, "Mars");
-  const jupiter = getPlanet(data, "Jupiter");
-
-  if (!mars || !jupiter) return false;
-
-  const marsHouse = mars.house;
-  const jupiterHouse = jupiter.house;
-
-  if (typeof marsHouse !== "number" || typeof jupiterHouse !== "number") {
-    return false;
-  }
-
-  const distance = ((marsHouse - jupiterHouse + 12) % 12) + 1;
-
-  // Jupiter aspects 5th, 7th, and 9th from itself.
-  return [5, 7, 9].includes(distance);
-}
-
-function buildMangalCancellationData(data: any, mangal: any) {
-  const mars = getPlanet(data, "Mars");
-  const moon = getPlanet(data, "Moon");
-  const jupiter = getPlanet(data, "Jupiter");
-
-  const marsSign = mars?.sign ?? null;
-
-  const checks = [
-    {
-      label: "Mars in own sign",
-      value: marsSign === "Aries" || marsSign === "Scorpio",
-      note: "Mars in Aries or Scorpio",
-    },
-    {
-      label: "Mars exalted",
-      value: marsSign === "Capricorn",
-      note: "Mars in Capricorn",
-    },
-    {
-      label: "Mars debilitated",
-      value: marsSign === "Cancer",
-      note: "Mars in Cancer",
-    },
-    {
-      label: "Mars with Jupiter",
-      value: hasSameHouseConjunction(mars, jupiter),
-      note: "Mars and Jupiter in same house",
-    },
-    {
-      label: "Jupiter aspect on Mars",
-      value: hasJupiterAspectOnMars(data),
-      note: "Jupiter aspects Mars by 5th, 7th, or 9th aspect",
-    },
-    {
-      label: "Mars with Moon",
-      value: hasSameHouseConjunction(mars, moon),
-      note: "Mars and Moon in same house",
-    },
-  ];
-
-  const active = checks.filter((c) => c.value);
-
-  return {
-    checks,
-    activeCount: active.length,
-    activeLabels: active.map((c) => c.label),
-    hasCancellation: active.length > 0,
-    mangalLevel: mangal?.level ?? "None",
-  };
-}
 
 function formatHouseCheck(house: any, active: boolean) {
   const houseLabel = typeof house === "number" ? `House ${house}` : "—";

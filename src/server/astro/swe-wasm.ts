@@ -178,3 +178,23 @@ export async function getSwissHouseCusps(input: {
     vertex: siderealize(vertex),
   };
 }
+
+export async function sweGetLahiriAyanamsaUt(
+  jdUt: number
+): Promise<number> {
+  const s = await getEph();
+
+  s.swe_set_sid_mode(
+    SWE_CONST.SE_SIDM_LAHIRI,
+    0,
+    0
+  );
+
+  const ayanamsa = Number(s.swe_get_ayanamsa_ut(jdUt));
+
+  if (!Number.isFinite(ayanamsa)) {
+    throw new Error("Invalid Lahiri ayanamsa");
+  }
+
+  return ayanamsa;
+}

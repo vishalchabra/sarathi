@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { Suspense } from "react";
@@ -315,45 +315,19 @@ if (cityCache.has(query)) {
 timerRef.current = window.setTimeout(async () => {
   setLoading(true);
   try {
-    const url = `https://nominatim.openstreetmap.org/search?format=json&limit=5&addressdetails=1&accept-language=en&q=${encodeURIComponent(query)}`;
+    const res = await fetch(`/api/cities?q=${encodeURIComponent(query)}`);
+    if (!res.ok) throw new Error("City search failed");
 
-    const res = await fetch(url, {
-      headers: { "Accept-Language": "en" },
-      referrerPolicy: "no-referrer",
-    });
+    const json = (await res.json()) as {
+      ok: boolean;
+      cities: Array<{ name: string; lat: number; lon: number; timezone: string }>;
+    };
 
-    const json = (await res.json()) as any[];
-   const out = json.map((r) => {
-  const city =
-    r.address?.city ||
-    r.address?.town ||
-    r.address?.village ||
-    r.address?.municipality ||
-    r.address?.hamlet ||
-    r.address?.county ||
-    r.address?.region;
+    if (!json.ok) throw new Error("City search failed");
 
-  const state =
-    r.address?.state ||
-    r.address?.state_district ||
-    r.address?.province ||
-    r.address?.region ||
-    "";
-
-  const country = r.address?.country || "";
-
-  return {
-    name: [city, state, country]
-      .filter(Boolean)
-      .filter((value, index, arr) => arr.indexOf(value) === index)
-      .join(", ") || r.display_name,
-    lat: +r.lat,
-    lon: +r.lon,
-  };
-});
-
-    cityCache.set(query, out);
-    setItems(out);
+    const cities = json.cities.map(({ name, lat, lon }) => ({ name, lat, lon }));
+    cityCache.set(query, cities);
+    setItems(cities);
     setOpen(true);
   } catch {
     setItems([]);
@@ -3889,3 +3863,5 @@ export default function DataEnginePage() {
     </Suspense>
   );
 }
+
+
