@@ -1,3 +1,4 @@
+import MetaDiscoveryTracking from "@/components/consent/MetaDiscoveryTracking";
 // FILE: src/app/sarathi/page.tsx
 import Link from "next/link";
 import { createSEO } from "@/lib/seo";
@@ -30,6 +31,7 @@ export default async function SarathiHome() {
   } = await supabase.auth.getUser();
   return (
     <main className="astro-bg min-h-screen text-foreground">
+      {!user && <MetaDiscoveryTracking page="home" />}
       <div className="pointer-events-none fixed inset-0 -z-10">
         <div className="absolute left-1/2 top-[-220px] h-[520px] w-[980px] -translate-x-1/2 rounded-full bg-[color:var(--primary)]/20 blur-[140px]" />
         <div className="absolute left-[12%] top-[30%] h-[380px] w-[520px] rounded-full bg-amber-200/25 blur-[130px]" />
@@ -234,14 +236,14 @@ function JourneyCard({
 
 <div className="mt-auto flex flex-col gap-3 pt-8 sm:flex-row">
   <Link
-    href={primaryHref}
+    href={primaryHref} data-sarathi-action={primaryHref === "/sarathi/astrologers" ? "explore" : undefined}
     className="inline-flex justify-center rounded-full bg-[color:var(--primary)] px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90"
   >
     {primaryCta}
   </Link>
 
   <Link
-    href={secondaryHref}
+    href={secondaryHref} data-sarathi-action={secondaryHref === "/sarathi/astrologers/login?next=/sarathi/data-engine" ? "engine" : undefined}
     className="inline-flex justify-center rounded-full astro-card px-5 py-2.5 text-sm font-semibold text-foreground hover:bg-white/80 hover:shadow-md"
   >
     {secondaryCta}

@@ -2,6 +2,8 @@
 
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
+import { META_PIXEL_ID, isMetaPublicPath } from "@/lib/meta/events";
+import { waitForMetaConsentSync } from "@/lib/meta/consent-client";
 import {
   CONSENT_EVENT,
   readConsent,
@@ -9,7 +11,11 @@ import {
 } from "./CookieConsent";
 
 const GA_ID = "G-WKFJ595D05";
-const PIXEL_ID = "1143945841442638";
+const PIXEL_ID = META_PIXEL_ID;
+
+// Browser Pixel must remain disabled until public
+// marketing pages are isolated from private app pages.
+const META_BROWSER_ISOLATION_READY: boolean = false;
 
 type TrackingWindow = Window & {
   dataLayer?: unknown[];
@@ -27,6 +33,8 @@ type TrackingWindow = Window & {
 
 let gaLoaded = false;
 let pixelLoaded = false;
+let metaPermissionRequestId = 0;
+let metaServerPermitted = false;
 
 let preferences: ConsentPreferences = {
   analytics: false,
@@ -67,6 +75,10 @@ function setupGA(win: TrackingWindow) {
 }
 
 function setupPixel(win: TrackingWindow) {
+  if (!META_BROWSER_ISOLATION_READY) {
+    return;
+  }
+
   const fbq = ((...args: unknown[]) => {
     if (fbq.callMethod) {
       fbq.callMethod(...args);
@@ -86,6 +98,8 @@ function setupPixel(win: TrackingWindow) {
   win.fbq = fbq;
   win._fbq = fbq;
 
+  fbq("consent", "revoke");
+  fbq("set", "autoConfig", false, PIXEL_ID);
   fbq("init", PIXEL_ID);
 
   const script = document.createElement("script");
@@ -97,7 +111,100 @@ function setupPixel(win: TrackingWindow) {
   pixelLoaded = true;
 }
 
+function isMetaLocallyPermitted(): boolean {
+  return (
+    META_BROWSER_ISOLATION_READY &&
+    preferences.marketing &&
+    isMetaPublicPath(window.location.pathname) &&
+    !window.location.search &&
+    !window.location.hash
+  );
+}
+
+async function updateMetaRoutePermission() {
+  const requestId = ++metaPermissionRequestId;
+  const sourceUrl = window.location.href;
+  const win = window as TrackingWindow;
+
+  metaServerPermitted = false;
+
+  if (pixelLoaded && win.fbq) {
+    win.fbq("consent", "revoke");
+  }
+
+  if (!isMetaLocallyPermitted()) {
+    lastMarketingPath = "";
+    return;
+  }
+
+  try {
+    const consentSyncSuccessful =
+      await waitForMetaConsentSync();
+
+    if (!consentSyncSuccessful) {
+      return;
+    }
+
+    if (
+      requestId !== metaPermissionRequestId ||
+      sourceUrl !== window.location.href ||
+      !isMetaLocallyPermitted()
+    ) {
+      return;
+    }
+
+    const response = await fetch(
+      "/api/meta/permission",
+      {
+        method: "GET",
+        credentials: "same-origin",
+        cache: "no-store",
+        referrerPolicy: "same-origin",
+        signal: AbortSignal.timeout(5000),
+      }
+    );
+
+    if (!response.ok) {
+      return;
+    }
+
+    const result = await response.json();
+
+    if (
+      requestId !== metaPermissionRequestId ||
+      sourceUrl !== window.location.href ||
+      !isMetaLocallyPermitted() ||
+      result.permitted !== true
+    ) {
+      return;
+    }
+
+    metaServerPermitted = true;
+
+    if (!pixelLoaded) {
+      setupPixel(win);
+    }
+
+    if (win.fbq) {
+      win.fbq("consent", "grant");
+
+      const path = window.location.pathname;
+
+      if (
+        metaServerPermitted &&
+        lastMarketingPath !== path
+      ) {
+        win.fbq("track", "PageView");
+        lastMarketingPath = path;
+      }
+    }
+  } catch {
+    // Permission failures must not enable tracking.
+  }
+}
+
 function trackCurrentPage() {
+  void updateMetaRoutePermission();
   const win = window as TrackingWindow;
   const path = window.location.pathname;
 
@@ -114,14 +221,7 @@ function trackCurrentPage() {
     lastAnalyticsPath = path;
   }
 
-  if (
-    preferences.marketing &&
-    win.fbq &&
-    lastMarketingPath !== path
-  ) {
-    win.fbq("track", "PageView");
-    lastMarketingPath = path;
-  }
+
 }
 
 function applyConsent(next: ConsentPreferences) {
@@ -143,9 +243,7 @@ function applyConsent(next: ConsentPreferences) {
     setupGA(win);
   }
 
-  if (next.marketing && !pixelLoaded) {
-    setupPixel(win);
-  }
+
 
   if (previous.analytics && !next.analytics) {
     lastAnalyticsPath = "";
@@ -155,13 +253,7 @@ function applyConsent(next: ConsentPreferences) {
     lastMarketingPath = "";
   }
 
-  if (pixelLoaded && win.fbq) {
-    if (next.marketing) {
-      win.fbq("consent", "grant");
-    } else {
-      win.fbq("consent", "revoke");
-    }
-  }
+
 
   trackCurrentPage();
 }
@@ -184,10 +276,44 @@ export default function ConsentTracking() {
       applyConsent(next);
     };
 
+    const handleStorage = (event: StorageEvent) => {
+      if (
+        event.key !== null &&
+        event.key !== "sarathi_cookie_consent_v1"
+      ) {
+        return;
+      }
+
+      const next = readConsent() ?? {
+        analytics: false,
+        marketing: false,
+      };
+
+      // Invalidate any pending Meta permission request.
+      metaPermissionRequestId++;
+      metaServerPermitted = false;
+
+      const win = window as TrackingWindow;
+
+      if (pixelLoaded && win.fbq) {
+        win.fbq("consent", "revoke");
+      }
+
+      // Apply withdrawal immediately.
+      // A grant from another tab must not automatically
+      // authorise Meta tracking in this tab.
+      applyConsent({
+        analytics: next.analytics,
+        marketing: false,
+      });
+    };
+
     window.addEventListener(CONSENT_EVENT, handleConsent);
+    window.addEventListener("storage", handleStorage);
 
     return () => {
       window.removeEventListener(CONSENT_EVENT, handleConsent);
+      window.removeEventListener("storage", handleStorage);
     };
   }, []);
 

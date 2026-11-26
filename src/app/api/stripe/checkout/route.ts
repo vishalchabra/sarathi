@@ -1,4 +1,7 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
+import { cookies } from "next/headers";
+import { META_CONSENT_COOKIE } from "@/server/meta/consent";
+import { trackDataEngineCheckout } from "@/server/meta/checkout";
 
 import { createClient } from "@/lib/supabase/server";
 import { stripe } from "@/lib/stripe";
@@ -148,6 +151,19 @@ const cancelPath =
         },
         { status: 500 }
       );
+    }
+
+    if (
+      product.code === "data_engine_monthly" &&
+      process.env.META_CONVERSIONS_ENABLED === "true"
+    ) {
+      const cookieStore = await cookies();
+      const consentToken =
+        cookieStore.get(META_CONSENT_COOKIE)?.value;
+
+      after(async () => {
+        await trackDataEngineCheckout(request, session, consentToken);
+      });
     }
 
     return NextResponse.json({

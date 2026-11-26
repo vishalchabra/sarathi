@@ -39,7 +39,7 @@ function Shell({ children }: { children: React.ReactNode }) {
         </h1>
 
         <p className="mt-2 text-sm text-slate-500">
-  Last updated: 1 September 2026
+  Last updated: 26 November 2026
 </p>
 
         <div className="mt-8 space-y-6 rounded-2xl astro-card p-6 text-sm leading-7 text-slate-700">
@@ -155,22 +155,47 @@ export default function PrivacyPage() {
           understand and improve website performance.
         </li>
         <li>
-          Meta Pixel may collect information about page visits and interactions
-          to measure advertising performance and support advertising activities
-          on Meta platforms, including Facebook and Instagram.
+          Where enabled and permitted, Meta Pixel and Meta Conversions API
+          may be used to measure advertising performance on Facebook and
+          Instagram. Conversions API enables selected website interactions
+          and verified business events to be reported from our servers,
+          subject to marketing consent and applicable data-sharing restrictions.
         </li>
       </UL>
       <P>
-        Analytics and advertising providers may process technical identifiers,
-        such as cookies and IP addresses, in accordance with their respective
-        privacy policies. We do not intentionally send birth details, astrology
-        questions or report contents to these advertising tools.
+        Analytics and advertising providers may process limited technical
+        identifiers, including IP addresses, browser information, cookies
+        and advertising click identifiers, where enabled and permitted.
+        Selected advertising events may include registration, trial,
+        checkout and purchase information, including transaction value
+        and currency.
+
+        Our Meta advertising integration is designed to exclude birth
+        details, astrology questions, chart information, client records,
+        report contents, passwords and payment card details.
       </P>
       <P>
         Where consent is required, optional analytics and marketing technologies
         will be activated only after the relevant consent is provided. Visitors
         may reject optional tracking or change their preferences later.
       </P>
+      <P>
+        Marketing consent may be withdrawn through the website cookie
+        preferences. Withdrawal is intended to stop future optional
+        advertising disclosures and does not automatically remove
+        information previously received by advertising providers.
+      </P>
+
+      <P>
+        Our advertising measurement infrastructure uses consent records,
+        pseudonymous event identifiers and limited attribution records.
+        Conversion attribution records are scheduled for expiry after
+        seven days, event delivery records after thirty days, and
+        marketing consent sessions after 180 days, subject to earlier
+        deletion where applicable. Advertising providers may apply
+        separate retention periods under their own privacy policies.
+      </P>
+
       <H>6. Data storage and retention</H>
       <P>
         We retain information for as long as reasonably necessary to provide the

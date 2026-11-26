@@ -1,7 +1,11 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import {
+  syncMetaConsent,
+  retryMetaWithdrawal,
+} from "@/lib/meta/consent-client";
 
 export type ConsentPreferences = {
   analytics: boolean;
@@ -47,6 +51,14 @@ export default function CookieConsent() {
   const [marketing, setMarketing] = useState(false);
 
   useEffect(() => {
+    void retryMetaWithdrawal();
+
+    const retryWithdrawal = () => {
+      void retryMetaWithdrawal();
+    };
+
+    window.addEventListener("online", retryWithdrawal);
+
     const saved = readConsent();
 
     setConsent(saved);
@@ -62,6 +74,7 @@ export default function CookieConsent() {
     window.addEventListener("sarathi:open-cookie-preferences", openPreferences);
 
     return () => {
+      window.removeEventListener("online", retryWithdrawal);
       window.removeEventListener(
         "sarathi:open-cookie-preferences",
         openPreferences
@@ -70,6 +83,7 @@ export default function CookieConsent() {
   }, []);
 
   function save(preferences: ConsentPreferences) {
+    void syncMetaConsent(preferences.marketing);
     try {
       localStorage.setItem(CONSENT_KEY, JSON.stringify(preferences));
     } catch {
@@ -113,7 +127,7 @@ export default function CookieConsent() {
       <p className="mt-2 text-sm leading-6 text-slate-600">
         Sārathi uses essential technologies to operate the website.
         With your permission, we also use Google Analytics to understand
-        website usage and Meta Pixel to measure advertising performance.
+        website usage and Meta advertising technologies, including Conversions API, to measure advertising performance.
         You can change your choices anytime.
       </p>
 

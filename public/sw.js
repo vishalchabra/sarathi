@@ -1,4 +1,4 @@
-const CACHE_NAME = "sarathi-v2";
+const CACHE_NAME = "sarathi-v3";
 
 const OFFLINE_URL = "/sarathi";
 
@@ -40,6 +40,18 @@ self.addEventListener("fetch", (event) => {
   const requestUrl = new URL(event.request.url);
 
   if (requestUrl.origin !== self.location.origin) {
+    return;
+  }
+
+  // Meta APIs must always use the network.
+  // Never serve cached consent or permission responses.
+  if (
+    requestUrl.pathname === "/api/meta" ||
+    requestUrl.pathname.startsWith("/api/meta/")
+  ) {
+    event.respondWith(
+      fetch(event.request, { cache: "no-store" })
+    );
     return;
   }
 

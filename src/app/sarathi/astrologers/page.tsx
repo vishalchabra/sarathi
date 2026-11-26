@@ -1,3 +1,4 @@
+import MetaDiscoveryTracking from "@/components/consent/MetaDiscoveryTracking";
 import Link from "next/link";
 import { createSEO } from "@/lib/seo";
 export const metadata = createSEO({
@@ -18,6 +19,7 @@ export const metadata = createSEO({
 export default function AstrologersPage() {
   return (
     <main className="astro-bg min-h-screen text-foreground">
+      <MetaDiscoveryTracking page="astrologers" />
       <section className="mx-auto max-w-7xl px-4 py-12 md:py-16">
         <Link href="/sarathi" className="text-sm astro-text-soft hover:text-foreground">
           ← Back to Sārathi
@@ -45,14 +47,14 @@ export default function AstrologersPage() {
 
     <div className="mt-8 flex flex-wrap gap-3">
       <Link
-        href="/sarathi/astrologers/login?next=/sarathi/data-engine"
+        href="/sarathi/astrologers/login?next=/sarathi/data-engine" data-sarathi-action="engine"
         className="rounded-full bg-[color:var(--primary)] px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90"
       >
         Open Data Engine
       </Link>
 
       <Link
-        href="#pricing"
+        href="#pricing" data-sarathi-action="pricing"
         className="rounded-full astro-card px-5 py-2.5 text-sm font-semibold text-foreground hover:bg-white/80 hover:shadow-md"
       >
         View pricing
@@ -87,7 +89,7 @@ export default function AstrologersPage() {
       </div>
 
       <Link
-        href="/sarathi/astrologers/login?next=/sarathi/data-engine"
+        href="/sarathi/astrologers/login?next=/sarathi/data-engine" data-sarathi-action="engine"
         className="mt-3 inline-flex rounded-full bg-[color:var(--primary)] px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 md:mt-0"
       >
         Try the workspace
@@ -157,7 +159,7 @@ export default function AstrologersPage() {
                 "Basic transit view",
               ]}
               cta="Start 24-hour trial"
-              href="/sarathi/astrologers/login?next=/sarathi/data-engine"
+              href="/sarathi/astrologers/login?next=/sarathi/data-engine" data-sarathi-action="engine"
             />
 
             <PricingCard
@@ -171,7 +173,7 @@ export default function AstrologersPage() {
                 "Early access to upcoming CRM and report tools",
               ]}
               cta="Choose Professional"
-              href="/sarathi/astrologers/login?next=/sarathi/data-engine"
+              href="/sarathi/astrologers/login?next=/sarathi/data-engine" data-sarathi-action="engine"
               highlighted
             />
 
@@ -264,6 +266,15 @@ function PricingCard({
 
       <Link
         href={href}
+        data-sarathi-action={
+          name === "Starter"
+            ? "trial"
+            : name === "Professional"
+              ? "professional"
+              : name === "Premier"
+                ? "waitlist"
+                : undefined
+        }
         className="mt-auto inline-flex justify-center rounded-full bg-[color:var(--primary)] px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90"
       >
         {cta}
