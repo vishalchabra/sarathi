@@ -49,6 +49,7 @@ export type DashaPlanetActivation = {
   strength: number;
   ruledHouses: number[];
   natalHouse?: number;
+  natalAspectedHouses?: number[];
   dispositor?: PlanetName;
 dispositorRuledHouses: number[];
 lordshipAreas: LifeArea[];
@@ -490,6 +491,7 @@ const dispositorAreas =
 
   ruledHouses,
   natalHouse,
+  natalAspectedHouses,
   dispositor,
 dispositorRuledHouses,
 lordshipAreas,

@@ -1,7 +1,14 @@
 "use client";
 
+import {
+  resolvePersonalNodeMode,
+  verifyPersonalNodeResponse,
+} from "@/lib/supabase/personal-node-mode";
+import { requireNodeMode } from "@/lib/node-mode";
+
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useCrmAccess } from "@/lib/supabase/useCrmAccess";
 import tzLookup from "tz-lookup";
 import {
   addClientChart,
@@ -251,6 +258,8 @@ function todayISO() {
 export default function ClientsPage() {
   const [activeTab, setActiveTab] = useState<CrmTab>("dashboard");
   const [clients, setClients] = useState<AstrologerClient[]>([]);
+  const crmAccess = useCrmAccess();
+  const crmRequestId = useRef(0);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -287,21 +296,39 @@ export default function ClientsPage() {
   }, [birthPlace]);
 
   async function loadClients() {
+
+    if (crmAccess.loading || !crmAccess.canRead) {
+      return;
+    }
+    const requestId = ++crmRequestId.current;
+
     try {
       setLoading(true);
       setError("");
       const rows = await listAstrologerClients();
+      if (requestId !== crmRequestId.current) return;
       setClients(rows);
     } catch (e: any) {
+      if (requestId !== crmRequestId.current) return;
       setError(e?.message || "Failed to load clients.");
     } finally {
-      setLoading(false);
+      if (requestId === crmRequestId.current) setLoading(false);
     }
   }
 
   useEffect(() => {
-    loadClients();
-  }, []);
+    if (crmAccess.loading || !crmAccess.canRead) {
+      setClients([]);
+      setLoading(crmAccess.loading);
+      return;
+    }
+
+    void loadClients();
+
+    return () => {
+      ++crmRequestId.current;
+    };
+  }, [crmAccess.loading, crmAccess.canRead]);
 
   const dashboard = useMemo(() => {
     const total = clients.length;
@@ -419,6 +446,17 @@ const dueFollowUps = clients.filter(
   });
 }, [clients, q, statusFilter]);
 async function handleMarkDone(clientId: string) {
+
+    if (!crmAccess.canWrite) {
+      setError(
+        crmAccess.loading
+          ? "Checking CRM access. Please wait."
+          : crmAccess.error ||
+            "Your CRM is read-only. Renew your subscription to restore full access."
+      );
+      return;
+    }
+
   try {
     setError("");
 
@@ -453,6 +491,17 @@ async function handleMarkDone(clientId: string) {
   }
 
   async function handleGenerateClientChart() {
+
+    if (!crmAccess.canWrite) {
+      setError(
+        crmAccess.loading
+          ? "Checking CRM access. Please wait."
+          : crmAccess.error ||
+            "Your CRM is read-only. Renew your subscription to restore full access."
+      );
+      return;
+    }
+
     if (!name.trim()) {
       setError("Please enter client name.");
       return;
@@ -473,6 +522,11 @@ async function handleMarkDone(clientId: string) {
       setError("");
       setSuccess("");
 
+      setGeneratedChart(null);
+
+      const requestedNodeMode =
+        await resolvePersonalNodeMode();
+
       const selectedDateISO = todayISO();
 
       const res = await fetch("/api/data-engine", {
@@ -481,6 +535,7 @@ async function handleMarkDone(clientId: string) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
+          nodeMode: requestedNodeMode,
           birth: {
             name: name.trim(),
             city: birthPlace.name,
@@ -501,6 +556,8 @@ async function handleMarkDone(clientId: string) {
       if (!res.ok || json?.ok === false) {
         throw new Error(json?.error || "Failed to generate chart.");
       }
+
+      verifyPersonalNodeResponse(json, requestedNodeMode);
 
       setGeneratedChart(json);
       setSuccess("Chart generated. You can now save this client and chart.");
@@ -525,6 +582,17 @@ const fieldError = (field: string) =>
     </p>
   ) : null;
   async function handleCreateClientWithChart() {
+
+    if (!crmAccess.canWrite) {
+      setError(
+        crmAccess.loading
+          ? "Checking CRM access. Please wait."
+          : crmAccess.error ||
+            "Your CRM is read-only. Renew your subscription to restore full access."
+      );
+      return;
+    }
+
     const nextErrors: Record<string, string> = {};
 
 if (!name.trim()) {
@@ -560,6 +628,17 @@ setFieldErrors({});
       setError("");
       setSuccess("");
 
+      const requestedNodeMode = generatedChart
+        ? requireNodeMode(generatedChart.nodeMode)
+        : await resolvePersonalNodeMode();
+
+      if (generatedChart) {
+        verifyPersonalNodeResponse(
+          generatedChart,
+          requestedNodeMode
+        );
+      }
+
       const client = await createAstrologerClient({
         name,
         phone,
@@ -578,6 +657,7 @@ if (!selectedBirthPlace) {
   return;
 }
       await addClientChart({
+  nodeMode: requestedNodeMode,
   clientId: client.id,
   chartName: `${name.trim()} Birth Chart`,
   birthDateISO: birthDateISO.trim(),
@@ -597,6 +677,49 @@ return;
     }
   }
 
+  if (crmAccess.loading || !crmAccess.canRead) {
+    return (
+      <main className="min-h-screen astro-bg px-4 py-12">
+        <section className="mx-auto max-w-xl rounded-3xl astro-card p-8 shadow-sm">
+          <h1 className="text-2xl font-semibold text-slate-900">
+            {crmAccess.loading
+              ? "Checking CRM access..."
+              : crmAccess.error
+                ? "Unable to verify access"
+                : "Astrologer Workspace"}
+          </h1>
+
+          <p className="mt-3 text-sm leading-relaxed text-slate-600">
+            {crmAccess.loading
+              ? "Please wait while we verify your account."
+              : crmAccess.error ||
+                "The CRM workspace is available to astrologer accounts."}
+          </p>
+
+          {!crmAccess.loading ? (
+            <div className="mt-6 flex flex-wrap gap-3">
+              {crmAccess.error ? (
+                <button
+                  type="button"
+                  onClick={() => void crmAccess.refresh()}
+                  className="rounded-xl border bg-white px-4 py-2 text-sm font-semibold"
+                >
+                  Try Again
+                </button>
+              ) : null}
+
+              <Link
+                href="/sarathi/data-engine"
+                className="rounded-xl border bg-white px-4 py-2 text-sm font-semibold"
+              >
+                Back to Data Engine
+              </Link>
+            </div>
+          ) : null}
+        </section>
+      </main>
+    );
+  }
   return (
     <main className="min-h-screen astro-bg text-slate-800">
       <section className="mx-auto max-w-7xl px-4 py-8 md:px-8">
@@ -625,7 +748,21 @@ return;
             </div>
           </div>
 
-          {error ? (
+                    {crmAccess.canRead && !crmAccess.canWrite ? (
+            <div
+              role="status"
+              className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4"
+            >
+              <div className="font-semibold text-amber-900">
+                CRM Read-Only Mode
+              </div>
+              <p className="mt-1 text-sm leading-relaxed text-amber-800">
+                Your client records and consultation history remain safe.
+                Renew your subscription to restore full CRM access.
+              </p>
+            </div>
+          ) : null}
+{error ? (
             <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
               {error}
             </div>
@@ -644,12 +781,12 @@ return;
             >
               Dashboard
             </TabButton>
-            <TabButton active={activeTab === "add"} onClick={() => setActiveTab("add")}>
+            {crmAccess.canWrite ? (<TabButton active={activeTab === "add"} onClick={() => setActiveTab("add")}>
               Add Client + Chart
-            </TabButton>
+            </TabButton>) : null}
           </div>
 
-          {activeTab === "dashboard" ? (
+          {(activeTab === "dashboard" || !crmAccess.canWrite) ? (
             <div className="space-y-6">
               {dashboard.dailyTasks.length ? (
   <section className="rounded-3xl border border-amber-200 bg-amber-50/70 p-5 shadow-sm">
@@ -705,7 +842,7 @@ return;
             </div>
 
             <div className="flex items-center gap-3">
-  {isDueFollowUp ? (
+  {crmAccess.canWrite && isDueFollowUp ? (
     <button
       type="button"
       onClick={(e) => {
@@ -821,8 +958,7 @@ return;
                         No clients found
                       </div>
                       <p className="mt-2 text-sm text-slate-500">
-                        Add your first client and generate the chart from the
-                        Add Client + Chart tab.
+                        {crmAccess.canWrite ? "Add your first client from the Add Client + Chart tab." : "No matching client records are available."}
                       </p>
                     </div>
                   ) : null}
@@ -930,7 +1066,7 @@ return;
             </div>
           ) : null}
 
-          {activeTab === "add" ? (
+          {crmAccess.canWrite && activeTab === "add" ? (
             <section className="space-y-6">
               <div className="rounded-3xl border border-[color:var(--border)] bg-white/80 p-5 shadow-sm">
                 <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">

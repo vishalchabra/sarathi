@@ -1,4 +1,4 @@
-﻿
+
 export type RealLifeEventEvidence = {
   area: string;
   manifestationId: string | null;
@@ -16,6 +16,7 @@ hasPrimaryHouseTransitEvidence?: boolean;
 hasSupportingHouseTransitEvidence?: boolean;
 hasTransitDiscriminatorOverlap?: boolean;
 eventConfirmationStatus?:
+  | "EVENT_SUPPORTED"
   | "EVENT_CONFIRMED"
   | "AREA_CONFIRMED"
   | "EVENT_UNRESOLVED"
@@ -47,7 +48,12 @@ export function assessRealLifeEventEvidence(
 
   if (
     evidence.manifestationId !== null &&
-    evidence.eventConfirmationStatus === "EVENT_CONFIRMED"
+    (evidence.eventConfirmationStatus === "EVENT_SUPPORTED" ||
+      evidence.eventConfirmationStatus === "EVENT_CONFIRMED") &&
+    hasDashaSupport &&
+    hasMoonSupport &&
+    hasPrimaryTransitSupport &&
+    hasDiscriminatorSupport
   ) {
     return {
       level: "EVENT_CONFIRMED",
@@ -55,7 +61,7 @@ export function assessRealLifeEventEvidence(
       hasMoonSupport,
       hasPrimaryTransitSupport,
       hasDiscriminatorSupport,
-      reason: "Existing event-confirmation engine confirmed the manifestation.",
+      reason: "Selected manifestation has event-level astrological support with independent daily evidence.",
     };
   }
 
@@ -132,7 +138,7 @@ export function isRealLifeEventEligible(
 
   if (
     definition.requiresConfirmedManifestation &&
-    evidence.manifestationId === null
+    assessRealLifeEventEvidence(evidence).level !== "EVENT_CONFIRMED"
   ) {
     return false;
   }
@@ -1594,7 +1600,7 @@ export function findEligibleRealLifeEvents(
 
       if (
         definition.requiresConfirmedManifestation &&
-        evidence.manifestationId !== null
+        assessRealLifeEventEvidence(evidence).level === "EVENT_CONFIRMED"
       ) {
         matchedEvidenceTags.push("manifestation_confirmed");
       }

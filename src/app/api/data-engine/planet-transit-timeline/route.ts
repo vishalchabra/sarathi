@@ -17,6 +17,26 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
 
+    const requestedNodeMode = body?.nodeMode;
+
+    if (
+      requestedNodeMode !== undefined &&
+      requestedNodeMode !== null &&
+      requestedNodeMode !== "mean" &&
+      requestedNodeMode !== "true"
+    ) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "Invalid lunar node convention.",
+        },
+        { status: 400 }
+      );
+    }
+
+    const nodeMode: "mean" | "true" =
+      requestedNodeMode ?? "mean";
+
     const planet = String(body?.planet ?? "");
     const fromDateISO = String(body?.fromDateISO ?? "");
     const toDateISO = String(body?.toDateISO ?? "");
@@ -36,6 +56,7 @@ export async function POST(req: Request) {
     }
 
     const intervals = await buildPlanetTransitTimeline({
+      nodeMode,
       planet,
       fromDateISO,
       toDateISO,
@@ -47,6 +68,7 @@ export async function POST(req: Request) {
       planet,
       fromDateISO,
       toDateISO,
+      nodeMode,
       intervals,
     });
   } catch (e: any) {

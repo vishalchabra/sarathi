@@ -4,7 +4,11 @@ import { DateTime } from "luxon";
 import type { BirthInput } from "./types";
 import { getAscendant } from "@/server/astro/asc";
 import { computePlacements } from "@/server/astro/placements";
-import { sweJulday, sweCall, getSweConstants } from "@/server/astro/swe-remote";
+import {
+  calculateNatalLunarNodes,
+  resolveNodeMode,
+  type NodeMode,
+} from "../astro/lunarNodes";
 import { buildVargaData } from "./buildVargaData";
 import { buildDashaData } from "./buildDashaData";
 import { buildPanchangData } from "./buildPanchangData";
@@ -27,45 +31,6 @@ const CLASSICAL_PLANETS = [
   "Jupiter", "Venus", "Saturn", "Rahu", "Ketu",
 ];
 
-async function getTrueNodeSiderealLongitudes(birth: BirthInput) {
-  const d = DateTime.fromISO(`${birth.dateISO}T${birth.time}`, {
-    zone: birth.timezone,
-  })
-    .toUTC()
-    .toJSDate();
-
-  const ut =
-    d.getUTCHours() +
-    d.getUTCMinutes() / 60 +
-    d.getUTCSeconds() / 3600;
-
-  const constants = await getSweConstants();
-
-  const jdUt = await sweJulday(
-    d.getUTCFullYear(),
-    d.getUTCMonth() + 1,
-    d.getUTCDate(),
-    ut,
-    constants.SE_GREG_CAL
-  );
-
-  const ayanamsa = await sweCall<number>("swe_get_ayanamsa_ut", jdUt);
-
-  const trueNodeTropical = await sweCall<any>(
-    "swe_calc_ut",
-    jdUt,
-    constants.SE_TRUE_NODE,
-    constants.SEFLG_SWIEPH | constants.SEFLG_SPEED
-  );
-
-  const rahuLonSid = ((Number(trueNodeTropical?.longitude ?? 0) - ayanamsa) % 360 + 360) % 360;
-  const ketuLonSid = (rahuLonSid + 180) % 360;
-
-  return {
-    rahuLonSid,
-    ketuLonSid,
-  };
-}
 const NAKSHATRA_NAMES = [
   "Ashwini",
   "Bharani",
@@ -117,7 +82,11 @@ function normalizeLongitude(lon: number) {
   return ((lon % 360) + 360) % 360;
 }
 
-export async function buildFreeKundli(birth: BirthInput) {
+export async function buildFreeKundli(
+  birth: BirthInput,
+  requestedNodeMode: NodeMode = "mean"
+) {
+  const nodeMode = resolveNodeMode(requestedNodeMode);
   const birthDT = DateTime.fromISO(
     `${birth.dateISO}T${birth.time}`,
     { zone: birth.timezone }
@@ -142,8 +111,8 @@ export async function buildFreeKundli(birth: BirthInput) {
   };
 
   const asc = await getAscendant(input);
-  const trueNodes = await getTrueNodeSiderealLongitudes(birth);
-  const rawPlacements = await computePlacements(input);
+  const nodeLons = await calculateNatalLunarNodes(birth, nodeMode);
+  const rawPlacements = await computePlacements(input, nodeMode);
 
   if (!asc || typeof asc.lon !== "number" || !Number.isFinite(asc.lon)) {
     throw new Error("Ascendant calculation failed.");
@@ -172,9 +141,9 @@ export async function buildFreeKundli(birth: BirthInput) {
 
       const rawLon =
         p.planet === "Rahu"
-          ? trueNodes.rahuLonSid
+          ? nodeLons.rahuLonSid
           : p.planet === "Ketu"
-          ? trueNodes.ketuLonSid
+          ? nodeLons.ketuLonSid
           : p.lon;
 
       if (typeof rawLon !== "number" || !Number.isFinite(rawLon)) {
@@ -186,7 +155,9 @@ export async function buildFreeKundli(birth: BirthInput) {
       const nak = getNakshatraAndPadaFromLon(lon);
 
       const speed =
-        typeof p.speed === "number"
+        isNode
+          ? nodeLons.speedLon
+          : typeof p.speed === "number"
           ? p.speed
           : typeof p.speedLon === "number"
           ? p.speedLon
@@ -208,7 +179,7 @@ export async function buildFreeKundli(birth: BirthInput) {
         speed,
         retrograde:
           isNode
-            ? true
+            ? nodeLons.retrograde
             : p.planet === "Sun" || p.planet === "Moon"
             ? false
             : typeof speed === "number"
@@ -233,6 +204,8 @@ export async function buildFreeKundli(birth: BirthInput) {
   }
 
   const natal = {
+    nodeMode: nodeLons.nodeMode,
+    nodeCalculationVersion: nodeLons.calculationVersion,
     ayanamsa: "Lahiri",
     birthUTCISO,
     moonLonSidDeg: moon.lon,
@@ -282,7 +255,9 @@ export async function buildFreeKundli(birth: BirthInput) {
       zodiac: "Sidereal",
       ayanamsa: "Lahiri",
       houseSystem: "Whole Sign",
-      nodeType: "True Node",
+      nodeType: nodeMode === "mean" ? "Mean Node" : "True Node",
+      nodeMode,
+      nodeCalculationVersion: nodeLons.calculationVersion,
     },
     birth,
     natal,

@@ -51,6 +51,35 @@ export type EventActivationPolarity =
   | "mixed"
   | "neutral";
 export type CandidateEventTheme = {
+  /**
+   * Complete event-specific Dasha evidence.
+   * Shadow evaluation only until confirmation rules are validated.
+   */
+  eventCompleteDashaEvidence?: ReturnType<
+    typeof getEventDashaHouseEvidence
+  >;
+
+  /**
+   * Event-specific natal relationships activated through Dasha.
+   * Preserved for evidence evaluation without changing scoring.
+   */
+  eventSambandhaEvidence?: ReturnType<typeof resolveEventSambandha>;
+
+  /**
+   * Original event-related house evidence, retained independently
+   * of predefined natural planetary discriminator signatures.
+   */
+  eventFunctionalHouseEvidence?: {
+    house: number;
+    planet: PlanetName;
+    source:
+      | "lordship"
+      | "natal_placement"
+      | "dispositor"
+      | "natal_aspect";
+    houseRole: "primary" | "supporting";
+    score: number;
+  }[];
   id: EventThemeId;
 
   label: string;
@@ -1010,8 +1039,28 @@ const confidence =
     confidenceScore
   );
 
-      return {
+      const eventFunctionalHouseEvidence: NonNullable<
+  CandidateEventTheme["eventFunctionalHouseEvidence"]
+> = houseEvidence
+  .filter(
+    (evidence) =>
+      theme.primaryHouses.includes(evidence.house) ||
+      theme.supportingHouses.includes(evidence.house)
+  )
+  .map((evidence) => ({
+    house: evidence.house,
+    planet: evidence.planet,
+    source: evidence.source,
+    houseRole: theme.primaryHouses.includes(evidence.house)
+      ? "primary"
+      : "supporting",
+    score: evidence.score,
+  }));
+
+return {
   id: theme.id,
+  eventSambandhaEvidence,
+  eventFunctionalHouseEvidence,
   label: theme.label,
   area: theme.area,
   moonAdmissionEligible,
@@ -1489,7 +1538,25 @@ moonDailyEvidence,
 params.transit.moonHouse
 ).filter((event) =>
   isEventAgeAppropriate(event.id, params.age)
-);
+).map((event) => {
+  const eventTheme = EVENT_THEMES.find(
+    (theme) => theme.id === event.id
+  );
+
+  if (!eventTheme) {
+    return event;
+  }
+
+  return {
+    ...event,
+    eventCompleteDashaEvidence:
+      getEventDashaHouseEvidence(
+        eventTheme,
+        params.dasha.planetActivations,
+        { includeNatalAspects: true }
+      ),
+  };
+});
 if (process.env.NODE_ENV === "development") {
   const eventDashaDiagnostics = candidateEvents.map((event) => {
     const theme = EVENT_THEMES.find(

@@ -1,5 +1,12 @@
 // FILE: src/app/api/astro/placements/route.ts
 import { NextResponse } from "next/server";
+import { DateTime } from "luxon";
+import { computePlacements } from "@/server/astro/placements";
+import { getAscendant } from "@/server/astro/asc";
+import { getNakshatra } from "@/server/astro/nakshatra";
+import { NODE_CALCULATION_VERSION } from "@/server/astro/lunarNodes";
+
+export const runtime = "nodejs";
 
 /**
  * Very defensive handler:
@@ -35,18 +42,105 @@ export async function POST(req: Request) {
       );
     }
 
-    // TODO: call your real ephemeris logic here.
-    // For now, return a minimal happy payload so UI renders.
-    const demo = {
-      ok: true,
-      placements: [],
-      houses: { system: body?.hsys ?? "W", asc: { sign: "Virgo", degInSign: 12.34 } },
-      panchang: { weekday: "—" },
-      dasha: null,
-      warnings: [],
+    const requestedNodeMode = body?.nodeMode ?? "mean";
+
+    if (
+      requestedNodeMode !== "mean" &&
+      requestedNodeMode !== "true"
+    ) {
+      return NextResponse.json(
+        { ok: false, error: "Invalid lunar node convention." },
+        { status: 400 }
+      );
+    }
+
+    const nodeMode: "mean" | "true" = requestedNodeMode;
+
+    const birth = {
+      dateISO: dobISO,
+      time: tob,
+      tz: place.tz,
+      lat: Number(place.lat),
+      lon: Number(place.lon),
     };
 
-    return NextResponse.json(demo);
+    const local = DateTime.fromISO(
+      `${birth.dateISO}T${birth.time}`,
+      { zone: birth.tz }
+    );
+
+    if (
+      !local.isValid ||
+      !Number.isFinite(birth.lat) ||
+      !Number.isFinite(birth.lon) ||
+      Math.abs(birth.lat) > 90 ||
+      Math.abs(birth.lon) > 180
+    ) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "Invalid birth date, time or location.",
+          placements: [],
+          houses: null,
+        },
+        { status: 200 }
+      );
+    }
+
+    const asc = await getAscendant(birth);
+
+    const raw = await computePlacements(birth, nodeMode);
+
+    if (
+      !Number.isFinite(asc.lon) ||
+      raw.length !== 9 ||
+      raw.some(p =>
+        !Number.isFinite(p.lon) ||
+        typeof p.house !== "number" ||
+        !Number.isInteger(p.house) ||
+        p.house < 1 ||
+        p.house > 12
+      )
+    ) {
+      throw new Error("Incomplete chart calculation.");
+    }
+
+    const placements = raw.map(p => {
+      const lon = ((p.lon % 360) + 360) % 360;
+      const nk = getNakshatra(lon);
+
+      return {
+        ...p,
+        name: p.planet,
+        siderealLongitude: lon,
+        degInSign: lon % 30,
+        nakshatra: nk.name,
+        pada: Math.floor(
+          (lon % (360 / 27)) / (360 / 108)
+        ) + 1,
+      };
+    });
+
+    return NextResponse.json({
+      ok: true,
+      nodeMode,
+      nodeCalculationVersion: NODE_CALCULATION_VERSION,
+      placements,
+      houses: {
+        system: "W",
+        asc: {
+          lon: asc.lon,
+          sign: asc.sign,
+          degInSign: asc.lon % 30,
+        },
+      },
+      panchang: null,
+      dasha: null,
+      warnings:
+        body?.hsys && body.hsys !== "W"
+          ? ["This endpoint currently supports whole-sign houses only."]
+          : [],
+    });
   } catch (e) {
     return NextResponse.json(
       { ok: false, error: "Placements failed to compute." },

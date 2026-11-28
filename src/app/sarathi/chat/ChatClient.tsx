@@ -1,5 +1,6 @@
 "use client";
 
+import { ensureNotificationTz } from "@/lib/notifications/timezone";
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import Link from "next/link";
 import { loadBirthProfile, saveBirthProfile } from "@/lib/birth-profile";
@@ -25,7 +26,20 @@ type Topic =
   | "marriage";
 
 type Place = { name?: string; tz: string; lat: number; lon: number };
-type Profile = { name?: string; dobISO?: string; tob?: string; place?: Place };
+import type { NodeMode } from "@/lib/node-mode";
+
+import {
+  resolvePersonalNodeMode,
+  verifyPersonalNodeResponse,
+} from "@/lib/supabase/personal-node-mode";
+
+type Profile = {
+  name?: string;
+  dobISO?: string;
+  tob?: string;
+  place?: Place;
+  nodeMode?: NodeMode;
+};
 
 type BottomLine = { lead: string; nuance?: string };
 type Role = "user" | "assistant";
@@ -755,6 +769,7 @@ function getFreshProfileForApi(): Profile | null {
   const placeOk = Number.isFinite(lat) && Number.isFinite(lon) && !!tz;
 
   return {
+    nodeMode: p.nodeMode,
     name: p.name,
     dobISO: p.dobISO,
     tob: p.tob,
@@ -929,7 +944,15 @@ const handleSaveChatProfile = useCallback(async () => {
   }
 
   try {
+    const existingProfile = savedProfiles.find(
+      (p) => p.label === trimmedName
+    );
+
+    const requestedNodeMode =
+      await resolvePersonalNodeMode(existingProfile);
+
     const saved = await saveUserBirthProfile({
+      nodeMode: requestedNodeMode,
       label: trimmedName,
       name: trimmedName,
       birthDateISO: profileDateISO,
@@ -941,6 +964,7 @@ const handleSaveChatProfile = useCallback(async () => {
     });
 
     const nextProfile: Profile = {
+      nodeMode: saved.nodeMode,
       name: saved.name,
       dobISO: saved.birthDateISO,
       tob: saved.birthTime,
@@ -955,6 +979,7 @@ const handleSaveChatProfile = useCallback(async () => {
     setProfile(nextProfile);
 
     saveBirthProfile({
+      nodeMode: saved.nodeMode,
       name: saved.name,
       dobISO: saved.birthDateISO,
       tob: saved.birthTime,
@@ -1048,6 +1073,7 @@ const profileButtonLabel = existingProfileByName
   setProfile(nextProfile);
 
   saveBirthProfile({
+    nodeMode: p.nodeMode,
     name: p.name,
     dobISO: p.birthDateISO,
     tob: p.birthTime,
@@ -1106,7 +1132,8 @@ useEffect(() => {
 
   if (active?.dobISO && active?.tob && active?.place?.tz) {
     setProfile({
-      name: active.name,
+      nodeMode: active.nodeMode,
+              name: active.name,
       dobISO: active.dobISO,
       tob: active.tob,
       place: active.place,
@@ -1125,6 +1152,7 @@ useEffect(() => {
           const active = loadBirthProfile();
           if (active) {
             setProfile({
+              nodeMode: active.nodeMode,
               name: active.name,
               dobISO: active.dobISO,
               tob: active.tob,
@@ -1176,33 +1204,13 @@ if (!place) {
   );
 }
 
-const natalFromLR = readLifeReportNatal();
-
-    const baseProfile: any = {
-      ...(prof?.name ? { name: prof.name } : {}),
-      birth: prof?.dobISO
-        ? {
-            dateISO: prof.dobISO,
-            time: prof.tob ?? "00:00",
-            tz: place.tz,
-            lat: place.lat,
-            lon: place.lon,
-          }
-        : undefined,
-      place,
-      ...(natalFromLR ? { natal: natalFromLR } : {}),
-    };
-
-    const { mdad, nowLabel, spans } = buildMDADAndSpans();
-
-    const userIntent = intentFromQuery(query);
-    const styleToSend =
-      userIntent === "exact" ? "narrative" : userIntent === "when" ? "cards" : "qa";
-     // Always send the freshest saved profile (authoritative)
 const fresh = getFreshProfileForApi();
 
 // Fall back to the in-memory profile if fresh is missing
 const finalProfile: Profile = fresh ?? prof ?? {};
+
+const requestedNodeMode =
+  await resolvePersonalNodeMode(finalProfile);
 
 const finalPlace =
   placeFromProfile(finalProfile) ??
@@ -1224,32 +1232,15 @@ if (!finalPlace) {
 ;
 
 const payload: any = {
+  nodeMode: requestedNodeMode,
   question: query,
   message: query,
+  notificationTz: ensureNotificationTz("UTC").tz,
   history: buildHistory(messages, query),
   profile: finalProfile,
   birthProfile: finalProfile,
   thoughtProcessDebugOnly: true,
-  reportData: (() => {
-  try {
-    const raw =
-      localStorage.getItem("sarathi.lifeReportCache.v2") ||
-      localStorage.getItem("sarathi.lifeReportCache"); // legacy fallback
-    if (!raw) return null;
 
-    const cached = JSON.parse(raw);
-
-    // ✅ If cached is { data, profile }, unwrap to the real Life Report
-    if (cached && typeof cached === "object" && cached.data && typeof cached.data === "object") {
-      return cached.data;
-    }
-
-    // ✅ If it's already the report, send as-is
-    return cached;
-  } catch {
-    return null;
-  }
-})(),
 
 };
 
@@ -1283,10 +1274,8 @@ const payload: any = {
 );
 
 const effectiveNowLabel =
-  nowLabel ||
-  (body &&
-    ((body.extra && body.extra.nowLabel) ||
-      (body.now && body.now.label)));
+  body?.extra?.nowLabel ||
+  body?.now?.label;
 
 // User is no longer authenticated
 if (res?.status === 401 && body?.reason === "login_required") {
@@ -1315,6 +1304,8 @@ if (!res?.ok || !body || body.ok === false) {
   );
 }
 
+    verifyPersonalNodeResponse(body, requestedNodeMode);
+
     const withNow: QAResponse = {
       ...(body as QAResponse),
       extra: {
@@ -1325,7 +1316,7 @@ if (!res?.ok || !body || body.ok === false) {
         ...((body as any).now || {}),
         ...(effectiveNowLabel ? { label: effectiveNowLabel } : {}),
       },
-      spans: spans.length ? spans : (body as any).spans || [],
+      spans: (body as any).spans || [],
     };
 
     withNow.windows = normalizeWindows(withNow.windows);

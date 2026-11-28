@@ -2,6 +2,12 @@ import "server-only";
 
 import type { BirthInput, DataEnginePlan } from "./types";
 
+import {
+  calculateHora,
+  calculateNavamsa,
+  calculateDasamsa,
+} from "../../lib/astrology/divisionalCalculator";
+
 const SIGNS = [
   "Aries",
   "Taurus",
@@ -22,18 +28,7 @@ function wrap360(x: number) {
   return x < 0 ? x + 360 : x;
 }
 function horaSign(deg: number): string {
-  const signIndex = Math.floor(wrap360(deg) / 30); // 0..11
-  const inSignDeg = wrap360(deg) % 30;
-
-  // Odd signs: first 15° Leo, next 15° Cancer
-  // Even signs: first 15° Cancer, next 15° Leo
-  const isOddSign = signIndex % 2 === 0; // Aries=0, Gemini=2, etc.
-
-  if (isOddSign) {
-    return inSignDeg < 15 ? "Leo" : "Cancer";
-  }
-
-  return inSignDeg < 15 ? "Cancer" : "Leo";
+  return calculateHora(deg).sign;
 }
 
 function drekkanaSign(deg: number): string {
@@ -272,34 +267,11 @@ function trimsamsaSign(deg: number): string {
   return "Scorpio";
 }
 function navamsaSign(deg: number): string {
-  const signIndex = Math.floor(wrap360(deg) / 30);
-  const inSignDeg = wrap360(deg) % 30;
-  const division = Math.floor(inSignDeg / (30 / 9));
-
-  const movable = [0, 3, 6, 9];
-  const fixed = [1, 4, 7, 10];
-  const dual = [2, 5, 8, 11];
-
-  let startIndex = signIndex;
-
-  if (fixed.includes(signIndex)) {
-    startIndex = (signIndex + 8) % 12;
-  } else if (dual.includes(signIndex)) {
-    startIndex = (signIndex + 4) % 12;
-  }
-
-  return SIGNS[(startIndex + division) % 12];
+  return calculateNavamsa(deg).sign;
 }
 
 function dasamsaSign(deg: number): string {
-  const signIndex = Math.floor(wrap360(deg) / 30);
-  const inSignDeg = wrap360(deg) % 30;
-  const division = Math.floor(inSignDeg / 3);
-
-  const isOddSign = signIndex % 2 === 0;
-  const startIndex = isOddSign ? signIndex : (signIndex + 8) % 12;
-
-  return SIGNS[(startIndex + division) % 12];
+  return calculateDasamsa(deg).sign;
 }
 function shastiamsaSign(deg: number): string {
   const signIndex = Math.floor(wrap360(deg) / 30); // 0..11
@@ -377,9 +349,13 @@ function buildOneVargaFromTrustedAsc(opts: {
 }) {
   const signFn = getVargaSignFunction(opts.varga);
   const ascSign = signFn(opts.ascLon);
-  
+
   const planets = opts.natalPlanets
-    .filter((p) => typeof p?.lon === "number")
+    .filter(
+      (p) =>
+        typeof p?.lon === "number" &&
+        Number.isFinite(p.lon),
+    )
     .map((p) => {
       const rawPlLon = p.lon as number;
 
@@ -426,7 +402,10 @@ export async function buildVargaData(params: BuildVargaDataParams) {
   const { birth, plan, natalPlanets, natalAscendant } = params;
 
   const ascLon =
-    typeof natalAscendant?.lon === "number" ? natalAscendant.lon : null;
+    typeof natalAscendant?.lon === "number" &&
+    Number.isFinite(natalAscendant.lon)
+      ? natalAscendant.lon
+      : null;
 
   if (typeof ascLon !== "number") {
     return {
@@ -499,7 +478,7 @@ const d5 = buildOneVargaFromTrustedAsc({
     ascLon,
     natalPlanets: safePlanets,
   });
-  
+
   const d8 = buildOneVargaFromTrustedAsc({
   varga: 8,
   ascLon,
@@ -541,7 +520,7 @@ const d5 = buildOneVargaFromTrustedAsc({
     ascLon,
     natalPlanets: safePlanets,
   });
- 
+
 
 const d40 = buildOneVargaFromTrustedAsc({
   varga: 40,

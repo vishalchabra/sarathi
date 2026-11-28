@@ -1,3 +1,4 @@
+import { requireLifeReportAccess } from "@/server/auth/requireLifeReportAccess";
 // FILE: src/app/api/ai-monthly/route.ts
 export const runtime = "nodejs";
 
@@ -120,6 +121,10 @@ function buildMonthText(
 /* ---------- route ---------- */
 
 export async function POST(req: Request) {
+  const accessDenied = await requireLifeReportAccess(req);
+
+  if (accessDenied) return accessDenied;
+
   try {
     const body = (await req.json().catch(() => ({}))) as ReqBody;
     const profile = body.profile ?? {};

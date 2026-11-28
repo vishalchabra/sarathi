@@ -1,5 +1,10 @@
 import "server-only";
 
+import {
+  calculateNavamsa,
+  calculateDasamsa,
+} from "../../lib/astrology/divisionalCalculator";
+
 /** Lightweight SVG wheel renderer + D9/D10 mappers (server-only module) */
 
 // Zodiac names (first letter used on rim)
@@ -34,40 +39,16 @@ function relAngleFromAsc(lon: number, ascLon: number) {
   return (rel - 90) * (Math.PI / 180);
 }
 
-// Vargas rules
-const MOV = new Set([0,3,6,9]);    // cardinal
-const FIX = new Set([1,4,7,10]);   // fixed
-// dual = rest
+// Divisional calculations use the shared Parashari calculator.
 
-/** D9: Navāṁśa longitude (0..360) */
+/** D9: Navamsa longitude (0..360) */
 export function navamsaLon(lon: number) {
-  const sIdx = signOfDeg(lon);
-  const inSign = norm360(lon) % 30;
-  const pada = Math.floor(inSign / (30 / 9));       // 0..8
-  let start: number;
-  if (MOV.has(sIdx))      start = sIdx;
-  else if (FIX.has(sIdx)) start = (sIdx + 8) % 12;  // 9th
-  else                    start = (sIdx + 4) % 12;  // 5th
-  const d9Sign = (start + pada) % 12;
-  const span = 30 / 9;                               // 3°20'
-  const inside = inSign - pada * span;
-  const d9Deg = inside * 9;                          // 0..30 inside d9 sign
-  return norm360(d9Sign * 30 + d9Deg);
+  return calculateNavamsa(lon).longitude;
 }
 
-/** D10: Daśāṁśa longitude (0..360) */
+/** D10: Dasamsa longitude (0..360) */
 export function dasamsaLon(lon: number) {
-  const sIdx = signOfDeg(lon);
-  const inSign = norm360(lon) % 30;
-  const pada = Math.floor(inSign / 3);               // 0..9 (each 3°)
-  let start: number;
-  if (MOV.has(sIdx))      start = sIdx;
-  else if (FIX.has(sIdx)) start = (sIdx + 8) % 12;   // 9th
-  else                    start = (sIdx + 4) % 12;   // 5th
-  const d10Sign = (start + pada) % 12;
-  const inside = inSign - pada * 3;                  // 0..3
-  const d10Deg = inside * 10;                        // → 0..30 inside d10 sign
-  return norm360(d10Sign * 30 + d10Deg);
+  return calculateDasamsa(lon).longitude;
 }
 
 /** Primary SVG renderer (house wheel) */

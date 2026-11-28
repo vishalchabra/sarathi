@@ -14,6 +14,52 @@ import type {
 
 /* ---------------- Helpers ---------------- */
 
+export function resolveDailyGuideDate(
+  core: CoreSignals,
+  now = new Date()
+): string {
+  const explicit = core.forecastDateISO;
+
+  if (
+    typeof explicit === "string" &&
+    /^\d{4}-\d{2}-\d{2}$/.test(explicit)
+  ) {
+    const parsed = new Date(`${explicit}T00:00:00.000Z`);
+
+    if (
+      Number.isFinite(parsed.getTime()) &&
+      parsed.toISOString().slice(0, 10) === explicit
+    ) {
+      return explicit;
+    }
+  }
+
+  for (const timezone of [
+    core.forecastTimezone,
+    "UTC",
+  ]) {
+    if (!timezone) continue;
+
+    try {
+      const parts = new Intl.DateTimeFormat("en-CA", {
+        timeZone: timezone,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      }).formatToParts(now);
+
+      const get = (type: string) =>
+        parts.find(part => part.type === type)?.value ?? "";
+
+      return `${get("year")}-${get("month")}-${get("day")}`;
+    } catch {
+      // Try the next valid timezone.
+    }
+  }
+
+  return now.toISOString().slice(0, 10);
+}
+
 function normaliseCategory(
   cat?: string
 ): "career" | "relationships" | "health" | "inner" | "general" {
@@ -335,9 +381,8 @@ function buildFoodGuide(
 
   if (!weekdayLord) {
     try {
-      const iso =
-        (core.birth?.dateISO || new Date().toISOString().slice(0, 10)) as string;
-      const d = new Date(iso + "T00:00:00");
+      const iso = resolveDailyGuideDate(core);
+      const d = new Date(`${iso}T00:00:00.000Z`);
       const dow = d.getUTCDay();
 
       if (dow === 0) weekdayLord = "sun";
@@ -473,7 +518,10 @@ function buildFastingGuide(
   core: CoreSignals,
   emotionalWeather: EmotionalWeather
 ): FastingGuide {
-  const tone = (emotionalWeather as any)?.tone || "steady";
+  const tone =
+    (emotionalWeather as any)?.tone ??
+    (emotionalWeather as any)?.quality ??
+    "steady";
 
   const tithiRaw =
     ((((core.panchang as any) || {}).tithiName) ||
@@ -838,7 +886,10 @@ function buildMoneyTip(core: CoreSignals): MoneyMicroTip {
 
 // 🔹 Shared helper: build daily guide object from a CoreSignals bundle
 export async function buildDailyGuideFromCore(coreInput: CoreSignals) {
-  let core = coreInput;
+  const core: CoreSignals = {
+    ...coreInput,
+    forecastDateISO: resolveDailyGuideDate(coreInput),
+  };
 
   if (!core.birth) {
     core.birth = {

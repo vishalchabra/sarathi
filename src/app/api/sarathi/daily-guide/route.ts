@@ -2,7 +2,7 @@
 import { NextRequest } from "next/server";
 import type { CoreSignals } from "@/server/guides/types";
 import { cacheGet, cacheSet, makeCacheKey } from "@/server/cache/simpleCache";
-import { buildDailyGuideFromCore } from "@/server/guides/daily-core";
+import { buildDailyGuideFromCore, resolveDailyGuideDate } from "@/server/guides/daily-core";
 
 export async function POST(req: NextRequest) {
   try {
@@ -50,20 +50,25 @@ export async function POST(req: NextRequest) {
       };
     }
 
-    // 1) Build a cache key for "one person, one day" of daily guide
+    // Resolve the forecast date once for caching and interpretation.
+    core = {
+      ...core,
+      forecastDateISO:
+        body.forecastDateISO ?? core.forecastDateISO,
+      forecastTimezone:
+        body.forecastTimezone ?? core.forecastTimezone,
+    };
+
+    const forecastDateISO = resolveDailyGuideDate(core);
+
+    core.forecastDateISO = forecastDateISO;
+
+    // Include all interpretation inputs in the cache identity.
     const cacheKey = makeCacheKey({
       feature: "daily-guide",
-      birth: {
-        dateISO: core.birth.dateISO,
-        time: core.birth.time,
-        tz: core.birth.tz,
-        lat: core.birth.lat,
-        lon: core.birth.lon,
-        lagnaSign: core.birth.lagnaSign,
-      },
-      dashaStack: core.dashaStack ?? [],
-      dayISO: core.birth.dateISO,
-      version: "v1",
+      version: "v2",
+      dayISO: forecastDateISO,
+      core,
     });
 
     // 2) Try cache first
@@ -87,7 +92,7 @@ export async function POST(req: NextRequest) {
     const result = await buildDailyGuideFromCore(core);
 
     // 4) Save to cache for 1 day
-    cacheSet(cacheKey, result, 60 * 60 * 24);
+    cacheSet(cacheKey, result, 24 * 60 * 60 * 1000);
 
     return new Response(
       JSON.stringify({

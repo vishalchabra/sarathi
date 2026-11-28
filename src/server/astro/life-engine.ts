@@ -8,7 +8,12 @@ import { julianDayUTC as julianDayUTCV2 } from "@/server/astro-v2/sidereal-time"
 
 import { buildLifeMilestonesFromMD } from "@/server/astro/life-milestones";
 import { buildFoodGuidance } from "@/server/astro/food-guide";
-import { computeRahuKetuSidereal } from "@/server/astro-v2/nodes";
+import {
+  calculateLunarNodesAtDate,
+  resolveNodeMode,
+  NODE_CALCULATION_VERSION,
+  type NodeMode,
+} from "@/server/astro/lunarNodes";
 import { computeAscendant } from "@/server/astro-v2/ascendant";
 // ✅ Astro Engine v2 (pure JS ephemeris)
 import { computePlacementsV2 } from "@/server/astro-v2/placements";
@@ -215,7 +220,10 @@ function timeHHMMInTz(tz: string, d = new Date()): string {
    PLANETS (ASTRO ENGINE V2)
 ------------------------------------------------------- */
 
-function buildPlanetsFromV2(whenISO: string) {
+async function buildPlanetsFromV2(
+  whenISO: string,
+  nodeMode: NodeMode
+) {
   const out: any[] = [];
 
   const nakSpan = 360 / 27; // 13°20'
@@ -243,8 +251,14 @@ function buildPlanetsFromV2(whenISO: string) {
     });
   }
 
-  // 2) Rahu/Ketu from real node (v2)
-  const { rahuSid, ketuSid } = computeRahuKetuSidereal(whenISO);
+  // 2) Canonical Lahiri lunar nodes
+  const nodes = await calculateLunarNodesAtDate(
+    new Date(whenISO),
+    nodeMode
+  );
+
+  const rahuSid = nodes.rahuLonSid;
+  const ketuSid = nodes.ketuLonSid;
 
   for (const node of [
     { name: "Rahu", lon: rahuSid },
@@ -258,6 +272,8 @@ function buildPlanetsFromV2(whenISO: string) {
     out.push({
       name: node.name,
       siderealLongitude: lon,
+      speedLon: nodes.speedLon,
+      retrograde: nodes.retrograde,
       sign: signOfDeg(lon),
       nakshatra: nak.name,
       nakshatraMeta: nak,
@@ -367,6 +383,7 @@ function buildHouseLordsFromAsc(ascDeg: number) {
 
 export async function buildLifeReport(input: {
   name: string;
+  nodeMode?: NodeMode;
   birthDateISO: string; // "1990-01-01"
   birthTime: string; // "14:25"
   birthTz: string; // "Asia/Dubai"
@@ -401,7 +418,12 @@ astroDebug("[JD CHECK FIXED]", { jdUt, birthUtcISO: birthUtc.toISOString() });
 
     // ✅ PLANETS: v2
   const birthUtcISO = birthUtc.toISOString();
-  const planetsRaw = buildPlanetsFromV2(birthUtcISO);
+  const nodeMode = resolveNodeMode(input.nodeMode ?? "mean");
+
+  const planetsRaw = await buildPlanetsFromV2(
+    birthUtcISO,
+    nodeMode
+  );
   
 
   // ✅ Vargas disabled for now (module not present). v2 fallback handles Asc + houses safely.
@@ -677,7 +699,11 @@ if (Array.isArray(dashaTimeline) && dashaTimeline.length > 0 && fullDashaTimelin
   astroDebug("[HOUSE DEBUG ASC]", { ascDeg, ascSign });
  
   return {
+  nodeMode,
+  nodeCalculationVersion: NODE_CALCULATION_VERSION,
   meta: {
+    nodeMode,
+    nodeCalculationVersion: NODE_CALCULATION_VERSION,
     name: input.name,
     birthDateISO: input.birthDateISO,
     birthTime: input.birthTime,

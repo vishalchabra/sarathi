@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { isNodeMode, requireNodeMode } from "@/lib/node-mode";
 import { createPortal } from "react-dom";
 import MediumNorthIndianChart from "@/components/data-engine/MediumNorthIndianChart";
 import KpPlanetOnCuspCard from "@/components/data-engine/KpPlanetOnCuspCard";
@@ -2062,6 +2063,8 @@ function KPSystemPanel({
   );
 }
 export default function ChartsTabView({
+  nodeMode,
+  nodeCalculationVersion,
   selectedDateISO,
   setSelectedDateISO,
   selectedDateChartLabel,
@@ -2093,6 +2096,8 @@ export default function ChartsTabView({
   kpData,
   kpPlanetOnCusp,
 }: {
+  nodeMode: unknown;
+  nodeCalculationVersion: unknown;
   selectedDateISO: string;
   setSelectedDateISO: (value: string) => void;
   selectedDateChartLabel?: string;
@@ -2299,8 +2304,55 @@ const [transitLoading, setTransitLoading] = useState(false);
   [transitChartDateISO, transitTime]
 );
 
+  const nodeContextValid =
+    isNodeMode(nodeMode) &&
+    nodeCalculationVersion === "lahiri-swiss-node-v1";
+
+  const overlayRequestIdRef = useRef(0);
+  const transitRequestIdRef = useRef(0);
+
+  useLayoutEffect(() => {
+    overlayRequestIdRef.current += 1;
+    setOverlayTransitPlanets([]);
+
+    return () => {
+      overlayRequestIdRef.current += 1;
+    };
+  }, [
+    natalPlanets,
+    nodeMode,
+    nodeCalculationVersion,
+    showTransitOverlay,
+    selectedDateISO,
+    overlayTransitTime,
+    birthLat,
+    birthLon,
+    birthTimezone,
+  ]);
+
+  useLayoutEffect(() => {
+    transitRequestIdRef.current += 1;
+    setTransitChartPlanets([]);
+    setTransitLoading(false);
+
+    return () => {
+      transitRequestIdRef.current += 1;
+    };
+  }, [
+    natalPlanets,
+    nodeMode,
+    nodeCalculationVersion,
+    transitChartDateISO,
+    transitTime,
+    birthLat,
+    birthLon,
+    birthTimezone,
+  ]);
+
   useEffect(() => {
-    if (!showTransitOverlay) {
+    const requestId = ++overlayRequestIdRef.current;
+
+    if (!showTransitOverlay || !nodeContextValid) {
       setOverlayTransitPlanets([]);
       return;
     }
@@ -2317,6 +2369,7 @@ const [transitLoading, setTransitLoading] = useState(false);
           body: JSON.stringify({
             dateISO: selectedDateISO,
             time: overlayTransitTime,
+            nodeMode: requireNodeMode(nodeMode),
             timezone: birthTimezone,
             lat: birthLat,
             lon: birthLon,
@@ -2325,21 +2378,37 @@ const [transitLoading, setTransitLoading] = useState(false);
 
         const json = await res.json();
 
-        if (json?.ok) {
+        if (requestId !== overlayRequestIdRef.current) return;
+
+        if (
+          res.ok &&
+          json?.ok &&
+          json?.nodeMode === nodeMode &&
+          json?.nodeCalculationVersion === nodeCalculationVersion
+        ) {
           setOverlayTransitPlanets(Array.isArray(json?.planets) ? json.planets : []);
         } else {
           setOverlayTransitPlanets([]);
         }
       } catch {
-        setOverlayTransitPlanets([]);
+        if (requestId === overlayRequestIdRef.current) {
+          setOverlayTransitPlanets([]);
+        }
       }
     }
 
     fetchOverlayTransitChart();
-  }, [showTransitOverlay, selectedDateISO, overlayTransitTime, birthLat, birthLon, birthTimezone]);
+  }, [showTransitOverlay, selectedDateISO, overlayTransitTime, birthLat, birthLon, birthTimezone, natalPlanets, nodeMode, nodeCalculationVersion, nodeContextValid]);
 
   useEffect(() => {
-  if (!transitChartDateISO || !Number.isFinite(birthLat) || !Number.isFinite(birthLon)) return;
+    const requestId = ++transitRequestIdRef.current;
+
+    if (
+      !nodeContextValid ||
+      !transitChartDateISO ||
+      !Number.isFinite(birthLat) ||
+      !Number.isFinite(birthLon)
+    ) return;
 
     async function fetchTransitChart() {
       setTransitLoading(true);
@@ -2352,6 +2421,7 @@ const [transitLoading, setTransitLoading] = useState(false);
           body: JSON.stringify({
             dateISO: transitChartDateISO,
             time: transitTime,
+            nodeMode: requireNodeMode(nodeMode),
             timezone: birthTimezone,
             lat: birthLat,
             lon: birthLon,
@@ -2359,20 +2429,32 @@ const [transitLoading, setTransitLoading] = useState(false);
         });
 
         const json = await res.json();
-        if (json?.ok) {
+
+        if (requestId !== transitRequestIdRef.current) return;
+
+        if (
+          res.ok &&
+          json?.ok &&
+          json?.nodeMode === nodeMode &&
+          json?.nodeCalculationVersion === nodeCalculationVersion
+        ) {
           setTransitChartPlanets(Array.isArray(json?.planets) ? json.planets : []);
         } else {
           setTransitChartPlanets([]);
         }
       } catch {
-        setTransitChartPlanets([]);
+        if (requestId === transitRequestIdRef.current) {
+          setTransitChartPlanets([]);
+        }
       } finally {
-        setTransitLoading(false);
+        if (requestId === transitRequestIdRef.current) {
+          setTransitLoading(false);
+        }
       }
     }
 
     fetchTransitChart();
-  }, [transitChartDateISO, transitTime, birthLat, birthLon, birthTimezone]);
+  }, [transitChartDateISO, transitTime, birthLat, birthLon, birthTimezone, natalPlanets, nodeMode, nodeCalculationVersion, nodeContextValid]);
 
   const getVargaChart = (key: string) => {
     if (key === "d1") {

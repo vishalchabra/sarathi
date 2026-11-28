@@ -1,4 +1,8 @@
 import { createClient } from "@/lib/supabase/client";
+import {
+  requireNodeMode,
+  type NodeMode,
+} from "@/lib/node-mode";
 
 export type UserChartRow = {
   id: string;
@@ -10,6 +14,7 @@ export type UserChartRow = {
   lat: number;
   lon: number;
   place_name: string | null;
+  node_mode: NodeMode;
   created_at: string;
   updated_at: string;
 };
@@ -22,6 +27,7 @@ export type SaveUserChartInput = {
   lat: number;
   lon: number;
   placeName?: string;
+  nodeMode?: NodeMode;
 };
 
 export async function getCurrentUserChart(): Promise<UserChartRow | null> {
@@ -69,6 +75,9 @@ export async function upsertCurrentUserChart(
     lat: input.lat,
     lon: input.lon,
     place_name: input.placeName ?? null,
+    ...(input.nodeMode !== undefined
+      ? { node_mode: requireNodeMode(input.nodeMode) }
+      : {}),
     updated_at: new Date().toISOString(),
   };
 
@@ -94,6 +103,7 @@ export type SavedBirthProfileRow = {
   lat: number;
   lon: number;
   place_name: string | null;
+  node_mode: NodeMode;
   created_at: string;
   updated_at: string;
 };
@@ -108,6 +118,7 @@ export type SavedBirthProfile = {
   lat: number;
   lon: number;
   placeName: string;
+  nodeMode?: NodeMode;
 };
 
 export type SaveBirthProfileInput = {
@@ -119,6 +130,7 @@ export type SaveBirthProfileInput = {
   lat: number;
   lon: number;
   placeName?: string;
+  nodeMode?: NodeMode;
 };
 
 function mapSavedBirthProfile(row: SavedBirthProfileRow): SavedBirthProfile {
@@ -132,6 +144,7 @@ function mapSavedBirthProfile(row: SavedBirthProfileRow): SavedBirthProfile {
     lat: row.lat,
     lon: row.lon,
     placeName: row.place_name ?? "",
+    nodeMode: requireNodeMode(row.node_mode),
   };
 }
 
@@ -182,6 +195,9 @@ export async function saveUserBirthProfile(
     lat: input.lat,
     lon: input.lon,
     place_name: input.placeName ?? null,
+    ...(input.nodeMode !== undefined
+      ? { node_mode: requireNodeMode(input.nodeMode) }
+      : {}),
     updated_at: new Date().toISOString(),
   };
 

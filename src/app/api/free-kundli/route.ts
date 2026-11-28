@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
       timezone,
       lat,
       lon,
-    });
+    }, "mean");
 
     return NextResponse.json(result, {
       headers: {

@@ -1,5 +1,11 @@
 // FILE: src/server/astro/placements.ts
 import "server-only";
+import { getAscendant } from "@/server/astro/asc";
+import {
+  calculateLunarNodesAtDate,
+  resolveNodeMode,
+  type NodeMode,
+} from "@/server/astro/lunarNodes";
 import { DateTime } from "luxon";
 import {
   sweJulday,
@@ -38,8 +44,7 @@ const PLANETS = [
   { name: "Mars", key: "SE_MARS" as const },
   { name: "Jupiter", key: "SE_JUPITER" as const },
   { name: "Saturn", key: "SE_SATURN" as const },
-  { name: "Rahu", key: "SE_MEAN_NODE" as const },
-  // Ketu handled after Rahu as opposite point
+
 ];
 
 function toUTC(b: BirthInput): Date {
@@ -56,7 +61,11 @@ function signFromDeg(lon: number) {
   return SIGNS[i] ?? "—";
 }
 
-export async function computePlacements(birth: BirthInput) {
+export async function computePlacements(
+  birth: BirthInput,
+  requestedNodeMode: NodeMode = "mean"
+) {
+  const nodeMode = resolveNodeMode(requestedNodeMode);
   const constants = await getSweConstants();
 
   const d = toUTC(birth);
@@ -73,33 +82,23 @@ export async function computePlacements(birth: BirthInput) {
     constants.SE_GREG_CAL
   );
 
-  // house system just to compute whole-sign house relative to Asc
-  const hs = await sweCall<any>(
-    "swe_houses",
-    jd,
-    birth.lat,
-    birth.lon,
-    "P"
-  );
+  // Use the shared natal Ascendant for whole-sign houses.
+  const asc = await getAscendant(birth);
 
+  if (
+    !asc ||
+    typeof asc.lon !== "number" ||
+    !Number.isFinite(asc.lon)
+  ) {
+    throw new Error("Ascendant calculation failed.");
+  }
+
+  const ascSid = norm360(asc.lon);
+  const ascIdx = Math.floor(ascSid / 30);
+
+  // Preserve the existing planetary longitude conversion.
   const ayan =
     (await sweCall<number>("swe_get_ayanamsa_ut", jd)) ?? 0;
-
-  const ascTrop =
-    hs?.ascmc?.[0] ??
-    hs?.asc ??
-    hs?.ascendant ??
-    hs?.Asc ??
-    NaN;
-
-  const ascSid =
-    typeof ascTrop === "number"
-      ? norm360(ascTrop - ayan)
-      : NaN;
-
-  const ascIdx = isNaN(ascSid)
-    ? null
-    : Math.floor(ascSid / 30);
 
   // sidereal flags
   const flags =
@@ -107,7 +106,7 @@ export async function computePlacements(birth: BirthInput) {
     (constants.SEFLG_SIDEREAL ?? 64) |
     (constants.SEFLG_SPEED ?? 256);
 
-  let rahuLon: number | null = null;
+
   const out: Array<{
   planet: string;
   sign: string;
@@ -151,7 +150,7 @@ if (P.name === "Moon" && speedLon === null) {
 // convert tropical -> sidereal
 const lonSid = norm360(lonTrop - ayan);
 
-if (P.name === "Rahu") rahuLon = lonSid;
+
 
 const sign = signFromDeg(lonSid);
 const degree = lonSid % 30;
@@ -174,28 +173,32 @@ out.push({
 });
   }
 
-  // Ketu as opposite of Rahu
-  if (rahuLon != null) {
-    const lon = norm360(rahuLon + 180);
-    const sign = signFromDeg(lon);
-    const degree = lon % 30;
-    let house: number | null = null;
+  // Canonical Lahiri Rahu and Ketu
+  const nodes = await calculateLunarNodesAtDate(
+    d,
+    nodeMode
+  );
 
-    if (ascIdx != null) {
-      const signIdx = Math.floor(lon / 30);
-      house = ((signIdx - ascIdx + 12) % 12) + 1;
-    }
+  for (const node of [
+    { planet: "Rahu", lon: nodes.rahuLonSid },
+    { planet: "Ketu", lon: nodes.ketuLonSid },
+  ]) {
+    const lon = node.lon;
+    const signIdx = Math.floor(lon / 30);
 
     out.push({
-  planet: "Ketu",
-  sign,
-  house,
-  degree,
-  lon,
-  speed: -0.052954,
-  speedLon: -0.052954,
-  retrograde: true,
-});
+      planet: node.planet,
+      sign: signFromDeg(lon),
+      house:
+        ascIdx == null
+          ? null
+          : ((signIdx - ascIdx + 12) % 12) + 1,
+      degree: lon % 30,
+      lon,
+      speed: nodes.speedLon,
+      speedLon: nodes.speedLon,
+      retrograde: nodes.retrograde,
+    });
   }
 
   return out;

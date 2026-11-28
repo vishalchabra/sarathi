@@ -1,3 +1,8 @@
+import {
+  NAKSHATRA_WIDTH,
+  tryCalculateNakshatraPosition,
+} from "../astrology/nakshatraCalculator";
+
 // FILE: src/lib/astro/nakshatra.ts
 
 // Basic Vimshottari nakshatra data, Lahiri ayanamsa context.
@@ -241,11 +246,6 @@ const NAKSHATRAS: NakshatraInfo[] = [
   },
 ];
 
-// normalize degree to [0,360)
-function normDeg360(d: number) {
-  const x = d % 360;
-  return x < 0 ? x + 360 : x;
-}
 
 /**
  * getNakshatraForLongitude
@@ -267,16 +267,10 @@ padaProgress: number;
   fractionElapsed: number; // 0..1 how much of nakshatra is DONE
   fractionRemaining: number; // 0..1 how much is LEFT
 } {
-  const lon = normDeg360(siderealLonDeg);
+  const position =
+    tryCalculateNakshatraPosition(siderealLonDeg);
 
-  const nak = NAKSHATRAS.find(
-    (n) =>
-      (lon >= n.startDeg && lon < n.endDeg) ||
-      // guard last interval wrapping 360 (Revati)
-      (n.endDeg === 360 && lon >= n.startDeg && lon < 360)
-  );
-  if (!nak) {
-    // should never happen, but fallback defensively
+  if (!position) {
     return {
       name: "Unknown",
       keywords: "",
@@ -292,27 +286,32 @@ padaProgress: number;
     };
   }
 
-  const span = nak.endDeg - nak.startDeg; // should be ~13.3333
-  const offset = lon - nak.startDeg;
-  const fracElapsed = span > 0 ? offset / span : 0;
-  const fracRemain = 1 - fracElapsed;
-  // Each nakshatra contains four equal padas.
-// Derive the pada from progress within the nakshatra.
-const padaIndex = Math.min(3, Math.floor(fracElapsed * 4));
-const pada = (padaIndex + 1) as 1 | 2 | 3 | 4;
-const padaProgress = fracElapsed * 4 - padaIndex;
+  // Retain the existing interpretation metadata.
+  // Mathematical fields come from the shared calculator.
+  const nak = NAKSHATRAS[position.nakshatraIndex];
+
+  if (
+    !nak ||
+    nak.name !== position.nakshatra ||
+    nak.lord !== position.nakshatraLord
+  ) {
+    throw new Error(
+      "Nakshatra metadata does not match shared calculator."
+    );
+  }
+
   return {
     name: nak.name,
     keywords: nak.keywords,
-    lord: nak.lord,
-    startDeg: nak.startDeg,
-    endDeg: nak.endDeg,
-    pada,
-    padaProgress,
-    spanDeg: span,
-    offsetWithinNak: offset,
-    fractionElapsed: fracElapsed,
-    fractionRemaining: fracRemain,
+    lord: position.nakshatraLord,
+    startDeg: position.nakshatraStartLongitude,
+    endDeg: position.nakshatraEndLongitude,
+    pada: position.pada,
+    padaProgress: position.padaProgress,
+    spanDeg: NAKSHATRA_WIDTH,
+    offsetWithinNak: position.offsetWithinNak,
+    fractionElapsed: position.fractionElapsed,
+    fractionRemaining: position.fractionRemaining,
   };
 }
 

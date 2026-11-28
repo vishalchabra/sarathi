@@ -1,6 +1,18 @@
+import {
+  buildDailyGuidanceV2,
+  guidanceDateOffset,
+  ensureAgeSafeGuidance,
+} from "@/server/astrology-engine/dailyGuidanceV2";
+
+import { tryCalculateNakshatraPosition } from "../../lib/astrology/nakshatraCalculator";
 import "server-only";
 
 import { DateTime } from "luxon";
+import {
+  calculateNatalLunarNodes,
+  resolveNodeMode,
+  type NodeMode,
+} from "../astro/lunarNodes";
 import { buildHouseData } from "@/server/dataEngine/buildHouseData";
 import { buildFunctionalRoles } from "@/server/dataEngine/buildFunctionalRoles";
 import { buildVargaData } from "@/server/dataEngine/buildVargaData";
@@ -73,6 +85,7 @@ export type BirthInput = {
 };
 
 export type BuildDataEngineParams = {
+  nodeMode?: NodeMode;
   birth: BirthInput;
   plan?: DataEnginePlan;
     currentPlace?: {
@@ -116,7 +129,12 @@ type ArudhaMap = Record<
   }
 >;
 export type DataEngineOutput = {
+  ok: boolean;
+  nodeMode: NodeMode;
+  nodeCalculationVersion: string;
   meta: {
+    nodeMode: NodeMode;
+    nodeCalculationVersion: string;
     generatedAtISO: string;
     plan: DataEnginePlan;
     selectedDateISO: string;
@@ -363,45 +381,6 @@ function normalizeBirthTimezone(birth: BirthInput): BirthInput {
   }
 }
 
-async function getTrueNodeSiderealLongitudes(birth: BirthInput) {
-  const d = DateTime.fromISO(`${birth.dateISO}T${birth.time}`, {
-    zone: birth.timezone,
-  })
-    .toUTC()
-    .toJSDate();
-
-  const ut =
-    d.getUTCHours() +
-    d.getUTCMinutes() / 60 +
-    d.getUTCSeconds() / 3600;
-
-  const constants = await getSweConstants();
-
-  const jdUt = await sweJulday(
-    d.getUTCFullYear(),
-    d.getUTCMonth() + 1,
-    d.getUTCDate(),
-    ut,
-    constants.SE_GREG_CAL
-  );
-
-  const ayanamsa = await sweCall<number>("swe_get_ayanamsa_ut", jdUt);
-
-  const trueNodeTropical = await sweCall<any>(
-    "swe_calc_ut",
-    jdUt,
-    constants.SE_TRUE_NODE,
-    constants.SEFLG_SWIEPH | constants.SEFLG_SPEED
-  );
-
-  const rahuLonSid = ((Number(trueNodeTropical?.longitude ?? 0) - ayanamsa) % 360 + 360) % 360;
-  const ketuLonSid = (rahuLonSid + 180) % 360;
-
-  return {
-    rahuLonSid,
-    ketuLonSid,
-  };
-}
 const NAKSHATRA_NAMES = [
   "Ashwini",
   "Bharani",
@@ -433,19 +412,11 @@ const NAKSHATRA_NAMES = [
 ] as const;
 
 function getNakshatraAndPadaFromLon(lon: number | null | undefined) {
-  if (typeof lon !== "number" || Number.isNaN(lon)) {
-    return { nakshatra: null, pada: null };
-  }
-
-  const x = ((lon % 360) + 360) % 360;
-  const nakSpan = 360 / 27; // 13°20'
-  const idx = Math.floor(x / nakSpan);
-  const withinNak = x % nakSpan;
-  const pada = Math.floor(withinNak / (nakSpan / 4)) + 1;
+  const position = tryCalculateNakshatraPosition(lon);
 
   return {
-    nakshatra: NAKSHATRA_NAMES[idx] ?? null,
-    pada,
+    nakshatra: position?.nakshatra ?? null,
+    pada: position?.pada ?? null,
   };
 }
   const TARA_SEQUENCE = [
@@ -740,7 +711,8 @@ const utilityHoraInfo = {
     lon: birth.lon,
   });
 
-  const trueNodeLons = await getTrueNodeSiderealLongitudes(birth);
+  const nodeMode = resolveNodeMode(params.nodeMode ?? "mean");
+  const nodeLons = await calculateNatalLunarNodes(birth, nodeMode);
 
   const rawPlacements = await computePlacements({
     dateISO: birth.dateISO,
@@ -748,7 +720,7 @@ const utilityHoraInfo = {
     tz: birth.timezone,
     lat: birth.lat,
     lon: birth.lon,
-  });
+  }, nodeMode);
 const declinationMap = await getPlanetDeclinationMap(birth);
   const rawNodeLonMap = new Map(
     (Array.isArray(rawPlacements) ? rawPlacements : [])
@@ -784,7 +756,7 @@ const signNames = [
 const classicalReportPlanets = (Array.isArray(rawPlacements) ? rawPlacements : []).map((p: any) => {
 
   if (p.planet === "Rahu") {
-  const lon = trueNodeLons.rahuLonSid;
+  const lon = nodeLons.rahuLonSid;
   const signNum = Math.floor(lon / 30) + 1;
   const sign = signNames[signNum - 1] ?? p.sign;
   const nakInfo = getNakshatraAndPadaFromLon(lon);
@@ -802,16 +774,19 @@ const classicalReportPlanets = (Array.isArray(rawPlacements) ? rawPlacements : [
     signNum,
     degree: Number((lon % 30).toFixed(2)),
     house,
-    nakshatra: p.nakshatra ?? nakInfo.nakshatra,
-    pada: p.pada ?? nakInfo.pada,
-    retrograde: true,
+    nakshatra: nakInfo.nakshatra,
+    pada: nakInfo.pada,
+    speed: nodeLons.speedLon,
+    speedLon: nodeLons.speedLon,
+    longitudeSpeed: nodeLons.speedLon,
+    retrograde: nodeLons.retrograde,
     combust: false,
     lordships: [],
   };
 }
 
   if (p.planet === "Ketu") {
-    const lon = trueNodeLons.ketuLonSid;
+    const lon = nodeLons.ketuLonSid;
 
     const nakInfo = getNakshatraAndPadaFromLon(lon);
     const signNum = Math.floor(lon / 30) + 1;
@@ -829,9 +804,12 @@ const sign = signNames[signNum - 1] ?? p.sign;
   sign,
   signNum,
   house,
-  nakshatra: p.nakshatra ?? nakInfo.nakshatra,
-  pada: p.pada ?? nakInfo.pada,
-  retrograde: true,
+  nakshatra: nakInfo.nakshatra,
+  pada: nakInfo.pada,
+  speed: nodeLons.speedLon,
+    speedLon: nodeLons.speedLon,
+    longitudeSpeed: nodeLons.speedLon,
+    retrograde: nodeLons.retrograde,
   combust: false,
   lordships: [],
 };
@@ -951,6 +929,8 @@ const natalAspects = buildNatalAspects({
 });
 
 const natalBase = {
+  nodeMode: nodeLons.nodeMode,
+  nodeCalculationVersion: nodeLons.calculationVersion,
   ayanamsa: "Lahiri",
   birthUTCISO: toBirthUTCISO(birth),
   moonLonSidDeg:
@@ -1249,6 +1229,7 @@ const classicYogasRaw = buildClassicYogas({
   });
 
   const transitNow = await buildTransitSnapshot({
+  nodeMode,
   birth,
   currentPlace,
   dateISO: selectedDateISO,
@@ -1307,6 +1288,7 @@ const classicYogasRaw = buildClassicYogas({
   });
 
   const upcomingTransits = await buildUpcomingTransits({
+    nodeMode,
     birth,
     natalPlanets: natalWithStrengths.planets,
     natalAscendant: {
@@ -1358,6 +1340,7 @@ const microTriggerDays = buildMicroTriggerDays({
 });
   const compare = compareDateISO
     ? await buildCompareData({
+        nodeMode,
         birth,
         dateAISO: selectedDateISO,
         dateBISO: compareDateISO,
@@ -1434,17 +1417,118 @@ const personalizedPredictionInput =
     age,
   });
 
-const personalizedDailyPrediction =
+const legacyDailyPrediction =
   generatePersonalizedDailyPrediction(
     personalizedPredictionInput
   );
+
+let personalizedDailyPrediction = legacyDailyPrediction;
+
+if (process.env.SARATHI_DAILY_GUIDANCE_V2 === "true") {
+
+  try {
+
+    const window = [];
+
+    // Seven historical dates and one forward comparison.
+    // Reuse natal calculations rather than recursively
+    // calling the complete Data Engine.
+
+    for (const offset of [-7, -6, -5, -4, -3, -2, -1, 1]) {
+
+      const dateISO = guidanceDateOffset(
+        selectedDateISO,
+        offset
+      );
+
+      if (dateISO < birth.dateISO) continue;
+
+      const windowDasha = await buildDashaData({
+        birth,
+        selectedDateISO: dateISO,
+        plan,
+        natal: {
+          birthUTCISO: natalWithStrengths.birthUTCISO,
+          moonLonSidDeg: natalWithStrengths.moonLonSidDeg,
+        },
+      });
+
+      const windowTransit = await buildTransitSnapshot({
+        nodeMode,
+        birth,
+        currentPlace,
+        dateISO,
+        natalAscendant: {
+          sign: natalAscendantForEngine.sign ?? "—",
+          signNum: natalAscendantForEngine.signNum ?? 0,
+          degree: natalAscendantForEngine.degree ?? 0,
+          house: 1,
+        },
+        natalPlanets: natalWithStrengths.planets,
+        plan,
+      });
+
+      const [year, month, day] =
+        dateISO.split("-").map(Number);
+
+      const windowAge =
+        year - birthYear -
+        (
+          month < birthMonth ||
+          (month === birthMonth && day < birthDay)
+            ? 1
+            : 0
+        );
+
+      window.push(
+        buildPersonalizedPredictionInputFromDataEngine({
+          selectedDateISO: dateISO,
+          natal: natalWithStrengths,
+          dasha: windowDasha,
+          transitNow: windowTransit,
+          age: windowAge,
+        })
+      );
+    }
+
+    personalizedDailyPrediction = buildDailyGuidanceV2({
+      current: personalizedPredictionInput,
+      window,
+      legacy: legacyDailyPrediction,
+      reinforcement: {
+        shadbala,
+        afflictions,
+        ashtakvarga,
+      },
+    });
+
+  } catch (error) {
+
+    console.error(
+      "[DAILY GUIDANCE V2 FALLBACK]",
+      error instanceof Error
+        ? error.name
+        : "UnknownError"
+    );
+
+    personalizedDailyPrediction = ensureAgeSafeGuidance(
+      legacyDailyPrediction,
+      personalizedPredictionInput.age
+    );
+  }
+}
 const selectedDailyRemedy = selectDailyRemedy({
   prediction: personalizedDailyPrediction,
   natalPlanets: natalWithStrengths.planets,
   roles,
 });
   return {
+  ok: true,
+  nodeMode: nodeLons.nodeMode,
+  nodeCalculationVersion: nodeLons.calculationVersion,
   meta: {
+    nodeMode: nodeLons.nodeMode,
+    nodeCalculationVersion: nodeLons.calculationVersion,
     generatedAtISO: new Date().toISOString(),
     plan,
     selectedDateISO,

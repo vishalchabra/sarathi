@@ -83,7 +83,29 @@ const {
     }
 
     const body =
-      (await request.json()) as DailyGuidanceRequest;
+      (await request.json()) as DailyGuidanceRequest & {
+        nodeMode?: unknown;
+      };
+
+    const requestedNodeMode = body.nodeMode;
+
+    if (
+      requestedNodeMode !== undefined &&
+      requestedNodeMode !== null &&
+      requestedNodeMode !== "mean" &&
+      requestedNodeMode !== "true"
+    ) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "Invalid lunar node convention.",
+        },
+        { status: 400 }
+      );
+    }
+
+    const nodeMode: "mean" | "true" =
+      requestedNodeMode ?? "mean";
 
     if (!isValidBirthInput(body.birth)) {
       return NextResponse.json(
@@ -176,6 +198,7 @@ console.log("[DAILY GUIDANCE API] buildDataEngine starting");
 
     const result =
       await buildDataEngine({
+        nodeMode,
         birth: {
           name:
             body.birth.name?.trim() ||
@@ -223,8 +246,17 @@ const prediction = result.prediction.personalizedDaily;
 const daily = prediction.dailyComparison;
 
 const focus = daily?.dailyAreas[0] ?? null;
+    if (
+      result.nodeMode !== nodeMode ||
+      result.nodeCalculationVersion !== "lahiri-swiss-node-v1"
+    ) {
+      throw new Error("Daily Guidance calculation convention mismatch.");
+    }
+
     return NextResponse.json({
   ok: true,
+  nodeMode: result.nodeMode,
+  nodeCalculationVersion: result.nodeCalculationVersion,
 
   date: result.meta.selectedDateISO,
 

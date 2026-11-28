@@ -77,7 +77,7 @@ function safeText(value: any, fallback = "Not available"): string {
   if (typeof value === "string") return value;
   if (typeof value === "number") return String(value);
   if (Array.isArray(value)) return value.map((v) => safeText(v, "")).filter(Boolean).join(", ");
-  if (typeof value === "object") return JSON.stringify(value);
+  if (typeof value === "object") return lineText(value) || fallback;
   return String(value);
 }
 function uniqueItems<T>(items?: T[]): T[] {
@@ -134,7 +134,6 @@ function Lines({ items }: { items?: any[] }) {
 export default function LifeReportPdf({
   report,
   profileName,
-  dashaTimeline,
   monthlyInsights,
   weeklyInsights,
   dailyHighlights,
@@ -153,6 +152,10 @@ export default function LifeReportPdf({
 moonSign?: string;
 sunSign?: string;
 }) {
+  const canonicalTimeline = Array.isArray(report?.mahadashaTimeline)
+    ? report.mahadashaTimeline
+    : [];
+
   const name = profileName || report?.name || report?.chartName || "Sarathi User";
   const birthPlace =
   report?.placeName ||
@@ -202,7 +205,33 @@ const overviewMoonFinal = overviewMoon || moonPlanet?.sign || "";
           <Text style={styles.text}>Prepared for: {safeText(name)}</Text>
           <Text style={styles.text}>Date of birth: {safeText(report?.birthDateISO)}</Text>
           <Text style={styles.text}>Time of birth: {safeText(report?.birthTime)}</Text>
-          <Text style={styles.text}>Time zone: {safeText(report?.birthTz)}</Text>
+          <Text style={styles.text}>Birth timezone: {safeText(report?.birthTz)}</Text>
+
+          <Text style={styles.text}>
+            Lunar node convention: {
+              report?.nodeMode === "mean"
+                ? "Mean Node"
+                : report?.nodeMode === "true"
+                  ? "True Node"
+                  : "Not available"
+            }
+          </Text>
+
+          <Text style={styles.muted}>
+            Calculation version: {safeText(report?.nodeCalculationVersion)}
+          </Text>
+
+          <Text style={styles.text}>
+            Forecast date: {safeText(report?.forecastContext?.dateISO)}
+          </Text>
+
+          <Text style={styles.text}>
+            Forecast location: {safeText(report?.forecastContext?.location?.name)}
+          </Text>
+
+          <Text style={styles.text}>
+            Forecast timezone: {safeText(report?.forecastContext?.timezone)}
+          </Text>
           <Text style={styles.text}>
   Place of birth: {safeText(birthPlace)}
 </Text>
@@ -343,10 +372,7 @@ const overviewMoonFinal = overviewMoon || moonPlanet?.sign || "";
 
     {Array.isArray(report?.lifeMilestones) && report.lifeMilestones.length ? (
         report.lifeMilestones
-    .filter((m: any) => {
-      const startYear = Number(String(m.periodStart || "").slice(0, 4));
-      return !Number.isFinite(startYear) || startYear <= 2065;
-    })
+
     .map((m: any, i: number) => (
         <View key={i} style={styles.box}>
           <Text style={styles.subTitle}>{safeText(m.label)}</Text>
@@ -362,30 +388,14 @@ const overviewMoonFinal = overviewMoon || moonPlanet?.sign || "";
     )}
   </View>
 
-  {Array.isArray(dashaTimeline) && dashaTimeline.length ? (
+  {canonicalTimeline.length ? (
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>Dasha Timeline Snapshot</Text>
 
-      {dashaTimeline
-        .filter((d: any) => {
-          const label = String(d?.label || d?.lord || d?.planet || "").toLowerCase();
-          const start = String(d?.startISO || d?.start || "");
-          const end = String(d?.endISO || d?.end || "");
-
-          // Keep only major periods if the data has level/type
-          const level = String(d?.level || d?.type || "").toLowerCase();
-          if (level && !["md", "mahadasha", "major"].includes(level)) return false;
-
-          // Avoid absurd far-future rows
-          const year = Number(start.slice(0, 4));
-          if (Number.isFinite(year) && year > 2070) return false;
-
-          return !!label || !!start || !!end;
-        })
-        .slice(0, 12)
+      {canonicalTimeline
         .map((d: any, i: number) => (
           <Text key={i} style={styles.text}>
-            {safeText(d.label || d.lord || d.planet)}{" "}
+            {safeText(d.lord || d.planet || d.label)}{" "}
             {safeText(d.startISO || d.start)} - {safeText(d.endISO || d.end)}
           </Text>
         ))}
@@ -409,6 +419,19 @@ const overviewMoonFinal = overviewMoon || moonPlanet?.sign || "";
       <Page size="A4" style={styles.page}>
   <View style={styles.section}>
     <Text style={styles.sectionTitle}>Now & Near Future</Text>
+
+    {Array.isArray(report?.transitNow) && report.transitNow.length ? (
+      <View style={styles.box}>
+        <Text style={styles.subTitle}>Current Planetary Positions</Text>
+
+        {report.transitNow.map((p: any, i: number) => (
+          <Text key={`transit-${i}`} style={styles.text}>
+            {safeText(p.name || p.planet)} - {safeText(p.sign)}
+            {p.house ? ` - House ${p.house}` : ""}
+          </Text>
+        ))}
+      </View>
+    ) : null}
 
     {report?.nowNearFuture?.headline || report?.nowPlan?.headline ? (
       <View style={styles.box}>
@@ -657,8 +680,57 @@ const overviewMoonFinal = overviewMoon || moonPlanet?.sign || "";
             <Text style={styles.subTitle}>30-Day Stabilizer</Text>
             <Lines items={report.fullGuidanceV2.remedies.stabilizer30d} />
 
-            <Text style={styles.subTitle}>Spiritual</Text>
-            <Lines items={report.fullGuidanceV2.remedies.spiritual} />
+            <Text style={styles.subTitle}>
+              Personalised Traditional Remedies
+            </Text>
+
+            {Array.isArray(report.fullGuidanceV2.remedies.personalised) &&
+            report.fullGuidanceV2.remedies.personalised.some(
+              (item: any) => item?.remedy?.title && item?.remedy?.instructions
+            ) ? (
+              report.fullGuidanceV2.remedies.personalised
+                .filter(
+                  (item: any) => item?.remedy?.title && item?.remedy?.instructions
+                )
+                .map((item: any, i: number) => (
+                  <View key={`remedy-${i}`} style={styles.box}>
+                    <Text style={styles.subTitle}>
+                      {safeText(item.remedy.title)}
+                    </Text>
+
+                    <Text style={styles.muted}>
+                      Planet: {safeText(item.planet)}
+                    </Text>
+
+                    <Text style={styles.muted}>
+                      Active periods: {safeText(item.periodLevels)}
+                    </Text>
+
+                    <Text style={styles.text}>
+                      {safeText(item.remedy.instructions)}
+                    </Text>
+
+                    {item.reason ? (
+                      <Text style={styles.muted}>
+                        Why selected: {safeText(item.reason)}
+                      </Text>
+                    ) : null}
+                  </View>
+                ))
+            ) : (
+              <Text style={styles.text}>
+                The available astrological evidence does not support
+                a sufficiently clear personalised recommendation
+                at this time.
+              </Text>
+            )}
+
+            <Text style={styles.muted}>
+              {safeText(
+                report.fullGuidanceV2.remedies.disclaimer,
+                "These optional practices reflect traditional Vedic astrology. They do not guarantee outcomes or replace professional advice."
+              )}
+            </Text>
 
             <Text style={styles.subTitle}>Avoid</Text>
             <Lines items={report.fullGuidanceV2.remedies.avoid} />

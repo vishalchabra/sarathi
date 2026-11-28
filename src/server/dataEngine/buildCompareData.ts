@@ -3,8 +3,14 @@ import "server-only";
 import { buildTransitSnapshot } from "./buildTransitSnapshot";
 import { buildDashaData } from "./buildDashaData";
 import type { BirthInput, DataEnginePlan } from "./types";
+import {
+  resolveNodeMode,
+  NODE_CALCULATION_VERSION,
+  type NodeMode,
+} from "@/server/astro/lunarNodes";
 
 type BuildCompareDataParams = {
+  nodeMode: NodeMode;
   birth: BirthInput;
   dateAISO: string;
   dateBISO: string;
@@ -41,7 +47,10 @@ export async function buildCompareData(params: BuildCompareDataParams) {
     plan,
   } = params;
 
+  const nodeMode = resolveNodeMode(params.nodeMode);
+
   const snapA = await buildTransitSnapshot({
+    nodeMode,
     birth,
     dateISO: dateAISO,
     natalAscendant,
@@ -50,6 +59,7 @@ export async function buildCompareData(params: BuildCompareDataParams) {
   });
 
   const snapB = await buildTransitSnapshot({
+    nodeMode,
     birth,
     dateISO: dateBISO,
     natalAscendant,
@@ -127,6 +137,8 @@ natalHouse: natalRow?.house ?? null,
 }
 
   return {
+    nodeMode,
+    nodeCalculationVersion: NODE_CALCULATION_VERSION,
   dateAISO,
   dateBISO,
   dashaChanged:

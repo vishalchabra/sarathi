@@ -1,3 +1,8 @@
+import {
+  calculateNavamsa,
+  calculateDasamsa,
+} from "./astrology/divisionalCalculator";
+
 // src/lib/astro-helpers.ts
 
 // 27 nakshatras in order (sidereal). Each = 13°20' = 13.333333333...°
@@ -58,21 +63,7 @@ export function absoluteFromSign(sign: string, degreeInSign: number) {
 
 /** Return the sign index (0..11) for Navāṁśa from an absolute sidereal degree (0..360). */
 export function navamsaSignIndexFromDegree(absDeg: number) {
-  const d = norm360(absDeg);
-  const signIndex = Math.floor(d / 30);         // base rāśi sign 0..11
-  const degInSign = d % 30;                     // 0..30
-  const padaIndex = Math.floor(degInSign / (30 / 9)); // 0..8 (each 3°20')
-
-  // Group: movable(0,3,6,9) / fixed(1,4,7,10) / dual(2,5,8,11)
-  const group = signIndex % 3;
-  // Start sign for D9 sequence:
-  // movable → same sign; fixed → 9th from it; dual → 5th from it
-  const start =
-    group === 0 ? signIndex :            // movable
-    group === 1 ? (signIndex + 8) % 12 : // fixed
-                  (signIndex + 4) % 12;  // dual
-
-  return (start + padaIndex) % 12;
+  return calculateNavamsa(absDeg).signIndex;
 }
 
 /** Return the Navāṁśa sign name from absolute degree. */
@@ -101,9 +92,6 @@ export function vargaSignIndexFromDegree(absDeg: number, N: number) {
   const part = 30 / N;                     // e.g. D9 -> 3°20'
   const k = Math.floor(degIn / part);      // 0..N-1
 
-  const movable = rasi % 3 === 0; // 0,3,6,9
-  const fixed   = rasi % 3 === 1; // 1,4,7,10
-  const dual    = rasi % 3 === 2; // 2,5,8,11
   const oddSign = rasi % 2 === 0; // Aries=0 is odd (masculine)
 
   // Specific canonical rules:
@@ -120,14 +108,11 @@ export function vargaSignIndexFromDegree(absDeg: number, N: number) {
       const start = oddSign ? 0 : 6;
       return (start + k) % 12;
     }
-    case 9: { // Navāṁśa (same rule you already used)
-      const start = movable ? rasi : fixed ? (rasi + 8) % 12 : (rasi + 4) % 12;
-      return (start + k) % 12;
+    case 9: {
+      return calculateNavamsa(absDeg).signIndex;
     }
-    case 10: { // Daśāṁśa
-      // Movable start Aries(0), Fixed start Leo(4), Dual start Sagittarius(8)
-      const start = movable ? 0 : fixed ? 4 : 8;
-      return (start + k) % 12;
+    case 10: {
+      return calculateDasamsa(absDeg).signIndex;
     }
     case 12: { // Dvādaśāṁśa
       // Odd signs start from the same sign; even signs start from the 9th

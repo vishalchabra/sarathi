@@ -9,104 +9,120 @@ import type { BirthInput } from "@/types";
 import type { BirthInput as AscBirthInput } from "@/server/astro/asc";
 import { getAscendant } from "@/server/astro/asc";
 
-import { getNatal } from "@/server/astro/core";
+import { DateTime } from "luxon";
+import { computePlacements } from "@/server/astro/placements";
+import { NODE_CALCULATION_VERSION } from "@/server/astro/lunarNodes";
 import {
   renderChartSVG,
   svgDataUrl,
   navamsaLon,
   dasamsaLon,
-  norm360,
+
 } from "@/server/astro/chart-svg";
-
-// deterministic fallback so charts always render
-function seedFrom(birth?: BirthInput) {
-  // This matches the BirthInput from "@/types"
-  const base = `${birth?.dobISO ?? "2000-01-01"}T${
-    birth?.tob ?? "12:00"
-  }@${birth?.place?.lat ?? 0},${birth?.place?.lon ?? 0}`;
-
-  let h = 2166136261 >>> 0;
-  for (let i = 0; i < base.length; i++) {
-    h ^= base.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  return h >>> 0;
-}
-
-function seededDeg(seed: number, k: number) {
-  let x = (seed ^ (k * 0x9e3779b1)) >>> 0;
-  x ^= x << 13;
-  x ^= x >>> 17;
-  x ^= x << 5;
-  return (x % 360) + ((x >>> 8) % 100) / 100;
-}
-
-function synthNatal(birth?: BirthInput): {
-  planets: Record<string | number, number>;
-  ascLon: number;
-} {
-  const s = seedFrom(birth);
-  const planets: Record<string | number, number> = {
-    "0": seededDeg(s, 0),
-    "1": seededDeg(s, 1),
-    "2": seededDeg(s, 2),
-    "3": seededDeg(s, 3),
-    "4": seededDeg(s, 4),
-    "5": seededDeg(s, 5),
-    "6": seededDeg(s, 6),
-    "10": seededDeg(s, 10),
-    "-1": norm360(seededDeg(s, 10) + 180),
-  };
-  const ascLon = seededDeg(s, 99);
-  return { planets, ascLon };
-}
 
 export async function POST(req: Request) {
   try {
-    const { birth }: { birth: BirthInput } = await req.json();
-    if (!birth) {
-      return NextResponse.json({ error: "Missing birth" }, { status: 400 });
+    const body = await req.json();
+    const birth: BirthInput = body?.birth;
+
+    if (!birth || !birth.place) {
+      return NextResponse.json(
+        { error: "Missing birth details." },
+        { status: 400 }
+      );
     }
 
-    // real natal if available - this expects BirthInput from "@/types"
-    const natal = await getNatal(birth).catch(() => ({
-      planets: {} as Record<string | number, number>,
-    }));
+    const requestedNodeMode =
+      body?.nodeMode ??
+      (birth as any).nodeMode ??
+      "mean";
 
-    let asc: any = null;
-    try {
-      // Convert our app BirthInput -> asc module BirthInput
-      const ascInput: AscBirthInput = {
-        dateISO: birth.dobISO,
-        time: birth.tob,
-        tz: (birth as any).tz ?? birth.place?.tz ?? "UTC",
-        lat: birth.place?.lat ?? 0,
-        lon: birth.place?.lon ?? 0,
-      };
-
-      asc = await getAscendant(ascInput);
-    } catch {
-      // swallow, we will fall back to synthetic chart if needed
+    if (
+      requestedNodeMode !== "mean" &&
+      requestedNodeMode !== "true"
+    ) {
+      return NextResponse.json(
+        { error: "Invalid lunar node convention." },
+        { status: 400 }
+      );
     }
 
-    const haveReal =
-      natal && Object.keys(natal.planets || {}).length > 0;
+    const nodeMode: "mean" | "true" = requestedNodeMode;
 
-    const ascLonReal =
-      typeof asc?.ascLon === "number"
-        ? asc.ascLon
-        : typeof asc?.ascSign === "number"
-        ? asc.ascSign * 30
-        : undefined;
+    const ascInput: AscBirthInput = {
+      dateISO: birth.dobISO,
+      time: birth.tob,
+      tz: (birth as any).tz ?? birth.place.tz,
+      lat: birth.place.lat,
+      lon: birth.place.lon,
+    };
 
-    // fallback if missing — force planets to a single concrete type
-    let planets: Record<string | number, number> =
-      (natal?.planets as Record<string | number, number>) ?? {};
-    let ascLon = ascLonReal;
-    if (!haveReal || typeof ascLon !== "number") {
-      const f = synthNatal(birth);
-      planets = f.planets;
-      ascLon = f.ascLon;
+    const local = DateTime.fromISO(
+      `${ascInput.dateISO}T${ascInput.time}`,
+      { zone: ascInput.tz }
+    );
+
+    if (
+      !ascInput.tz ||
+      !local.isValid ||
+      !Number.isFinite(ascInput.lat) ||
+      !Number.isFinite(ascInput.lon) ||
+      Math.abs(ascInput.lat) > 90 ||
+      Math.abs(ascInput.lon) > 180
+    ) {
+      return NextResponse.json(
+        { error: "Invalid birth date, time or location." },
+        { status: 400 }
+      );
+    }
+
+    const asc = await getAscendant(ascInput);
+
+    const placements = await computePlacements(
+      ascInput,
+      nodeMode
+    );
+
+    if (
+      !Number.isFinite(asc.lon) ||
+      placements.length !== 9
+    ) {
+      throw new Error("Incomplete chart calculation.");
+    }
+
+    const ascLon = asc.lon;
+
+    // Preserve the numeric planet identifiers
+    // expected by the existing SVG renderer.
+    const planetCodes: Record<string, string> = {
+      Sun: "0",
+      Moon: "1",
+      Mercury: "2",
+      Venus: "3",
+      Mars: "4",
+      Jupiter: "5",
+      Saturn: "6",
+      Rahu: "10",
+      Ketu: "-1",
+    };
+
+    const planets: Record<string | number, number> = {};
+
+    for (const p of placements) {
+      const code = planetCodes[p.planet];
+
+      if (
+        code === undefined ||
+        !Number.isFinite(p.lon)
+      ) {
+        throw new Error("Invalid planetary calculation.");
+      }
+
+      planets[code] = p.lon;
+    }
+
+    if (Object.keys(planets).length !== 9) {
+      throw new Error("Incomplete planetary calculation.");
     }
 
     // D1
@@ -147,6 +163,8 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json({
+      nodeMode,
+      nodeCalculationVersion: NODE_CALCULATION_VERSION,
       images: {
         d1: svgDataUrl(d1),
         d9: svgDataUrl(d9),

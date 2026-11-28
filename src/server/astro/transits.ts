@@ -1,10 +1,17 @@
 // FILE: src/server/astro/transits.ts
 
 import "server-only";
+import { DateTime } from "luxon";
+import {
+  calculateLunarNodesAtDate,
+  resolveNodeMode,
+  type NodeMode,
+} from "./lunarNodes";
 import { sweCall, getSweConstants } from "@/server/astro/swe-remote";
 const DEBUG_TRANSITS = process.env.DEBUG_TRANSITS === "1";
 
 export type TransitEngineBirth = {
+  nodeMode?: NodeMode;
   dateISO: string; // "YYYY-MM-DD"
   time: string; // "HH:mm"
   tz: string; // IANA tz, e.g. "Asia/Dubai"
@@ -104,40 +111,29 @@ function angleDiff(a: number, b: number): number {
    TIME → JULIAN DAY HELPERS (same semantics as before)
 -------------------------------------------------------- */
 
-function parseGmtOffsetMinutes(label: string): number | undefined {
-  const m = /GMT([+-]\d{1,2})(?::?(\d{2}))?/.exec(label);
-  if (!m) return;
-  const h = parseInt(m[1], 10);
-  const min = m[2] ? parseInt(m[2], 10) : 0;
-  return h * 60 + (h >= 0 ? min : -min);
-}
-
-function tzOffsetMinutesAt(tz: string, probeUtc: Date): number {
-  const s = new Intl.DateTimeFormat("en-US", {
-    timeZone: tz,
-    hour: "2-digit",
-    timeZoneName: "shortOffset",
-  }).format(probeUtc);
-  return parseGmtOffsetMinutes(s) ?? 0;
-}
-
 function makeUtcInstant(dateISO: string, time: string, tz: string): Date {
-  const [H, M] = time.split(":").map(Number);
+  const localISO = `${dateISO}T${time}`;
 
-  const pretendUtc = new Date(
-    Date.UTC(
-      +dateISO.slice(0, 4),
-      +dateISO.slice(5, 7) - 1,
-      +dateISO.slice(8, 10),
-      H,
-      M,
-      0,
-      0
-    )
-  );
+  const local = DateTime.fromISO(localISO, {
+    zone: tz,
+  });
 
-  const off = tzOffsetMinutesAt(tz, pretendUtc);
-  return new Date(pretendUtc.getTime() - off * 60_000);
+  if (!local.isValid) {
+    throw new Error("Invalid date, time or timezone.");
+  }
+
+  const expectedTime = time.length === 5
+    ? `${time}:00`
+    : time;
+
+  if (
+    local.toFormat("yyyy-MM-dd") !== dateISO ||
+    local.toFormat("HH:mm:ss") !== expectedTime
+  ) {
+    throw new Error("Invalid local time in the selected timezone.");
+  }
+
+  return local.toUTC().toJSDate();
 }
 
 async function jdFromDateUTC(date: Date, SE_GREG_CAL: number): Promise<number> {
@@ -367,8 +363,7 @@ async function computeNatalPlanets(
     { name: "Mars", code: constants.SE_MARS },
     { name: "Jupiter", code: constants.SE_JUPITER },
     { name: "Saturn", code: constants.SE_SATURN },
-    { name: "Rahu", code: constants.SE_TRUE_NODE },
-    { name: "Ketu", code: constants.SE_TRUE_NODE }, // +180°
+
   ];
 
   const out: NatalPlanet[] = [];
@@ -383,7 +378,7 @@ if (typeof lonRaw !== "number" || !isFinite(lonRaw)) continue;
 const lonDeg = wrap360(lonRaw);
 let lonSid = toSiderealLon(lonDeg, ayanDeg);
 
-if (p.name === "Ketu") lonSid = wrap360(lonSid + 180);
+
 
 let natalHouse: number | undefined = undefined;
 
@@ -408,7 +403,36 @@ out.push({
   house: natalHouse,
 });
   }
-  // (guard must live INSIDE the defs loop, because it uses `p`)
+  const nodeMode = resolveNodeMode(birth.nodeMode ?? "mean");
+  const nodes = await calculateLunarNodesAtDate(birthUtc, nodeMode);
+
+  for (const node of [
+    { name: "Rahu", lon: nodes.rahuLonSid },
+    { name: "Ketu", lon: nodes.ketuLonSid },
+  ]) {
+    let house: number | undefined;
+
+    if (opts?.ascSign) {
+      house = houseFromLagnaWholeSign(
+        signFromLonSidereal(node.lon),
+        opts.ascSign
+      );
+    }
+
+    if (
+      !house &&
+      typeof opts?.ascDeg === "number" &&
+      Number.isFinite(opts.ascDeg)
+    ) {
+      house = houseFromAsc(opts.ascDeg, node.lon);
+    }
+
+    out.push({
+      name: node.name,
+      lon: node.lon,
+      house,
+    });
+  }
 
 
   return out;
@@ -458,8 +482,11 @@ async function estimateSiderealMotionDegPerHour(
  */
 async function computeTransitPlanetsForDay(
   date: Date,
-  constants: any
+  constants: any,
+  requestedNodeMode: NodeMode = "mean",
+  requestedPlanets?: ReadonlySet<string>
 ): Promise<TransitPlanet[]> {
+  const nodeMode = resolveNodeMode(requestedNodeMode);
   await ensureSiderealMode(constants);
 
   const jdUt = await jdFromDateUTC(date, constants.SE_GREG_CAL);
@@ -478,12 +505,15 @@ async function computeTransitPlanetsForDay(
     { name: "Mars", code: constants.SE_MARS },
     { name: "Jupiter", code: constants.SE_JUPITER },
     { name: "Saturn", code: constants.SE_SATURN },
-    { name: "Rahu", code: constants.SE_TRUE_NODE ?? constants.SE_MEAN_NODE },
+
   ];
 
   const out: TransitPlanet[] = [];
 
   for (const p of defs) {
+    if (requestedPlanets && !requestedPlanets.has(p.name)) {
+      continue;
+    }
     if (p.code == null) continue;
 
     const res = await sweCall<any>("swe_calc_ut", jdUt, p.code, flags);
@@ -514,9 +544,7 @@ async function computeTransitPlanetsForDay(
     }
 
     const retrograde =
-  p.name === "Rahu"
-    ? true
-    : p.name === "Sun" || p.name === "Moon"
+  p.name === "Sun" || p.name === "Moon"
     ? false
     : typeof speedLon === "number" && Number.isFinite(speedLon)
     ? speedLon < 0
@@ -530,17 +558,27 @@ async function computeTransitPlanetsForDay(
     });
   }
 
-  const rahu = out.find((p) => p.name === "Rahu");
+  if (
+    !requestedPlanets ||
+    requestedPlanets.has("Rahu") ||
+    requestedPlanets.has("Ketu")
+  ) {
+  const nodes = await calculateLunarNodesAtDate(date, nodeMode);
 
-  if (rahu && typeof rahu.lon === "number") {
-    const ketuLon = wrap360(rahu.lon + 180);
-
-    out.push({
+  out.push(
+    {
+      name: "Rahu",
+      lon: nodes.rahuLonSid,
+      speedLon: nodes.speedLon,
+      retrograde: nodes.retrograde,
+    },
+    {
       name: "Ketu",
-      lon: ketuLon,
-      speedLon: typeof rahu.speedLon === "number" ? rahu.speedLon : undefined,
-      retrograde: true,
-    });
+      lon: nodes.ketuLonSid,
+      speedLon: nodes.speedLon,
+      retrograde: nodes.retrograde,
+    }
+  );
   }
 
   return out;
@@ -718,7 +756,8 @@ const today = makeUtcInstant(todayISO, "00:00", tz);
 
     const tPlanets = await computeTransitPlanetsForDay(
       day,
-      constants
+      constants,
+      birth.nodeMode ?? "mean"
     );
 
     for (const tp of tPlanets) {
@@ -1134,42 +1173,32 @@ export type TransitNowPlanet = {
 export async function computeTransitPlanetsNow(
   birth: TransitEngineBirth,
   ascSign?: string,
-  asOf?: { dateISO: string; time: string; tz: string }
+  asOf?: { dateISO: string; time: string; tz: string },
+  requestedPlanets?: readonly string[]
 ): Promise<TransitNowPlanet[]> {
   const constants = await getSweConstants();
   
-  // Use explicit "as-of" moment (preferred), else fall back to birth tz + current clock.
-  const tz = asOf?.tz ?? birth.tz;
-
-  // If caller didn't pass a moment, derive "now" in the given tz.
-  const nowUtc = (() => {
-    if (asOf?.dateISO && asOf?.time) {
-      return makeUtcInstant(asOf.dateISO, asOf.time, tz);
-    }
-
-    // derive current date/time in tz (no external libs)
-    const now = new Date();
-    const parts = new Intl.DateTimeFormat("en-CA", {
-      timeZone: tz,
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    }).formatToParts(now);
-
-    const get = (t: string) => parts.find((p) => p.type === t)?.value ?? "";
-    const dateISO = `${get("year")}-${get("month")}-${get("day")}`;
-    const time = `${get("hour")}:${get("minute")}`;
-    return makeUtcInstant(dateISO, time, tz);
-  })();
+  // Explicit local time or the actual current physical instant.
+  const nowUtc = asOf
+    ? makeUtcInstant(asOf.dateISO, asOf.time, asOf.tz)
+    : new Date();
 
   // IMPORTANT: compute at the actual instant, not start-of-day UTC
   
-const tPlanets = await computeTransitPlanetsForDay(nowUtc, constants);
+const planetFilter = requestedPlanets
+  ? new Set(requestedPlanets)
+  : undefined;
 
-return tPlanets.map((p) => {
+const tPlanets = await computeTransitPlanetsForDay(
+  nowUtc,
+  constants,
+  birth.nodeMode ?? "mean",
+  planetFilter
+);
+
+return tPlanets
+  .filter((p) => !planetFilter || planetFilter.has(p.name))
+  .map((p) => {
   const sidLon = p.lon; // ✅ already sidereal now
   const sign = signFromLonSidereal(sidLon);
   const house = houseFromLagnaWholeSign(sign, ascSign);
@@ -1213,8 +1242,10 @@ export async function buildPlanetTransitTimeline(params: {
   fromDateISO: string;
   toDateISO: string;
   timezone?: string;
+  nodeMode?: NodeMode;
 }) {
   const { planet, fromDateISO, toDateISO } = params;
+  const nodeMode = resolveNodeMode(params.nodeMode ?? "mean");
 
   const constants = await getSweConstants();
 
@@ -1228,7 +1259,7 @@ export async function buildPlanetTransitTimeline(params: {
   let active: PlanetTimelineRow | null = null;
 
   while (cursor.getTime() <= end.getTime()) {
-    const planets = await computeTransitPlanetsForDay(cursor, constants);
+    const planets = await computeTransitPlanetsForDay(cursor, constants, nodeMode);
 
     const p = planets.find(
       (x) => x.name.toLowerCase() === planet.toLowerCase()

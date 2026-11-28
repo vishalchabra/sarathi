@@ -2,6 +2,11 @@
 import "server-only";
 import { AstroConfig } from "@/server/astro/astro-config";
 import { sweCall } from "@/server/astro/swe-remote";
+import {
+  calculateHora,
+  calculateNavamsa,
+  calculateDasamsa,
+} from "../../lib/astrology/divisionalCalculator";
 
 const SIGNS = [
   "Aries",
@@ -50,34 +55,11 @@ function vargaSign(deg: number, varga: number): string {
    --------------------------------------------------------- */
 
 function navamsaSign(deg: number): string {
-  // D9
-  const signIndex = Math.floor(deg / 30);
-  const inSignDeg = deg % 30;
-
-  const pada = Math.floor(inSignDeg / 3.3333333); // 0–8
-  const start = [0, 3, 6, 9, 12, 15, 18, 21, 24, 27, 30, 33]; // start points in D9 cycle
-
-  const idx = (start[signIndex] + pada) % 12;
-  return SIGNS[idx];
+  return calculateNavamsa(deg).sign;
 }
 
 function dasamsaSign(deg: number): string {
-  // D10 (Hierarchic – different for odd/even signs)
-  const signIndex = Math.floor(deg / 30);
-  const inSignDeg = deg % 30;
-  const part = 3; // 30° / 10
-
-  const division = Math.floor(inSignDeg / part);
-
-  if (signIndex % 2 === 0) {
-    // Odd signs start from Aries
-    const idx = division % 12;
-    return SIGNS[idx];
-  } else {
-    // Even signs start from Leo
-    const idx = (division + 4) % 12;
-    return SIGNS[idx];
-  }
+  return calculateDasamsa(deg).sign;
 }
 
 function saptamsaSign(deg: number): string {
@@ -221,7 +203,7 @@ function getVargaSignFunction(v: number) {
     case 1:
       return (deg: number) => signOfDeg(deg);
     case 2:
-      return (deg: number) => vargaSign(deg, 2);
+      return (deg: number) => calculateHora(deg).sign;
     case 3:
       return (deg: number) => vargaSign(deg, 3);
     case 4:

@@ -1,4 +1,8 @@
 import { createClient } from "@/lib/supabase/client";
+import {
+  requireNodeMode,
+  type NodeMode,
+} from "@/lib/node-mode";
 
 export type AstrologerClient = {
   id: string;
@@ -30,6 +34,7 @@ export type ClientChart = {
   lat: number;
   lon: number;
   place_name: string | null;
+  node_mode: NodeMode;
   created_at: string;
   updated_at: string;
 };
@@ -154,7 +159,10 @@ export async function getAstrologerClient(clientId: string): Promise<{
 
   return {
     client: client as AstrologerClient | null,
-    charts: (charts ?? []) as ClientChart[],
+    charts: (charts ?? []).map((chart) => ({
+      ...chart,
+      node_mode: requireNodeMode(chart.node_mode),
+    })) as ClientChart[],
     notes: (notes ?? []) as ConsultationNote[],
   };
 }
@@ -168,6 +176,7 @@ export async function addClientChart(input: {
   lat: number;
   lon: number;
   placeName?: string;
+  nodeMode?: NodeMode;
 }): Promise<ClientChart> {
   const supabase = createClient();
   const userId = await getUserId();
@@ -184,13 +193,19 @@ export async function addClientChart(input: {
       lat: input.lat,
       lon: input.lon,
       place_name: input.placeName?.trim() || null,
+      ...(input.nodeMode !== undefined
+        ? { node_mode: requireNodeMode(input.nodeMode) }
+        : {}),
       updated_at: new Date().toISOString(),
     })
     .select()
     .single();
 
   if (error) throw error;
-  return data as ClientChart;
+  return {
+    ...data,
+    node_mode: requireNodeMode(data.node_mode),
+  } as ClientChart;
 }
 
 export async function addConsultationNote(input: {
@@ -250,19 +265,49 @@ export async function updateAstrologerClient(input: {
   const supabase = createClient();
   const userId = await getUserId();
 
+  const patch: Record<string, string | boolean | null> = {
+    updated_at: new Date().toISOString(),
+  };
+
+  if (input.clientStatus !== undefined) {
+    patch.client_status = input.clientStatus.trim() || "active";
+  }
+
+  if (input.nextFollowUpDate !== undefined) {
+    patch.next_follow_up_date = input.nextFollowUpDate.trim() || null;
+  }
+
+  if (input.isVip !== undefined) {
+    patch.is_vip = input.isVip;
+
+    if (!input.isVip) {
+      patch.vip_reason = null;
+    }
+  }
+
+  if (input.vipReason !== undefined && input.isVip !== false) {
+    patch.vip_reason = input.vipReason.trim() || null;
+  }
+
+  if (input.nextAction !== undefined) {
+    patch.next_action = input.nextAction.trim() || null;
+  }
+
+  if (input.primaryIssue !== undefined) {
+    patch.primary_issue = input.primaryIssue.trim() || null;
+  }
+
+  if (input.remediesSuggested !== undefined) {
+    patch.remedies_suggested = input.remediesSuggested.trim() || null;
+  }
+
+  if (input.notes !== undefined) {
+    patch.notes = input.notes.trim() || null;
+  }
+
   const { data, error } = await supabase
     .from("astrologer_clients")
-    .update({
-      client_status: input.clientStatus?.trim() || "active",
-      next_follow_up_date: input.nextFollowUpDate?.trim() || null,
-      is_vip: Boolean(input.isVip),
-      vip_reason: input.vipReason?.trim() || null,
-      next_action: input.nextAction?.trim() || null,
-      primary_issue: input.primaryIssue?.trim() || null,
-      remedies_suggested: input.remediesSuggested?.trim() || null,
-      notes: input.notes?.trim() || null,
-      updated_at: new Date().toISOString(),
-    })
+    .update(patch)
     .eq("user_id", userId)
     .eq("id", input.clientId)
     .select()

@@ -105,7 +105,9 @@ const isDataEngineGrandfathered =
     .select("*")
     .eq("user_id", userId)
     .in("status", ["active", "trialing"])
+    .or(`ends_at.is.null,ends_at.gt.${new Date().toISOString()}`)
     .order("created_at", { ascending: false })
+    .limit(1)
     .maybeSingle();
 
   const { data: lifeReportPurchase, error: lifeReportPurchaseError } =

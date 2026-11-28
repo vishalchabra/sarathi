@@ -1,3 +1,4 @@
+import { tryCalculateNakshatraPosition } from "../../../lib/astrology/nakshatraCalculator";
 
 const SIGNS = [
   "Aries", "Taurus", "Gemini", "Cancer",
@@ -8,15 +9,8 @@ const SIGNS = [
 export function getNavamsaSignFromLon(
   lon: number | null | undefined
 ): string | null {
-  if (typeof lon !== "number" || !Number.isFinite(lon)) {
-    return null;
-  }
-
-  const normalizedLon = ((lon % 360) + 360) % 360;
-  const navamsaIndex =
-    Math.floor(normalizedLon / (30 / 9)) % 12;
-
-  return SIGNS[navamsaIndex] ?? null;
+  const position = tryCalculateNakshatraPosition(lon);
+  return position?.navamsaSign ?? null;
 }
 
 export const NAKSHATRAS = [
@@ -52,50 +46,15 @@ export const NAKSHATRAS = [
 export function getNakshatraPadaData(
   lon: number | null | undefined
 ) {
-  if (typeof lon !== "number" || !Number.isFinite(lon)) {
-    return null;
-  }
+  const position = tryCalculateNakshatraPosition(lon);
 
-  const normalizedLon = ((lon % 360) + 360) % 360;
-  const nakshatraSpan = 360 / 27;
-  const padaSpan = nakshatraSpan / 4;
-
-  const nakshatraIndex = Math.floor(
-    normalizedLon / nakshatraSpan
-  );
-
-  const degreeInNakshatra =
-    normalizedLon - nakshatraIndex * nakshatraSpan;
-
-  const pada = Math.floor(
-    degreeInNakshatra / padaSpan
-  ) + 1;
-
-  const nakshatra = NAKSHATRAS[nakshatraIndex];
-  const navamsaSign = getNavamsaSignFromLon(normalizedLon);
-
-  const signLords: Record<string, string> = {
-    Aries: "Mars",
-    Taurus: "Venus",
-    Gemini: "Mercury",
-    Cancer: "Moon",
-    Leo: "Sun",
-    Virgo: "Mercury",
-    Libra: "Venus",
-    Scorpio: "Mars",
-    Sagittarius: "Jupiter",
-    Capricorn: "Saturn",
-    Aquarius: "Saturn",
-    Pisces: "Jupiter",
-  };
+  if (!position) return null;
 
   return {
-    nakshatra: nakshatra[0],
-    nakshatraLord: nakshatra[1],
-    pada,
-    navamsaSign,
-    navamsaLord: navamsaSign
-      ? signLords[navamsaSign]
-      : null,
+    nakshatra: position.nakshatra,
+    nakshatraLord: position.nakshatraLord,
+    pada: position.pada,
+    navamsaSign: position.navamsaSign,
+    navamsaLord: position.navamsaLord,
   };
 }

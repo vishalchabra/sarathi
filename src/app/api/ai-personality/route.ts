@@ -1,3 +1,4 @@
+import { requireLifeReportAccess } from "@/server/auth/requireLifeReportAccess";
 // FILE: src/app/api/ai-personality/route.ts
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -48,6 +49,10 @@ export async function GET() {
 /* ---------------- route ---------------- */
 
 export async function POST(req: NextRequest) {
+  const accessDenied = await requireLifeReportAccess(req);
+
+  if (accessDenied) return accessDenied;
+
   try {
     const body = await req.json().catch(() => ({}));
     const report = body?.report ?? body?.lifeReport ?? body;

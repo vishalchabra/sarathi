@@ -198,3 +198,25 @@ export async function sweGetLahiriAyanamsaUt(
 
   return ayanamsa;
 }
+
+export async function sweCalcLahiriSiderealUt(
+  jdUt: number,
+  planetId: number
+): Promise<any> {
+  const s = await getEph();
+
+  const SIDEREAL_FLAG = 65536;
+  const SPEED_FLAG = 256;
+
+  s.swe_set_sid_mode(
+    SWE_CONST.SE_SIDM_LAHIRI,
+    0,
+    0
+  );
+
+  return s.swe_calc_ut(
+    jdUt,
+    planetId,
+    SIDEREAL_FLAG | SPEED_FLAG
+  );
+}

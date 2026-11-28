@@ -1,5 +1,8 @@
 
-import { getNakshatraForLongitude } from "./nakshatra";
+import {
+  calculateNakshatraPosition,
+  tryCalculateNakshatraPosition,
+} from "../astrology/nakshatraCalculator";
 
 export const ZODIAC_SIGNS = [
   "Aries", "Taurus", "Gemini", "Cancer",
@@ -20,44 +23,38 @@ export type NakshatraPadaProfile = {
   navamsa: ZodiacSign;
 };
 
-// Each pada spans exactly 3°20' of sidereal longitude.
-const PADA_WIDTH = 360 / 108;
-
+// Generate all 108 profiles from the shared calculator.
 export const NAKSHATRA_PADA_LIBRARY: NakshatraPadaProfile[] =
   Array.from({ length: 108 }, (_, index) => {
-    const startLongitude = index * PADA_WIDTH;
-    const endLongitude = (index + 1) * PADA_WIDTH;
+    const midpoint = (index + 0.5) * 10 / 3;
+    const position = calculateNakshatraPosition(midpoint);
 
-    // Sample the midpoint to avoid boundary rounding issues.
-    const midpoint = (startLongitude + endLongitude) / 2;
-    const nakshatra = getNakshatraForLongitude(midpoint);
-
-    const rashiIndex = Math.floor(midpoint / 30);
-    const navamsaIndex = index % 12;
+    if (position.globalPadaIndex !== index) {
+      throw new Error(
+        `Nakshatra pada library index mismatch: ${index}`
+      );
+    }
 
     return {
-      nakshatra: nakshatra.name,
-      nakshatraLord: nakshatra.lord,
-      pada: ((index % 4) + 1) as PadaNumber,
-      startLongitude,
-      endLongitude,
-      rashi: ZODIAC_SIGNS[rashiIndex],
-      navamsa: ZODIAC_SIGNS[navamsaIndex],
+      nakshatra: position.nakshatra,
+      nakshatraLord: position.nakshatraLord,
+      pada: position.pada,
+      startLongitude: position.padaStartLongitude,
+      endLongitude: position.padaEndLongitude,
+      rashi: position.rashi,
+      navamsa: position.navamsaSign,
     };
   });
 
 export function getNakshatraPadaProfile(
   siderealLongitude: number
 ): NakshatraPadaProfile | null {
-  if (!Number.isFinite(siderealLongitude)) return null;
+  const position =
+    tryCalculateNakshatraPosition(siderealLongitude);
 
-  const normalized =
-    ((siderealLongitude % 360) + 360) % 360;
+  if (!position) return null;
 
-  const index = Math.min(
-    107,
-    Math.floor(normalized / PADA_WIDTH)
-  );
-
-  return NAKSHATRA_PADA_LIBRARY[index] ?? null;
+  return NAKSHATRA_PADA_LIBRARY[
+    position.globalPadaIndex
+  ] ?? null;
 }

@@ -90,6 +90,26 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json();
 
+    const requestedNodeMode = body?.nodeMode;
+
+    if (
+      requestedNodeMode !== undefined &&
+      requestedNodeMode !== null &&
+      requestedNodeMode !== "mean" &&
+      requestedNodeMode !== "true"
+    ) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "Invalid lunar node convention.",
+        },
+        { status: 400 }
+      );
+    }
+
+    const nodeMode: "mean" | "true" =
+      requestedNodeMode ?? "mean";
+
     // Validate utility requests before running calculations.
     if (
       body?.responseMode === "utility" &&
@@ -106,6 +126,7 @@ export async function POST(req: NextRequest) {
     }
 
     const result = await buildDataEngine({
+      nodeMode,
       birth: body?.birth,
       plan: body?.plan ?? "light",
       selectedDateISO: body?.selectedDateISO ?? null,
@@ -122,6 +143,8 @@ export async function POST(req: NextRequest) {
 
       return NextResponse.json({
         ok: true,
+        nodeMode: result.nodeMode,
+        nodeCalculationVersion: result.nodeCalculationVersion,
         timing: {
           utilities: {
             [utility]:

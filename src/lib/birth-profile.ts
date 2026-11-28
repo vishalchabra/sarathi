@@ -1,5 +1,8 @@
 // src/lib/birth-profile.ts
+import type { NodeMode } from "@/lib/node-mode";
+
 export type BirthProfile = {
+  nodeMode?: NodeMode;
   name?: string;
   dobISO?: string;
   tob?: string;

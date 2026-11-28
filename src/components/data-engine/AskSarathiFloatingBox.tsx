@@ -1,6 +1,7 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
+import { isNodeMode, requireNodeMode } from "@/lib/node-mode";
 
 type AnswerBlock = {
   title: string;
@@ -111,6 +112,8 @@ function getHouseLord(ascSign: string | null, house: number) {
   };
 }
 export default function AskSarathiFloatingBox({
+  nodeMode,
+  nodeCalculationVersion,
   natalPlanets,
   natalAscSign,
   vargaMap,
@@ -131,6 +134,8 @@ export default function AskSarathiFloatingBox({
   selectedPlace,
   timezone,
 }: {
+  nodeMode: unknown;
+  nodeCalculationVersion: unknown;
   natalPlanets: any[];
   natalAscSign: string | null;
   vargaMap: Record<string, any>;
@@ -165,6 +170,38 @@ export default function AskSarathiFloatingBox({
   });
  const [askContext, setAskContext] = useState<AskContext>({});
  const askContextRef = useRef<AskContext>({});
+ const queryRequestIdRef = useRef(0);
+
+ const nodeContextValid =
+   isNodeMode(nodeMode) &&
+   nodeCalculationVersion === "lahiri-swiss-node-v1";
+
+ useLayoutEffect(() => {
+   queryRequestIdRef.current += 1;
+   askContextRef.current = {};
+   setAskContext({});
+   setQuestion("");
+   setAnswer({
+     title: "Ask factual chart-data questions",
+     summary: "Answers are based only on loaded chart data.",
+     rows: [
+       "Try: What dasha is running?",
+       "Try: Where is Rahu in D9?",
+       "Try: Show Mars in all vargas.",
+     ],
+   });
+
+   return () => {
+     queryRequestIdRef.current += 1;
+   };
+ }, [
+   birthMeta,
+   nodeMode,
+   nodeCalculationVersion,
+   selectedDateISO,
+   timezone,
+   selectedPlace,
+ ]);
   const [position, setPosition] = useState({ x: 900, y: 170 });
   const [dragging, setDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
@@ -599,6 +636,7 @@ const fetchPanchangRows = async () => {
         lat,
         lon,
       },
+      nodeMode: requireNodeMode(nodeMode),
       plan: "pro",
       selectedDateISO: effectiveDateISO,
       utilityDateISO: effectiveDateISO,
@@ -613,6 +651,14 @@ const fetchPanchangRows = async () => {
   });
 
   const json = await res.json();
+
+  if (
+    !res.ok ||
+    json?.nodeMode !== nodeMode ||
+    json?.nodeCalculationVersion !== nodeCalculationVersion
+  ) {
+    return ["Unable to verify calculation convention. Generate the chart again."];
+  }
 
   const p =
     json?.timing?.utilities?.panchang ??
@@ -812,6 +858,7 @@ const fetchHoraRows = async (timeHHMM: string) => {
         lat,
         lon,
       },
+      nodeMode: requireNodeMode(nodeMode),
       plan: "pro",
       selectedDateISO: effectiveDateISO,
       utilityDateISO: effectiveDateISO,
@@ -828,6 +875,14 @@ const fetchHoraRows = async (timeHHMM: string) => {
   });
 
   const json = await res.json();
+
+  if (
+    !res.ok ||
+    json?.nodeMode !== nodeMode ||
+    json?.nodeCalculationVersion !== nodeCalculationVersion
+  ) {
+    return ["Unable to verify calculation convention. Generate the chart again."];
+  }
 
   const h =
     json?.timing?.utilities?.hora ??
@@ -1168,6 +1223,15 @@ const rememberContext = (patch: AskContext) => {
   setAskContext(askContextRef.current);
 };
   const answerQuestion = async () => {
+    const requestId = ++queryRequestIdRef.current;
+
+    if (!nodeContextValid) {
+      setAnswer({
+        title: "Chart verification required",
+        rows: ["Generate a verified chart before asking chart-data questions."],
+      });
+      return;
+    }
     const q = question.trim();
     const lower = normalizeQuestion(q);
     
@@ -2039,6 +2103,8 @@ if (
 
   const rows = await fetchPanchangRows();
 
+  if (requestId !== queryRequestIdRef.current) return;
+
   setAnswer({
     title: "Panchang",
     summary:
@@ -2062,6 +2128,8 @@ if (
   });
 
   const rows = await fetchHoraRows(effectiveTime);
+
+  if (requestId !== queryRequestIdRef.current) return;
    setAnswer({
     title: requestedTime ? `Hora at ${requestedTime}` : "Current Hora",
     summary:

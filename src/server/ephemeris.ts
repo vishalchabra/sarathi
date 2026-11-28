@@ -1,25 +1,109 @@
 // src/server/ephemeris.ts
-import type { Birth, PlanetPos } from "@/server/astro/types";
+import "server-only";
 
-// Example: already existed in your file
-export async function getTransitsDaily(_dateISO: string, _tz: string) {
-  // Return whatever your app expects for daily transits
+import { DateTime } from "luxon";
+import type { Birth, PlanetPos, PlanetId } from "@/server/astro/types";
+import { computePlacements } from "@/server/astro/placements";
+import { getNakshatra } from "@/server/astro/nakshatra";
+import {
+  resolveNodeMode,
+  type NodeMode,
+} from "@/server/astro/lunarNodes";
+
+// Legacy transit contract retained pending migration.
+export async function getTransitsDaily(
+  _dateISO: string,
+  _tz: string
+) {
   return [];
 }
 
-// ✅ Add this named export (stub) so qa/route.ts compiles
-export async function getNatal(birth: Birth): Promise<PlanetPos[]> {
-  // TODO: replace with real Swiss Ephemeris → sign/house/nakshatra, etc.
-  // Minimal mock so the app compiles and downstream code can run:
-  return [
-    { id: "Sun",    lon: 140, sign: "Leo",       house: 10, deg: 20, nakName: "Uttara Phalguni", pada: 2 },
-    { id: "Moon",   lon:  46, sign: "Taurus",    house:  1, deg: 16, nakName: "Rohini",          pada: 2 },
-    { id: "Mars",   lon: 190, sign: "Libra",     house:  4, deg: 10 },
-    { id: "Mercury",lon: 144, sign: "Leo",       house: 10, deg: 24 },
-    { id: "Jupiter",lon: 226, sign: "Scorpio",   house:  7, deg: 16 },
-    { id: "Venus",  lon: 200, sign: "Virgo",     house: 11, deg: 15 },
-    { id: "Saturn", lon: 136, sign: "Leo",       house:  4, deg: 16 },
-    { id: "Rahu",   lon:  80, sign: "Gemini",    house: 12, deg: 10 },
-    { id: "Ketu",   lon: 260, sign: "Sagittarius",house: 6, deg: 10 }
-  ];
+/**
+ * Real natal planetary placements.
+ * Preserves the legacy PlanetPos response contract.
+ */
+export async function getNatal(
+  birth: Birth & { nodeMode?: NodeMode },
+  requestedNodeMode?: NodeMode
+): Promise<PlanetPos[]> {
+  const nodeMode = resolveNodeMode(
+    requestedNodeMode ?? birth.nodeMode ?? "mean"
+  );
+
+  if (
+    !birth.tz ||
+    !Number.isFinite(birth.lat) ||
+    !Number.isFinite(birth.lon) ||
+    Math.abs(birth.lat) > 90 ||
+    Math.abs(birth.lon) > 180
+  ) {
+    throw new Error("Invalid birth location or timezone.");
+  }
+
+  if (
+    typeof birth.dateISO !== "string" ||
+    !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(birth.dateISO)
+  ) {
+    throw new Error("Birth date and time are required.");
+  }
+
+  const local = DateTime.fromISO(birth.dateISO, {
+    zone: birth.tz,
+  });
+
+  if (!local.isValid) {
+    throw new Error("Invalid birth date, time or timezone.");
+  }
+
+  const placements = await computePlacements(
+    {
+      dateISO: local.toISODate()!,
+      time: local.toFormat("HH:mm:ss"),
+      tz: birth.tz,
+      lat: birth.lat,
+      lon: birth.lon,
+    },
+    nodeMode
+  );
+
+  if (placements.length !== 9) {
+    throw new Error("Incomplete natal planetary calculation.");
+  }
+
+  return placements.map(p => {
+    const lon = ((p.lon % 360) + 360) % 360;
+
+    if (!Number.isFinite(lon)) {
+      throw new Error("Invalid planetary longitude.");
+    }
+
+    const house = p.house;
+
+    if (
+      typeof house !== "number" ||
+      !Number.isInteger(house) ||
+      house < 1 ||
+      house > 12
+    ) {
+      throw new Error(`Invalid house placement for ${p.planet}.`);
+    }
+
+    const nk = getNakshatra(lon);
+
+    const pada = (
+      Math.floor((lon % (360 / 27)) / (360 / 108)) + 1
+    ) as 1 | 2 | 3 | 4;
+
+    return {
+      id: p.planet as PlanetId,
+      lon,
+      sign: p.sign,
+      house,
+      deg: lon % 30,
+      nakName: nk.name,
+      pada,
+      retrograde: p.retrograde,
+      speedLon: p.speedLon,
+    };
+  });
 }

@@ -395,13 +395,13 @@ export function resolveMoneyEventExpression(
       }
 
       if (
-        hasHouse(supporting, 12) &&
+        hasHouse(primary, 12) &&
         hasStrongPlanetConfirmation
       ) {
         return supportedResult(
           "increased_spending",
           2,
-          "12th-house support with discriminator confirmation strengthens the expenditure theme."
+          "12th-house primary evidence with discriminator confirmation strengthens the expenditure theme."
         );
       }
 
@@ -452,16 +452,7 @@ export function resolveMoneyEventExpression(
     }
 
     case "money_accumulation": {
-      if (
-        hasHouse(supporting, 11) &&
-        hasStrongPlanetConfirmation
-      ) {
-        return supportedResult(
-          "financial_security",
-          2,
-          "11th-house support with discriminator confirmation strengthens the theme of improving financial security."
-        );
-      }
+
 
       if (
         hasHouse(supporting, 5) &&
@@ -482,6 +473,17 @@ export function resolveMoneyEventExpression(
           "financial_security",
           2,
           "9th-house support with discriminator confirmation supports constructive longer-term financial stability."
+        );
+      }
+
+      if (
+        hasHouse(primary, 11) &&
+        hasStrongPlanetConfirmation
+      ) {
+        return supportedResult(
+          "financial_security",
+          2,
+          "11th-house primary evidence with discriminator confirmation strengthens the theme of improving financial security."
         );
       }
 
@@ -1351,6 +1353,48 @@ function getMoneyEventText(
     case "financial_support":
       return "Financial support or resources coming toward you";
 
+    case "repayment":
+      return "A repayment or existing financial obligation";
+
+    case "financial_obligation":
+      return "A financial obligation requiring attention";
+
+    case "increased_spending":
+      return "An increase in financial expenditure";
+
+    case "general_expense":
+      return "An expense or outgoing payment";
+
+    case "budgeting":
+      return "A review of your budget and financial obligations";
+
+    case "allocation_decision":
+      return "A decision about allocating financial resources";
+
+    case "future_financial_planning":
+      return "A plan concerning future financial objectives";
+
+    case "financial_review":
+      return "A review of your financial priorities";
+
+    case "financial_security":
+      return "A matter involving your longer-term financial security";
+
+    case "saving":
+      return "An opportunity to strengthen your savings";
+
+    case "building_reserves":
+      return "An effort to build or consolidate financial reserves";
+
+    case "liability_resolution":
+      return "A matter involving an outstanding financial liability";
+
+    case "dues_resolution":
+      return "A matter involving outstanding dues";
+
+    case "pending_financial_matter":
+      return "A pending financial settlement";
+
     default:
       return null;
   }
@@ -1619,7 +1663,9 @@ export type CareerEventExpressionResult = {
     | "general_career_responsibility"
     | "general_career_recognition"
     | "general_career_change"
-    | "general_workload_demand";
+    | "general_workload_demand"
+    | "interview_invitation"
+    | "employment_offer";
   specificity: 2;
   confidence: "baseline";
   evidenceReason: string;
@@ -1646,6 +1692,12 @@ export function resolveCareerEventExpression(
 
     general_workload_demand:
       "Work-related demands are indicated without evidence for a specific task or incident.",
+
+    interview_invitation:
+      "The selected manifestation concerns a potential interview invitation or recruitment communication, without establishing that an interview has been scheduled.",
+
+    employment_offer:
+      "The selected manifestation concerns a potential employment offer, without establishing that an offer has been issued or accepted.",
   };
 
   const manifestationToExpression: Record<
@@ -1657,6 +1709,8 @@ export function resolveCareerEventExpression(
     career_recognition: "general_career_recognition",
     career_change: "general_career_change",
     workload_service: "general_workload_demand",
+    career_interview_invitation: "interview_invitation",
+    career_job_offer: "employment_offer",
   };
 
   const expressionId =
@@ -1696,6 +1750,12 @@ export function composeCareerPredictionV2(
 
     general_workload_demand:
       "A matter involving your daily workload",
+
+    interview_invitation:
+      "A potential interview invitation or recruitment communication",
+
+    employment_offer:
+      "A potential employment offer",
   };
 
   return realizePrediction(

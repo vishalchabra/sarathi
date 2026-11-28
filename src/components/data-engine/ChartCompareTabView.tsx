@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { isNodeMode, requireNodeMode } from "@/lib/node-mode";
 import { Input } from "@/components/ui/input";
 import MediumNorthIndianChart from "@/components/data-engine/MediumNorthIndianChart";
 import tzLookup from "tz-lookup";
@@ -455,6 +456,45 @@ export default function ChartCompareTabView({
   const [loadingB, setLoadingB] = useState(false);
   const [errorB, setErrorB] = useState("");
 
+  const nodeMode = personAData?.nodeMode;
+  const nodeCalculationVersion = personAData?.nodeCalculationVersion;
+
+  const nodeContextValid =
+    isNodeMode(nodeMode) &&
+    nodeCalculationVersion === "lahiri-swiss-node-v1";
+
+  const compareRequestIdRef = useRef(0);
+  const transitRequestIdRef = useRef(0);
+
+  useLayoutEffect(() => {
+    compareRequestIdRef.current += 1;
+    setDataB(null);
+    setLoadingB(false);
+    setErrorB("");
+
+    return () => {
+      compareRequestIdRef.current += 1;
+    };
+  }, [
+    personAData,
+    nameB,
+    placeB,
+    dateISOB,
+    timeB,
+    timezoneB,
+    selectedDateISO,
+    plan,
+  ]);
+
+  useLayoutEffect(() => {
+    transitRequestIdRef.current += 1;
+    setTransitPlanets([]);
+
+    return () => {
+      transitRequestIdRef.current += 1;
+    };
+  }, [personAData, showTransits, selectedDateISO, timezone]);
+
   const personAName =
     personAData?.birthMeta?.name ?? personAData?.foundations?.birthMeta?.name ?? "Primary";
 
@@ -474,7 +514,9 @@ export default function ChartCompareTabView({
 
   useEffect(() => {
     async function fetchTransits() {
-      if (!showTransits) {
+      const requestId = ++transitRequestIdRef.current;
+
+      if (!showTransits || !nodeContextValid) {
         setTransitPlanets([]);
         return;
       }
@@ -486,6 +528,7 @@ export default function ChartCompareTabView({
           body: JSON.stringify({
             dateISO: selectedDateISO,
             time: "12:00",
+            nodeMode: requireNodeMode(nodeMode),
             timezone,
             lat: 28.6139,
             lon: 77.209,
@@ -493,14 +536,32 @@ export default function ChartCompareTabView({
         });
 
         const json = await res.json();
-        setTransitPlanets(json?.ok && Array.isArray(json?.planets) ? json.planets : []);
+
+        if (requestId !== transitRequestIdRef.current) return;
+
+        if (
+          !res.ok ||
+          json?.nodeMode !== nodeMode ||
+          json?.nodeCalculationVersion !== nodeCalculationVersion
+        ) {
+          setTransitPlanets([]);
+          return;
+        }
+
+        setTransitPlanets(
+          json?.ok && Array.isArray(json?.planets)
+            ? json.planets
+            : []
+        );
       } catch {
-        setTransitPlanets([]);
+        if (requestId === transitRequestIdRef.current) {
+          setTransitPlanets([]);
+        }
       }
     }
 
     fetchTransits();
-  }, [showTransits, selectedDateISO, timezone]);
+  }, [showTransits, selectedDateISO, timezone, personAData, nodeMode, nodeCalculationVersion, nodeContextValid]);
 
   const personASelectedChart = useMemo(
     () =>
@@ -545,6 +606,12 @@ export default function ChartCompareTabView({
   );
 
   async function handleGeneratePersonB() {
+    if (!nodeContextValid) {
+      setErrorB("Generate a verified primary chart first.");
+      return;
+    }
+
+    const requestedNodeMode = requireNodeMode(nodeMode);
     if (!placeB) {
       setErrorB("Please select place of birth for second chart.");
       return;
@@ -555,7 +622,10 @@ export default function ChartCompareTabView({
       return;
     }
 
+    const requestId = ++compareRequestIdRef.current;
+
     try {
+      setDataB(null);
       setLoadingB(true);
       setErrorB("");
 
@@ -572,6 +642,7 @@ export default function ChartCompareTabView({
             lat: placeB.lat,
             lon: placeB.lon,
           },
+          nodeMode: requestedNodeMode,
           plan,
           selectedDateISO,
           compareDateISO: null,
@@ -580,15 +651,28 @@ export default function ChartCompareTabView({
 
       const json = await res.json();
 
+      if (requestId !== compareRequestIdRef.current) return;
+
       if (!res.ok || json?.ok === false) {
         throw new Error(json?.error || "Failed to generate second chart.");
       }
 
+      if (
+        json?.nodeMode !== requestedNodeMode ||
+        json?.nodeCalculationVersion !== nodeCalculationVersion
+      ) {
+        throw new Error("Second chart calculation convention mismatch.");
+      }
+
       setDataB(json);
     } catch (e: any) {
-      setErrorB(e?.message || "Something went wrong.");
+      if (requestId === compareRequestIdRef.current) {
+        setErrorB(e?.message || "Something went wrong.");
+      }
     } finally {
-      setLoadingB(false);
+      if (requestId === compareRequestIdRef.current) {
+        setLoadingB(false);
+      }
     }
   }
 

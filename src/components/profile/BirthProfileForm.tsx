@@ -1,6 +1,10 @@
 "use client";
 
 import {
+  resolvePersonalNodeMode,
+} from "@/lib/supabase/personal-node-mode";
+
+import {
   useEffect,
   useMemo,
   useState,
@@ -166,7 +170,17 @@ if (!timeMatch) {
   setError(null);
 
   try {
+    const existingProfiles = await getUserBirthProfiles();
+
+    const existingProfile = existingProfiles.find(
+      (p) => p.label === trimmedName
+    );
+
+    const requestedNodeMode =
+      await resolvePersonalNodeMode(existingProfile);
+
     const saved = await saveUserBirthProfile({
+      nodeMode: requestedNodeMode,
       label: trimmedName,
       name: trimmedName,
       birthDateISO,

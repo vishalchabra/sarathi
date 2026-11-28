@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
+import { DateTime, IANAZone } from "luxon";
+import { createClient } from "@/lib/supabase/server";
+import { getUserEntitlements } from "@/server/auth/getUserEntitlements";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { computeTransitPlanetsNow } from "@/server/astro/transits";
+import { computePlacements } from "@/server/astro/placements";
 
 export const runtime = "nodejs";
 
@@ -62,39 +67,68 @@ function signFromLongitude(lon: number | null | undefined) {
   const signIndex = Math.floor(normalized / 30);
   const sign = SIGN_NAMES[signIndex] ?? "";
   const signNum = signIndex + 1;
-  const degree = Number((normalized % 30).toFixed(2));
+  const degree = normalized % 30;
 
   return { sign, signNum, degree };
 }
 
-function getNakshatraFromLon(lon: number | null | undefined) {
-  if (typeof lon !== "number" || !Number.isFinite(lon)) return null;
-  const idx = Math.floor(wrap360(lon) / (360 / 27));
-  return NAKSHATRAS_27[idx] ?? null;
+function getNakshatraPadaIndex(
+  lon: number | null | undefined
+): number | null {
+  if (
+    typeof lon !== "number" ||
+    !Number.isFinite(lon)
+  ) return null;
+
+  const normalized = wrap360(lon);
+
+  // Correct floating-point rounding at exact pada boundaries.
+  let index = Math.min(
+    107,
+    Math.floor((normalized * 108) / 360)
+  );
+
+  // Compare against the canonical boundary longitude.
+  while (
+    index < 107 &&
+    normalized >= ((index + 1) * 360) / 108
+  ) {
+    index++;
+  }
+
+  while (
+    index > 0 &&
+    normalized < (index * 360) / 108
+  ) {
+    index--;
+  }
+
+  return index;
 }
 
-function getPadaFromLon(lon: number | null | undefined) {
-  if (typeof lon !== "number" || !Number.isFinite(lon)) return null;
-  const nakSegment = 360 / 27;
-  const withinNak = wrap360(lon) % nakSegment;
-  return Math.floor(withinNak / (nakSegment / 4)) + 1;
+function getNakshatraFromLon(
+  lon: number | null | undefined
+) {
+  const index = getNakshatraPadaIndex(lon);
+
+  if (index === null) return null;
+
+  return NAKSHATRAS_27[Math.floor(index / 4)] ?? null;
+}
+
+function getPadaFromLon(
+  lon: number | null | undefined
+) {
+  const index = getNakshatraPadaIndex(lon);
+
+  if (index === null) return null;
+
+  return (index % 4) + 1;
 }
 
 function degreeMatches(actual: number | null | undefined, target: number, orb: number) {
   if (actual === null || actual === undefined || Number.isNaN(Number(actual))) return false;
   return Math.abs(Number(actual) - target) <= orb;
-}
-
-function addHours(base: Date, hours: number) {
-  return new Date(base.getTime() + hours * 60 * 60 * 1000);
-}
-
-function toDateISO(d: Date) {
-  return d.toISOString().slice(0, 10);
-}
-
-function toHHMM(d: Date) {
-  return d.toISOString().slice(11, 16);
 }
 
 function daysBetweenISO(startISO: string, endISO: string) {
@@ -103,9 +137,158 @@ function daysBetweenISO(startISO: string, endISO: string) {
   return Math.floor((end - start) / 86400000);
 }
 
+import { NODE_CALCULATION_VERSION } from "@/server/astro/lunarNodes";
+
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
+    const supabase = await createClient();
+
+    const authorization = req.headers.get("authorization");
+
+    const bearerToken = /^Bearer\s+(\S+)$/i.exec(
+      authorization ?? ""
+    )?.[1];
+
+    let user = null;
+
+    // Mobile authentication using a verified bearer token.
+    if (authorization !== null) {
+      if (bearerToken) {
+        const {
+          data: { user: tokenUser },
+          error: tokenError,
+        } = await supabase.auth.getUser(bearerToken);
+
+        if (!tokenError) {
+          user = tokenUser;
+        }
+      }
+    } else {
+      // Existing website cookie-based authentication.
+      const {
+        data: { user: cookieUser },
+        error: cookieError,
+      } = await supabase.auth.getUser();
+
+      if (!cookieError) {
+        user = cookieUser;
+      }
+    }
+
+    if (!user) {
+      return NextResponse.json(
+        {
+          ok: false,
+          reason: "not_authenticated",
+          error: "You must sign in to use Transit Query.",
+        },
+        { status: 401 }
+      );
+    }
+
+    // Preserve the authenticated user's context for RLS.
+    const entitlementClient = bearerToken
+      ? createSupabaseClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+          {
+            global: {
+              headers: {
+                Authorization: `Bearer ${bearerToken}`,
+              },
+            },
+            auth: {
+              persistSession: false,
+              autoRefreshToken: false,
+            },
+          }
+        )
+      : supabase;
+
+    const entitlements = await getUserEntitlements(
+      user.id,
+      entitlementClient
+    );
+
+    if (!entitlements.dataEngine.allowed) {
+      return NextResponse.json(
+        {
+          ok: false,
+          reason: "data_engine_access_required",
+          error: "Your account does not have access to Transit Query.",
+        },
+        { status: 403 }
+      );
+    }
+
+    const body = await req.json().catch(() => null);
+
+    if (!body || typeof body !== "object" || Array.isArray(body)) {
+      return NextResponse.json(
+        { ok: false, error: "Invalid request body." },
+        { status: 400 }
+      );
+    }
+
+    const badRequest = (error: string) =>
+      NextResponse.json(
+        { ok: false, error },
+        { status: 400 }
+      );
+
+    const validDate = (value: unknown): value is string =>
+      typeof value === "string" &&
+      /^\d{4}-\d{2}-\d{2}$/.test(value) &&
+      DateTime.fromISO(value, { zone: "UTC" }).isValid;
+
+    const validTime = (value: unknown): value is string =>
+      typeof value === "string" &&
+      /^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/.test(value);
+
+    const validNumber = (
+      value: unknown,
+      min: number,
+      max: number
+    ): boolean => {
+      if (
+        typeof value !== "number" &&
+        typeof value !== "string"
+      ) return false;
+
+      if (
+        typeof value === "string" &&
+        value.trim() === ""
+      ) return false;
+
+      const n = Number(value);
+
+      return Number.isFinite(n) && n >= min && n <= max;
+    };
+
+    const supportedPlanets = new Set([
+      "Sun", "Moon", "Mars", "Mercury",
+      "Jupiter", "Venus", "Saturn", "Rahu", "Ketu"
+    ]);
+
+    const requestedNodeMode = body?.nodeMode;
+
+    if (
+      requestedNodeMode !== undefined &&
+      requestedNodeMode !== null &&
+      requestedNodeMode !== "mean" &&
+      requestedNodeMode !== "true"
+    ) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "Invalid lunar node convention.",
+        },
+        { status: 400 }
+      );
+    }
+
+    const nodeMode: "mean" | "true" =
+      requestedNodeMode ?? "mean";
 
     const birth = body?.birth;
     const fromISO = String(body?.fromISO ?? "");
@@ -126,7 +309,109 @@ export async function POST(req: Request) {
       );
     }
 
-    const activeConditions = conditions.filter((row: any) => row?.enabled !== false);
+    if (!validDate(birth.dateISO)) {
+      return badRequest("Invalid birth date.");
+    }
+
+    if (!validTime(birth.time)) {
+      return badRequest("Invalid birth time.");
+    }
+
+    if (
+      typeof birth.timezone !== "string" ||
+      !IANAZone.isValidZone(birth.timezone)
+    ) {
+      return badRequest("Invalid birth timezone.");
+    }
+
+    if (!validNumber(birth.lat, -90, 90)) {
+      return badRequest("Invalid birth latitude.");
+    }
+
+    if (!validNumber(birth.lon, -180, 180)) {
+      return badRequest("Invalid birth longitude.");
+    }
+
+    if (!validDate(fromISO) || !validDate(toISO)) {
+      return badRequest("Invalid search dates.");
+    }
+
+    if (
+      conditions.some(
+        (row: any) =>
+          !row ||
+          typeof row !== "object" ||
+          Array.isArray(row)
+      )
+    ) {
+      return badRequest("Invalid search condition.");
+    }
+
+    if (conditions.length > 50) {
+      return badRequest("Too many search conditions.");
+    }
+
+    const activeConditions = conditions.filter(
+      (row: any) => row?.enabled !== false
+    );
+
+    for (const condition of activeConditions) {
+      if (!supportedPlanets.has(condition.planet)) {
+        return badRequest("Unsupported transit planet.");
+      }
+
+      const conditionType =
+        condition.conditionType ?? "sign_degree";
+
+      switch (conditionType) {
+        case "sign_degree":
+          if (!SIGN_NAMES.includes(condition.sign)) {
+            return badRequest("Invalid target sign.");
+          }
+
+          if (
+            !validNumber(condition.degree ?? 0, 0, 29) ||
+            !Number.isInteger(Number(condition.degree ?? 0)) ||
+            !validNumber(condition.minute ?? 0, 0, 59) ||
+            !Number.isInteger(Number(condition.minute ?? 0)) ||
+            !validNumber(condition.orb ?? 0, 0, 30)
+          ) {
+            return badRequest("Invalid degree, minute or orb.");
+          }
+          break;
+
+        case "nakshatra":
+          if (
+            typeof condition.nakshatra !== "string" ||
+            !NAKSHATRAS_27.includes(condition.nakshatra)
+          ) {
+            return badRequest("Invalid target nakshatra.");
+          }
+          break;
+
+        case "retrograde":
+          break;
+
+        case "same_sign_as":
+          if (!supportedPlanets.has(condition.comparePlanet)) {
+            return badRequest("Invalid comparison planet.");
+          }
+          break;
+
+        case "conjunct_natal":
+          if (!supportedPlanets.has(condition.natalPlanet)) {
+            return badRequest("Invalid natal conjunction target.");
+          }
+
+          if (!validNumber(condition.orb ?? 1, 0, 180)) {
+            return badRequest("Invalid conjunction orb.");
+          }
+          break;
+
+        default:
+          return badRequest("Unsupported search condition.");
+      }
+    }
 
     if (!activeConditions.length) {
       return NextResponse.json(
@@ -151,34 +436,192 @@ export async function POST(req: Request) {
       );
     }
 
-    const hasMoon = activeConditions.some((row: any) => row?.planet === "Moon");
+    // Distributed per-user rate limit shared by website and mobile.
+    try {
+      const {
+        data: rateLimitAllowed,
+        error: rateLimitError,
+      } = await entitlementClient.rpc(
+        "check_transit_query_rate_limit"
+      );
+
+      if (
+        rateLimitError ||
+        typeof rateLimitAllowed !== "boolean"
+      ) {
+        console.error(
+          "[transit-query] Rate limit check unavailable",
+          rateLimitError?.code ?? "invalid_response"
+        );
+
+        return NextResponse.json(
+          {
+            ok: false,
+            reason: "rate_limit_unavailable",
+            error: "Transit Query is temporarily unavailable. Please try again shortly.",
+          },
+          {
+            status: 503,
+            headers: {
+              "Cache-Control": "no-store",
+              "Retry-After": "30",
+            },
+          }
+        );
+      }
+
+      if (!rateLimitAllowed) {
+        return NextResponse.json(
+          {
+            ok: false,
+            reason: "rate_limit_exceeded",
+            error: "Search limit reached. Please wait before trying again. Hourly limits reset at the next hour.",
+          },
+          {
+            status: 429,
+            headers: {
+              "Cache-Control": "no-store",
+            },
+          }
+        );
+      }
+    } catch {
+      console.error(
+        "[transit-query] Rate limit service unavailable"
+      );
+
+      return NextResponse.json(
+        {
+          ok: false,
+          reason: "rate_limit_unavailable",
+          error: "Transit Query is temporarily unavailable. Please try again shortly.",
+        },
+        {
+          status: 503,
+          headers: {
+            "Cache-Control": "no-store",
+            "Retry-After": "30",
+          },
+        }
+      );
+    }
+
+    const requiresNatal = activeConditions.some(
+      (row: any) => row?.conditionType === "conjunct_natal"
+    );
+
+    const natalPlanets = requiresNatal
+      ? await computePlacements(
+          {
+            dateISO: birth.dateISO,
+            time: birth.time,
+            tz: birth.timezone,
+            lat: Number(birth.lat),
+            lon: Number(birth.lon),
+          },
+          nodeMode
+        )
+      : [];
+
+    if (
+      requiresNatal &&
+      activeConditions.some(
+        (condition: any) =>
+          condition?.conditionType === "conjunct_natal" &&
+          !natalPlanets.some(
+            (p) =>
+              p.planet === condition.natalPlanet &&
+              typeof p.lon === "number" &&
+              Number.isFinite(p.lon)
+          )
+      )
+    ) {
+      return NextResponse.json(
+        { ok: false, error: "Invalid natal conjunction target." },
+        { status: 400 }
+      );
+    }
+
+    const hasMoon = activeConditions.some(
+      (row: any) =>
+        row.planet === "Moon" ||
+        (
+          row.conditionType === "same_sign_as" &&
+          row.comparePlanet === "Moon"
+        )
+    );
     const stepHours = hasMoon ? 1 : 6;
 
-    const start = new Date(`${fromISO}T00:00:00Z`);
-    const totalHours = rangeDays * 24 + 23;
+    const requiredPlanets = new Set<string>();
+
+    for (const condition of activeConditions) {
+      requiredPlanets.add(condition.planet);
+
+      if (condition.conditionType === "same_sign_as") {
+        requiredPlanets.add(condition.comparePlanet);
+      }
+    }
+
+    const requestedPlanets = Array.from(requiredPlanets);
+
+    const searchTimezone = birth.timezone;
+
+    const start = DateTime.fromISO(fromISO, {
+      zone: searchTimezone,
+    }).startOf("day");
+
+    const endExclusive = DateTime.fromISO(toISO, {
+      zone: searchTimezone,
+    }).plus({ days: 1 }).startOf("day");
+
+    if (
+      !start.isValid ||
+      !endExclusive.isValid ||
+      start.toISODate() !== fromISO ||
+      endExclusive.toMillis() <= start.toMillis()
+    ) {
+      return badRequest("Invalid search date boundaries.");
+    }
+
+    const stepMs = stepHours * 60 * 60 * 1000;
+    const startMs = start.toMillis();
+    const endMs = endExclusive.toMillis();
 
     const matches: any[] = [];
-    let lastMatchKey = "";
 
-    for (let hour = 0; hour <= totalHours; hour += stepHours) {
-      const scanDate = addHours(start, hour);
-      const dateISO = toDateISO(scanDate);
-      const time = toHHMM(scanDate);
+
+    for (
+      let scanMs = startMs;
+      scanMs < endMs;
+      scanMs += stepMs
+    ) {
+      const scanLocal = DateTime.fromMillis(scanMs, {
+        zone: searchTimezone,
+      });
+
+      const scanUTC = scanLocal.toUTC();
+
+      const dateISO = scanLocal.toFormat("yyyy-MM-dd");
+      const time = scanLocal.toFormat("HH:mm");
+      const timestampUTC = scanUTC.toISO();
+      const utcOffsetMinutes = scanLocal.offset;
 
       const raw = await computeTransitPlanetsNow(
         {
           dateISO: birth.dateISO,
           time: birth.time,
           tz: birth.timezone,
+          nodeMode,
           lat: Number(birth.lat),
           lon: Number(birth.lon),
         },
         "Aries",
         {
-          dateISO,
-          time,
-          tz: birth.timezone,
-        }
+          dateISO: scanUTC.toFormat("yyyy-MM-dd"),
+          time: scanUTC.toFormat("HH:mm:ss"),
+          tz: "UTC",
+        },
+        requestedPlanets
       );
 
       const transitPlanets = (Array.isArray(raw) ? raw : []).map((p: any) => {
@@ -200,16 +643,18 @@ export async function POST(req: Request) {
           pada: getPadaFromLon(lon),
         };
       });
-     const natalPlanets = Array.isArray(body?.natalPlanets)
-  ? body.natalPlanets
-  : [];
+
     const matchedPlanets = activeConditions
   .map((condition: any) => {
     const row = transitPlanets.find(
       (p: any) => String(p?.planet) === String(condition?.planet)
     );
 
-    if (!row) return null;
+    if (
+      !row ||
+      typeof row.lon !== "number" ||
+      !Number.isFinite(row.lon)
+    ) return null;
 
     const conditionType = String(condition?.conditionType ?? "sign_degree");
 
@@ -217,7 +662,15 @@ export async function POST(req: Request) {
       const targetDegree =
         Number(condition?.degree || 0) + Number(condition?.minute || 0) / 60;
 
-      const orb = Number(condition?.orb || 0);
+      const orb = Number(condition?.orb ?? 0);
+
+      if (
+        !Number.isFinite(targetDegree) ||
+        targetDegree < 0 ||
+        targetDegree >= 30 ||
+        !Number.isFinite(orb) ||
+        orb < 0
+      ) return null;
       const sameSign = String(row.sign) === String(condition?.sign);
       const sameDegree = degreeMatches(row.degree, targetDegree, orb);
 
@@ -273,7 +726,11 @@ export async function POST(req: Request) {
         (p: any) => String(p?.planet) === String(condition?.comparePlanet)
       );
 
-      if (!other) return null;
+      if (
+        !other ||
+        typeof other.lon !== "number" ||
+        !Number.isFinite(other.lon)
+      ) return null;
       if (String(row.sign) !== String(other.sign)) return null;
 
       return {
@@ -297,18 +754,16 @@ export async function POST(req: Request) {
 
       if (!natal) return null;
 
-      const natalLon =
-        typeof natal?.lon === "number"
-          ? natal.lon
-          : typeof natal?.longitude === "number"
-          ? natal.longitude
-          : typeof natal?.signNum === "number" && typeof natal?.degree === "number"
-          ? (Number(natal.signNum) - 1) * 30 + Number(natal.degree)
-          : null;
+      const natalLon = natal.lon;
 
-      if (typeof natalLon !== "number") return null;
+      if (
+        typeof natalLon !== "number" ||
+        !Number.isFinite(natalLon)
+      ) return null;
 
-      const orb = Number(condition?.orb || 1);
+      const orb = Number(condition?.orb ?? 1);
+
+      if (!Number.isFinite(orb) || orb < 0) return null;
       const diff = Math.abs(wrap360(row.lon - natalLon));
       const shortestDiff = Math.min(diff, 360 - diff);
 
@@ -319,13 +774,13 @@ export async function POST(req: Request) {
         planet: row.planet,
         sign: row.sign,
         degree: row.degree,
-        targetDegree: Number((natalLon % 30).toFixed(2)),
+        targetDegree: wrap360(natalLon) % 30,
         orb,
         nakshatra: row.nakshatra,
         pada: row.pada,
         retrograde: row.retrograde,
         natalPlanet: condition?.natalPlanet,
-        natalOrb: Number(shortestDiff.toFixed(2)),
+        natalOrb: shortestDiff,
       };
     }
 
@@ -334,19 +789,14 @@ export async function POST(req: Request) {
   .filter(Boolean);
 
       if (matchedPlanets.length === activeConditions.length) {
-        const matchKey = `${dateISO}-${matchedPlanets
-          .map((p: any) => `${p.planet}-${Math.round(Number(p.degree ?? 0))}`)
-          .join("-")}`;
-
-        if (matchKey !== lastMatchKey) {
-          matches.push({
-            dateISO,
-            time,
-            matchedPlanets,
-          });
-
-          lastMatchKey = matchKey;
-        }
+        matches.push({
+          dateISO,
+          time,
+          timestampUTC,
+          timezone: searchTimezone,
+          utcOffsetMinutes,
+          matchedPlanets,
+        });
       }
     }
 
@@ -354,12 +804,17 @@ export async function POST(req: Request) {
       ok: true,
       fromISO,
       toISO,
+      nodeMode,
+      nodeCalculationVersion: NODE_CALCULATION_VERSION,
       stepHours,
+      timezone: searchTimezone,
+      searchStartUTC: start.toUTC().toISO(),
+      searchEndExclusiveUTC: endExclusive.toUTC().toISO(),
       matches,
     });
   } catch (e: any) {
     return NextResponse.json(
-      { ok: false, error: e?.message || "Transit query failed." },
+      { ok: false, error: "Transit query failed. Please try again." },
       { status: 500 }
     );
   }

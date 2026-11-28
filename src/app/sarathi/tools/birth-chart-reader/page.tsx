@@ -1,5 +1,9 @@
 "use client";
 
+import {
+  verifyPersonalNodeResponse,
+} from "@/lib/supabase/personal-node-mode";
+
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import CityAutocomplete, { type Place } from "../../../../components/CityAutocomplete";
@@ -135,17 +139,27 @@ export default function BirthChartReaderPage() {
           tob,
           place: { tz, lat: Number(place.lat), lon: Number(place.lon), name: place.name },
           ayanamsa,
-          node,
+          nodeMode: node,
           hsys,
         }),
       });
       const raw = await res.json();
+
+      if (!res.ok || raw?.ok === false) {
+        throw new Error(
+          raw?.error || "Unable to calculate placements."
+        );
+      }
+
+      verifyPersonalNodeResponse(raw, node);
+
       const json = enrichSummary(raw);
 
       // cache for life-report page
       try {
         const cache = {
           profile: {
+            nodeMode: node,
             name: "",
             dobISO,
             tob,

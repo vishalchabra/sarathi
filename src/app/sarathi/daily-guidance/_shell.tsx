@@ -1,9 +1,23 @@
 "use client";
 
+import { createClient } from "@/lib/supabase/client";
+import {
+  saveForecastLocation,
+  clearForecastLocation,
+  readForecastLocation,
+} from "@/lib/forecast-location";
+
+import {
+  resolvePersonalNodeMode,
+  verifyPersonalNodeResponse,
+} from "@/lib/supabase/personal-node-mode";
+
 import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
+  useLayoutEffect,
   useState,
 } from "react";
 
@@ -16,7 +30,17 @@ import LockingCityAutocomplete from "@/components/profile/LockingCityAutocomplet
 import AstrologicalSnapshot, {
   type AstrologicalSnapshotData,
 } from "./AstrologicalSnapshot";
+import { type NodeMode } from "@/lib/node-mode";
+
 type SavedProfile = Record<string, any>;
+
+function guidanceBirthKey(profile: SavedProfile | null) {
+  const birth = normalizeBirth(profile);
+
+  return birth
+    ? JSON.stringify(birth)
+    : null;
+}
 
 type CurrentPlace = {
   name: string;
@@ -850,13 +874,105 @@ export default function DailyGuidanceShell({
 
 const [currentPlace, setCurrentPlace] =
   useState<CurrentPlace | null>(null);
+
+const forecastLocationOwnerRef = useRef<string | null>(null);
+const forecastLocationReadyRef = useRef(false);
+
+useEffect(() => {
+  const supabase = createClient();
+  let alive = true;
+  let revision = 0;
+
+  const resetLocation = () => {
+    forecastLocationOwnerRef.current = null;
+    forecastLocationReadyRef.current = false;
+    setCurrentPlace(null);
+    setSelectedCity(null);
+  };
+
+  const restoreLocation = async () => {
+    const request = ++revision;
+
+    const { data, error } = await supabase.auth.getUser();
+
+    if (!alive || request !== revision) return;
+
+    if (error || !data.user) {
+      resetLocation();
+      return;
+    }
+
+    const userId = data.user.id;
+    const saved = readForecastLocation(userId);
+
+    forecastLocationOwnerRef.current = userId;
+    forecastLocationReadyRef.current = true;
+
+    setCurrentPlace(saved);
+    setSelectedCity(
+      saved
+        ? {
+            name: saved.name,
+            lat: saved.lat,
+            lon: saved.lon,
+          }
+        : null
+    );
+  };
+
+  void restoreLocation();
+
+  const { data: listener } =
+    supabase.auth.onAuthStateChange((event, session) => {
+      if (
+        event === "SIGNED_OUT" ||
+        (
+          forecastLocationOwnerRef.current &&
+          session?.user.id !== forecastLocationOwnerRef.current
+        )
+      ) {
+        revision += 1;
+        resetLocation();
+      }
+    });
+
+  return () => {
+    alive = false;
+    revision += 1;
+    listener.subscription.unsubscribe();
+  };
+}, []);
+
+useEffect(() => {
+  const userId = forecastLocationOwnerRef.current;
+
+  if (!forecastLocationReadyRef.current || !userId) return;
+
+  if (currentPlace) {
+    saveForecastLocation(userId, currentPlace);
+  } else {
+    clearForecastLocation(userId);
+  }
+}, [currentPlace]);
 const [selectedCity, setSelectedCity] = useState<{
   name: string;
   lat: number;
   lon: number;
 } | null>(null);
 
+const guidanceRequestId = useRef(0);
+
+const [verifiedGuidance, setVerifiedGuidance] = useState<{
+  profileId: string;
+  birthKey: string | null;
+  nodeMode: NodeMode;
+  nodeCalculationVersion: string;
+} | null>(null);
+
 const clearGuidance = () => {
+  guidanceRequestId.current++;
+  setGenerating(false);
+  setVerifiedGuidance(null);
   setPrediction(null);
   setSelectedRemedy(null);
   setDailyFocus(null);
@@ -903,6 +1019,21 @@ const [dailyFocus, setDailyFocus] =
       selectedProfileId,
     ]);
 
+  useLayoutEffect(() => {
+    guidanceRequestId.current++;
+    setGenerating(false);
+    setVerifiedGuidance(null);
+    setPrediction(null);
+    setSelectedRemedy(null);
+    setDailyFocus(null);
+    setSnapshot(null);
+    setError(null);
+
+    return () => {
+      guidanceRequestId.current++;
+    };
+  }, [selectedProfile, currentPlace]);
+
   const loadProfiles = useCallback(async (preferredProfileId?: string) => {
   setLoadingProfiles(true);
   setError(null);
@@ -937,7 +1068,10 @@ const [dailyFocus, setDailyFocus] =
           birth?.dateISO === currentBirth?.dateISO &&
           birth?.time === currentBirth?.time &&
           birth?.lat === currentBirth?.lat &&
-          birth?.lon === currentBirth?.lon
+          birth?.lon === currentBirth?.lon &&
+          JSON.stringify(birth) === JSON.stringify(currentBirth) &&
+          (profile.nodeMode ?? profile.node_mode) ===
+            (currentChart.nodeMode ?? currentChart.node_mode)
         );
       });
 
@@ -1028,12 +1162,8 @@ useEffect(() => {
       setSelectedDateISO(handoff.selectedDateISO);
     }
 
-   if (handoff.prediction) {
-  setPrediction(handoff.prediction);
-  setSelectedRemedy(handoff.remedy ?? null);
-  setDailyFocus(handoff.dailyFocus ?? null);
-  setSnapshot(handoff.snapshot ?? null);
-}
+    // Restore inputs only. Calculated results must be regenerated
+    // against the currently selected saved profile and convention.
   }
 
   void initializeGuidance();
@@ -1058,10 +1188,22 @@ if (!currentPlace) {
   return;
 }
 
+const requestId = ++guidanceRequestId.current;
+
 setGenerating(true);
-      setError(null);
+setVerifiedGuidance(null);
+setPrediction(null);
+setSelectedRemedy(null);
+setDailyFocus(null);
+setSnapshot(null);
+setError(null);
 
       try {
+        const requestedNodeMode =
+          await resolvePersonalNodeMode(selectedProfile);
+
+        if (requestId !== guidanceRequestId.current) return;
+
         const response = await fetch(
           "/api/daily-guidance",
           {
@@ -1073,12 +1215,15 @@ setGenerating(true);
            body: JSON.stringify({
   birth,
   currentPlace,
+  nodeMode: requestedNodeMode,
 }),
           }
         );
 
         const data =
           await response.json();
+
+        if (requestId !== guidanceRequestId.current) return;
 
         if (
           !response.ok ||
@@ -1090,6 +1235,15 @@ setGenerating(true);
           );
         }
 
+        verifyPersonalNodeResponse(data, requestedNodeMode);
+
+        setVerifiedGuidance({
+          profileId: selectedProfileId,
+          birthKey: guidanceBirthKey(selectedProfile),
+          nodeMode: requestedNodeMode,
+          nodeCalculationVersion: data.nodeCalculationVersion,
+        });
+
         setPrediction(data?.prediction ?? null);
         setSelectedRemedy(data?.remedy ?? null);
 setDailyFocus(data?.dailyFocus ?? null);
@@ -1099,6 +1253,10 @@ if (data?.date) {
   setSelectedDateISO(data.date);
 }
       } catch (err: any) {
+        if (requestId !== guidanceRequestId.current) return;
+
+        setVerifiedGuidance(null);
+
         console.error(
           "[daily-guidance] generation failed",
           err
@@ -1114,10 +1272,13 @@ setError(
             "Unable to generate your daily guidance."
         );
       } finally {
-        setGenerating(false);
+        if (requestId === guidanceRequestId.current) {
+          setGenerating(false);
+        }
       }
     }, [
   selectedProfile,
+  selectedProfileId,
   currentPlace,
 ]);
 
@@ -1350,7 +1511,66 @@ setSnapshot(null);
   </section>
 ) : null}
 
-          {!compact && primary && prediction.explanation && (
+          {!compact && secondary.length > 0 && (
+  <section className="space-y-4">
+    <div>
+      <h2 className="text-lg font-semibold">
+        Other Areas to Watch
+      </h2>
+      <p className="mt-1 text-sm astro-text-soft">
+        Additional themes that may deserve your attention today.
+      </p>
+    </div>
+
+    <div className="grid gap-4 md:grid-cols-2">
+      {secondary.map((theme, index) => (
+        <article
+          key={`${theme.area}-${index}`}
+          className="rounded-3xl border border-[color:var(--border)] bg-white/80 p-5"
+        >
+          <p className="text-xs font-semibold uppercase tracking-wider text-[#8D643B]">
+            Additional guidance
+          </p>
+
+          <h3 className="mt-2 text-lg font-semibold">
+            {theme.manifestationLabel ||
+              (theme.area === "mind"
+                ? "Mind & Emotional Wellbeing"
+                : titleCase(theme.area))}
+          </h3>
+
+          <p className="mt-3 text-sm leading-6 astro-text-soft">
+            {theme.prediction}
+          </p>
+
+          {theme.action && (
+            <div className="mt-4 rounded-xl bg-emerald-50/70 p-3">
+              <p className="text-xs font-semibold text-emerald-800">
+                What you can do
+              </p>
+              <p className="mt-1 text-sm leading-6 astro-text-soft">
+                {theme.action}
+              </p>
+            </div>
+          )}
+
+          {theme.avoid && (
+            <div className="mt-3 rounded-xl bg-rose-50/70 p-3">
+              <p className="text-xs font-semibold text-rose-800">
+                Be mindful of
+              </p>
+              <p className="mt-1 text-sm leading-6 astro-text-soft">
+                {theme.avoid}
+              </p>
+            </div>
+          )}
+        </article>
+      ))}
+    </div>
+  </section>
+)}
+
+{!compact && primary && prediction.explanation && (
             <WhyThisGuidance
               explanation={prediction.explanation}
             />
@@ -1386,7 +1606,14 @@ setSnapshot(null);
              <a
   href="/sarathi/daily-guidance"
   onClick={() => {
-    if (!selectedProfile || !currentPlace || !prediction) {
+    if (
+      !selectedProfile ||
+      !currentPlace ||
+      !prediction ||
+      !verifiedGuidance ||
+      verifiedGuidance.profileId !== selectedProfileId ||
+      verifiedGuidance.birthKey !== guidanceBirthKey(selectedProfile)
+    ) {
       return;
     }
 
@@ -1397,10 +1624,6 @@ setSnapshot(null);
         currentPlace,
         selectedCity,
         selectedDateISO,
-        prediction,
-        remedy: selectedRemedy,
-        dailyFocus,
-        snapshot,
       })
     );
   }}

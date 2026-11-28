@@ -1,4 +1,7 @@
 import "server-only";
+import { NODE_CALCULATION_VERSION, type NodeMode } from "@/server/astro/lunarNodes";
+
+import { buildActivePeriods } from "@/server/dataEngine/buildActivePeriods";
 
 import {
   buildDataEngine,
@@ -9,6 +12,8 @@ import {
 export type SarathiChatContext = {
   engine: DataEngineOutput;
   chart: {
+  nodeMode: DataEngineOutput["nodeMode"];
+  nodeCalculationVersion: DataEngineOutput["nodeCalculationVersion"];
   meta: DataEngineOutput["meta"];
   birth: any;
   ascendant: any;
@@ -44,55 +49,32 @@ export type SarathiChatContext = {
 
 export async function buildSarathiChatContext(params: {
   birth: BirthInput;
+  nodeMode?: NodeMode;
   selectedDateISO?: string;
   compareDateISO?: string | null;
 }): Promise<SarathiChatContext> {
+  const requestedNodeMode = params.nodeMode ?? "mean";
+
   const engine = await buildDataEngine({
     birth: params.birth,
+    nodeMode: requestedNodeMode,
     plan: "pro",
     selectedDateISO: params.selectedDateISO,
     compareDateISO: params.compareDateISO ?? undefined,
   });
-const currentDasha =
-  engine?.timing?.dasha?.current ??
-  null;
+if (
+  engine.nodeMode !== requestedNodeMode ||
+  engine.nodeCalculationVersion !== NODE_CALCULATION_VERSION
+) {
+  throw new Error("Ask Sarathi calculation convention mismatch.");
+}
 
-const activePeriods =
-  currentDasha
-    ? {
-        mahadasha:
-          currentDasha.md
-            ? {
-                lord: currentDasha.md,
-                start: currentDasha.mdStartISO ?? null,
-                end: currentDasha.mdEndISO ?? null,
-                summary: "",
-              }
-            : null,
+const activePeriods = buildActivePeriods(
+  engine?.timing?.dasha
+);
 
-        antardasha:
-          currentDasha.ad
-            ? {
-                mahaLord: currentDasha.md ?? "",
-                subLord: currentDasha.ad,
-                start: currentDasha.adStartISO ?? null,
-                end: currentDasha.adEndISO ?? null,
-              }
-            : null,
 
-        pratyantardasha:
-          currentDasha.pd
-            ? {
-                mahaLord: currentDasha.md ?? "",
-                antarLord: currentDasha.ad ?? "",
-                lord: currentDasha.pd,
-                start: currentDasha.pdStartISO ?? null,
-                end: currentDasha.pdEndISO ?? null,
-              }
-            : null,
-      }
-    : null;
-    const mahadashaTimeline =
+const mahadashaTimeline =
   Array.isArray(
     engine?.timing?.dasha?.timelines?.md
   )
@@ -212,6 +194,8 @@ const dashaTimeline = [
     engine,
 
     chart: {
+      nodeMode: engine.nodeMode,
+      nodeCalculationVersion: engine.nodeCalculationVersion,
       meta: engine.meta,
       birth: engine.foundations.birthMeta,
       ascendant: engine.foundations.ascendant,

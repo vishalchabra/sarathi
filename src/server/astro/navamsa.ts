@@ -1,5 +1,6 @@
 // src/server/astro/navamsa.ts
 import { PLANET_NAMES } from "./nakshatra";
+import { calculateNavamsa } from "../../lib/astrology/divisionalCalculator";
 
 /* ---------- basics ---------- */
 function norm360(x: number) {
@@ -38,19 +39,13 @@ export function signOf(deg: number) {
  * - Dual    (2,5,8,11): starts from 5th from sign
  */
 export function navamsaOf(deg: number) {
-  const base = signOf(deg);
-  const step = 30 / 9; // 3°20' = 3.333...°
-  const which = Math.floor(base.deg / step); // 0..8
+  const position = calculateNavamsa(deg);
 
-  const s = base.sign;
-  let start = s; // movable
-  if (s === 1 || s === 4 || s === 7 || s === 10) start = (s + 8) % 12; // fixed → 9th
-  if (s === 2 || s === 5 || s === 8 || s === 11) start = (s + 4) % 12; // dual  → 5th
-
-  const d9Sign = (start + which) % 12;
-  const d9Deg = (base.deg - which * step) * 9; // scale 3.333..° → 30°
-
-  return { sign: d9Sign, signName: SIGN_NAMES[d9Sign], deg: d9Deg };
+  return {
+    sign: position.signIndex,
+    signName: SIGN_NAMES[position.signIndex],
+    deg: position.degree,
+  };
 }
 
 /* ---------- lightweight insights for UI ---------- */
@@ -83,11 +78,11 @@ export function buildNavamshaInsights(natal: { planets: Record<number, number> }
   const rows: string[] = [];
 
   // Venus & Jupiter in D9 (partnership / dharma)
-  if (typeof pl[3] === "number") {
+  if (typeof pl[3] === "number" && Number.isFinite(pl[3])) {
     const v9 = navamsaOf(pl[3]);
     rows.push(`Venus D9 → ${v9.signName} (${trait(v9.signName)}).`);
   }
-  if (typeof pl[5] === "number") {
+  if (typeof pl[5] === "number" && Number.isFinite(pl[5])) {
     const j9 = navamsaOf(pl[5]);
     rows.push(`Jupiter D9 → ${j9.signName} (${trait(j9.signName)}).`);
   }
@@ -98,7 +93,7 @@ export function buildNavamshaInsights(natal: { planets: Record<number, number> }
   let akLong = -1;
   for (const p of AK_CANDIDATES) {
     const v = pl[p];
-    if (typeof v !== "number") continue;
+    if (typeof v !== "number" || !Number.isFinite(v)) continue;
     const within = signOf(v).deg; // 0..30 within sign
     if (within > akLong) {
       akLong = within;
@@ -119,7 +114,7 @@ export function buildNavamshaInsights(natal: { planets: Record<number, number> }
 
   // Venus sign string (for convenient display in relationships)
   let venusSign: string | undefined;
-  if (typeof pl[3] === "number") {
+  if (typeof pl[3] === "number" && Number.isFinite(pl[3])) {
     venusSign = navamsaOf(pl[3]).signName;
   }
 

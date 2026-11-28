@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useCrmAccess } from "@/lib/supabase/useCrmAccess";
 import {
   addConsultationNote,
   getAstrologerClient,
@@ -67,6 +68,8 @@ export default function ClientProfilePage({
   const [client, setClient] = useState<AstrologerClient | null>(null);
   const [charts, setCharts] = useState<ClientChart[]>([]);
   const [notes, setNotes] = useState<ConsultationNote[]>([]);
+  const crmAccess = useCrmAccess();
+  const crmRequestId = useRef(0);
   const [loading, setLoading] = useState(true);
   const [savingNote, setSavingNote] = useState(false);
   const [savingClient, setSavingClient] = useState(false);
@@ -88,11 +91,18 @@ const [editNotes, setEditNotes] = useState("");
   const latestChart = useMemo(() => charts[0] ?? null, [charts]);
 
   async function loadClient() {
+
+    if (crmAccess.loading || !crmAccess.canRead) {
+      return;
+    }
+    const requestId = ++crmRequestId.current;
+
     try {
       setLoading(true);
       setError("");
 
       const result = await getAstrologerClient(clientId);
+      if (requestId !== crmRequestId.current) return;
 
       setClient(result.client);
       setCharts(result.charts);
@@ -107,17 +117,43 @@ const [editNotes, setEditNotes] = useState("");
   setEditNotes(result.client.notes || "");
 }
     } catch (e: any) {
+      if (requestId !== crmRequestId.current) return;
       setError(e?.message || "Failed to load client.");
     } finally {
-      setLoading(false);
+      if (requestId === crmRequestId.current) setLoading(false);
     }
   }
 
   useEffect(() => {
-    loadClient();
-  }, [clientId]);
+    setClient(null);
+    setCharts([]);
+    setNotes([]);
+    setShowEditCase(false);
+
+    if (crmAccess.loading || !crmAccess.canRead) {
+      setLoading(crmAccess.loading);
+      return;
+    }
+
+    void loadClient();
+
+    return () => {
+      ++crmRequestId.current;
+    };
+  }, [clientId, crmAccess.loading, crmAccess.canRead]);
 
   async function handleAddNote() {
+
+    if (!crmAccess.canWrite) {
+      setError(
+        crmAccess.loading
+          ? "Checking CRM access. Please wait."
+          : crmAccess.error ||
+            "Your CRM is read-only. Renew your subscription to restore full access."
+      );
+      return;
+    }
+
     if (!note.trim()) {
       setError("Please enter consultation note.");
       return;
@@ -146,6 +182,17 @@ const [editNotes, setEditNotes] = useState("");
     }
   }
 async function handleUpdateClient() {
+
+    if (!crmAccess.canWrite) {
+      setError(
+        crmAccess.loading
+          ? "Checking CRM access. Please wait."
+          : crmAccess.error ||
+            "Your CRM is read-only. Renew your subscription to restore full access."
+      );
+      return;
+    }
+
   try {
     setSavingClient(true);
     setError("");
@@ -168,6 +215,49 @@ async function handleUpdateClient() {
     setSavingClient(false);
   }
 }
+  if (crmAccess.loading || !crmAccess.canRead) {
+    return (
+      <main className="min-h-screen astro-bg px-4 py-12">
+        <section className="mx-auto max-w-xl rounded-3xl astro-card p-8 shadow-sm">
+          <h1 className="text-2xl font-semibold text-slate-900">
+            {crmAccess.loading
+              ? "Checking CRM access..."
+              : crmAccess.error
+                ? "Unable to verify access"
+                : "Astrologer Workspace"}
+          </h1>
+
+          <p className="mt-3 text-sm leading-relaxed text-slate-600">
+            {crmAccess.loading
+              ? "Please wait while we verify your account."
+              : crmAccess.error ||
+                "The CRM workspace is available to astrologer accounts."}
+          </p>
+
+          {!crmAccess.loading ? (
+            <div className="mt-6 flex flex-wrap gap-3">
+              {crmAccess.error ? (
+                <button
+                  type="button"
+                  onClick={() => void crmAccess.refresh()}
+                  className="rounded-xl border bg-white px-4 py-2 text-sm font-semibold"
+                >
+                  Try Again
+                </button>
+              ) : null}
+
+              <Link
+                href="/sarathi/data-engine"
+                className="rounded-xl border bg-white px-4 py-2 text-sm font-semibold"
+              >
+                Back to Data Engine
+              </Link>
+            </div>
+          ) : null}
+        </section>
+      </main>
+    );
+  }
   return (
     <main className="min-h-screen astro-bg text-slate-800">
       <section className="mx-auto max-w-7xl px-4 py-8 md:px-8">
@@ -202,12 +292,14 @@ async function handleUpdateClient() {
                   Back to Clients
                 </Link>
 
+                {crmAccess.canWrite ? (
                 <Link
                   href={`/sarathi/data-engine?clientId=${clientId}`}
                   className="rounded-xl bg-[color:var(--primary)] px-4 py-2 text-sm font-semibold text-white shadow-sm hover:opacity-95"
                 >
                   Open in Data Engine
                 </Link>
+                ) : null}
               </div>
             </div>
 
@@ -221,7 +313,21 @@ async function handleUpdateClient() {
             ) : null}
           </div>
 
-          {error ? (
+                    {crmAccess.canRead && !crmAccess.canWrite ? (
+            <div
+              role="status"
+              className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4"
+            >
+              <div className="font-semibold text-amber-900">
+                CRM Read-Only Mode
+              </div>
+              <p className="mt-1 text-sm leading-relaxed text-amber-800">
+                Your client records and consultation history remain safe.
+                Renew your subscription to restore full CRM access.
+              </p>
+            </div>
+          ) : null}
+{error ? (
             <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
               {error}
             </div>
@@ -251,16 +357,16 @@ async function handleUpdateClient() {
       </p>
     </div>
 
-    <button
+    {crmAccess.canWrite ? (<button
       type="button"
       onClick={() => setShowEditCase((v) => !v)}
       className="rounded-xl border border-[color:var(--border)] bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50"
     >
       {showEditCase ? "Hide Edit" : "Edit Case"}
-    </button>
+    </button>) : null}
   </div>
 
-  {showEditCase ? (
+  {crmAccess.canWrite && showEditCase ? (
     <>
       <div className="mt-5 grid grid-cols-1 gap-4 xl:grid-cols-2">
         <div>
@@ -418,7 +524,7 @@ async function handleUpdateClient() {
               </div>
             </section>
 
-            <section className="rounded-3xl border border-[color:var(--border)] bg-white/80 p-5 shadow-sm">
+            {crmAccess.canWrite ? (<section className="rounded-3xl border border-[color:var(--border)] bg-white/80 p-5 shadow-sm">
               <h2 className="text-base font-semibold text-slate-900">
                 Add Consultation / Follow-up Note
               </h2>
@@ -472,7 +578,7 @@ async function handleUpdateClient() {
                   {savingNote ? "Saving Note..." : "Save Note"}
                 </button>
               </div>
-            </section>
+            </section>) : null}
           </div>
 
           <section className="rounded-3xl border border-[color:var(--border)] bg-white/80 p-5 shadow-sm">

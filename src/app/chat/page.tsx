@@ -1,5 +1,10 @@
 "use client";
 
+import {
+  resolvePersonalNodeMode,
+  verifyPersonalNodeResponse,
+} from "@/lib/supabase/personal-node-mode";
+
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -333,20 +338,36 @@ export default function AstroChatPage() {
       return;
     }
 
+    const requestedNodeMode =
+      await resolvePersonalNodeMode(freshProfile);
+
     const res = await fetch("/api/astro-chat", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         message: question,
-        profile: freshProfile,
-        birthProfile: freshProfile,
+        nodeMode: requestedNodeMode,
+        profile: {
+          ...freshProfile,
+          nodeMode: requestedNodeMode,
+        },
+        birthProfile: {
+          ...freshProfile,
+          nodeMode: requestedNodeMode,
+        },
         topic,
-        report,
-        lifecycleDebugOnly: true,
       }),
     });
 
     const json = await res.json();
+
+    if (!res.ok || json?.ok === false || json?.error) {
+      throw new Error(
+        json?.error || "Unable to generate guidance."
+      );
+    }
+
+    verifyPersonalNodeResponse(json, requestedNodeMode);
     const answer = json?.answer || json?.text || json?.error || "…";
 
     setMessages((m) => [

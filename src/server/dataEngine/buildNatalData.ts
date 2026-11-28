@@ -1,3 +1,4 @@
+import { tryCalculateNakshatraPosition } from "../../lib/astrology/nakshatraCalculator";
 import "server-only";
 
 import { DateTime } from "luxon";
@@ -64,18 +65,11 @@ function getNakshatraPadaFromLon(lon: number): {
   nakshatra: string;
   pada: number;
 } {
-  const safeLon = wrap360(lon);
-  const nakSize = 360 / 27; // 13°20'
-  const nakIndex = Math.floor(safeLon / nakSize);
-  const nakshatra = NAKSHATRAS_27[nakIndex] ?? "Unknown";
-
-  const withinNak = safeLon % nakSize;
-  const padaSize = nakSize / 4; // 3°20'
-  const pada = Math.floor(withinNak / padaSize) + 1;
+  const position = tryCalculateNakshatraPosition(lon);
 
   return {
-    nakshatra,
-    pada,
+    nakshatra: position?.nakshatra ?? "Unknown",
+    pada: position?.pada ?? NaN,
   };
 }
 

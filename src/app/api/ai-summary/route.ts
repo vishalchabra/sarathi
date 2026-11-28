@@ -1,3 +1,4 @@
+import { requireLifeReportAccess } from "@/server/auth/requireLifeReportAccess";
 export const runtime = "nodejs";
 
 import "server-only";
@@ -511,6 +512,10 @@ function nakSummary(report: Report, style: Style): Structured {
 type AIRequest = { style?: Style; report?: Report };
 
 export async function POST(req: Request) {
+  const accessDenied = await requireLifeReportAccess(req);
+
+  if (accessDenied) return accessDenied;
+
   try {
     const url = new URL(req.url);
     const qpStyle = (url.searchParams.get("style") as Style) || undefined;

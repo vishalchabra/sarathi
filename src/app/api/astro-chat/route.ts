@@ -18336,6 +18336,20 @@ const entitlements = await getUserEntitlements(
 
     const body = (await req.json().catch(() => ({}))) as any;
 
+    const requestedNodeMode = body?.nodeMode;
+
+    if (
+      requestedNodeMode !== undefined &&
+      requestedNodeMode !== null &&
+      requestedNodeMode !== "mean" &&
+      requestedNodeMode !== "true"
+    ) {
+      return badJson("Invalid lunar node convention.", 400);
+    }
+
+    const nodeMode: "mean" | "true" =
+      requestedNodeMode ?? "mean";
+
     const question = safeStr(body?.question ?? body?.message);
 
     if (!question) {
@@ -18363,6 +18377,10 @@ const entitlements = await getUserEntitlements(
     ) {
       report = report.data;
     }
+
+    // Client-supplied reports must not determine astrological facts.
+    // Rebuild the canonical chart from the validated birth profile.
+    report = null;
 
     const history = Array.isArray(body?.history) ? body.history : [];
     const conversationState = extractConversationState(history);
@@ -18487,6 +18505,7 @@ if (
   resolvedProfile?.place?.lon != null
 ) {
   sarathiContext = await buildSarathiChatContext({
+    nodeMode,
     birth: {
       name: resolvedProfile?.name ?? "User",
       dateISO: resolvedProfile?.dobISO ?? "",
@@ -18495,15 +18514,84 @@ if (
       lat: Number(resolvedProfile.place.lat),
       lon: Number(resolvedProfile.place.lon),
     },
-    selectedDateISO:
-      body?.selectedDateISO ||
-      body?.dateISO ||
-      new Date().toISOString().slice(0, 10),
+    selectedDateISO: (() => {
+      const explicitDate =
+        body?.selectedDateISO || body?.dateISO;
+
+      if (
+        typeof explicitDate === "string" &&
+        /^\d{4}-\d{2}-\d{2}$/.test(explicitDate)
+      ) {
+        const parsed = new Date(`${explicitDate}T00:00:00.000Z`);
+
+        if (
+          Number.isFinite(parsed.getTime()) &&
+          parsed.toISOString().slice(0, 10) === explicitDate
+        ) {
+          return explicitDate;
+        }
+      }
+
+      const now = new Date();
+
+      const candidates = [
+        body?.notificationTz,
+        "UTC",
+      ];
+
+      for (const timezone of candidates) {
+        if (
+          typeof timezone !== "string" ||
+          !timezone.trim()
+        ) {
+          continue;
+        }
+
+        try {
+          const parts = new Intl.DateTimeFormat("en-CA", {
+            timeZone: timezone,
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+          }).formatToParts(now);
+
+          const get = (type: string) =>
+            parts.find(part => part.type === type)?.value ?? "";
+
+          return `${get("year")}-${get("month")}-${get("day")}`;
+        } catch {
+          // Try the next valid timezone.
+        }
+      }
+
+      return now.toISOString().slice(0, 10);
+    })(),
   });
+
+  if (
+    sarathiContext?.engine?.nodeMode !== nodeMode ||
+    sarathiContext?.engine?.nodeCalculationVersion !== "lahiri-swiss-node-v1" ||
+    sarathiContext?.chart?.nodeMode !== nodeMode ||
+    sarathiContext?.chart?.nodeCalculationVersion !== "lahiri-swiss-node-v1"
+  ) {
+    throw new Error("Unable to verify Ask Sarathi chart convention.");
+  }
 
   report = sarathiContext.chart;
   
 }
+
+ if (!sarathiContext || !report) {
+   return badJson(
+     "Valid birth details are required to generate a verified chart.",
+     400
+   );
+ }
+
+ const verifiedNodeMetadata = {
+   nodeMode: sarathiContext.engine.nodeMode,
+   nodeCalculationVersion: sarathiContext.engine.nodeCalculationVersion,
+ };
 
  const eventScale = detectEventScale(question, topic);
 
@@ -18755,6 +18843,7 @@ if (
   const answer = buildDirectProfessionAnswer(astroBundle.careerInference);
 
   return okJson({
+    ...verifiedNodeMetadata,
     answer,
     evidenceBullets: astroBundle.evidenceBullets,
     themeSignal: astroBundle.themeSignal,
@@ -22754,6 +22843,7 @@ const fallbackWhyThisWorks = [
   .slice(0, 4);
 
 return okJson({
+  ...verifiedNodeMetadata,
   answer:
     polishUserFacingDates(
       fallbackFullAnswer
@@ -23260,6 +23350,7 @@ const responseWindows =
     };
   });
    return okJson({
+  ...verifiedNodeMetadata,
   answer: polishedFullAnswer,
   shortAnswer:
   polishedShortAnswer,

@@ -21,12 +21,27 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
 
+    const requestedNodeMode =
+      body?.nodeMode ?? body?.birth?.nodeMode ?? "mean";
+
+    if (
+      requestedNodeMode !== "mean" &&
+      requestedNodeMode !== "true"
+    ) {
+      return NextResponse.json(
+        { error: "Invalid lunar node convention." },
+        { status: 400 }
+      );
+    }
+
+    const nodeMode: "mean" | "true" = requestedNodeMode;
+
     let positions: PlanetPos[] | undefined = body.positions;
     const birth: Birth | undefined = body.birth;
 
     if (!positions && birth) {
       // compute positions from real birth data
-      positions = await getNatal(birth) as PlanetPos[];
+      positions = await getNatal(birth, nodeMode) as PlanetPos[];
     }
 
     if (!Array.isArray(positions) || positions.length === 0) {

@@ -39,6 +39,8 @@ export type CorePanchangToday = {
 };
 
 export type CoreSignals = {
+  forecastDateISO?: string;
+  forecastTimezone?: string;
   birth: CoreBirthSignals;
   dashaStack: any[];        // future: structured dasha stack
   transits: CoreTransitSignal[];

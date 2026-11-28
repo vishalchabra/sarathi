@@ -1,9 +1,13 @@
-﻿  "use client";
+  "use client";
+
+import { createClient } from "@/lib/supabase/client";
+import { readForecastLocation } from "@/lib/forecast-location";
 
   import React, {
     Suspense,
     useState,
     useEffect,
+    useLayoutEffect,
     useCallback,
     memo,
     useMemo,
@@ -39,7 +43,12 @@
   } from "@/components/ui/accordion";
   import Link from "next/link";
   import { saveBirthProfile } from "@/lib/birth-profile";
-  import { getMoonNakshatra } from "@/lib/astro"; 
+import type { NodeMode } from "@/lib/node-mode";
+import {
+  resolvePersonalNodeMode,
+  verifyPersonalNodeResponse,
+} from "@/lib/supabase/personal-node-mode";
+  import { getMoonNakshatra } from "@/lib/astro";
   import { NAKSHATRA_INFO } from "@/lib/astrology/nakshatraMap";
   import {
   getCurrentUserChart,
@@ -161,7 +170,7 @@ import LifeReportPdf from "@/components/pdf/LifeReportPdf";
     dashaTimeline?: any[];
     activePeriods?: ActivePeriods;
     lifeMilestones?: LifeMilestone[];
-    
+
       foodToday?: {
       tone: "sattvic" | "rajasic" | "tamasic";
       headline: string;
@@ -1935,7 +1944,7 @@ const banned = [
       general:
         "General focus: A balanced week. Clear small pending tasks, keep your schedule simple and move at a steady pace.",
     };
-    
+
 
     function pickCategory(trans: TransitHit[]): WeeklyCat {
       if (!trans.length) return "general";
@@ -2647,7 +2656,7 @@ function buildStandoutTag(idx: number): string {
 
     return String(pick ?? "").trim();
   }
-  
+
   function houseFocusFromMoon(h?: number): string {
     switch (h) {
       case 2:
@@ -5628,7 +5637,7 @@ function buildScenarioLine(opts: {
   const houseNum = Number.isFinite(Number(opts.houseNum))
     ? Number(opts.houseNum)
     : null;
-  
+
   const text = `${trigger} ${focus} ${headline} ${evidence}`;
   const styleSeed = Math.abs(hashString(text)) % 3;
   // MONEY / VALUE
@@ -6759,7 +6768,7 @@ const np: any = (report as any)?.nowPlan ?? (report as any)?.nowNearFuture ?? nu
 
             <CardContent className="space-y-3">
               {/* Loading */}
-              
+
               {dailyLoadingProp && (
                 <div className="rounded-xl astro-card px-3 py-2 text-xs text-foreground">
                   Loading next few days
@@ -6776,7 +6785,7 @@ const np: any = (report as any)?.nowPlan ?? (report as any)?.nowNearFuture ?? nu
               {/* Empty / nowPlan renderer */}
 {!dailyLoadingProp && !dailyErrorProp && (
   <>
-    
+
 
     {Array.isArray(np?.next30Days?.timing) && np.next30Days.timing.length > 0 && (
       <div className="space-y-3 pt-2">
@@ -7103,10 +7112,10 @@ const confClass =
                               {safeText(dateLabel)}
                             </div>
                           </div>
-                          
+
                         </div>
 
-                        
+
                       {/* Life area */}
 <div className="mt-2 inline-flex rounded-full border border-[#D8CFEA] bg-white/70 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#6E4BC6]">
   {primaryArea}
@@ -8763,7 +8772,7 @@ export function buildPaidOutput(report: any): PaidOutput {
 
   // --- helpers ---
   const todayISO =
-    String(report?.meta?.todayISO || report?.todayISO || "").slice(0, 10) ||
+    String(report?.todayISO || report?.meta?.todayISO || "").slice(0, 10) ||
     new Date().toISOString().slice(0, 10);
 
   const addDaysISO = (iso: string, days: number) => {
@@ -9327,6 +9336,12 @@ if (winSunSun) {
   }
 
   const todayISO = (() => {
+    const canonicalDate = String((report as any)?.todayISO ?? "").slice(0, 10);
+
+    if (/^\d{4}-\d{2}-\d{2}$/.test(canonicalDate)) {
+      return canonicalDate;
+    }
+
     const tz =
     (report as any)?.meta?.birthTz ??
     "Asia/Dubai";
@@ -9396,7 +9411,7 @@ if (winSunSun) {
     }
     return null;
   })();
-  
+
 
 
   const nextUpcoming = hits
@@ -9404,7 +9419,7 @@ if (winSunSun) {
     .sort((a: any, b: any) => String(a?.startISO).localeCompare(String(b?.startISO)))
     .slice(0, 5);
 
-  
+
   // Try to extract transits from dashaTransitSummary (it may be JSON from /api/ai-dasha-transits)
   const parsedFusion: any = (() => {
     try {
@@ -9506,7 +9521,7 @@ if (winSunSun) {
   const activePlanet = safe(r?.activePlanet ?? r?.now?.activePlanet ?? "", "");
 
   // Debug anchors (safe)
-  
+
 
   // Existing builders (keep)
   const why = buildWhyBullets_X(r);
@@ -9765,7 +9780,7 @@ if (winSunSun) {
   /* -----------------------------
     K) PremiumBriefing (declared BEFORE return)
   -------------------------------- */
-  
+
     const pctLabel = (n: number) => `${Math.max(0, Math.min(100, Math.round(Number(n) || 0)))}%`;
 
 const ScenarioCard: React.FC<{ s: any }> = ({ s }) => (
@@ -10081,7 +10096,7 @@ const [errors, setErrors] = useState<Record<string, string>>({});
       const [notificationTz, setNotificationTz] = useState<string>(initialTz);
     const [jobPrediction, setJobPrediction] = useState<any | null>(null);
     const [jobPredictionError, setJobPredictionError] = useState<string | null>(null);
-    
+
 const selectedCountryLabel =
   COUNTRY_CODES.find((c) => c.value === countryCode)?.label || "Country code";
   const filteredCountries = COUNTRY_CODES_SORTED.filter((c) => {
@@ -10097,7 +10112,7 @@ const selectedCountryLabel =
       try {
         const settings = ensureNotificationTz(initialTz);
         setNotificationTz(settings.tz);
-        
+
       } catch {
         // fall back silently
       }
@@ -10119,7 +10134,7 @@ const selectedCountryLabel =
 
   type LifeTab = "overview" | "phases" | "now" | "full";
 const [activeTab, setActiveTab] = useState<LifeTab>("overview");
-    
+
     const [mounted, setMounted] = useState(false);
     useEffect(() => {
     setMounted(true);
@@ -10139,7 +10154,7 @@ useEffect(() => {
 
       setSavedChartId(saved.id);
 
-      
+
 
       setName(saved.chart_name || "");
 
@@ -10211,15 +10226,15 @@ const devUnlockFull =
     : false;
 
 // TEMP testing access
-const canSeePhases = apiIsPaid || isFull || devUnlockFull;
-const canSeeNow = apiIsPaid || isFull || devUnlockFull;
-const canSeeFull = apiIsPaid || isFull || devUnlockFull;
+const canSeePhases = apiIsPaid;
+const canSeeNow = apiIsPaid;
+const canSeeFull = apiIsPaid;
   const canSeeOverview = true;
 
   const unlockFullDev = useCallback(() => {
     if (typeof window === "undefined") return;
 
-    
+
     localStorage.setItem("sarathi_plan", "full");
     setPlanTier("full");
   }, [setPlanTier, setActiveTab]);
@@ -10254,6 +10269,116 @@ const canSeeFull = apiIsPaid || isFull || devUnlockFull;
     const [error, setError] = useState<string | null>(null);
 
     const [report, setReport] = useState<LifeReportView | null>(null);
+
+    const [securePdfLoading, setSecurePdfLoading] = useState(false);
+    const [securePdfError, setSecurePdfError] = useState("");
+
+    async function handleSecurePdfDownload() {
+      if (securePdfLoading) return;
+
+      const snapshot = signedPdfSnapshotRef.current;
+
+      setSecurePdfError("");
+
+      if (!snapshot || snapshot.pdfProof.expiresAt <= Date.now()) {
+        setSecurePdfError(
+          "Please regenerate your Life Report before downloading."
+        );
+        return;
+      }
+
+      const requestId = lifeReportRequestIdRef.current;
+
+      const isCurrent = () =>
+        requestId === lifeReportRequestIdRef.current &&
+        signedPdfSnapshotRef.current === snapshot;
+
+      setSecurePdfLoading(true);
+
+      try {
+        const response = await fetch("/api/life-report/pdf", {
+          method: "POST",
+          credentials: "same-origin",
+          cache: "no-store",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(snapshot),
+        });
+
+        if (!isCurrent()) return;
+
+        if (!response.ok) {
+          const result = await response.json().catch(() => null);
+
+          throw new Error(
+            result?.error || "Unable to prepare your PDF."
+          );
+        }
+
+        if (
+          !response.headers
+            .get("content-type")
+            ?.toLowerCase()
+            .startsWith("application/pdf")
+        ) {
+          throw new Error("Invalid PDF response.");
+        }
+
+        const blob = await response.blob();
+
+        if (!isCurrent()) return;
+
+        if (
+          blob.size < 5 ||
+          await blob.slice(0, 5).text() !== "%PDF-"
+        ) {
+          throw new Error("The generated PDF is invalid.");
+        }
+
+        if (!isCurrent()) return;
+
+        const url = URL.createObjectURL(blob);
+
+        try {
+          const link = document.createElement("a");
+
+          link.href = url;
+          link.download = "Sarathi-Life-Report.pdf";
+
+          document.body.appendChild(link);
+
+          try {
+            link.click();
+          } finally {
+            link.remove();
+          }
+        } finally {
+          window.setTimeout(
+            () => URL.revokeObjectURL(url),
+            10000
+          );
+        }
+      } catch (error) {
+        if (isCurrent()) {
+          setSecurePdfError(
+            error instanceof Error
+              ? error.message
+              : "Unable to download your PDF."
+          );
+        }
+      } finally {
+        setSecurePdfLoading(false);
+      }
+    }
+
+    const signedPdfSnapshotRef = useRef<{
+      report: unknown;
+      pdfProof: {
+        expiresAt: number;
+        signature: string;
+      };
+    } | null>(null);
     const [lastReportKey, setLastReportKey] = useState<string | null>(null);
 
 
@@ -10301,7 +10426,7 @@ const canSeeFull = apiIsPaid || isFull || devUnlockFull;
     const [notificationsPreview, setNotificationsPreview] =
       useState<NotificationPreviewBuckets | null>(null);
 
-    
+
     const [guide, setGuide] = useState<{
       emotionalWeather?: EmotionalWeather;
       food?: FoodGuide;
@@ -10311,7 +10436,7 @@ const canSeeFull = apiIsPaid || isFull || devUnlockFull;
 
 
   useEffect(() => {
-    
+
 
     if (!report) {
       setJobPrediction(null);
@@ -10348,7 +10473,7 @@ const canSeeFull = apiIsPaid || isFull || devUnlockFull;
           placeName,
         };
 
-        
+
 
         const res = await fetch("/api/sarathi/predict", {
           method: "POST",
@@ -10356,7 +10481,7 @@ const canSeeFull = apiIsPaid || isFull || devUnlockFull;
           body: JSON.stringify(body),
         });
 
-        
+
 
         if (!res.ok) {
           const txt = await res.text().catch(() => "");
@@ -10369,7 +10494,7 @@ const canSeeFull = apiIsPaid || isFull || devUnlockFull;
         }
 
         const json = await res.json();
-        
+
 
         if (!cancelled) {
           setJobPrediction(json);
@@ -10446,7 +10571,7 @@ useEffect(() => {
   };
 }, []);
 function validateBirthDetails() {
-  
+
   const next: Record<string, string> = {};
 
   if (!name.trim()) {
@@ -10493,29 +10618,16 @@ if (!validateBirthDetails()) {
     const trimmedName = (name || "").trim() || "Default";
     const profileId = trimmedName;
 
-    // Shape that Life Report / SavedProfile uses
-    const savedProfile: SavedProfile = {
-      id: profileId,
-      label: profileId,
-      name: trimmedName,
-      birthDateISO: dateISO,
-      birthTime: time,
-      birthTz: tz,
-      lat: place.lat,
-      lon: place.lon,
-      placeName: place.name || "",
-    };
-
-    // merge into profiles list (override if same id exists)
-    const nextProfiles: SavedProfile[] = [
-      ...profiles.filter((p) => p.id !== profileId),
-      savedProfile,
-    ];
-
-    // update state
-    setProfiles(nextProfiles);
 try {
+  const existingProfile = profiles.find(
+    (p) => p.name === trimmedName
+  );
+
+  const requestedNodeMode =
+    await resolvePersonalNodeMode(existingProfile);
+
   const saved = await saveUserBirthProfile({
+    nodeMode: requestedNodeMode,
     label: profileId,
     name: trimmedName,
     birthDateISO: dateISO,
@@ -10529,25 +10641,24 @@ try {
   const freshProfiles = await getUserBirthProfiles();
   setProfiles(freshProfiles);
   setSelectedProfileId(saved.id);
+
+  saveBirthProfile({
+    nodeMode: saved.nodeMode,
+    name: saved.name,
+    dobISO: saved.birthDateISO,
+    tob: saved.birthTime,
+    place: {
+      name: saved.placeName,
+      tz: saved.birthTz,
+      lat: Number(saved.lat),
+      lon: Number(saved.lon),
+    },
+  });
 } catch (e) {
   console.warn("[life-report] failed to save Supabase profile", e);
   alert("Could not save profile. Please try again.");
   return;
 }
-    
-      // Also set the ACTIVE profile for the whole app (Chat, Daily Guide, etc.)
-    saveBirthProfile({
-      name: trimmedName,
-      dobISO: dateISO,
-      tob: time,
-      place: {
-        name: place?.name || "",
-        tz: tz,
-        lat: Number(place.lat),
-        lon: Number(place.lon),
-      },
-    });
-
 
     // auto-select the newly saved profile
   }, [name, dateISO, time, tz, place, profiles, setProfiles, setSelectedProfileId]);
@@ -10558,6 +10669,20 @@ try {
         setSelectedProfileId(id);
         const prof = profiles.find((p) => p.id === id);
         if (!prof) return;
+
+        signedPdfSnapshotRef.current = null; setSecurePdfError(""); setReport(null);
+        setLastReportKey(null);
+        setApiIsPaid(false);
+
+        setAiSummary("");
+        setTimelineSummary("");
+        setTransits([]);
+        setTransitNow([]);
+        setTransitSummary("");
+        setDashaTransitSummary("");
+        setMonthlyInsights([]);
+        setWeeklyInsights([]);
+        setDailyHighlights([]);
 
         setName(prof.name);
         setDateISO(prof.birthDateISO);
@@ -10635,15 +10760,24 @@ try {
     // ✅ Clear report ONLY when the user is actively editing inputs
   // (NOT when app internals re-set tz/place after generation)
   const lastInputsKeyRef = useRef<string>("");
+  const lifeReportRequestIdRef = useRef(0);
 
-  useEffect(() => {
-    const key = [
+  const selectedProfileNodeMode = profiles.find(
+    (p) => p.id === selectedProfileId
+  )?.nodeMode;
+
+  useLayoutEffect(() => {
+    const key = JSON.stringify([
+      selectedProfileId,
+      selectedProfileNodeMode ?? null,
+      (name || "").trim(),
       dateISO || "",
       time || "",
       tz || "",
-      String(place?.lat ?? ""),
-      String(place?.lon ?? ""),
-    ].join("|");
+      place?.lat ?? null,
+      place?.lon ?? null,
+      notificationTz,
+    ]);
 
     // first run: just store
     if (!lastInputsKeyRef.current) {
@@ -10654,10 +10788,46 @@ try {
     // only clear if the inputs REALLY changed
     if (key !== lastInputsKeyRef.current) {
       lastInputsKeyRef.current = key;
-      setReport(null);
-      // keep tab as-is (don’t jump to overview)
+      lifeReportRequestIdRef.current++;
+
+      signedPdfSnapshotRef.current = null; setSecurePdfError(""); setReport(null);
+      setLastReportKey(null);
+      setApiIsPaid(false);
+      setLoading(false);
+      setError(null);
+
+      setAiSummary("");
+      setTimelineSummary("");
+      setTransits([]);
+      setTransitNow([]);
+      setTransitSummary("");
+      setDashaTransitSummary("");
+      setMonthlyInsights([]);
+      setWeeklyInsights([]);
+      setDailyHighlights([]);
+
+      setTransitsLoading(false);
+      setMonthlyLoading(false);
+      setWeeklyLoading(false);
+      setDailyLoading(false);
     }
-  }, [dateISO, time, tz, place?.lat, place?.lon]);
+  }, [
+    selectedProfileId,
+    selectedProfileNodeMode,
+    name,
+    dateISO,
+    time,
+    tz,
+    place?.lat,
+    place?.lon,
+    notificationTz,
+  ]);
+
+  useLayoutEffect(() => {
+    return () => {
+      lifeReportRequestIdRef.current++;
+    };
+  }, []);
 
 
   // Ensure activeTab is always valid (prevents blank screen)
@@ -10685,11 +10855,21 @@ function isValidMobile(mobile: string) {
   return /^\d{6,15}$/.test(digits);
 }
   const handleGenerate = useCallback(async () => {
-    if (!validateBirthDetails()) {
-  return;
-}
+  const requestId = ++lifeReportRequestIdRef.current;
+  signedPdfSnapshotRef.current = null; setSecurePdfError("");
 
-if (!place) return;
+  const isCurrentRequest = () =>
+    requestId === lifeReportRequestIdRef.current;
+    if (!validateBirthDetails()) {
+      setError("Please check the required birth details and email address.");
+      return;
+    }
+
+    if (!place) {
+      setError("Please select a valid birth place.");
+      return;
+    }
+
     setLoading(true);
     setError(null);
     setAiSummary("");
@@ -10711,7 +10891,7 @@ if (!place) return;
     setEngineUnavailable(null);
 
     try {
-      
+
 
     // --- validate date ---
   const rawDate = (dateISO || "").trim();
@@ -10752,10 +10932,53 @@ if (!place) return;
 
   const dISO = String(d);
 
-  if (!place?.lat || !place?.lon) {
+  if (
+    !place ||
+    !Number.isFinite(place.lat) ||
+    !Number.isFinite(place.lon) ||
+    Math.abs(place.lat) > 90 ||
+    Math.abs(place.lon) > 180
+  ) {
         throw new Error("Pick a birth place from the dropdown.");
       }
+      const selectedSavedProfile = profiles.find(
+        (p) => p.id === selectedProfileId
+      );
+
+      const matchesBirth = (p: SavedProfile) =>
+        p.name.trim() === (name || "User").trim() &&
+        p.birthDateISO === dISO &&
+        p.birthTime.slice(0, 5) === t &&
+        p.birthTz === tz &&
+        Math.abs(Number(p.lat) - Number(place.lat)) < 0.000001 &&
+        Math.abs(Number(p.lon) - Number(place.lon)) < 0.000001;
+
+      const matchingProfile =
+        selectedSavedProfile && matchesBirth(selectedSavedProfile)
+          ? selectedSavedProfile
+          : profiles.find(matchesBirth);
+
+      const requestedNodeMode =
+        await resolvePersonalNodeMode(matchingProfile);
+
+      if (!isCurrentRequest()) return;
+
+      const {
+        data: forecastAuth,
+        error: forecastAuthError,
+      } = await createClient().auth.getUser();
+
+      if (!isCurrentRequest()) return;
+
+      if (forecastAuthError || !forecastAuth.user) {
+        throw new Error("Please sign in again.");
+      }
+
+      const currentForecastPlace =
+        readForecastLocation(forecastAuth.user.id);
+
       const payload = {
+  nodeMode: requestedNodeMode,
   name: (name || "User").trim(),
   email: (email || "").trim(),
   mobile: buildFullMobile(countryCode, mobile),
@@ -10766,14 +10989,16 @@ if (!place) return;
   lat: place.lat,
   lon: place.lon,
   placeName: place.name,
-  notificationTz,
+  currentPlace: currentForecastPlace ?? undefined,
+  notificationTz: currentForecastPlace?.timezone ?? tz,
 
   // The server must determine paid access from the user's entitlement.
-  previewRequested: true,
+
 };
 
 let canRunPaidFlows = false;
 const normalizedProfile = {
+  nodeMode: requestedNodeMode,
   name: (name || "User").trim(),
   dobISO: dISO,
   tob: t,
@@ -10786,9 +11011,10 @@ const normalizedProfile = {
 };
 
 saveBirthProfile(normalizedProfile);
-      
+
 try {
   await upsertCurrentUserChart({
+    nodeMode: requestedNodeMode,
     chartName: payload.name,
     birthDateISO: payload.birthDateISO,
     birthTime: payload.birthTime,
@@ -10798,14 +11024,16 @@ try {
     placeName: payload.placeName,
   });
 
-  
+
 } catch (err) {
   console.error("[chart] failed to save chart", err);
 }
+      if (!isCurrentRequest()) return;
+
       // --- call /api/life-report ---
       const ac = new AbortController();
       const timeout = setTimeout(() => ac.abort(), 180000);
-  
+
 
       let res: Response;
       try {
@@ -10829,7 +11057,7 @@ try {
         : "Network error while contacting /api/life-report."
     );
   }
-  
+
 
       clearTimeout(timeout);
 
@@ -10854,6 +11082,25 @@ try {
 
   const envelope: any = await res.json();
 
+  if (!isCurrentRequest()) return;
+
+  verifyPersonalNodeResponse(envelope, requestedNodeMode);
+  verifyPersonalNodeResponse(envelope?.report, requestedNodeMode);
+
+  if (
+    envelope?.access?.isPaid === true &&
+    envelope?.report &&
+    typeof envelope?.pdfProof?.expiresAt === "number" &&
+    typeof envelope?.pdfProof?.signature === "string"
+  ) {
+    signedPdfSnapshotRef.current = JSON.parse(
+      JSON.stringify({
+        report: envelope.report,
+        pdfProof: envelope.pdfProof,
+      })
+    );
+  }
+
 const serverIsPaid =
   envelope?.access?.isPaid === true;
 
@@ -10869,13 +11116,13 @@ canRunPaidFlows = serverIsPaid;
     envelope; // fallback: sometimes the API returns the report at top-level
 
   setReport(data as any);
-  
-  
+
+
   // Debug to prove the fix
-  
-  
-  
-  
+
+
+
+
 
   //  IMPORTANT: from this point forward, use `data` as your life report object
 
@@ -10900,14 +11147,34 @@ if (!canRunPaidFlows) {
 
   setActiveTab("overview");
 
-  const computedKey = `${dISO}|${t}|${tz}|${place.lat}|${place.lon}`;
+  const computedKey = JSON.stringify([
+    payload.name,
+    payload.birthDateISO,
+    payload.birthTime,
+    payload.birthTz,
+    payload.lat,
+    payload.lon,
+    payload.notificationTz,
+    payload.currentPlace ?? null,
+    requestedNodeMode,
+    envelope.nodeCalculationVersion,
+  ]);
   setLastReportKey(computedKey);
 
   return;
 }
 // ?? STEP 2: ai-personality teaser (cached)
 try {
-  const personalityCacheKey = `sarathi:ai-personality:${payload.birthDateISO}:${payload.birthTime}:${payload.birthTz}:v1`;
+  const personalityCacheKey = `sarathi:ai-personality:v2:${JSON.stringify([
+    payload.name,
+    payload.birthDateISO,
+    payload.birthTime,
+    payload.birthTz,
+    payload.lat,
+    payload.lon,
+    requestedNodeMode,
+    envelope.nodeCalculationVersion,
+  ])}`;
   let servedFromCache = false;
 
   // 2.1 Try cache first
@@ -10928,7 +11195,7 @@ try {
         const isFresh = ageMs < 365 * 24 * 60 * 60 * 1000; // 1 year
 
         if (isFresh && typeof cached?.value === "string") {
-          
+
           setAiSummary(cached.value);
           servedFromCache = true;
         }
@@ -10940,7 +11207,7 @@ try {
 
   // 2.2 If cache miss, call API
   if (!servedFromCache) {
-    
+
 
     const pRes = await fetch("/api/ai-personality", {
       method: "POST",
@@ -10950,6 +11217,7 @@ try {
     });
 
     const pText = await pRes.text();
+    if (!isCurrentRequest()) return;
 
     let pJson: any = null;
     try {
@@ -10992,7 +11260,7 @@ try {
         console.warn("[personality] cache write failed", e);
       }
 
-      
+
     }
   }
 } catch (e: any) {
@@ -11004,15 +11272,15 @@ try {
       const anyData = data as any;
       const preview = anyData.previewNotifications ?? null;
       if (preview && typeof preview === "object") {
-        
+
         setNotificationsPreview(preview as any);
       } else {
         setNotificationsPreview(null);
       }
 
       // (optional debug)
-      
-      
+
+
 
       // --- normalize planet & aspect data ---
           const planets = pickPlanets(data);
@@ -11146,44 +11414,15 @@ try {
         aspects,
         activePeriods: data?.activePeriods,
         lifeMilestones: data?.lifeMilestones,
-        dashaTimeline: (() => {
-    const rawTimeline = data?.dashaTimeline;
-    const ap = data?.activePeriods;
-
-    const isPlausibleISO = (d: any) => {
-      if (typeof d !== "string") return false;
-      const s = d.slice(0, 10);
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
-      const y = Number(s.slice(0, 4));
-      return y >= 1900 && y <= 2100;
-    };
-
-    const norm = (Array.isArray(rawTimeline) ? rawTimeline : [])
-      .map((row: any) => ({
-        planet: String(row?.planet ?? row?.md ?? row?.mahadasha ?? "").trim(),
-        startISO: String(row?.startISO ?? row?.start ?? "").slice(0, 10),
-        endISO: String(row?.endISO ?? row?.end ?? "").slice(0, 10),
-      }))
-      .filter((x: any) => x.planet && isPlausibleISO(x.startISO) && isPlausibleISO(x.endISO));
-
-    const mdLord = String(ap?.mahadasha?.lord ?? "").trim();
-    const mdStart = String(ap?.mahadasha?.start ?? "").slice(0, 10);
-    const mdEnd = String(ap?.mahadasha?.end ?? "").slice(0, 10);
-
-    const builtFromAP =
-      mdLord && isPlausibleISO(mdStart) && isPlausibleISO(mdEnd)
-        ? [{ planet: mdLord, startISO: mdStart, endISO: mdEnd }]
-        : [];
-
-    // paid-worthy: keep only current MD if possible
-    if (norm.length) {
-      const today = String((report as any)?.todayISO ?? data?.todayISO ?? new Date().toISOString()).slice(0, 10);
-  const one = norm.find((x: any) => x.startISO <= today && today <= x.endISO);
-      return one ? [one] : builtFromAP;
-    }
-
-    return builtFromAP;
-  })(),
+        ...{
+          todayISO: data?.todayISO,
+          mahadashaTimeline: Array.isArray(data?.mahadashaTimeline)
+            ? data.mahadashaTimeline
+            : undefined,
+        },
+        dashaTimeline: Array.isArray(data?.dashaTimeline)
+          ? data.dashaTimeline
+          : [],
         // Paid plan blocks from API
     nowPlan: (data as any)?.nowPlan ?? (data as any)?.nowNearFuture ?? undefined,
     nowNearFuture: (data as any)?.nowNearFuture ?? (data as any)?.nowPlan ?? undefined,
@@ -11193,146 +11432,71 @@ try {
     plan: (data as any)?.plan ?? undefined,
       };
 
-      // Gold standard: "Now" should always win (Moon changes intraday)
-  const moonNakFinal =
-    (next as any)?.moonNow?.nakshatra ??
-    (next as any)?.moonNow?.moonNakshatra ?? // (defensive if shape differs)
-    next.panchang?.moonNakshatraName ??
-    next.moonNakshatraName ??
-    derivedMoonNakshatra;
-
+      // Preserve natal planetary Nakshatras supplied by the server.
+// Derive missing values only from natal planetary longitude.
       next.planets = (next.planets || []).map((pl) => {
         if (
-          typeof pl?.name === "string" &&
-          pl.name.toLowerCase() === "moon"
+          typeof pl.nakshatra === "string" &&
+          pl.nakshatra.trim() &&
+          pl.nakshatra.trim() !== "Unknown" &&
+          pl.nakshatra.trim() !== "—"
         ) {
-          return moonNakFinal && pl.nakshatra !== moonNakFinal
-            ? { ...pl, nakshatra: moonNakFinal }
-            : pl;
+          return pl;
         }
+
         const dSid = guessSiderealDegFrom(pl);
-        if (dSid !== undefined) {
-          const nk = nakFromDeg(dSid);
-          if (nk && pl.nakshatra !== nk) return { ...pl, nakshatra: nk };
-        }
-        return pl;
+
+        if (dSid === undefined) return pl;
+
+        const nk = nakFromDeg(dSid);
+
+        return nk
+          ? { ...pl, nakshatra: nk }
+          : pl;
       });
 
-      if (next.panchang) {
-        next.panchang.moonNakshatraName =
-          moonNakFinal ?? next.panchang.moonNakshatraName;
-      }
-      
-  
 
-    // --- compute md/ad/pd once for fusion & monthly/weekly ---
+// --- compute md/ad/pd once for fusion & monthly/weekly ---
 
-  let mainDasha: any = null;
+    // Read the canonical active periods supplied by the server.
+    const canonicalPeriods = next.activePeriods as any;
 
-  let mdPlanet: string | null = null;
-  let adPlanet: string | null = null;
-  let pdPlanet: string | null = null;
+    const canonicalMD = canonicalPeriods?.mahadasha;
+    const canonicalAD = canonicalPeriods?.antardasha;
+    const canonicalPD = canonicalPeriods?.pratyantardasha;
 
-  let mdStart: string | null = null;
-  let mdEnd: string | null = null;
-  let adStart: string | null = null;
-  let adEnd: string | null = null;
-  let pdStart: string | null = null;
-  let pdEnd: string | null = null;
+    const periodDate = (value: unknown): string | null => {
+      if (typeof value !== "string") return null;
 
-  if (Array.isArray(next.dashaTimeline) && next.dashaTimeline.length > 0) {
-      const todayISO = (() => {
-    const tz =
-      (next as any)?.birthTz ??
-      (payload as any)?.tz ??
-      (report as any)?.meta?.birthTz ??
-      "UTC";
+      const iso = value.slice(0, 10);
 
-    const parts = new Intl.DateTimeFormat("en-CA", {
-      timeZone: tz,
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    }).formatToParts(new Date());
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return null;
 
-    const get = (t: string) => parts.find((p) => p.type === t)?.value ?? "";
-    return `${get("year")}-${get("month")}-${get("day")}`;
-  })();
+      const date = new Date(`${iso}T00:00:00.000Z`);
 
-    const activeRow =
-      (next.dashaTimeline as any[]).find((r: any) => {
-        const from = (
-          r.fromISO ||
-          r.startISO ||
-          r.from ||
-          r.start ||
-          ""
-        ).slice(0, 10);
-        const to = (
-          r.toISO ||
-          r.endISO ||
-          r.to ||
-          r.end ||
-          ""
-        ).slice(0, 10);
-        if (!from || !to) return false;
-        return from <= todayISO && todayISO <= to;
-      }) || (next.dashaTimeline[0] as any);
+      return Number.isFinite(date.getTime()) &&
+        date.toISOString().slice(0, 10) === iso
+        ? iso
+        : null;
+    };
 
-    mainDasha = activeRow;
+    const mdPlanet: string | null = canonicalMD?.lord ?? null;
+    const adPlanet: string | null = canonicalAD?.subLord ?? null;
+    const pdPlanet: string | null = canonicalPD?.lord ?? null;
 
-    if (mainDasha) {
-      mdPlanet =
-        mainDasha.md ||
-        mainDasha.mahadasha ||
-        mainDasha.mdLord ||
-        mainDasha.planet ||
-        null;
+    const mdStart = periodDate(canonicalMD?.start);
+    const mdEnd = periodDate(canonicalMD?.end);
 
-      adPlanet =
-        mainDasha.ad ||
-        mainDasha.antardasha ||
-        mainDasha.adLord ||
-        null;
+    const adStart = periodDate(canonicalAD?.start);
+    const adEnd = periodDate(canonicalAD?.end);
 
-      pdPlanet =
-        mainDasha.pd ||
-        mainDasha.pratyantardasha ||
-        mainDasha.pdLord ||
-        null;
+    const pdStart = periodDate(canonicalPD?.start);
+    const pdEnd = periodDate(canonicalPD?.end);
 
-      const fromVal =
-        mainDasha.fromISO ||
-        mainDasha.startISO ||
-        mainDasha.from ||
-        mainDasha.start ||
-        null;
+    const md = mdPlanet;
+    const ad = adPlanet;
+    const pd = pdPlanet;
 
-      const toVal =
-        mainDasha.toISO ||
-        mainDasha.endISO ||
-        mainDasha.to ||
-        mainDasha.end ||
-        null;
-
-      mdStart = fromVal ? String(fromVal).slice(0, 10) : null;
-      mdEnd = toVal ? String(toVal).slice(0, 10) : null;
-
-      // For now, use the same window for AD / PD dates if we don't have finer fields
-      adStart = mdStart;
-      adEnd = mdEnd;
-      pdStart = mdStart;
-      pdEnd = mdEnd;
-    }
-  }
-
-  
-
-    
-      const md = mainDasha?.md ?? (mainDasha as any)?.mahadasha ?? null;
-      const ad = mainDasha?.ad ?? (mainDasha as any)?.antardasha ?? null;
-      const pd =
-        mainDasha?.pd ?? (mainDasha as any)?.pratyantardasha ?? null;
 
       // ---------- 4) TRANSITS + AI LAYERS ----------
   const loadTransitsAndInsights = async () => {
@@ -11340,66 +11504,50 @@ try {
       setTransitsLoading(true);
       setTransitsError(null);
 
-      const birth = {
-        dateISO: next.birthDateISO,
-        time: next.birthTime,
-        tz: next.birthTz,
-        lat: next.birthLat ?? payload.lat,
-        lon: next.birthLon ?? payload.lon,
+      const tJson = envelope.report;
+
+      verifyPersonalNodeResponse(tJson, requestedNodeMode);
+
+      const forecastContext = tJson?.forecastContext;
+
+      if (
+        !forecastContext ||
+        typeof forecastContext.timezone !== "string" ||
+        typeof forecastContext.dateISO !== "string" ||
+        forecastContext.nodeMode !== requestedNodeMode ||
+        forecastContext.nodeCalculationVersion !== envelope.nodeCalculationVersion
+      ) {
+        throw new Error("Canonical forecast context unavailable.");
+      }
+
+      const expectedLocation = payload.currentPlace ?? {
+        name: payload.placeName,
+        lat: payload.lat,
+        lon: payload.lon,
+        timezone: payload.notificationTz,
       };
 
-      const payloadT = {
-    birth,
-    horizonDays: 365,
-    // pass Lagna so server can compute transitHouse + transitNow.house correctly
-    ascDeg: (next as any)?.core?.ascDeg ?? (next as any)?.ascDeg ?? null,
-    ascSign: (next as any)?.core?.ascSign ?? (next as any)?.ascSign ?? null,
-  };
+      if (
+        forecastContext.timezone !== expectedLocation.timezone ||
+        forecastContext.location?.lat !== expectedLocation.lat ||
+        forecastContext.location?.lon !== expectedLocation.lon
+      ) {
+        throw new Error("Forecast location mismatch.");
+      }
 
-  let tRes: Response;
-  let tText = "";
-  let tJson: any = {};
+      if (
+        !Array.isArray(tJson.transits) ||
+        !Array.isArray(tJson.transitNow) ||
+        tJson.transitNow.length === 0 ||
+        !Array.isArray(tJson.dailyMoon) ||
+        tJson.dailyMoon.length === 0
+      ) {
+        throw new Error("Canonical forecast data unavailable.");
+      }
 
-  try {
-    tRes = await fetch("/api/transits", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(payloadT),
-    });
+      if (!isCurrentRequest()) return;
 
-    tText = await tRes.text().catch(() => "");
-    try {
-      tJson = JSON.parse(tText || "{}");
-    } catch {
-      tJson = { _raw: tText };
-    }
-  } catch (e: any) {
-    console.error("[transits] NETWORK FAIL (fetch threw)", e);
-    console.error("[transits] payload:", payloadT);
-    setTransits([]);
-    setTransitNow([]);
-    setTransitsError(
-      "Transits request failed to reach the server (network/route crash). Check terminal logs."
-    );
-    return;
-  }
-
-  setTransitNow(Array.isArray(tJson?.transitNow) ? tJson.transitNow : []);
-
-  
-  
-  
-  
-
-  if (!tRes.ok || !Array.isArray(tJson?.transits)) {
-    console.error("[transits] API failed", tRes.status, tJson);
-    setTransits([]);
-    setTransitsError(
-      `Could not load upcoming transits. (${tRes.status})`
-    );
-    return;
-  }
-
+      setTransitNow(tJson.transitNow);
 
       const hitList = tJson.transits as TransitHit[];
 
@@ -11415,18 +11563,14 @@ try {
 
       setTransits(hitList);
 
-      const todayISO = (() => {
-    const tz = (payload as any)?.tz || next?.birthTz || "Asia/Dubai";
-    const parts = new Intl.DateTimeFormat("en-CA", {
-      timeZone: tz,
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    }).formatToParts(new Date());
+      const todayISO = forecastContext.dateISO;
 
-    const get = (t: string) => parts.find((p) => p.type === t)?.value ?? "";
-    return `${get("year")}-${get("month")}-${get("day")}`;
-  })();
+      if (
+        !/^\d{4}-\d{2}-\d{2}$/.test(todayISO) ||
+        todayISO !== tJson.todayISO
+      ) {
+        throw new Error("Canonical forecast date mismatch.");
+      }
 
 
       // -------------------------
@@ -11436,8 +11580,8 @@ try {
     setDailyLoading(true);
     setDailyError(null);
     setDailyHighlights([]);
-    
-    const tz = String((payload as any)?.tz ?? (next as any)?.birthTz ?? "Asia/Dubai");
+
+    const tz = forecastContext.timezone;
 
   const dailyFacts = buildDailyFromMoonAndTransits(
   dailyMoon as any,
@@ -11456,14 +11600,14 @@ const structuredDailyFacts = buildDailyFacts(
   7,
   tz
 );
-    
-  
-  
 
-  
-  
+
+
+
+
+
   if (!hitList || hitList.length === 0) {
-    
+
     // don't return from handleGenerate; just fall back
   }
 
@@ -11690,14 +11834,20 @@ const structuredDailyFacts = buildDailyFacts(
       ? m.houseFromMoon
       : null;
 
-  const moonNakNow =
-  String(m?.moonNakshatra || "").trim() ||
-  (next as any)?.moonNow?.nakshatra ||
-  (next as any)?.moonNow?.moonNakshatra ||
-  next.panchang?.moonNakshatraName ||
-  next.moonNakshatraName ||
-  derivedMoonNakshatra ||
-  null;
+  const moonNakNow = (() => {
+    const value = String(m?.moonNakshatra ?? "").trim();
+
+    if (
+      !value ||
+      ["unknown", "null", "undefined", "—", "-"].includes(
+        value.toLowerCase()
+      )
+    ) {
+      return null;
+    }
+
+    return value;
+  })();
 
   if (moonNakNow) {
     facts.push(`Moon-nakshatra-now: ${moonNakNow}`);
@@ -11779,12 +11929,12 @@ const structuredDailyFacts = buildDailyFacts(
   };
 });
 
-  
-  
 
-  
 
-  
+
+
+
+
     // Try AI (optional). If it fails, fallback will still be good.
     try {
       // --- AI daily highlights with timeout (premium UX) ---
@@ -11813,6 +11963,7 @@ const structuredDailyFacts = buildDailyFacts(
 
     // Read as text first so JSON errors don't crash the flow
     const raw = await aiDailyRes.text().catch(() => "");
+    if (!isCurrentRequest()) return;
     try {
       aiJson = JSON.parse(raw || "{}");
     } catch {
@@ -11837,11 +11988,11 @@ const structuredDailyFacts = buildDailyFacts(
     [];
 
 
-  
 
-      
-  
-  
+
+
+
+
 
       const aiDaysArr = Array.isArray(outDays) ? outDays : [];
   if (aiDailyRes?.ok && Array.isArray(dayInputs) && dayInputs.length && aiDaysArr.length) {
@@ -11853,8 +12004,8 @@ const structuredDailyFacts = buildDailyFacts(
       rawPreview: (aiJson?._raw || "").slice(0, 200),
     });
   }
-  
-  
+
+
 
     const seen = new Set<string>();
 
@@ -11964,7 +12115,7 @@ const structuredDailyFacts = buildDailyFacts(
     headlineGold;
 
   const aiText = String(d?.text ?? "").trim();
-  
+
 
   const text =
     aiText.length >= 40
@@ -11982,10 +12133,10 @@ const structuredDailyFacts = buildDailyFacts(
   const doList = normalizeBullets(d?.do, 3);
   const avoidList = normalizeBullets(d?.avoid, 3);
 
-  
-  
-  
-  
+
+
+
+
 
   return {
     dateISO,
@@ -12268,6 +12419,7 @@ const structuredDailyFacts = buildDailyFacts(
         });
 
         const aiTransitsJson = await aiTransitsRes.json().catch(() => ({} as any));
+    if (!isCurrentRequest()) return;
         if (aiTransitsRes.ok && aiTransitsJson?.text) {
           setTransitSummary(aiTransitsJson.text as string);
         } else {
@@ -12295,6 +12447,7 @@ const structuredDailyFacts = buildDailyFacts(
         });
 
         const fusionJson = await fusionRes.json().catch(() => ({} as any));
+    if (!isCurrentRequest()) return;
         if (fusionRes.ok) {
           const asStr = typeof fusionJson === "string" ? fusionJson : JSON.stringify(fusionJson);
           setDashaTransitSummary(asStr);
@@ -12312,7 +12465,22 @@ try {
   setMonthlyError(null);
   setMonthlyInsights([]);
 
-  const monthlyCacheKey = `sarathi:ai-monthly:${next.birthDateISO}:${next.birthTime}:${next.birthTz}:${todayISO}:12`;
+  const monthlyCacheKey = `sarathi:ai-monthly:v4:${JSON.stringify([
+    requestedNodeMode,
+    envelope.nodeCalculationVersion,
+    next.name,
+    next.birthDateISO,
+    next.birthTime,
+    next.birthTz,
+    next.birthLat,
+    next.birthLon,
+    forecastContext,
+    todayISO,
+    md, mdStart, mdEnd,
+    ad, adStart, adEnd,
+    pd, pdStart, pdEnd,
+    12,
+  ])}`;
   let servedMonthlyFromCache = false;
 
   // 3.1 Try cache first
@@ -12333,7 +12501,7 @@ try {
         const isFresh = ageMs < 30 * 24 * 60 * 60 * 1000; // 30 days
 
         if (isFresh && Array.isArray(cached?.months) && cached.months.length > 0) {
-          
+
           setMonthlyInsights(cached.months);
           setMonthlyError(null);
           servedMonthlyFromCache = true;
@@ -12348,7 +12516,7 @@ try {
   if (servedMonthlyFromCache) {
     setMonthlyLoading(false);
   } else {
-    
+
 
     const monthsRes = await fetch("/api/ai-monthly", {
       method: "POST",
@@ -12368,6 +12536,7 @@ try {
     });
 
     const monthsJson = await monthsRes.json().catch(() => ({} as any));
+    if (!isCurrentRequest()) return;
 
     if (monthsRes.ok && Array.isArray(monthsJson?.months)) {
       const monthsArr = monthsJson.months as { label: string; text: string }[];
@@ -12406,7 +12575,22 @@ try {
   setWeeklyError(null);
   setWeeklyInsights([]);
 
-  const cacheKey = `sarathi:ai-weekly:${next.birthDateISO}:${next.birthTime}:${next.birthTz}:${todayISO}:8`;
+  const cacheKey = `sarathi:ai-weekly:v4:${JSON.stringify([
+    requestedNodeMode,
+    envelope.nodeCalculationVersion,
+    next.name,
+    next.birthDateISO,
+    next.birthTime,
+    next.birthTz,
+    next.birthLat,
+    next.birthLon,
+    forecastContext,
+    todayISO,
+    md, mdStart, mdEnd,
+    ad, adStart, adEnd,
+    pd, pdStart, pdEnd,
+    8,
+  ])}`;
   let servedFromCache = false;
 
   // 4.1 Try cache first
@@ -12425,7 +12609,7 @@ try {
         const isFresh = ageMs < 7 * 24 * 60 * 60 * 1000; // 7 days
 
         if (isFresh && Array.isArray(cached?.weeks) && cached.weeks.length > 0) {
-          
+
           setWeeklyInsights(cached.weeks);
           setWeeklyError(null);
           servedFromCache = true;
@@ -12442,7 +12626,7 @@ try {
     return;
   }
 
-  
+
 
   const weeksRes = await fetch("/api/ai-weekly", {
     method: "POST",
@@ -12467,6 +12651,7 @@ try {
   });
 
   const weeksJson = await weeksRes.json().catch(() => ({} as any));
+    if (!isCurrentRequest()) return;
 
   if (weeksRes.ok && Array.isArray(weeksJson?.weeks)) {
     const weeksArr = weeksJson.weeks as { label: string; text: string }[];
@@ -12520,7 +12705,18 @@ try {
 } catch (e: any) {
   console.error("[FullGuidance] rebuild after AI failed", e);
 }
-    const computedKey = `${next.birthDateISO}|${next.birthTime}|${next.birthTz}|${next.birthLat}|${next.birthLon}`;
+    const computedKey = JSON.stringify([
+    payload.name,
+    payload.birthDateISO,
+    payload.birthTime,
+    payload.birthTz,
+    payload.lat,
+    payload.lon,
+    payload.notificationTz,
+    payload.currentPlace ?? null,
+    requestedNodeMode,
+    envelope.nodeCalculationVersion,
+  ]);
   setLastReportKey(computedKey);
 
 
@@ -12531,18 +12727,22 @@ try {
       (next as any)?.lifeStoryOverview ||
       ""
   );
-  
+
 
     setActiveTab("overview");
   } catch (err: any) {
+    if (!isCurrentRequest()) return;
+
     console.error("life-report error", err);
     setError(
       err?.message || "Something went wrong while generating your report."
     );
   } finally {
-    setLoading(false);
+    if (isCurrentRequest()) {
+      setLoading(false);
+    }
   }
- }, [name, email, mobile, countryCode, dateISO, time, tz, place, notificationTz, profiles]);
+ }, [name, email, mobile, countryCode, dateDisplay, dateISO, time, tz, place, notificationTz, profiles, selectedProfileId]);
 
 
   /* ---------------- Tab 1: Placements ---------------- */
@@ -12576,7 +12776,7 @@ try {
     }
 
     const plsAll = (report.planets ?? []) as any[];
-    
+
     const findP = (name: string) =>
       plsAll.find((p) => String(p?.name ?? "").trim().toLowerCase() === name);
 
@@ -12584,8 +12784,7 @@ try {
     (report as any)?.moonNow?.nakshatra ||
     (report as any)?.moonNow?.moonNakshatra ||
     (report as any)?.panchangToday?.moonNakshatraName ||
-    report?.panchang?.moonNakshatraName ||
-    report?.moonNakshatraName ||
+    (report as any)?.panchangToday?.nakshatraName ||
     null;
 
 
@@ -13174,6 +13373,7 @@ const TabPersonality: React.FC<TabPersonalityProps> = memo(({ report }) => {
 
   /* ---------------- Tab 3: Timeline ---------------- */
   type SavedProfile = {
+    nodeMode?: NodeMode;
     id: string;
     label: string;
     name: string;
@@ -13195,9 +13395,15 @@ const TabPersonality: React.FC<TabPersonalityProps> = memo(({ report }) => {
   const TabTimeline: React.FC<TabTimelineProps> = memo(
     ({ report, mounted, timelineSummary, dashaTransitSummary }) => {
       if (!report) return null;
-    
+
 
   const todayISO = (() => {
+    const canonicalDate = String((report as any)?.todayISO ?? "").slice(0, 10);
+
+    if (/^\d{4}-\d{2}-\d{2}$/.test(canonicalDate)) {
+      return canonicalDate;
+    }
+
     const tz =
     (report as any)?.meta?.birthTz ??
     "Asia/Dubai";
@@ -13240,37 +13446,56 @@ const currentPhaseSummary = (() => {
   return "Your current dasha phase shows the larger chapter of life, the active sub-phase within it, and the immediate short-term current running now.";
 })();
 
-const timelineRows = sanitizeDashaTimeline(report.dashaTimeline);
-const activeIdx = timelineRows.findIndex((row: any) => {
-  const s = new Date(row.startISO).getTime();
-  const e = new Date(row.endISO).getTime();
-  const now = Date.now();
-  return now >= s && now <= e;
-});
+// Prefer the dedicated canonical Mahadasha timeline.
+const dedicatedMDTimeline = (report as any).mahadashaTimeline;
+
+const rawMDTimeline = Array.isArray(dedicatedMDTimeline)
+  ? dedicatedMDTimeline
+  : Array.isArray(report.dashaTimeline)
+    ? report.dashaTimeline.filter((row: any) => {
+        if (!row || typeof row !== "object") return false;
+
+        if (row.dashaLevel != null) {
+          return String(row.dashaLevel).toLowerCase() === "md";
+        }
+
+        // Compatibility with the legacy flattened timeline.
+        return Boolean(row.md) && !row.ad && !row.pd;
+      })
+    : [];
 
 const getDashaStart = (row: any) => row.startISO ?? row.start ?? row.fromISO ?? row.from;
 const getDashaEnd = (row: any) => row.endISO ?? row.end ?? row.toISO ?? row.to;
 const getDashaLord = (row: any) => row.lord ?? row.mdLord ?? row.mahaLord ?? row.planet;
 
-const mdTimelineRows = timelineRows.filter((row: any) => {
-  const start = new Date(getDashaStart(row)).getTime();
-  const end = new Date(getDashaEnd(row)).getTime();
+// Preserve all valid Mahadashas, including short birth balances.
+const mdTimelineRows = rawMDTimeline
+  .map((row: any) => ({
+    planet: String(getDashaLord(row) ?? row.md ?? "").trim(),
+    startISO: String(getDashaStart(row) ?? "").slice(0, 10),
+    endISO: String(getDashaEnd(row) ?? "").slice(0, 10),
+  }))
+  .filter((row: any) =>
+    row.planet &&
+    /^\d{4}-\d{2}-\d{2}$/.test(row.startISO) &&
+    /^\d{4}-\d{2}-\d{2}$/.test(row.endISO) &&
+    row.startISO <= row.endISO
+  )
+  .sort((a: any, b: any) =>
+    a.startISO.localeCompare(b.startISO)
+  );
 
-  if (!getDashaLord(row) || !Number.isFinite(start) || !Number.isFinite(end)) {
-    return false;
-  }
+// Match the canonical active Mahadasha, not the browser clock.
+const activeMD = ap?.mahadasha;
 
-  const years = (end - start) / (1000 * 60 * 60 * 24 * 365.25);
-
-  return years >= 5;
-});
-
-const mdActiveIdx = mdTimelineRows.findIndex((row: any) => {
-  const now = Date.now();
-  const s = new Date(getDashaStart(row)).getTime();
-  const e = new Date(getDashaEnd(row)).getTime();
-  return now >= s && now <= e;
-});
+const mdActiveIdx = activeMD
+  ? mdTimelineRows.findIndex((row: any) =>
+      row.planet.toLowerCase() ===
+        String(activeMD.lord ?? "").toLowerCase() &&
+      row.startISO === String(activeMD.start ?? "").slice(0, 10) &&
+      row.endISO === String(activeMD.end ?? "").slice(0, 10)
+    )
+  : -1;
 
 const nearbyTimeline =
   mdActiveIdx >= 0
@@ -13485,7 +13710,7 @@ const currentChapterBody = (() => {
 
     return (
       <AccordionItem value="life-overview">
-        
+
         <AccordionContent>
           {t ? (
             <Card className={ACC_CARD}>
@@ -13510,7 +13735,7 @@ const currentChapterBody = (() => {
                 value="timeline"
                 className={"rounded-2xl border " + divider + " astro-card"}
               >
-               
+
               </AccordionItem>
             )}
 
@@ -13569,7 +13794,7 @@ const currentChapterBody = (() => {
   : "Mixed phase"}
                                   </div>
                                 </div>
-                                
+
                                 <div className="mt-2 space-y-1.5 text-sm leading-relaxed text-foreground/90">
                                   {Array.isArray(m.themes) && m.themes.length ? (
                                     m.themes.slice(0, 3).map((t: string, i2: number) => (
@@ -13737,135 +13962,14 @@ const currentChapterBody = (() => {
       }
       return null;
     }, [place?.name, tz]);
-  
-      // Keep daily guide in sync with latest Life Report + transits
+
+      // Use the canonical Daily Guide generated by the Life Report API.
   useEffect(() => {
-    if (!report) {
-      setGuide(null);
-      setGuideError(null);
-      return;
-    }
+    setGuide((report as any)?.dailyGuide ?? null);
+    setGuideError(null);
+  }, [report]);
 
-    let cancelled = false;
-
-      async function loadGuide() {
-      try {
-        setGuideError(null);
-
-        const dashaStack = (report as any)?.activePeriods ?? null;
-
-        const core: CoreSignals = {
-          birth: {
-            dateISO: dateISO || new Date().toISOString().slice(0, 10),
-            time: time || "00:00",
-            tz: tz || "Asia/Dubai",
-            lat: place?.lat ?? 0,
-            lon: place?.lon ?? 0,
-            lagnaSign: (report as any)?.ascendant?.sign,
-          },
-          dashaStack,
-          transits: (transits ?? []).map((t: any) => ({
-            planet: t.planet,
-            house: t.house,
-            sign: t.sign,
-            category: t.category,
-            strength: t.strength,
-            tags: t.tags,
-            windowLabel: t.windowLabel,
-            startISO: t.startISO,
-            endISO: t.endISO,
-          })),
-          moonToday: {
-            sign: (report as any)?.moon?.sign || "Unknown",
-            nakshatra: (report as any)?.moon?.nakshatra || "Unknown",
-            houseFromMoon: (report as any)?.moon?.houseFromMoon ?? undefined,
-            guna: (report as any)?.moon?.guna || undefined,
-          },
-                  panchang: {
-            tithi: report?.panchang?.tithiName || "Unknown",
-            weekday:
-              (report?.panchang as any)?.weekdayName || "Unknown",
-            yogaName: report?.panchang?.yogaName ?? undefined,
-            karanaName: report?.panchang?.karanaName ?? undefined,
-            sunriseISO: report?.panchang?.sunriseISO ?? undefined,
-          },
-
-        };
-
-            if (!report) {
-          console.warn(
-            "[life-report] No report available when building daily-guide cache key"
-          );
-          return;
-        }
-
-        const cacheKey = `sarathi:daily-guide:${report.birthDateISO}:${report.birthTime}:${report.birthTz}:${dateISO}`;
-
-        // 1) Try cache
-        try {
-          if (typeof window !== "undefined") {
-            const raw = window.localStorage.getItem(cacheKey);
-            if (raw) {
-              const cached = JSON.parse(raw) as { json?: any; ts?: number };
-              if (cached?.json && !cancelled) {
-                setGuide(cached.json);
-                // We still go on to refresh below
-              }
-            }
-          }
-        } catch {
-          // ignore cache errors
-        }
-
-        // 2) Fetch fresh daily guide
-        const res = await fetch("/api/sarathi/daily-guide", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ core, label: "This week" }),
-        });
-
-        if (!res.ok) {
-          const txt = await res.text().catch(() => "");
-          console.error("daily-guide API failed", res.status, txt);
-          if (!cancelled) {
-            setGuideError("Could not load daily guide.");
-          }
-          return;
-        }
-
-        const json = await res.json().catch(() => null);
-
-        if (!cancelled && json) {
-          setGuide(json);
-
-          // 3) Save to cache
-          try {
-            if (typeof window !== "undefined") {
-              window.localStorage.setItem(
-                cacheKey,
-                JSON.stringify({ json, ts: Date.now() })
-              );
-            }
-          } catch {
-            // ignore cache write errors
-          }
-        }
-      } catch (err) {
-        console.error("daily-guide fetch error", err);
-        if (!cancelled) {
-          setGuideError("Could not load daily guide.");
-        }
-      }
-    }
-
-    loadGuide();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [report, transits, dateISO, time, tz, place]);
-
-  const panchangToday = report?.panchang;
+  const panchangToday = (report as any)?.panchangToday ?? null;
   // Keep chat cache in sync with latest Life Report + transits
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -13951,7 +14055,7 @@ const currentChapterBody = (() => {
         moonNakshatraTheme: rep.moonNakshatraTheme ?? null,
       };
 
-      
+
       // NO HIDING: disable chat cache while we debug houses/asc
   window.localStorage.removeItem("sarathi.lifeReportCache.v2");
   // console.log("[life-report] chat cache disabled");
@@ -13960,7 +14064,7 @@ const currentChapterBody = (() => {
       console.warn("[life-report] failed to cache for chat", e);
     }
   }, [report, transits]);
-  const todayISO = new Date().toISOString().slice(0, 10);
+  const todayISO = String((report as any)?.todayISO || todayISOInTz(notificationTz)).slice(0, 10);
   const topToday = Array.isArray((report as any)?.topTransits) ? (report as any).topTransits.slice(0, 6) : [];
     /* ---------------- Render ---------------- */
 const fallbackNowHighlights =
@@ -14139,7 +14243,7 @@ const text = uniqueTextParts
   )}
 
   <div className="grid gap-4 md:grid-cols-2">
-              
+
   <div className="space-y-2">
     <Label>Name *</Label>
 <Input
@@ -14344,7 +14448,7 @@ const text = uniqueTextParts
 )}
   </div>
 
-  
+
 </div>
             <div className="space-y-2">
               <Label>Place of Birth *</Label>
@@ -14363,7 +14467,7 @@ const text = uniqueTextParts
       return next;
     });
   }
-}} 
+}}
 />
 
 {errors.place && (
@@ -14441,12 +14545,32 @@ const text = uniqueTextParts
     >
       {loading
         ? "Generating..."
-        : canSeeFull
-          ? report
-            ? "Regenerate Report"
-      : "Generate Life Report"
-    : "Generate Free Preview"}
+        : report && canSeeFull
+          ? "Regenerate Report"
+          : "Generate Life Report"}
     </Button>
+
+    {report && canSeeFull && signedPdfSnapshotRef.current && (
+      <div className="flex flex-col gap-2 no-print">
+        <Button
+          type="button"
+          variant="outline"
+          disabled={securePdfLoading || loading}
+          onClick={handleSecurePdfDownload}
+          className="w-full whitespace-nowrap sm:w-auto"
+        >
+          {securePdfLoading
+            ? "Preparing PDF..."
+            : "Download Secure PDF"}
+        </Button>
+
+        {securePdfError && (
+          <p role="alert" className="text-sm text-red-600">
+            {securePdfError}
+          </p>
+        )}
+      </div>
+    )}
 
     {report && canSeeFull && (
       <PDFDownloadLink
@@ -14587,7 +14711,7 @@ const text = uniqueTextParts
 
 
   <TabsContent value="full" className="mt-4">
-   
+
     {/* Always show *something* below */}
     {!canSeeFull ? (
   <div className="mt-4 rounded-2xl border border-[color:var(--border)] bg-background p-4 text-sm text-foreground/80">
@@ -14628,9 +14752,9 @@ const text = uniqueTextParts
 
 
       </main>
-      
+
     );
-    
+
   }
   function windowActionFromCategory(cat: any) {
     const c = String(cat || "").toLowerCase();
@@ -14800,17 +14924,17 @@ const turningPointsTitle =
           {phase || "Current phase"}
         </div>
        <div className="mt-3 text-sm text-foreground/80 leading-relaxed">
-  You are entering a phase where life becomes more defined. Work begins 
-  to demand precision, relationships begin to demand clarity, and the 
+  You are entering a phase where life becomes more defined. Work begins
+  to demand precision, relationships begin to demand clarity, and the
   difference between discipline and distraction becomes visible quickly.
 </div>
 
 <div className="mt-2 text-sm text-foreground leading-relaxed">
-  This reading explains what is happening in your life right now, what 
-  begins to change next, and how to move through this phase with more 
+  This reading explains what is happening in your life right now, what
+  begins to change next, and how to move through this phase with more
   clarity and fewer mistakes.
 </div>
-        
+
       </div>
 
       {/* Current Life Chapter */}

@@ -1,3 +1,11 @@
+import { signLifeReport } from "@/server/auth/lifeReportSignature";
+import { buildTransitResponse } from "@/server/astro/buildTransitResponse";
+import { NODE_CALCULATION_VERSION } from "@/server/astro/lunarNodes";
+import { selectPhaseRemedies } from "@/server/remedies/selectPhaseRemedies";
+import { buildPhaseRemedyActivations } from "@/server/remedies/buildPhaseRemedyActivations";
+
+import { buildStructuredDashaTransits } from "@/server/astro/dasha-transit-summary";
+import { buildNearFutureInterpretation } from "@/server/astro/near-future-interpretation";
   // FILE: src/app/api/life-report/route.ts
 
   import "server-only";
@@ -17,6 +25,9 @@
   import { buildFullGuidanceV2 } from "@/server/fullGuidance/buildFullGuidanceV2";
   import { buildPaidOutput } from "@/server/fullGuidance/buildPaidOutput";
   import { buildDataEngine } from "@/server/dataEngine/buildDataEngine";
+import { buildActivePeriods } from "@/server/dataEngine/buildActivePeriods";
+import { buildLifeMilestonesFromMD } from "@/server/astro/life-milestones";
+import { buildLifetimeDashaTimeline } from "@/server/dataEngine/buildLifetimeDashaTimeline";
   import {
     buildOverviewSummary,
     buildCoreLifePattern,
@@ -1048,152 +1059,8 @@ function postProcessNowPlan(nowPlan: any, dailyMoon: any[], todayISO?: string) {
   return s;
 }
 
-function buildDashaTimeline(report: any): Array<{
-  start: string;
-  end: string;
-  md?: string | null;
-  ad?: string | null;
-  pd?: string | null;
-}> {
-  const rows: Array<{
-    start: string;
-    end: string;
-    md?: string | null;
-    ad?: string | null;
-    pd?: string | null;
-  }> = [];
 
-  const source =
-    report?.dashaTimeline ??
-    report?.vimshottari ??
-    report?.dasha ??
-    report?.periods ??
-    null;
 
-  const mdList = Array.isArray(source?.mahadasha)
-    ? source.mahadasha
-    : Array.isArray(source)
-    ? source
-    : [];
-
-  for (const md of mdList) {
-    const mdLord =
-      String(md?.lord ?? md?.planet ?? md?.name ?? "").trim() || null;
-
-    const adList = Array.isArray(md?.antardasha) ? md.antardasha : [];
-
-    if (!adList.length) {
-      const start = normalizeDashaDate(md?.startISO ?? md?.start);
-      const end = normalizeDashaDate(md?.endISO ?? md?.end);
-      if (start && end) {
-        rows.push({ start, end, md: mdLord, ad: null, pd: null });
-      }
-      continue;
-    }
-
-    for (const ad of adList) {
-      const adLord =
-        String(ad?.lord ?? ad?.subLord ?? ad?.planet ?? ad?.name ?? "").trim() || null;
-
-      const pdList = Array.isArray(ad?.pratyantardasha)
-        ? ad.pratyantardasha
-        : Array.isArray(ad?.pd)
-        ? ad.pd
-        : [];
-
-      if (!pdList.length) {
-        const start = normalizeDashaDate(ad?.startISO ?? ad?.start);
-        const end = normalizeDashaDate(ad?.endISO ?? ad?.end);
-        if (start && end) {
-          rows.push({ start, end, md: mdLord, ad: adLord, pd: null });
-        }
-        continue;
-      }
-
-      for (const pd of pdList) {
-        const pdLord =
-          String(pd?.lord ?? pd?.subLord ?? pd?.planet ?? pd?.name ?? "").trim() || null;
-
-        const start = normalizeDashaDate(pd?.startISO ?? pd?.start);
-        const end = normalizeDashaDate(pd?.endISO ?? pd?.end);
-
-        if (start && end) {
-          rows.push({ start, end, md: mdLord, ad: adLord, pd: pdLord });
-        }
-      }
-    }
-  }
-
-  return rows;
-}
-  function enrichWithActivePeriods(report: any) {
-    if (!report) return report;
-
-    const existing = report.activePeriods ?? null;
-
-    const timeline =
-  report?.dashaTimeline ??
-  report?.timelineWindows ??
-  report?.timeline ??
-  [];
-
-    const main =
-      Array.isArray(timeline) && timeline.length > 0 ? timeline[0] : null;
-
-    if (!main) {
-      return {
-        ...report,
-        activePeriods: existing ?? null,
-      };
-    }
-
-    const md = main.md ?? (main as any).mahadasha ?? null;
-    const ad = main.ad ?? (main as any).antardasha ?? null;
-    const pd = main.pd ?? (main as any).pratyantardasha ?? null;
-
-    const mdLord =
-      (md && ((md as any).planet ?? (md as any).lord ?? (md as any).name)) || "";
-    const adLord =
-      (ad && ((ad as any).planet ?? (ad as any).lord ?? (ad as any).name)) || "";
-    const pdLord =
-      (pd && ((pd as any).planet ?? (pd as any).lord ?? (pd as any).name)) || "";
-
-    const activePeriods = {
-      mahadasha:
-        mdLord && md
-          ? {
-              lord: mdLord,
-              start: (md as any).startISO ?? (md as any).start ?? "",
-              end: (md as any).endISO ?? (md as any).end ?? "",
-              summary: (existing as any)?.mahadasha?.summary ?? "",
-            }
-          : existing?.mahadasha ?? null,
-      antardasha:
-        adLord && ad
-          ? {
-              mahaLord: mdLord,
-              subLord: adLord,
-              start: (ad as any).startISO ?? (ad as any).start ?? "",
-              end: (ad as any).endISO ?? (ad as any).end ?? "",
-            }
-          : existing?.antardasha ?? null,
-      pratyantardasha:
-        pdLord && pd
-          ? {
-              mahaLord: mdLord,
-              antarLord: adLord,
-              lord: pdLord,
-              start: (pd as any).startISO ?? (pd as any).start ?? "",
-              end: (pd as any).endISO ?? (pd as any).end ?? "",
-            }
-          : existing?.pratyantardasha ?? null,
-    };
-
-    return {
-      ...report,
-      activePeriods,
-    };
-  }
 
   /* -------------------------------------------------------
     Now/Near-future plan (AI)
@@ -1252,14 +1119,16 @@ function buildDashaTimeline(report: any): Array<{
       // - handle invalid / missing dates safely
       // - keep focus on next 30 days for now/near-future
       // -------------------------
-      const todayRealISO = new Date().toISOString().slice(0, 10);
+      const planTodayISO = String(enriched?.todayISO ?? "").trim();
 
-const planTodayISO =
-  typeof enriched?.todayISO === "string" &&
-  enriched.todayISO.length >= 10 &&
-  enriched.todayISO.startsWith(todayRealISO.slice(0, 7)) // same month/year check
-    ? enriched.todayISO
-    : todayRealISO;
+      if (
+        !/^\d{4}-\d{2}-\d{2}$/.test(planTodayISO) ||
+        !Number.isFinite(Date.parse(`${planTodayISO}T00:00:00Z`)) ||
+        new Date(`${planTodayISO}T00:00:00Z`)
+          .toISOString().slice(0, 10) !== planTodayISO
+      ) {
+        throw new Error("Missing or invalid canonical forecast date.");
+      }
 
       const today = new Date(`${planTodayISO}T00:00:00Z`);
       const horizon30 = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
@@ -1356,8 +1225,8 @@ if (!transitNowFacts.length && Array.isArray(topTransits) && topTransits.length 
       const transitSnapshotHard = transitNowFacts.slice(0, 3);
       const whyAnchorFacts = transitNowFacts.slice(0, 5);
 
-      
-      
+
+
 
       // -------------------------
       // Transit → Natal impact facts (easy-to-use bridge for AI)
@@ -1442,24 +1311,24 @@ if (!transitNowFacts.length && Array.isArray(topTransits) && topTransits.length 
     ...topTransits.slice(0, 3).map((t: any) => `${t.planet} ${t.category || ""}`)
   );
 }
-      
-      
 
-      
-      
-      
-      
-      
-      
-      
-      
-      
+
+
+
+
+
+
+
+
+
+
+
 
       const prompt = `
   You are Sārathi — a paid, practical Vedic guide.
   You may describe "likely scenarios" and "areas activated", but you must NOT claim certainty or guarantee events.
   - Each likelyScenarios item MUST include a specific action or interaction (message, payment, meeting, task, request, coordination).
-  - If a scenario does not include a concrete real-world action, it is invalid.  
+  - If a scenario does not include a concrete real-world action, it is invalid.
   Return STRICT JSON ONLY (one JSON object). No markdown. No extra keys. No commentary.
  - now3Days.drivers: exactly 3 short strings, one per visible day.
 - Each driver MUST quote either:
@@ -1826,11 +1695,31 @@ const entitlements = await getUserEntitlements(
     );
   }
 
-  
+
 
   try {
     const body = await req.json();
-     const isPaid = body?.isPaid === true;
+
+    const requestedNodeMode = body?.nodeMode;
+
+    if (
+      requestedNodeMode !== undefined &&
+      requestedNodeMode !== null &&
+      requestedNodeMode !== "mean" &&
+      requestedNodeMode !== "true"
+    ) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "Invalid lunar node convention.",
+        },
+        { status: 400 }
+      );
+    }
+
+    const nodeMode: "mean" | "true" =
+      requestedNodeMode ?? "mean";
+     const isPaid = entitlements.lifeReport.allowed === true;
       // ----------------------------
       // 1) Parse location (support old + new schema)
       // ----------------------------
@@ -1847,9 +1736,84 @@ const entitlements = await getUserEntitlements(
       // ----------------------------
       // 2) Cache keys
       // ----------------------------
-    const cacheBuster = 9;
+    const requestedCurrentPlace = body.currentPlace;
+
+const validForecastPlace = (place: any): boolean => {
+  if (
+    !place ||
+    typeof place.lat !== "number" ||
+    typeof place.lon !== "number" ||
+    !Number.isFinite(place.lat) ||
+    !Number.isFinite(place.lon) ||
+    Math.abs(place.lat) > 90 ||
+    Math.abs(place.lon) > 180 ||
+    typeof place.timezone !== "string" ||
+    !place.timezone.trim()
+  ) {
+    return false;
+  }
+
+  try {
+    new Intl.DateTimeFormat("en", {
+      timeZone: place.timezone,
+    }).format(new Date());
+
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+if (
+  requestedCurrentPlace != null &&
+  !validForecastPlace(requestedCurrentPlace)
+) {
+  return NextResponse.json(
+    {
+      ok: false,
+      error: "Invalid current forecast location.",
+    },
+    { status: 400 }
+  );
+}
+
+const forecastPlaceSource =
+  requestedCurrentPlace != null
+    ? "current_location"
+    : "birth_location";
+
+const forecastPlace = requestedCurrentPlace != null
+  ? {
+      name: String(requestedCurrentPlace.name ?? "").trim(),
+      lat: requestedCurrentPlace.lat,
+      lon: requestedCurrentPlace.lon,
+      timezone: requestedCurrentPlace.timezone,
+    }
+  : {
+      name: String(body.placeName ?? "").trim(),
+      lat,
+      lon,
+      timezone: body.birthTz,
+    };
+
+if (!validForecastPlace(forecastPlace)) {
+  return NextResponse.json(
+    {
+      ok: false,
+      error: "Invalid forecast location or timezone.",
+    },
+    { status: 400 }
+  );
+}
+
+const notificationTz = forecastPlace.timezone;
+const todayISO = todayISOForNotificationTz(notificationTz);
+
+const cacheBuster = 20;
 
 const baseKey = makeCacheKey({
+  nodeMode,
+  nodeCalculationVersion: NODE_CALCULATION_VERSION,
   name: body.name ?? body.placeName ?? "User",
   birthDateISO: body.birthDateISO,
   birthTime: body.birthTime,
@@ -1857,13 +1821,20 @@ const baseKey = makeCacheKey({
   lat,
   lon,
   version: "engine-v2b-asc-sidereal-3",
+  forecastPlace,
+  forecastPlaceSource,
   cacheBuster,
 });
 
-const rawReportCacheKey = `life-base:${baseKey}`;
-const overviewCacheKey = `life-overview:${baseKey}`;
-const paidNowCacheKey = `life-paid-now:${baseKey}`;
-const paidFullCacheKey = `life-paid-full:${baseKey}`;
+const MINUTE_MS = 60 * 1000;
+const DAY_MS = 24 * 60 * MINUTE_MS;
+
+const rawReportCacheKey = `life-base:v2:${makeCacheKey({
+  baseKey,
+  todayISO,
+  notificationTz,
+  birthLocalDate: todayISOForNotificationTz(body.birthTz),
+})}`;
 
 // ----------------------------
 // 3) Load/generate base life report
@@ -1875,6 +1846,7 @@ const disableCacheInDev = false;
 
 if (process.env.NODE_ENV !== "production" && disableCacheInDev) {
   report = await buildLifeReport({
+      nodeMode,
     name: body.name ?? body.placeName,
     birthDateISO: body.birthDateISO,
     birthTime: body.birthTime,
@@ -1886,11 +1858,16 @@ if (process.env.NODE_ENV !== "production" && disableCacheInDev) {
 } else {
   const cachedRawReport = await cacheGet<any>(rawReportCacheKey);
 
-  if (cachedRawReport) {
+  if (
+    cachedRawReport &&
+    cachedRawReport.nodeMode === nodeMode &&
+    cachedRawReport.nodeCalculationVersion === NODE_CALCULATION_VERSION
+  ) {
     report = cachedRawReport;
     cacheFlag = "hit";
   } else {
     report = await buildLifeReport({
+      nodeMode,
       name: body.name ?? body.placeName,
       birthDateISO: body.birthDateISO,
       birthTime: body.birthTime,
@@ -1899,7 +1876,14 @@ if (process.env.NODE_ENV !== "production" && disableCacheInDev) {
       lon,
     });
 
-    await cacheSet(rawReportCacheKey, report, 60 * 60 * 24 * 30); // 30 days
+    if (
+      report?.nodeMode !== nodeMode ||
+      report?.nodeCalculationVersion !== NODE_CALCULATION_VERSION
+    ) {
+      throw new Error("Life Report calculation convention mismatch.");
+    }
+
+    await cacheSet(rawReportCacheKey, report, 15 * MINUTE_MS); // 15 minutes
     cacheFlag = process.env.NODE_ENV !== "production" ? "miss-dev" : "miss";
   }
 }
@@ -1907,16 +1891,19 @@ if (process.env.NODE_ENV !== "production" && disableCacheInDev) {
 // ----------------------------
 // 4) Enrich report with active periods
 // ----------------------------
-report.timeline =
-  Array.isArray(report?.dashaTimeline) && report.dashaTimeline.length > 0
-    ? report.dashaTimeline
-    : Array.isArray(report?.timeline)
-    ? report.timeline
-    : [];
 
-const enriched = enrichWithActivePeriods(report);
+
+
+
+if (
+  report?.nodeMode !== nodeMode ||
+  report?.nodeCalculationVersion !== NODE_CALCULATION_VERSION
+) {
+  throw new Error("Life Report calculation convention mismatch.");
+}
 
 const dataEngine = await buildDataEngine({
+  nodeMode,
   birth: {
     name: body.name ?? body.placeName ?? "User",
     dateISO: body.birthDateISO,
@@ -1926,7 +1913,83 @@ const dataEngine = await buildDataEngine({
     lon,
   },
   plan: "pro",
+  currentPlace: forecastPlace,
+  selectedDateISO: todayISO,
 });
+
+if (
+  dataEngine.nodeMode !== nodeMode ||
+  dataEngine.nodeCalculationVersion !== NODE_CALCULATION_VERSION
+) {
+  throw new Error("Life Report Data Engine convention mismatch.");
+}
+
+
+// Use the same active Dasha source as Ask Sarathi.
+const canonicalActivePeriods = buildActivePeriods(
+  dataEngine.timing?.dasha
+);
+
+const previousMD = report?.activePeriods?.mahadasha;
+const canonicalMD = canonicalActivePeriods?.mahadasha;
+
+// Preserve the existing interpretation only when
+// the planetary lord and period boundaries match.
+if (
+  canonicalMD &&
+  previousMD &&
+  previousMD.lord === canonicalMD.lord &&
+  previousMD.start === canonicalMD.start &&
+  previousMD.end === canonicalMD.end &&
+  typeof previousMD.summary === "string"
+) {
+  canonicalMD.summary = previousMD.summary;
+}
+
+// Adapt the complete canonical lifetime timelines.
+const canonicalTimeline = buildLifetimeDashaTimeline(
+  dataEngine.timing?.dasha
+);
+
+// Rebuild milestone interpretations using canonical
+// Mahadasha dates and the current Dasha context.
+const canonicalLifeMilestones = buildLifeMilestonesFromMD(
+  canonicalTimeline.mahadashaTimeline,
+  body.birthDateISO,
+  {
+    planets: report.planets,
+    aspects: report.aspects,
+    activePeriods: canonicalActivePeriods,
+    todayISO,
+  }
+);
+
+const enriched = {
+  ...report,
+  todayISO,
+  activePeriods: canonicalActivePeriods,
+  mahadashaTimeline: canonicalTimeline.mahadashaTimeline,
+  dashaTimeline: canonicalTimeline.dashaTimeline,
+  timeline: canonicalTimeline.dashaTimeline,
+  lifeMilestones: canonicalLifeMilestones,
+};
+
+// Dynamic interpretations must follow the canonical
+// forecast date, timezone and active Dasha periods.
+const dynamicCacheKey = makeCacheKey({
+  baseKey,
+  todayISO,
+  notificationTz,
+  activePeriods: canonicalActivePeriods,
+});
+
+const overviewCacheKey =
+  `life-overview:v2:${dynamicCacheKey}`;
+
+const paidNowCacheKey =
+  `life-paid-now:v2:${dynamicCacheKey}`;
+
+
 
 
 
@@ -1955,20 +2018,22 @@ if (!overviewSection) {
     lifePatternMap,
   };
 
-  await cacheSet(overviewCacheKey, overviewSection, 60 * 60 * 24 * 365); // 30 days
+  await cacheSet(overviewCacheKey, overviewSection, DAY_MS); // 24 hours
 }
 
 // ----------------------------
 // 6) FREE USER: return only overview
 // ----------------------------
 if (!isPaid) {
-  
+
 
 
 
   return NextResponse.json(
     deepCleanStrings({
       ok: true,
+      nodeMode: dataEngine.nodeMode,
+      nodeCalculationVersion: dataEngine.nodeCalculationVersion,
       cache: {
         baseReport: cacheFlag,
         overview: "served",
@@ -1980,6 +2045,8 @@ if (!isPaid) {
         locked: true,
       },
       report: {
+        nodeMode: dataEngine.nodeMode,
+        nodeCalculationVersion: dataEngine.nodeCalculationVersion,
   name: body.name ?? body.placeName ?? "User",
   birthDateISO: body.birthDateISO,
   birthTime: body.birthTime,
@@ -2008,17 +2075,10 @@ degreeHits:
 triggerEngine: dataEngine?.triggerEngine ?? null,
 
   // Timing fields needed by Sārathi Chat
-  activePeriods: enriched?.activePeriods ?? null,
-  dashaTimeline: Array.isArray(enriched?.dashaTimeline)
-    ? enriched.dashaTimeline
-    : Array.isArray(report?.dashaTimeline)
-    ? report.dashaTimeline
-    : [],
-  timeline: Array.isArray(enriched?.timeline)
-    ? enriched.timeline
-    : Array.isArray(report?.timeline)
-    ? report.timeline
-    : [],
+  todayISO,
+  activePeriods: canonicalActivePeriods,
+  dashaTimeline: canonicalTimeline.dashaTimeline,
+  timeline: canonicalTimeline.dashaTimeline,
 
   overviewSummary: overviewSection?.overviewSummary ?? null,
   coreLifePattern: overviewSection?.coreLifePattern ?? null,
@@ -2042,41 +2102,38 @@ const birthForTransits = {
   lon,
 };
       // ----------------------------
-      // 6) Helper: call /api/transits (SOURCE OF TRUTH)
+      // 6) Shared server transit calculation
       // ----------------------------
-      function getServerBaseUrl() {
-        const explicit = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL;
-        if (explicit) return explicit.replace(/\/$/, "");
-
-        const vercel = process.env.VERCEL_URL;
-        if (vercel) return `https://${vercel}`.replace(/\/$/, "");
-
-        return "http://localhost:3000";
-      }
-
       async function fetchTransitsForLifeReport(payload: any) {
-        const base = getServerBaseUrl();
-        const res = await fetch(`${base}/api/transits`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-          cache: "no-store",
-        });
+        const response = await buildTransitResponse(payload);
 
-        if (!res.ok) {
-          const text = await res.text().catch(() => "");
-          console.warn("[life-report] /api/transits non-200:", res.status, text.slice(0, 200));
-          return null;
+        if (response.status !== 200) {
+          throw new Error(
+            `Life Report transit calculation failed (${response.status}).`
+          );
         }
 
-        return res.json();
+        const result = response.data;
+
+        if (
+          !("nodeMode" in result) ||
+          result.nodeMode !== nodeMode ||
+          !("nodeCalculationVersion" in result) ||
+          result.nodeCalculationVersion !== NODE_CALCULATION_VERSION
+        ) {
+          throw new Error("Life Report transit convention mismatch.");
+        }
+
+        return result;
       }
-    
+
       // ----------------------------
-      // 7) Get transit windows + dailyMoon + transitNow from /api/transits
+      // 7) Get transit windows and snapshots from shared service
       // ----------------------------
       const transitsData = await fetchTransitsForLifeReport({
+        nodeMode,
         birth: birthForTransits,
+        forecastTimezone: forecastPlace.timezone,
         horizonDays: 365,
         ascDeg: (enriched as any)?.core?.ascDeg ?? report?.core?.ascDeg,
         ascSign: lagnaSign,
@@ -2093,50 +2150,185 @@ const birthForTransits = {
             .sort((a: any, b: any) => Number(b?.strength ?? 0) - Number(a?.strength ?? 0))
             .slice(0, 12);
 
-      const dailyMoon: DailyMoonRow[] = Array.isArray(transitsData?.dailyMoon)
-        ? transitsData.dailyMoon
-        : [];
+      const canonicalDailyMoon =
+        dataEngine.timing?.selectedDate?.dailyMoon;
 
-      const transitNow: any[] = Array.isArray(transitsData?.transitNow)
-        ? transitsData.transitNow
-        : [];
+      if (
+        !Array.isArray(canonicalDailyMoon) ||
+        canonicalDailyMoon.length === 0
+      ) {
+        throw new Error("Canonical daily Moon series unavailable.");
+      }
+
+      const dailyMoon = canonicalDailyMoon;
+
+      const canonicalTransitPlanets =
+        dataEngine.timing?.selectedDate?.planets;
+
+      if (
+        !Array.isArray(canonicalTransitPlanets) ||
+        canonicalTransitPlanets.length === 0
+      ) {
+        throw new Error("Canonical transit snapshot unavailable.");
+      }
+
+      const transitNow: any[] = canonicalTransitPlanets.map((p: any) => ({
+        ...p,
+        name: p.name ?? p.planet,
+        house: p.houseFromLagna ?? p.house,
+        lon: p.lon ?? p.longitude,
+      }));
 
       // ----------------------------
       // 8) Attach canonical keys used by nowPlan + UI
       // ----------------------------
+      (enriched as any).transits = transits;
       (enriched as any).topTransits = topTransits;
       (enriched as any).dailyMoon = dailyMoon;
       (enriched as any).transitNow = transitNow;
       (enriched as any).transitPlanets = transitNow;
 
-      
-      
-      
-      
+      (enriched as any).forecastContext = {
+        dateISO: todayISO,
+        timezone: forecastPlace.timezone,
+        location: forecastPlace,
+        locationSource: forecastPlaceSource,
+        snapshotTime:
+          dataEngine.timing?.selectedDate?.snapshotTime ?? null,
+        snapshotMode:
+          dataEngine.timing?.selectedDate?.snapshotMode ?? null,
+        nodeMode,
+        nodeCalculationVersion: NODE_CALCULATION_VERSION,
+      };
+
+
+
+
+
 
       // ----------------------------
       // 9) Daily Guide (uses transits windows)
       // ----------------------------
+      const forecastMoon = dataEngine.timing?.moonContext;
+      const forecastPanchang = dataEngine.timing?.panchang;
+
+      (enriched as any).panchangToday = forecastPanchang
+        ? {
+            tithi: forecastPanchang.tithi ?? null,
+            weekday: forecastPanchang.weekday ?? null,
+            yoga: forecastPanchang.yoga ?? null,
+            karana: forecastPanchang.karana ?? null,
+            sunriseISO:
+              forecastPanchang._sunriseDT?.isValid
+                ? forecastPanchang._sunriseDT.toISO()
+                : null,
+            dateISO: todayISO,
+            timezone: forecastPlace.timezone,
+          }
+        : null;
+
+      (enriched as any).moonNow = forecastMoon ?? null;
+
+      const validGuideDate = (value: unknown): string | null => {
+        if (typeof value !== "string") return null;
+
+        const iso = value.slice(0, 10);
+
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return null;
+
+        const parsed = new Date(`${iso}T00:00:00.000Z`);
+
+        return Number.isFinite(parsed.getTime()) &&
+          parsed.toISOString().slice(0, 10) === iso
+          ? iso
+          : null;
+      };
+
+      const activeGuideTransits = (
+        Array.isArray(topTransits) ? topTransits : []
+      ).filter((transit: any) => {
+        const start = validGuideDate(transit?.startISO);
+        const end = validGuideDate(transit?.endISO);
+
+        return Boolean(
+          start &&
+          end &&
+          start <= todayISO &&
+          todayISO <= end
+        );
+      });
+
+      const guideText = (value: unknown): string | undefined =>
+        typeof value === "string" &&
+        value.trim() &&
+        value.trim() !== "—"
+          ? value.trim()
+          : undefined;
+
+      const guidePanchang = {
+        tithi: guideText(forecastPanchang?.tithi),
+        weekday: guideText(forecastPanchang?.weekday),
+        yogaName: guideText(forecastPanchang?.yoga),
+        karanaName: guideText(forecastPanchang?.karana),
+        sunriseISO:
+          forecastPanchang?._sunriseDT?.isValid
+            ? forecastPanchang._sunriseDT.toISO() ?? undefined
+            : undefined,
+      };
+
       const core: CoreSignals = {
+        forecastDateISO: todayISO,
+        forecastTimezone: notificationTz,
         birth: birthForTransits,
         lagnaSign,
         dashaStack: [],
-        transits: topTransits,
+        transits: activeGuideTransits,
         moonToday: {
-          sign: (enriched as any).moonSign ?? "Unknown",
-          nakshatra:
-            (enriched as any).panchang?.moonNakshatraName ??
-            (enriched as any).panchangToday?.nakshatraName ??
-            (enriched as any).moonNakshatraName ??
-            "Unknown",
+          sign: forecastMoon?.sign ?? "Unknown",
+          nakshatra: forecastMoon?.nakshatra ?? "Unknown",
+          houseFromMoon:
+            forecastMoon?.houseFromMoon ?? undefined,
         },
-        panchang: (enriched as any).panchang ?? {},
+        panchang: guidePanchang,
       };
 
-      const ap = (enriched as any).activePeriods;
-      if (ap?.mahadasha) core.dashaStack.push(ap.mahadasha as any);
-      if (ap?.antardasha) core.dashaStack.push(ap.antardasha as any);
-      if (ap?.pratyantardasha) core.dashaStack.push(ap.pratyantardasha as any);
+      const ap = canonicalActivePeriods;
+
+      const guidePeriods = [
+        {
+          level: "MD",
+          period: ap?.mahadasha,
+          planet: ap?.mahadasha?.lord,
+        },
+        {
+          level: "AD",
+          period: ap?.antardasha,
+          planet: ap?.antardasha?.subLord,
+        },
+        {
+          level: "PD",
+          period: ap?.pratyantardasha,
+          planet: ap?.pratyantardasha?.lord,
+        },
+      ];
+
+      for (const entry of guidePeriods) {
+        if (
+          !entry.period ||
+          typeof entry.planet !== "string" ||
+          !entry.planet.trim()
+        ) {
+          continue;
+        }
+
+        core.dashaStack.push({
+          ...entry.period,
+          planet: entry.planet,
+          lord: entry.planet,
+          level: entry.level,
+        });
+      }
+
 
       const dailyGuide = await buildDailyGuideFromCore(core);
 
@@ -2145,29 +2337,22 @@ const birthForTransits = {
       // FIX:
       // - add moonTodayFact so prompt has the value it expects
       // ----------------------------
-      const notificationTzTmp = body.notificationTz || body.birthTz || "Asia/Dubai";
-      const todayISOTmp = todayISOForNotificationTz(notificationTzTmp);
-
-      const moonTodayRow: any =
-        (Array.isArray(dailyMoon)
-          ? (dailyMoon as any[]).find(
-              (r: any) => String(r?.dateISO ?? r?.date ?? "") === String(todayISOTmp)
-            )
-          : null) ?? (Array.isArray(dailyMoon) ? (dailyMoon as any[])[0] : null);
+      const canonicalMoonSign = guideText(forecastMoon?.sign);
+      const canonicalMoonNakshatra = guideText(forecastMoon?.nakshatra);
 
       const moonNakshatraTodayFact =
-        moonTodayRow?.moonNakshatra
-          ? `Moon nakshatra today: ${moonTodayRow.moonNakshatra}`
+        canonicalMoonNakshatra
+          ? `Moon nakshatra today: ${canonicalMoonNakshatra}`
           : null;
 
       const moonTodayFact =
-        moonTodayRow
+        canonicalMoonSign || canonicalMoonNakshatra
           ? `Moon today: ${[
-              moonTodayRow?.moonSign ? String(moonTodayRow.moonSign) : "",
-              moonTodayRow?.moonNakshatra ? `(${String(moonTodayRow.moonNakshatra)})` : "",
-            ]
-              .filter(Boolean)
-              .join(" ")}`
+              canonicalMoonSign ?? "",
+              canonicalMoonNakshatra
+                ? `(${canonicalMoonNakshatra})`
+                : "",
+            ].filter(Boolean).join(" ")}`
           : null;
 
       // ----------------------------
@@ -2176,8 +2361,8 @@ const birthForTransits = {
       // - pass todayISO into nowPlan so scoring aligns with notification timezone
       // - pass moonTodayFact too
       // ----------------------------
-      const notificationTz = body.notificationTz || body.birthTz || "Asia/Dubai";
-      const todayISO = todayISOForNotificationTz(notificationTz);
+
+
 
       const enrichedWithDaily = {
     ...enriched,
@@ -2214,8 +2399,8 @@ const birthForTransits = {
         money: dailyGuide?.moneyTip ?? null,
         fasting: dailyGuide?.fasting ?? null,
         food: dailyGuide?.food ?? null,
-        panchang: report.panchangToday ?? report.panchang ?? null,
-        transits: topTransits,
+        panchang: forecastPanchang ?? null,
+        transits: activeGuideTransits,
       };
 
       const userId = undefined;
@@ -2236,20 +2421,20 @@ const birthForTransits = {
       // FIX:
       // - bump cache version so old messy prod plan is not reused
       // ----------------------------
-      
+
 // cache key for Now & Near Future plan
-const nowPlanKey = `nowplan:v4:${baseKey}:${todayISO}`;
+
 let nowPlan = await cacheGet<any>(paidNowCacheKey);
 
 if (nowPlan) {
-  
+
 } else {
-  
+
 
   nowPlan = await buildNowNearFuturePlan(enrichedWithDaily);
 
   if (nowPlan) {
-    await cacheSet(paidNowCacheKey, nowPlan, 60 * 60 * 24 * 7);
+    await cacheSet(paidNowCacheKey, nowPlan, DAY_MS);
   }
 }
 
@@ -2271,7 +2456,7 @@ if (nowPlan) {
     dailyMoon,
     transitNowFacts
   );
-  
+
       // ----------------------------
       // 14) Response payload
       // ----------------------------
@@ -2314,20 +2499,12 @@ if (nowPlan) {
       lat,
       lon,
     },
-  dashaTimeline:
-    (enrichedWithDaily as any)?.dashaTimeline ??
-    (enriched as any)?.dashaTimeline ??
-    (report as any)?.dashaTimeline ??
-    [],
-
-  timeline:
-    (enrichedWithDaily as any)?.dashaTimeline ??
-    (enriched as any)?.dashaTimeline ??
-    (report as any)?.dashaTimeline ??
-    (enrichedWithDaily as any)?.timeline ??
-    (enriched as any)?.timeline ??
-    (report as any)?.timeline ??
-    [],
+  todayISO,
+  activePeriods: canonicalActivePeriods,
+  mahadashaTimeline: canonicalTimeline.mahadashaTimeline,
+  dashaTimeline: canonicalTimeline.dashaTimeline,
+  timeline: canonicalTimeline.dashaTimeline,
+  lifeMilestones: canonicalLifeMilestones,
 
   transitNowFacts,
   nowNearFuture: nowPlan,
@@ -2350,55 +2527,162 @@ if (nowPlan) {
   payload.lifePressureZone = buildLifePressureZone(payload);
   payload.naturalStrength = buildNaturalStrength(payload);
       // Build paid output (source for FG_V2)
-      let fullGuidanceV2 = await cacheGet<any>(paidFullCacheKey);
+      // Regenerate Full Guidance from the current request context.
+const paidOut = buildPaidOutput(payload);
+
+let fullGuidanceV2 = buildFullGuidanceV2({
+  todayISO,
+  activePeriods: canonicalActivePeriods,
+  paid: paidOut,
+  topTransits: Array.isArray(topTransits)
+    ? topTransits
+    : [],
+  transitNowFacts: Array.isArray(transitNowFacts)
+    ? transitNowFacts
+    : [],
+});
+
+// Personalised phase remedies are evaluated on every request.
+// Select spiritual remedies from the current Data Engine context.
 
 if (fullGuidanceV2) {
-  
-} else {
-  
+  const remedyContext = dataEngine.timing?.dashaContext;
 
-  const paidOut = buildPaidOutput(payload);
+  const phaseRemedies = selectPhaseRemedies({
+    periods: {
+      mahadasha: remedyContext?.md?.planet ?? null,
+      antardasha: remedyContext?.ad?.planet ?? null,
+      pratyantardasha: remedyContext?.pd?.planet ?? null,
+    },
 
-  const activePeriods =
-    (enriched as any)?.activePeriods ?? payload?.activePeriods ?? null;
+    natalPlanets: [
+      remedyContext?.md,
+      remedyContext?.ad,
+      remedyContext?.pd,
+    ]
+      .filter((profile) => profile != null)
+      .map((profile) => ({
+        planet: profile.planet ?? "",
+        house: profile.house ?? null,
+        sign: profile.sign ?? null,
+      })),
 
-  const paid = paidOut;
+    roles: dataEngine.foundations.roles,
 
-  fullGuidanceV2 = buildFullGuidanceV2({
-    todayISO: String(
-      todayISO ??
-        payload?.todayISO ??
-        new Date().toISOString().slice(0, 10)
-    ),
-    activePeriods,
-    paid,
-    topTransits: Array.isArray(topTransits) ? topTransits : [],
-    transitNowFacts: Array.isArray(transitNowFacts)
-      ? transitNowFacts
-      : [],
+    activations: buildPhaseRemedyActivations({
+      dashaContext: remedyContext,
+      transitInteractions:
+        dataEngine.transits?.transitInteractions ?? [],
+      degreeHits:
+        dataEngine.triggerEngine?.degreeHits ?? [],
+    }),
   });
 
-  if (fullGuidanceV2) {
-    await cacheSet(
-      paidFullCacheKey,
-      fullGuidanceV2,
-      60 * 60 * 24 * 90 // 90 days
-    );
-  }
+  fullGuidanceV2 = {
+    ...fullGuidanceV2,
+
+    remedies: {
+      ...fullGuidanceV2.remedies,
+
+      // Preserve compatibility with the website.
+      spiritual: phaseRemedies.map(
+        (item) =>
+          `${item.remedy.title}: ${item.remedy.instructions}`
+      ),
+
+      // Structured recommendations for the premium interface.
+      personalised: phaseRemedies,
+
+      selectionStatus: phaseRemedies.length
+        ? "selected"
+        : "insufficient_evidence",
+
+      selectionVersion: "phase-remedies-v1",
+
+      disclaimer:
+        "These are optional practices drawn from traditional Vedic astrology. They are not medical, financial or other professional advice and do not guarantee outcomes.",
+    },
+  };
 }
 
 payload.fullGuidanceV2 = fullGuidanceV2;
 
-      return NextResponse.json(
-  deepCleanStrings({
-    ok: true,
-    access: {
-      isPaid: true,
-      locked: false,
+/* Shared Now & Near Future interpretation */
+
+payload.nearFutureInterpretation =
+  buildNearFutureInterpretation(payload);
+
+
+/* Shared Life Phases interpretation */
+
+const phasePeriods = canonicalActivePeriods;
+
+payload.dashaTransitSummary = buildStructuredDashaTransits(
+  {
+    name: payload?.name ?? report?.name,
+  },
+  {
+    md: {
+      planet: phasePeriods?.mahadasha?.lord,
+      start: phasePeriods?.mahadasha?.start,
+      end: phasePeriods?.mahadasha?.end,
     },
-    report: payload,
-  })
+    ad: {
+      planet: phasePeriods?.antardasha?.subLord,
+      start: phasePeriods?.antardasha?.start,
+      end: phasePeriods?.antardasha?.end,
+    },
+  },
+  (Array.isArray(transits) ? transits : []).map((t: any) => ({
+    title: t?.title,
+    planet: t?.planet,
+    target: t?.target,
+    category: t?.category,
+    strength: t?.strength,
+    startISO: t?.startISO,
+    endISO: t?.endISO,
+  }))
 );
+
+
+      // Sign the exact JSON-normalised report returned to the client.
+      // Keep the signature outside the report to preserve its integrity.
+
+      const finalEnvelope = JSON.parse(
+        JSON.stringify(
+          deepCleanStrings({
+            ok: true,
+            nodeMode: dataEngine.nodeMode,
+            nodeCalculationVersion: dataEngine.nodeCalculationVersion,
+            access: {
+              isPaid: true,
+              locked: false,
+            },
+            report: {
+              ...payload,
+              nodeMode: dataEngine.nodeMode,
+              nodeCalculationVersion: dataEngine.nodeCalculationVersion,
+            },
+          })
+        )
+      );
+
+      const pdfProof = signLifeReport(
+        user.id,
+        finalEnvelope.report
+      );
+
+      return NextResponse.json(
+        {
+          ...finalEnvelope,
+          pdfProof,
+        },
+        {
+          headers: {
+            "Cache-Control": "private, no-store",
+          },
+        }
+      );
     } catch (e: any) {
       console.error("life-report API error:", e);
       const msg = String(e?.message ?? e);

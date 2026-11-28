@@ -1230,12 +1230,7 @@ const remedies = {
     "Health: 5 days/week consistent routine > intensity (sleep + meals on time).",
   ]).slice(0, 3),
 
-  spiritual: uniqStr([
-    // Rahu MD + Venus AD oriented, but still universal + non-sectarian
-    "Friday: small white donation (milk/sweets/white cloth) + gratitude practice (Venus balance).",
-    "Daily: 108 breaths or 10-min mantra/chanting/quiet japa (calms Rahu overthinking).",
-    "Seva: help one person weekly without expecting credit (purifies Rahu–Venus loop).",
-  ]).slice(0, 3),
+  spiritual: [] as string[],
 
   avoid: uniqStr([
     drainToCut || "Avoid saying yes without scope/authority/deadline.",

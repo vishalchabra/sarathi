@@ -181,6 +181,7 @@ const MAJOR_PLANETS = new Set([
 ]);
 
 export async function buildUpcomingTransits(params: {
+  nodeMode?: import("../astro/lunarNodes").NodeMode;
   birth: any;
   natalPlanets: any[];
   natalAscendant?: {
@@ -197,6 +198,7 @@ export async function buildUpcomingTransits(params: {
   const allEvents: any[] = [];
 
   const engineBirth = {
+    nodeMode: params.nodeMode ?? "mean" as const,
     dateISO: params.birth.dateISO,
     time: params.birth.time,
     tz: params.birth.timezone,

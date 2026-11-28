@@ -121,6 +121,37 @@ export function getMahadashaTimeline(
   moonLonSidDeg: number,
   spanYears: number = 120
 ): MahadashaPeriod[] {
+  if (!Number.isFinite(moonLonSidDeg)) {
+    throw new RangeError(
+      "Vimshottari requires a finite sidereal Moon longitude."
+    );
+  }
+
+  if (
+    !(birthUTC instanceof Date) ||
+    !Number.isFinite(birthUTC.getTime())
+  ) {
+    throw new RangeError(
+      "Vimshottari requires a valid birth timestamp."
+    );
+  }
+
+  if (!Number.isFinite(spanYears) || spanYears < 0) {
+    throw new RangeError(
+      "Vimshottari requires a finite, non-negative timeline horizon."
+    );
+  }
+
+  if (
+    !Number.isFinite(
+      addYears(birthUTC, spanYears).getTime()
+    )
+  ) {
+    throw new RangeError(
+      "Vimshottari timeline exceeds the supported date range."
+    );
+  }
+
   // 1. Which Mahadasha were we born in?
   const { startLord, usedYears } = getStartMahadashaInfo(moonLonSidDeg);
 
@@ -134,6 +165,12 @@ export function getMahadashaTimeline(
   //    So that Mahadasha truly began earlier at:
   const firstStart = new Date(birthUTC.getTime() - yearsToMs(usedYears));
 
+  if (!Number.isFinite(firstStart.getTime())) {
+    throw new RangeError(
+      "Vimshottari start exceeds the supported date range."
+    );
+  }
+
   // 4. Walk forward through the Mahadasha cycle producing blocks.
   const periods: MahadashaPeriod[] = [];
   let cursorStart = firstStart;
@@ -146,6 +183,12 @@ export function getMahadashaTimeline(
     const lord = DASHA_ORDER[lordCursorIndex]!;
     const durY = DASHA_YEARS[lord];
     const cursorEnd = addYears(cursorStart, durY);
+
+    if (!Number.isFinite(cursorEnd.getTime())) {
+      throw new RangeError(
+        "Vimshottari period exceeds the supported date range."
+      );
+    }
 
     periods.push({
       lord,
@@ -210,7 +253,10 @@ export function getAntardashaTimeline(
 
     // clip to Mahadasha end just in case of floating rounding
     const clippedEnd =
-      subEnd.getTime() > mahaEnd.getTime() ? new Date(mahaEnd) : subEnd;
+      i === DASHA_ORDER.length - 1 ||
+      subEnd.getTime() > mahaEnd.getTime()
+        ? new Date(mahaEnd)
+        : subEnd;
 
     subPeriods.push({
       mahaLord,
@@ -279,7 +325,10 @@ export function getPratyantardashaTimeline(
     const triEnd = addYears(cursor, triYears);
 
     const clippedEnd =
-      triEnd.getTime() > antarEnd.getTime() ? new Date(antarEnd) : triEnd;
+      i === DASHA_ORDER.length - 1 ||
+      triEnd.getTime() > antarEnd.getTime()
+        ? new Date(antarEnd)
+        : triEnd;
 
     triPeriods.push({
       mahaLord,
@@ -336,7 +385,10 @@ export function getSookshmaDashaTimeline(
     const next = addYears(cursor, durYears);
 
     const clipped =
-      next.getTime() > end.getTime() ? new Date(end) : next;
+      i === DASHA_ORDER.length - 1 ||
+      next.getTime() > end.getTime()
+        ? new Date(end)
+        : next;
 
     out.push({
       mahaLord,
@@ -390,7 +442,10 @@ export function getPranaDashaTimeline(sookshma: any): PranaDashaPeriod[] {
     const durYears = sookshmaYears * frac;
 
     const next = addYears(cursor, durYears);
-    const clipped = next > end ? new Date(end) : next;
+    const clipped =
+      i === DASHA_ORDER.length - 1 || next > end
+        ? new Date(end)
+        : next;
 
     out.push({
       mahaLord,
@@ -447,7 +502,10 @@ export function getDehaDashaTimeline(prana: any): DehaDashaPeriod[] {
     const durYears = pranaYears * frac;
 
     const next = addYears(cursor, durYears);
-    const clipped = next > end ? new Date(end) : next;
+    const clipped =
+      i === DASHA_ORDER.length - 1 || next > end
+        ? new Date(end)
+        : next;
 
     out.push({
       mahaLord,

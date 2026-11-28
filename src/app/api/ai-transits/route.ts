@@ -1,3 +1,4 @@
+import { requireLifeReportAccess } from "@/server/auth/requireLifeReportAccess";
 // FILE: src/app/api/ai-transits/route.ts
 export const runtime = "nodejs";
 
@@ -108,6 +109,10 @@ function buildFallbackTransits(profile: any, transits: any[]): string {
 /* ---------------- route ---------------- */
 
 export async function POST(req: Request) {
+  const accessDenied = await requireLifeReportAccess(req);
+
+  if (accessDenied) return accessDenied;
+
   try {
     const body = await req.json().catch(() => ({} as any));
     const profile = body?.profile ?? {};

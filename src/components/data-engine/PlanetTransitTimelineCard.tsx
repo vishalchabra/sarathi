@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { isNodeMode, requireNodeMode } from "@/lib/node-mode";
 
 type PlanetTimelineInterval = {
   from: string;
@@ -12,6 +13,8 @@ type PlanetTimelineInterval = {
 };
 
 type PlanetTransitTimelineResponse = {
+  nodeMode?: unknown;
+  nodeCalculationVersion?: unknown;
   ok?: boolean;
   error?: string;
   planet?: string;
@@ -68,8 +71,12 @@ function formatMainLabel(row: PlanetTimelineInterval, viewMode: string) {
 
 export default function PlanetTransitTimelineCard({
   defaultTimezone = "Asia/Kolkata",
+  nodeMode,
+  nodeCalculationVersion,
 }: {
   defaultTimezone?: string;
+  nodeMode: unknown;
+  nodeCalculationVersion: unknown;
 }) {
   const [planet, setPlanet] = useState("Jupiter");
   const [fromDateISO, setFromDateISO] = useState(todayISO());
@@ -80,12 +87,44 @@ export default function PlanetTransitTimelineCard({
   const [error, setError] = useState("");
   const [result, setResult] = useState<PlanetTransitTimelineResponse | null>(null);
 
+  const requestIdRef = useRef(0);
+
+  useLayoutEffect(() => {
+    requestIdRef.current += 1;
+    setResult(null);
+    setError("");
+    setLoading(false);
+
+    return () => {
+      requestIdRef.current += 1;
+    };
+  }, [
+    nodeMode,
+    nodeCalculationVersion,
+    defaultTimezone,
+    planet,
+    fromDateISO,
+    toDateISO,
+    viewMode,
+    includeRetrograde,
+  ]);
+
   const intervals = useMemo(
     () => (Array.isArray(result?.intervals) ? result!.intervals! : []),
     [result]
   );
 
   async function handleGenerate() {
+    if (
+      !isNodeMode(nodeMode) ||
+      nodeCalculationVersion !== "lahiri-swiss-node-v1"
+    ) {
+      setError("Generate a verified chart first.");
+      return;
+    }
+
+    const requestedNodeMode = requireNodeMode(nodeMode);
+    const requestId = ++requestIdRef.current;
     setLoading(true);
     setError("");
     setResult(null);
@@ -98,6 +137,7 @@ export default function PlanetTransitTimelineCard({
           planet,
           fromDateISO,
           toDateISO,
+          nodeMode: requestedNodeMode,
           timezone: defaultTimezone,
           viewMode,
           includeRetrograde,
@@ -106,15 +146,28 @@ export default function PlanetTransitTimelineCard({
 
       const json = (await res.json()) as PlanetTransitTimelineResponse;
 
+      if (requestId !== requestIdRef.current) return;
+
       if (!res.ok || json?.ok === false) {
         throw new Error(json?.error || "Failed to generate planet timeline.");
       }
 
+      if (
+        json?.nodeMode !== requestedNodeMode ||
+        json?.nodeCalculationVersion !== nodeCalculationVersion
+      ) {
+        throw new Error("Timeline calculation convention mismatch.");
+      }
+
       setResult(json);
     } catch (e: any) {
-      setError(e?.message || "Something went wrong.");
+      if (requestId === requestIdRef.current) {
+        setError(e?.message || "Something went wrong.");
+      }
     } finally {
-      setLoading(false);
+      if (requestId === requestIdRef.current) {
+        setLoading(false);
+      }
     }
   }
 

@@ -1,3 +1,4 @@
+import { requireLifeReportAccess } from "@/server/auth/requireLifeReportAccess";
   import OpenAI from "openai";
 
   export const runtime = "nodejs";
@@ -218,6 +219,10 @@ if (before) out.push(before);
   }
 
   export async function POST(req: Request) {
+  const accessDenied = await requireLifeReportAccess(req);
+
+  if (accessDenied) return accessDenied;
+
     try {
       const body = await req.json().catch(() => ({} as any));
       const profile = body?.profile || {};

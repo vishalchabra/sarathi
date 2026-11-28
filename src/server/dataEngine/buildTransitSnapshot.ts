@@ -1,3 +1,4 @@
+import { tryCalculateNakshatraPosition } from "../../lib/astrology/nakshatraCalculator";
 import "server-only";
 
 import type { BirthInput, DataEnginePlan } from "./types";
@@ -178,16 +179,11 @@ function wrap360(x: number) {
 }
 
 function getNakshatraFromLon(lon: number | null | undefined): string | null {
-  if (typeof lon !== "number" || !Number.isFinite(lon)) return null;
-  const idx = Math.floor(wrap360(lon) / (360 / 27));
-  return NAKSHATRAS_27[idx] ?? null;
+  return tryCalculateNakshatraPosition(lon)?.nakshatra ?? null;
 }
 
 function getPadaFromLon(lon: number | null | undefined): number | null {
-  if (typeof lon !== "number" || !Number.isFinite(lon)) return null;
-  const nakSegment = 360 / 27;
-  const withinNak = wrap360(lon) % nakSegment;
-  return Math.floor(withinNak / (nakSegment / 4)) + 1;
+  return tryCalculateNakshatraPosition(lon)?.pada ?? null;
 }
 
 function houseFromLagna(lagnaSignNum: number, transitSignNum: number): number {
@@ -300,7 +296,7 @@ if (dignity === "Moolatrikona") return "very_strong";
 }
 
 export async function buildTransitSnapshot(
-  params: BuildTransitSnapshotParams
+  params: BuildTransitSnapshotParams & { nodeMode?: import("../astro/lunarNodes").NodeMode }
 ) {
   const { dateISO, natalAscendant, plan, birth } = params;
 
@@ -312,6 +308,7 @@ const currentPlace = params.currentPlace ?? {
 
 const engineBirth = {
   ...toEngineBirth(birth),
+  nodeMode: params.nodeMode ?? "mean" as const,
   lat: currentPlace.lat,
   lon: currentPlace.lon,
   tz: currentPlace.timezone,

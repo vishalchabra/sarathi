@@ -1,5 +1,17 @@
 "use client";
 
+import { ensureNotificationTz } from "@/lib/notifications/timezone";
+import {
+  resolveActiveNodeMode,
+  getNodeModeLabel,
+  NODE_MODE_OPTIONS,
+  requireNodeMode,
+  type NodeMode,
+} from "@/lib/node-mode";
+import {
+  getPreferredNodeMode,
+  updatePreferredNodeMode as persistNodePreference,
+} from "@/lib/supabase/node-preference-service";
 import Link from "next/link";
 import { Suspense } from "react";
 import React, { useEffect, useMemo, useState } from "react";
@@ -59,6 +71,8 @@ type UpcomingTransitBuckets = {
 
 type DataEngineResponse = {
   ok?: boolean;
+  nodeMode?: "mean" | "true";
+  nodeCalculationVersion?: string;
   error?: string;
 
   meta?: {
@@ -463,7 +477,14 @@ type TransitQueryCondition = {
 type TransitQueryMatch = {
   dateISO: string;
   time?: string;
+  timestampUTC: string;
+  timezone: string;
+  utcOffsetMinutes: number;
+  endDateISO?: string;
   endTime?: string;
+  endTimestampUTC?: string;
+  endUtcOffsetMinutes?: number;
+  sampleCount?: number;
   durationHours?: number;
 strengthScore?: number;
 strengthLabel?: string;
@@ -473,6 +494,8 @@ matchedPlanets: Array<{
     degree: number | null;
     targetDegree: number;
     orb: number;
+    conditionType?: string;
+    natalOrb?: number;
     nakshatra?: string;
     pada?: number | null;
   }>;
@@ -564,57 +587,97 @@ function getTodayISOInTimezone(tz: string) {
 
   return `${year}-${month}-${day}`;
 }
-function timeToMinutes(time?: string) {
-  if (!time) return null;
 
-  const [hh, mm] = time.split(":").map(Number);
-
-  if (!Number.isFinite(hh) || !Number.isFinite(mm)) return null;
-
-  return hh * 60 + mm;
-}
 function calculateMatchStrength(
   matchedPlanets: TransitQueryMatch["matchedPlanets"]
-) {
+): { score: number | undefined; label: string } {
   if (!matchedPlanets.length) {
-    return {
-      score: 0,
-      label: "Weak",
-    };
+    return { score: undefined, label: "No match" };
   }
 
-  let totalCloseness = 0;
+  const scores: number[] = [];
 
   for (const row of matchedPlanets) {
-    const actual = Number(row.degree ?? 0);
-    const target = Number(row.targetDegree ?? 0);
-    const orb = Math.max(0.01, Number(row.orb ?? 1));
+    const type = row.conditionType;
 
-    const diff = Math.abs(actual - target);
+    if (
+      type === "nakshatra" ||
+      type === "retrograde" ||
+      type === "same_sign_as"
+    ) {
+      continue;
+    }
 
-    // closer to target = higher score
-    const closeness = Math.max(0, 1 - diff / orb);
+    if (
+      type !== "sign_degree" &&
+      type !== "conjunct_natal"
+    ) {
+      return { score: undefined, label: "Matched" };
+    }
 
-    totalCloseness += closeness;
+    const orb = row.orb;
+
+    if (
+      typeof orb !== "number" ||
+      !Number.isFinite(orb) ||
+      orb < 0
+    ) {
+      return { score: undefined, label: "Matched" };
+    }
+
+    let diff: number;
+
+    if (type === "conjunct_natal") {
+      if (
+        typeof row.natalOrb !== "number" ||
+        !Number.isFinite(row.natalOrb) ||
+        row.natalOrb < 0 ||
+        row.natalOrb > 180
+      ) {
+        return { score: undefined, label: "Matched" };
+      }
+
+      diff = row.natalOrb;
+    } else {
+      if (
+        typeof row.degree !== "number" ||
+        !Number.isFinite(row.degree) ||
+        typeof row.targetDegree !== "number" ||
+        !Number.isFinite(row.targetDegree)
+      ) {
+        return { score: undefined, label: "Matched" };
+      }
+
+      diff = Math.abs(row.degree - row.targetDegree);
+    }
+
+    const closeness =
+      orb === 0
+        ? (diff <= 1e-9 ? 1 : 0)
+        : Math.max(0, Math.min(1, 1 - diff / orb));
+
+    scores.push(closeness);
   }
 
-  const avg = totalCloseness / matchedPlanets.length;
-
-  let label = "Broad";
-
-  if (avg >= 0.92) {
-    label = "Exact";
-  } else if (avg >= 0.75) {
-    label = "Strong";
-  } else if (avg >= 0.5) {
-    label = "Moderate";
+  if (!scores.length) {
+    return { score: undefined, label: "Matched" };
   }
 
-  return {
-    score: Number((avg * 100).toFixed(1)),
-    label,
-  };
+  const avg =
+    scores.reduce((sum, value) => sum + value, 0) /
+    scores.length;
+
+  const score = Number((avg * 100).toFixed(1));
+
+  const label =
+    score >= 92 ? "Exact" :
+    score >= 75 ? "Strong" :
+    score >= 50 ? "Moderate" :
+    "Broad";
+
+  return { score, label };
 }
+
 function buildTransitConditionSummary(
   condition: TransitQueryCondition
 ) {
@@ -701,7 +764,10 @@ function sortTransitQueryMatches(
 
   if (sortBy === "exact") {
     return rows
-      .filter((row) => Number(row.strengthScore ?? 0) >= 92)
+      .filter((row) =>
+        typeof row.strengthScore === "number" &&
+        row.strengthScore >= 92
+      )
       .sort((a, b) => Number(b.strengthScore ?? 0) - Number(a.strengthScore ?? 0));
   }
 
@@ -713,95 +779,127 @@ function sortTransitQueryMatches(
 
   if (sortBy === "earliest") {
     return rows.sort((a, b) => {
-      const aKey = `${a.dateISO}T${a.time ?? "00:00"}`;
-      const bKey = `${b.dateISO}T${b.time ?? "00:00"}`;
-      return aKey.localeCompare(bKey);
+      return Date.parse(a.timestampUTC) -
+        Date.parse(b.timestampUTC);
     });
   }
 
   return rows.sort((a, b) => {
-    const strengthDiff =
-      Number(b.strengthScore ?? 0) - Number(a.strengthScore ?? 0);
+    const aScore = a.strengthScore ?? -1;
+    const bScore = b.strengthScore ?? -1;
 
-    if (Math.abs(strengthDiff) > 0.1) return strengthDiff;
+    const strengthDiff = bScore - aScore;
+
+    if (strengthDiff !== 0) return strengthDiff;
 
     return Number(b.durationHours ?? 0) - Number(a.durationHours ?? 0);
   });
 }
-function mergeTransitQueryMatches(matches: TransitQueryMatch[]) {
-  if (!matches.length) return [];
+function formatTransitUtcOffset(minutes?: number): string {
+  if (typeof minutes !== "number" || !Number.isFinite(minutes)) {
+    return "";
+  }
 
-  const sorted = [...matches].sort((a, b) => {
-    const aKey = `${a.dateISO}T${a.time ?? "00:00"}`;
-    const bKey = `${b.dateISO}T${b.time ?? "00:00"}`;
-    return aKey.localeCompare(bKey);
-  });
+  const sign = minutes < 0 ? "-" : "+";
+  const absolute = Math.abs(minutes);
+  const hours = String(Math.floor(absolute / 60)).padStart(2, "0");
+  const mins = String(absolute % 60).padStart(2, "0");
+
+  return `UTC${sign}${hours}:${mins}`;
+}
+
+function mergeTransitQueryMatches(
+  matches: TransitQueryMatch[],
+  stepHours: number,
+  searchEndExclusiveUTC: string
+): TransitQueryMatch[] {
+  if (stepHours !== 1 && stepHours !== 6) {
+    throw new Error("Invalid transit sampling interval.");
+  }
+
+  const searchEndMs = Date.parse(searchEndExclusiveUTC);
+
+  if (!Number.isFinite(searchEndMs)) {
+    throw new Error("Invalid transit search boundary.");
+  }
+
+  const stepMs = stepHours * 3600000;
+
+  for (const match of matches) {
+    if (
+      typeof match.timestampUTC !== "string" ||
+      !match.timestampUTC.endsWith("Z") ||
+      !Number.isFinite(Date.parse(match.timestampUTC)) ||
+      Date.parse(match.timestampUTC) >= searchEndMs ||
+      !match.timezone ||
+      !Number.isFinite(match.utcOffsetMinutes)
+    ) {
+      throw new Error("Invalid transit result timestamp.");
+    }
+  }
+
+  const sorted = [...matches].sort(
+    (a, b) =>
+      Date.parse(a.timestampUTC) -
+      Date.parse(b.timestampUTC)
+  );
 
   const merged: TransitQueryMatch[] = [];
 
   for (const match of sorted) {
+    const currentMs = Date.parse(match.timestampUTC);
     const last = merged[merged.length - 1];
 
-    if (!last) {
-      const strength = calculateMatchStrength(match.matchedPlanets);
+    const lastMs = last
+      ? Date.parse(last.endTimestampUTC ?? last.timestampUTC)
+      : NaN;
 
-merged.push({
-  ...match,
-  endTime: match.time,
-  durationHours: 1,
-  strengthScore: strength.score,
-  strengthLabel: strength.label,
-});
+    const strength = calculateMatchStrength(
+      match.matchedPlanets
+    );
+
+    const isConsecutive =
+      last &&
+      last.timezone === match.timezone &&
+      currentMs - lastMs === stepMs;
+
+    if (last && currentMs === lastMs) {
       continue;
     }
 
-    const sameDate = last.dateISO === match.dateISO;
-    const lastEndMinutes = timeToMinutes(last.endTime ?? last.time);
-    const currentMinutes = timeToMinutes(match.time);
-
-    const isNextHour =
-      sameDate &&
-      lastEndMinutes !== null &&
-      currentMinutes !== null &&
-      currentMinutes - lastEndMinutes <= 60;
-
-    if (isNextHour) {
+    if (isConsecutive) {
+      last.endDateISO = match.dateISO;
       last.endTime = match.time;
-      last.durationHours = Math.max(
-        1,
-        Math.round(((currentMinutes - timeToMinutes(last.time)!) / 60) + 1)
-      );
+      last.endTimestampUTC = match.timestampUTC;
+      last.endUtcOffsetMinutes = match.utcOffsetMinutes;
+      last.sampleCount = (last.sampleCount ?? 1) + 1;
 
-      // Keep the latest planet degrees so result reflects the end of the window.
-      const updatedStrength = calculateMatchStrength(match.matchedPlanets);
+      last.durationHours =
+        (Math.min(currentMs + stepMs, searchEndMs) -
+          Date.parse(last.timestampUTC)) / 3600000;
 
-last.strengthScore = updatedStrength.score;
-last.strengthLabel = updatedStrength.label;
+      last.matchedPlanets = match.matchedPlanets;
+      last.strengthScore = strength.score;
+      last.strengthLabel = strength.label;
     } else {
-      const strength = calculateMatchStrength(match.matchedPlanets);
-
-merged.push({
-  ...match,
-  endTime: match.time,
-  durationHours: 1,
-  strengthScore: strength.score,
-  strengthLabel: strength.label,
-});
+      merged.push({
+        ...match,
+        endDateISO: match.dateISO,
+        endTime: match.time,
+        endTimestampUTC: match.timestampUTC,
+        endUtcOffsetMinutes: match.utcOffsetMinutes,
+        sampleCount: 1,
+        durationHours:
+          (Math.min(currentMs + stepMs, searchEndMs) -
+            currentMs) / 3600000,
+        strengthScore: strength.score,
+        strengthLabel: strength.label,
+      });
     }
   }
 
-  return merged.sort((a, b) => {
-  const strengthDiff =
-    Number(b.strengthScore ?? 0) - Number(a.strengthScore ?? 0);
-
-  if (Math.abs(strengthDiff) > 0.1) {
-    return strengthDiff;
-  }
-
-  return Number(b.durationHours ?? 0) - Number(a.durationHours ?? 0);
-});
+  return merged;
 }
-
 
 function DataEnginePageContent() {
   const [activeTab, setActiveTab] = useState<TabKey>("foundations");
@@ -817,7 +915,7 @@ function DataEnginePageContent() {
   const [timezone, setTimezone] = useState("Asia/Kolkata");
   const [plan] = useState<"pro">("pro");
   const [selectedDateISO, setSelectedDateISO] = useState(
-  getTodayISOInTimezone("Asia/Kolkata")
+  () => getTodayISOInTimezone("UTC")
 );
   const [compareDateISO, setCompareDateISO] = useState("");
  const [utilityPanchangData, setUtilityPanchangData] = useState<any | null>(null);
@@ -827,6 +925,80 @@ const router = useRouter();
 const crmClientId: string | null = searchParams?.get("clientId") ?? null;
 const [checkingAccess, setCheckingAccess] = useState(true);
 const [accessAllowed, setAccessAllowed] = useState(false);
+
+const [preferredNodeMode, setPreferredNodeMode] =
+  useState<NodeMode | null>(null);
+
+const [selectedNodeMode, setSelectedNodeMode] =
+  useState<NodeMode | null>(null);
+
+const [savedNodeMode, setSavedNodeMode] =
+  useState<NodeMode | null>(null);
+
+const [nodePreferenceLoading, setNodePreferenceLoading] =
+  useState(true);
+
+const [nodePreferenceError, setNodePreferenceError] =
+  useState("");
+
+const activeNodeMode = resolveActiveNodeMode({
+  selectedNodeMode,
+  savedNodeMode,
+  preferredNodeMode,
+});
+
+const nodeModeReady =
+  selectedNodeMode !== null ||
+  savedNodeMode !== null ||
+  (!nodePreferenceLoading &&
+    !nodePreferenceError &&
+    preferredNodeMode !== null);
+
+const nodeModeUnavailableMessage =
+  nodePreferenceLoading
+    ? "Loading your calculation preferences. Please wait."
+    : nodePreferenceError ||
+      "Please select a lunar node convention.";
+
+useEffect(() => {
+  if (!accessAllowed) {
+    setPreferredNodeMode(null);
+    setNodePreferenceLoading(true);
+    return;
+  }
+
+  let alive = true;
+
+  async function loadNodePreference() {
+    setNodePreferenceLoading(true);
+    setNodePreferenceError("");
+
+    try {
+      const mode = await getPreferredNodeMode();
+
+      if (alive) {
+        setPreferredNodeMode(mode);
+      }
+    } catch (error: any) {
+      if (alive) {
+        setPreferredNodeMode(null);
+        setNodePreferenceError(
+          error?.message || "Unable to load node preference."
+        );
+      }
+    } finally {
+      if (alive) {
+        setNodePreferenceLoading(false);
+      }
+    }
+  }
+
+  void loadNodePreference();
+
+  return () => {
+    alive = false;
+  };
+}, [accessAllowed]);
 const [linkedClient, setLinkedClient] = useState<AstrologerClient | null>(null);
 const [linkedClientCharts, setLinkedClientCharts] = useState<ClientChart[]>([]);
 const [selectedLinkedChartId, setSelectedLinkedChartId] = useState("");
@@ -931,6 +1103,45 @@ const [transitQuerySortBy, setTransitQuerySortBy] = useState<
   "strongest" | "longest" | "earliest" | "exact"
 >("strongest");
 const [transitQueryHasSearched, setTransitQueryHasSearched] = useState(false);
+
+const transitQueryRequestIdRef = React.useRef(0);
+const transitQueryMountedRef = React.useRef(false);
+
+React.useLayoutEffect(() => {
+  transitQueryMountedRef.current = true;
+
+  return () => {
+    transitQueryMountedRef.current = false;
+    transitQueryRequestIdRef.current += 1;
+  };
+}, []);
+
+React.useLayoutEffect(() => {
+  transitQueryRequestIdRef.current += 1;
+
+  setTransitQueryMatches([]);
+  setTransitQueryHasSearched(false);
+  setTransitQueryError("");
+  setTransitQueryLoading(false);
+
+  return () => {
+    transitQueryRequestIdRef.current += 1;
+  };
+}, [
+  data,
+  name,
+  dateISO,
+  time,
+  selectedPlace,
+  timezone,
+  activeNodeMode,
+  nodeModeReady,
+  linkedClientLoading,
+  loading,
+  transitQueryConditions,
+  transitQueryFromISO,
+  transitQueryToISO,
+]);
 const FORECAST_LENS_META = {
   career: {
     label: "Career",
@@ -989,8 +1200,18 @@ const FORECAST_LENS_META = {
 const focusedHouses: number[] =
   [...FORECAST_LENS_META[forecastLens].houses];
 useEffect(() => {
-  setSelectedDateISO(getTodayISOInTimezone(timezone));
-}, [timezone]);
+  try {
+    const settings = ensureNotificationTz("UTC");
+
+    setSelectedDateISO(
+      getTodayISOInTimezone(settings.tz)
+    );
+  } catch {
+    setSelectedDateISO(
+      getTodayISOInTimezone("UTC")
+    );
+  }
+}, []);
 useEffect(() => {
   if (!selectedPlace) return;
 
@@ -1053,70 +1274,270 @@ function removeTransitQueryCondition(id: string) {
 }
 
 async function handleRunTransitQuery() {
-  if (!selectedPlace) {
-    setTransitQueryError("Please select birth city and generate the Data Engine first.");
+  const requestId = ++transitQueryRequestIdRef.current;
+
+  const isCurrentRequest = () =>
+    transitQueryMountedRef.current &&
+    transitQueryRequestIdRef.current === requestId;
+
+  setTransitQueryMatches([]);
+  setTransitQueryHasSearched(false);
+  setTransitQueryError("");
+  setTransitQueryLoading(false);
+
+  if (loading || linkedClientLoading) {
+    setTransitQueryError(
+      "Please wait for the chart to finish loading."
+    );
     return;
   }
 
-  if (!dateISO.trim() || !time.trim()) {
-    setTransitQueryError("Please enter birth date and time first.");
+  if (!nodeModeReady) {
+    setTransitQueryError(nodeModeUnavailableMessage);
     return;
   }
 
-  const activeConditions = transitQueryConditions.filter((row) => row.enabled);
+  const chart = data as any;
+
+  const birth =
+    chart?.foundations?.birthMeta ??
+    chart?.birthMeta;
+
+  const nodeMode = chart?.nodeMode;
+  const nodeCalculationVersion =
+    chart?.nodeCalculationVersion;
+
+  if (
+    (nodeMode !== "mean" && nodeMode !== "true") ||
+    nodeMode !== activeNodeMode ||
+    nodeCalculationVersion !== "lahiri-swiss-node-v1"
+  ) {
+    setTransitQueryError(
+      "Chart calculation metadata is missing or has changed. Please regenerate the Data Engine."
+    );
+    return;
+  }
+
+  if (
+    !birth?.dateISO ||
+    !birth?.time ||
+    !birth?.timezone ||
+    birth.lat == null ||
+    birth.lon == null ||
+    String(birth.lat).trim() === "" ||
+    String(birth.lon).trim() === "" ||
+    !Number.isFinite(Number(birth.lat)) ||
+    !Number.isFinite(Number(birth.lon)) ||
+    Math.abs(Number(birth.lat)) > 90 ||
+    Math.abs(Number(birth.lon)) > 180
+  ) {
+    setTransitQueryError(
+      "Birth details are incomplete. Please regenerate the Data Engine."
+    );
+    return;
+  }
+
+  if (
+    !selectedPlace ||
+    birth.dateISO !== dateISO.trim() ||
+    String(birth.time).slice(0, 5) !==
+      time.trim().slice(0, 5) ||
+    birth.timezone !== timezone ||
+    Math.abs(Number(birth.lat) - selectedPlace.lat) > 0.000001 ||
+    Math.abs(Number(birth.lon) - selectedPlace.lon) > 0.000001
+  ) {
+    setTransitQueryError(
+      "Birth details have changed. Please regenerate the Data Engine."
+    );
+    return;
+  }
+
+  const activeConditions =
+    transitQueryConditions.filter((row) => row.enabled);
 
   if (!activeConditions.length) {
-    setTransitQueryError("Please enable at least one condition.");
+    setTransitQueryError(
+      "Please enable at least one condition."
+    );
+    return;
+  }
+
+  if (
+    !transitQueryFromISO ||
+    !transitQueryToISO ||
+    transitQueryToISO < transitQueryFromISO
+  ) {
+    setTransitQueryError(
+      "Please select a valid date range."
+    );
     return;
   }
 
   try {
     setTransitQueryLoading(true);
-    setTransitQueryError("");
-    setTransitQueryMatches([]);
 
     const res = await fetch("/api/transit-query", {
       method: "POST",
+      credentials: "same-origin",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
+        nodeMode,
         birth: {
-          name: name.trim() || "Transit Query",
-          city: selectedPlace.name,
-          dateISO: dateISO.trim(),
-          time: time.trim(),
-          timezone,
-          lat: selectedPlace.lat,
-          lon: selectedPlace.lon,
+          name: birth.name || "Transit Query",
+          city: birth.city,
+          dateISO: birth.dateISO,
+          time: birth.time,
+          timezone: birth.timezone,
+          lat: Number(birth.lat),
+          lon: Number(birth.lon),
         },
         fromISO: transitQueryFromISO,
         toISO: transitQueryToISO,
         conditions: activeConditions,
-natalPlanets: planets,
       }),
     });
 
     const json = await res.json();
 
-    if (!res.ok || json?.ok === false) {
-      throw new Error(json?.error || "Transit query failed.");
+    if (!isCurrentRequest()) return;
+
+    if (res.status === 401) {
+      throw new Error(
+        "Please sign in again to use Transit Query."
+      );
     }
 
-    const rawMatches = json?.matches ?? [];
-const mergedMatches = mergeTransitQueryMatches(rawMatches);
+    if (res.status === 403) {
+      throw new Error(
+        "Your account does not currently have Data Engine access."
+      );
+    }
 
-setTransitQueryMatches(sortTransitQueryMatches(mergedMatches, transitQuerySortBy));
-setTransitQueryHasSearched(true);
+    if (!res.ok || json?.ok !== true) {
+      throw new Error(
+        json?.error || "Transit query failed."
+      );
+    }
+
+    if (
+      json.nodeMode !== nodeMode ||
+      json.nodeCalculationVersion !== nodeCalculationVersion
+    ) {
+      throw new Error(
+        "Transit calculation convention does not match your chart. Please regenerate the Data Engine."
+      );
+    }
+
+    if (!Array.isArray(json.matches)) {
+      throw new Error("Invalid transit query response.");
+    }
+
+    const mergedMatches = mergeTransitQueryMatches(
+      json.matches,
+      json.stepHours,
+      json.searchEndExclusiveUTC
+    );
+
+    if (!isCurrentRequest()) return;
+
+setTransitQueryMatches(mergedMatches);
+
+    setTransitQueryHasSearched(true);
   } catch (e: any) {
-    setTransitQueryError(e?.message || "Something went wrong.");
+    if (isCurrentRequest()) {
+      setTransitQueryError(
+        e?.message || "Transit query failed."
+      );
+    }
   } finally {
-    setTransitQueryLoading(false);
+    if (isCurrentRequest()) {
+      setTransitQueryLoading(false);
+    }
   }
 }
+
+const panchangRequestIdRef = React.useRef(0);
+const horaRequestIdRef = React.useRef(0);
+
+React.useLayoutEffect(() => {
+  panchangRequestIdRef.current += 1;
+  setUtilityPanchangData(null);
+  setUtilityPanchangLoading(false);
+  setUtilityPanchangError("");
+
+  return () => {
+    panchangRequestIdRef.current += 1;
+  };
+}, [
+  data,
+  loading,
+  activeNodeMode,
+  nodeModeReady,
+  linkedClientLoading,
+  accessAllowed,
+  crmClientId,
+  name,
+  dateISO,
+  time,
+  timezone,
+  selectedPlace,
+  plan,
+  selectedDateISO,
+  compareDateISO,
+  utilityPanchangPlace,
+  utilityPanchangTimezone,
+  utilityPanchangDateISO,
+]);
+
+React.useLayoutEffect(() => {
+  horaRequestIdRef.current += 1;
+  setUtilityHoraData(null);
+  setUtilityHoraLoading(false);
+  setUtilityHoraError("");
+
+  return () => {
+    horaRequestIdRef.current += 1;
+  };
+}, [
+  data,
+  loading,
+  activeNodeMode,
+  nodeModeReady,
+  linkedClientLoading,
+  accessAllowed,
+  crmClientId,
+  name,
+  dateISO,
+  time,
+  timezone,
+  selectedPlace,
+  plan,
+  selectedDateISO,
+  compareDateISO,
+  utilityHoraPlace,
+  utilityHoraTimezone,
+  utilityHoraDateISO,
+  utilityHoraTime,
+]);
+
 async function handleGeneratePanchang() {
-  if (!data?.birthMeta && !birthMeta) {
-    setUtilityPanchangError("Please generate the Data Engine first.");
+  const snapshot = getVerifiedCrmChartSnapshot();
+
+  if (!snapshot) {
+    setUtilityPanchangError(
+      "Please generate the Data Engine using the current calculation convention first."
+    );
+    return;
+  }
+
+  if (!nodeModeReady || linkedClientLoading) {
+    setUtilityPanchangError(
+      linkedClientLoading
+        ? "Loading the saved client chart. Please wait."
+        : nodeModeUnavailableMessage
+    );
     return;
   }
 
@@ -1130,6 +1551,10 @@ async function handleGeneratePanchang() {
     return;
   }
 
+  const requestId = ++panchangRequestIdRef.current;
+  const requestedNodeMode = snapshot.nodeMode;
+  setUtilityPanchangData(null);
+
   try {
     setUtilityPanchangLoading(true);
     setUtilityPanchangError("");
@@ -1140,14 +1565,15 @@ async function handleGeneratePanchang() {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
+        nodeMode: requestedNodeMode,
         birth: {
-          name: birthMeta?.name ?? name.trim(),
-          city: birthMeta?.city ?? selectedPlace?.name ?? "",
-          dateISO: birthMeta?.dateISO ?? dateISO.trim(),
-          time: birthMeta?.time ?? time.trim(),
-          timezone: birthMeta?.timezone ?? timezone.trim(),
-          lat: Number(birthMeta?.lat ?? selectedPlace?.lat ?? 0),
-          lon: Number(birthMeta?.lon ?? selectedPlace?.lon ?? 0),
+          name: name.trim(),
+          city: snapshot.placeName,
+          dateISO: snapshot.birthDateISO,
+          time: snapshot.birthTime,
+          timezone: snapshot.birthTz,
+          lat: snapshot.lat,
+          lon: snapshot.lon,
         },
         plan,
         selectedDateISO: selectedDateISO.trim(),
@@ -1166,19 +1592,109 @@ async function handleGeneratePanchang() {
 
     const json = await res.json();
 
+    if (requestId !== panchangRequestIdRef.current) return;
+
 if (!res.ok || json?.ok === false) {
   throw new Error(json?.error || "Failed to update Panchang.");
 }
 
-setUtilityPanchangData(json?.timing?.utilities?.panchang ?? null);
+if (
+      json?.nodeMode !== requestedNodeMode ||
+      json?.nodeCalculationVersion !== "lahiri-swiss-node-v1"
+    ) {
+      throw new Error(
+        "Calculation convention mismatch. Please regenerate the chart."
+      );
+    }
+
+    setUtilityPanchangData(json?.timing?.utilities?.panchang ?? null);
   } catch (e: any) {
+    if (requestId !== panchangRequestIdRef.current) return;
     setUtilityPanchangError(e?.message || "Something went wrong.");
   } finally {
-    setUtilityPanchangLoading(false);
+    if (requestId === panchangRequestIdRef.current) setUtilityPanchangLoading(false);
   }
 }
 
+const [nodePreferenceSaving, setNodePreferenceSaving] = useState(false);
+const [nodePreferenceSaveMessage, setNodePreferenceSaveMessage] = useState("");
+const nodePreferenceSaveLock = React.useRef(false);
+
+async function handleSaveNodePreference() {
+  if (
+    !accessAllowed ||
+    !nodeModeReady ||
+    nodePreferenceLoading ||
+    nodePreferenceSaveLock.current ||
+    linkedClientLoading
+  ) return;
+
+  const requestedMode = activeNodeMode;
+
+  nodePreferenceSaveLock.current = true;
+  setNodePreferenceSaving(true);
+  setNodePreferenceSaveMessage("");
+
+  try {
+    const confirmedMode = await persistNodePreference(requestedMode);
+
+    if (confirmedMode !== requestedMode) {
+      throw new Error("Unable to verify the saved account preference.");
+    }
+
+    setPreferredNodeMode(confirmedMode);
+    setNodePreferenceSaveMessage(
+      `${getNodeModeLabel(confirmedMode)} saved as your account default.`
+    );
+  } catch (error: any) {
+    setNodePreferenceSaveMessage(
+      error?.message || "Unable to save account preference."
+    );
+  } finally {
+    nodePreferenceSaveLock.current = false;
+    setNodePreferenceSaving(false);
+  }
+}
+
+const chartRequestIdRef = React.useRef(0);
+
+React.useLayoutEffect(() => {
+  chartRequestIdRef.current += 1;
+  setData(null);
+  setLoading(false);
+  setError("");
+  setShowSavePanel(false);
+  setSaveToClientMessage("");
+
+  return () => {
+    chartRequestIdRef.current += 1;
+  };
+}, [
+  activeNodeMode,
+  nodeModeReady,
+  linkedClientLoading,
+  accessAllowed,
+  crmClientId,
+  selectedLinkedChartId,
+  name,
+  dateISO,
+  time,
+  timezone,
+  selectedPlace,
+  plan,
+  selectedDateISO,
+  compareDateISO,
+]);
+
 async function handleGenerate() {
+  if (!nodeModeReady || linkedClientLoading) {
+    setError(
+      linkedClientLoading
+        ? "Loading the saved client chart. Please wait."
+        : nodeModeUnavailableMessage
+    );
+    return;
+  }
   if (!selectedPlace) {
     setError("Please select a place.");
     return;
@@ -1188,6 +1704,11 @@ async function handleGenerate() {
     setError("Please enter date and time.");
     return;
   }
+
+  const requestId = ++chartRequestIdRef.current;
+  const requestedNodeMode = activeNodeMode;
+
+  setData(null);
 
   try {
     setLoading(true);
@@ -1199,6 +1720,7 @@ async function handleGenerate() {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
+        nodeMode: requestedNodeMode,
         birth: {
           name: name.trim(),
           city: selectedPlace.name,
@@ -1216,39 +1738,92 @@ async function handleGenerate() {
 
     const json = await res.json();
 
+    if (requestId !== chartRequestIdRef.current) return;
+
     if (!res.ok || json?.ok === false) {
       throw new Error(json?.error || "Failed to generate.");
     }
 ;
+    if (
+      json?.nodeMode !== requestedNodeMode ||
+      json?.nodeCalculationVersion !== "lahiri-swiss-node-v1"
+    ) {
+      throw new Error(
+        "Calculation convention mismatch. Please regenerate the chart."
+      );
+    }
+
     setData(json);
   } catch (e: any) {
+    if (requestId !== chartRequestIdRef.current) return;
     setError(e?.message || "Something went wrong.");
   } finally {
-    setLoading(false);
+    if (requestId === chartRequestIdRef.current) setLoading(false);
   }
 }
+function getVerifiedCrmChartSnapshot() {
+  if (
+    !data ||
+    loading ||
+    linkedClientLoading ||
+    !nodeModeReady ||
+    !accessAllowed ||
+    data.nodeMode !== activeNodeMode ||
+    data.nodeCalculationVersion !== "lahiri-swiss-node-v1"
+  ) {
+    return null;
+  }
+
+  const birth =
+    data.foundations?.birthMeta ?? data.birthMeta ?? null;
+
+  if (!birth || !selectedPlace) return null;
+
+  const lat = birth.lat;
+  const lon = birth.lon;
+
+  if (
+    typeof lat !== "number" ||
+    typeof lon !== "number" ||
+    !Number.isFinite(lat) ||
+    !Number.isFinite(lon) ||
+    Math.abs(lat) > 90 ||
+    Math.abs(lon) > 180 ||
+    !birth.dateISO ||
+    !birth.time ||
+    !birth.timezone ||
+    birth.dateISO !== dateISO.trim() ||
+    String(birth.time).slice(0, 5) !== time.trim().slice(0, 5) ||
+    birth.timezone !== timezone ||
+    Math.abs(lat - selectedPlace.lat) > 0.000001 ||
+    Math.abs(lon - selectedPlace.lon) > 0.000001
+  ) {
+    return null;
+  }
+
+  return {
+    birthDateISO: birth.dateISO,
+    birthTime: birth.time,
+    birthTz: birth.timezone,
+    lat,
+    lon,
+    placeName: birth.city ?? birth.place_name ?? selectedPlace.name,
+    nodeMode: requireNodeMode(data.nodeMode),
+  };
+}
+
 async function handleSaveGeneratedChartToClient() {
   if (!crmClientId) {
     setSaveToClientMessage("No CRM client linked.");
     return;
   }
 
-  const sourceBirthMeta =
-    data?.foundations?.birthMeta ?? data?.birthMeta ?? null;
+  const snapshot = getVerifiedCrmChartSnapshot();
 
-  const saveDateISO = sourceBirthMeta?.dateISO ?? dateISO;
-  const saveTime = sourceBirthMeta?.time ?? time;
-  const saveTimezone = sourceBirthMeta?.timezone ?? timezone;
-  const saveLat = Number(sourceBirthMeta?.lat ?? selectedPlace?.lat ?? 0);
-  const saveLon = Number(sourceBirthMeta?.lon ?? selectedPlace?.lon ?? 0);
-  const savePlaceName =
-    sourceBirthMeta?.city ??
-    sourceBirthMeta?.place_name ??
-    selectedPlace?.name ??
-    "";
-
-  if (!saveDateISO || !saveTime || !saveLat || !saveLon) {
-    setSaveToClientMessage("Generate a valid chart before saving.");
+  if (!snapshot) {
+    setSaveToClientMessage(
+      "Generate a valid chart using the current calculation convention before saving."
+    );
     return;
   }
 
@@ -1259,12 +1834,7 @@ async function handleSaveGeneratedChartToClient() {
     await addClientChart({
       clientId: crmClientId,
       chartName: `${linkedClient?.name ?? name ?? "Client"} Birth Chart`,
-      birthDateISO: saveDateISO,
-      birthTime: saveTime,
-      birthTz: saveTimezone,
-      lat: saveLat,
-      lon: saveLon,
-      placeName: savePlaceName,
+      ...snapshot,
     });
     setSavedCrmClientId(crmClientId);
     setSaveToClientMessage("Chart saved to client profile.");
@@ -1275,8 +1845,20 @@ async function handleSaveGeneratedChartToClient() {
   }
 }
 async function handleGenerateHora() {
-  if (!data?.birthMeta && !birthMeta) {
-    setUtilityHoraError("Please generate the Data Engine first.");
+  if (!nodeModeReady || linkedClientLoading) {
+    setUtilityHoraError(
+      linkedClientLoading
+        ? "Loading the saved client chart. Please wait."
+        : nodeModeUnavailableMessage
+    );
+    return;
+  }
+  const snapshot = getVerifiedCrmChartSnapshot();
+
+  if (!snapshot) {
+    setUtilityHoraError(
+      "Please generate the Data Engine using the current calculation convention first."
+    );
     return;
   }
 
@@ -1295,6 +1877,10 @@ async function handleGenerateHora() {
     return;
   }
 
+  const requestId = ++horaRequestIdRef.current;
+  const requestedNodeMode = snapshot.nodeMode;
+  setUtilityHoraData(null);
+
   try {
     setUtilityHoraLoading(true);
     setUtilityHoraError("");
@@ -1305,14 +1891,15 @@ async function handleGenerateHora() {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
+        nodeMode: requestedNodeMode,
         birth: {
-          name: birthMeta?.name ?? name.trim(),
-          city: birthMeta?.city ?? selectedPlace?.name ?? "",
-          dateISO: birthMeta?.dateISO ?? dateISO.trim(),
-          time: birthMeta?.time ?? time.trim(),
-          timezone: birthMeta?.timezone ?? timezone.trim(),
-          lat: Number(birthMeta?.lat ?? selectedPlace?.lat ?? 0),
-          lon: Number(birthMeta?.lon ?? selectedPlace?.lon ?? 0),
+          name: name.trim(),
+          city: snapshot.placeName,
+          dateISO: snapshot.birthDateISO,
+          time: snapshot.birthTime,
+          timezone: snapshot.birthTz,
+          lat: snapshot.lat,
+          lon: snapshot.lon,
         },
         plan,
         selectedDateISO: selectedDateISO.trim(),
@@ -1331,15 +1918,27 @@ async function handleGenerateHora() {
 
     const json = await res.json();
 
+    if (requestId !== horaRequestIdRef.current) return;
+
     if (!res.ok || json?.ok === false) {
       throw new Error(json?.error || "Failed to update Hora.");
     }
 
+    if (
+      json?.nodeMode !== requestedNodeMode ||
+      json?.nodeCalculationVersion !== "lahiri-swiss-node-v1"
+    ) {
+      throw new Error(
+        "Calculation convention mismatch. Please regenerate the chart."
+      );
+    }
+
     setUtilityHoraData(json?.timing?.utilities?.hora ?? null);
   } catch (e: any) {
+    if (requestId !== horaRequestIdRef.current) return;
     setUtilityHoraError(e?.message || "Something went wrong.");
   } finally {
-    setUtilityHoraLoading(false);
+    if (requestId === horaRequestIdRef.current) setUtilityHoraLoading(false);
   }
 }
 async function handleSaveToCRM() {
@@ -1358,22 +1957,13 @@ async function handleSaveToCRM() {
 async function handleSaveGeneratedChartAsClient() {
   if (!data) return;
 
-  const sourceBirthMeta = data?.foundations?.birthMeta ?? data?.birthMeta ?? null;
-
+  const snapshot = getVerifiedCrmChartSnapshot();
   const saveName = crmName.trim() || name.trim();
-  const saveDateISO = sourceBirthMeta?.dateISO ?? dateISO;
-  const saveTime = sourceBirthMeta?.time ?? time;
-  const saveTimezone = sourceBirthMeta?.timezone ?? timezone;
-  const saveLat = Number(sourceBirthMeta?.lat ?? selectedPlace?.lat ?? 0);
-  const saveLon = Number(sourceBirthMeta?.lon ?? selectedPlace?.lon ?? 0);
-  const savePlaceName =
-    sourceBirthMeta?.city ??
-    sourceBirthMeta?.place_name ??
-    selectedPlace?.name ??
-    "";
 
-  if (!saveName || !saveDateISO || !saveTime || !saveLat || !saveLon) {
-    setSaveToClientMessage("Missing chart/client details. Generate a valid chart first.");
+  if (!snapshot || !saveName) {
+    setSaveToClientMessage(
+      "Generate a valid chart and enter the client name before saving."
+    );
     return;
   }
 
@@ -1398,12 +1988,7 @@ async function handleSaveGeneratedChartAsClient() {
     await addClientChart({
       clientId: client.id,
       chartName: `${saveName} Birth Chart`,
-      birthDateISO: saveDateISO,
-      birthTime: saveTime,
-      birthTz: saveTimezone,
-      lat: saveLat,
-      lon: saveLon,
-      placeName: savePlaceName,
+      ...snapshot,
     });
 
     setSaveToClientMessage("Client and chart saved to Premier CRM.");
@@ -1420,26 +2005,39 @@ return;
   }
 }
 function loadLinkedChartIntoForm(chartId: string) {
-  setSelectedLinkedChartId(chartId);
-
   const chart = linkedClientCharts.find((item) => item.id === chartId);
 
   if (!chart) return;
 
+  chartRequestIdRef.current += 1;
+  setData(null);
+  setLoading(false);
+  setShowSavePanel(false);
+  setSaveToClientMessage("");
+  setSelectedLinkedChartId(chartId);
+
+  setSavedNodeMode(requireNodeMode(chart.node_mode));
+  setSelectedNodeMode(null);
   setDateISO(chart.birth_date_iso ?? "");
   setTime(chart.birth_time ?? "");
-  setTimezone(chart.birth_tz ?? "Asia/Kolkata");
+  setTimezone(chart.birth_tz ?? "");
 
   if (
     chart.place_name &&
     typeof chart.lat === "number" &&
-    typeof chart.lon === "number"
+    typeof chart.lon === "number" &&
+    Number.isFinite(chart.lat) &&
+    Number.isFinite(chart.lon) &&
+    Math.abs(chart.lat) <= 90 &&
+    Math.abs(chart.lon) <= 180
   ) {
     setSelectedPlace({
       name: chart.place_name,
       lat: chart.lat,
       lon: chart.lon,
     });
+  } else {
+    setSelectedPlace(null);
   }
 }
   const birthMeta = useMemo(
@@ -1697,11 +2295,13 @@ const upagrahas = useMemo(
   () => data?.foundations?.upagrahas ?? data?.upagrahas ?? null,
   [data]
 );
-useEffect(() => {
-  setTransitQueryMatches((current) =>
-    sortTransitQueryMatches(current, transitQuerySortBy)
-  );
-}, [transitQuerySortBy]);
+const visibleTransitQueryMatches = useMemo(
+  () => sortTransitQueryMatches(
+    transitQueryMatches,
+    transitQuerySortBy
+  ),
+  [transitQueryMatches, transitQuerySortBy]
+);
 const solarShadowPoints = useMemo(
   () =>
     data?.foundations?.solarShadowPoints ??
@@ -1801,7 +2401,15 @@ const solarShadowPoints = useMemo(
     }
   }, [vargaEntries, selectedVarga]);
 useEffect(() => {
-  if (!crmClientId) return;
+  if (!crmClientId) {
+    setLinkedClient(null);
+    setLinkedClientCharts([]);
+    setSelectedLinkedChartId("");
+    setSavedNodeMode(null);
+    setSelectedNodeMode(null);
+    setLinkedClientLoading(false);
+    return;
+  }
 
   let alive = true;
 
@@ -1809,6 +2417,16 @@ useEffect(() => {
     try {
       setLinkedClientLoading(true);
       setSaveToClientMessage("");
+      setLinkedClient(null);
+      setLinkedClientCharts([]);
+      setSelectedLinkedChartId("");
+      setSavedNodeMode(null);
+      setSelectedNodeMode(null);
+      setSelectedPlace(null);
+      setName("");
+      setDateISO("");
+      setTime("");
+      setTimezone("");
 
       const result = await getAstrologerClient(crmClientId as string);
 
@@ -1826,14 +2444,20 @@ useEffect(() => {
       }
 
       if (latestChart) {
+        setSavedNodeMode(requireNodeMode(latestChart.node_mode));
+        setSelectedNodeMode(null);
         setDateISO(latestChart.birth_date_iso ?? "");
         setTime(latestChart.birth_time ?? "");
-        setTimezone(latestChart.birth_tz ?? "Asia/Kolkata");
+        setTimezone(latestChart.birth_tz ?? "");
 
         if (
           latestChart.place_name &&
           typeof latestChart.lat === "number" &&
-          typeof latestChart.lon === "number"
+          typeof latestChart.lon === "number" &&
+          Number.isFinite(latestChart.lat) &&
+          Number.isFinite(latestChart.lon) &&
+          Math.abs(latestChart.lat) <= 90 &&
+          Math.abs(latestChart.lon) <= 180
         ) {
           setSelectedPlace({
             name: latestChart.place_name,
@@ -2096,7 +2720,93 @@ if (!accessAllowed) {
               </div>
             </div>
 
-           <div className="mt-4 flex flex-col gap-3 md:flex-row md:justify-end">
+           <div className="mt-4 rounded-xl border border-violet-200 bg-violet-50/50 p-4">
+  <label
+    htmlFor="data-engine-node-mode"
+    className="text-xs font-semibold uppercase tracking-wide text-violet-800"
+  >
+    Lunar Node Convention (Rahu &amp; Ketu)
+  </label>
+
+  <select
+    id="data-engine-node-mode"
+    value={selectedNodeMode ?? ""}
+    disabled={linkedClientLoading || saveLoading || saveToClientLoading || nodePreferenceSaving}
+    onChange={(e) => {
+      const value = e.target.value;
+      setSelectedNodeMode(
+        value === "" ? null : requireNodeMode(value)
+      );
+    }}
+    className="mt-2 w-full rounded-xl border border-violet-200 bg-white px-3 py-2 text-sm text-slate-800"
+  >
+    <option value="">
+      {savedNodeMode
+        ? `Saved chart convention (${getNodeModeLabel(savedNodeMode)})`
+        : preferredNodeMode
+          ? `Account preference (${getNodeModeLabel(preferredNodeMode)})`
+          : "Account preference unavailable"}
+    </option>
+
+    {NODE_MODE_OPTIONS.map((option) => (
+      <option key={option.value} value={option.value}>
+        {option.label}
+      </option>
+    ))}
+  </select>
+
+  <p className="mt-2 text-xs text-slate-600">
+    {nodeModeReady
+      ? `Active convention: ${getNodeModeLabel(activeNodeMode)}`
+      : nodeModeUnavailableMessage}
+  </p>
+
+  {nodeModeReady && (
+    <p className="mt-1 text-xs text-slate-600">
+      {NODE_MODE_OPTIONS.find(
+        (option) => option.value === activeNodeMode
+      )?.description}
+    </p>
+  )}
+
+  <p className="mt-2 text-xs text-slate-500">
+    This selection applies to the current calculation.
+    Changing the convention requires regenerating the chart.
+    Existing saved charts retain their stored convention.
+    Your account default changes only when explicitly saved below.
+  </p>
+
+  <div className="mt-3 border-t border-violet-200 pt-3">
+    <p className="text-xs text-slate-600">
+      Account default: {preferredNodeMode
+        ? getNodeModeLabel(preferredNodeMode)
+        : "Unavailable"}
+    </p>
+
+    <button
+      type="button"
+      onClick={handleSaveNodePreference}
+      disabled={
+        !nodeModeReady ||
+        nodePreferenceLoading ||
+        nodePreferenceSaving ||
+        linkedClientLoading ||
+        activeNodeMode === preferredNodeMode
+      }
+      className="mt-2 rounded-lg border border-violet-300 bg-white px-4 py-2 text-xs font-semibold text-violet-800 disabled:opacity-50"
+    >
+      {nodePreferenceSaving ? "Saving..." : "Save as Account Default"}
+    </button>
+
+    {nodePreferenceSaveMessage && (
+      <p role="status" className="mt-2 text-xs text-slate-600">
+        {nodePreferenceSaveMessage}
+      </p>
+    )}
+  </div>
+</div>
+
+<div className="mt-4 flex flex-col gap-3 md:flex-row md:justify-end">
   {crmClientId && data ? (
     <button
       type="button"
@@ -2111,7 +2821,7 @@ if (!accessAllowed) {
   <button
   type="button"
   onClick={handleGenerate}
-  disabled={loading}
+  disabled={loading || !nodeModeReady || linkedClientLoading}
   className={primaryButtonClass}
 >
   {loading ? "Generating..." : "Generate Data Engine"}
@@ -2265,6 +2975,8 @@ if (!accessAllowed) {
     {data ? (
       <div className="relative z-[80] shrink-0">
         <AskSarathiFloatingBox
+          nodeMode={data?.nodeMode}
+          nodeCalculationVersion={data?.nodeCalculationVersion}
           natalPlanets={planets}
           natalAscSign={natal?.ascendant?.sign ?? null}
           vargaMap={vargaMap}
@@ -2962,6 +3674,8 @@ nabhasaYogas={data?.foundations?.nabhasaYogas ?? data?.nabhasaYogas}
 
             {data && activeTab === "charts" ? (
               <ChartsTabView
+  nodeMode={data?.nodeMode}
+  nodeCalculationVersion={data?.nodeCalculationVersion}
   selectedDateISO={selectedDateISO}
   setSelectedDateISO={setSelectedDateISO}
   selectedDateChartLabel={`Showing chart date: ${selectedDateISO}`}
@@ -3020,7 +3734,7 @@ dashaTimelines={data?.timing?.dasha?.timelines ?? data?.dasha?.timelines ?? null
 ) : null}
          {data && activeTab === "utilities" ? (
   <div className="mt-6 space-y-8">
-    <PlanetTransitTimelineCard defaultTimezone={String(birthMeta?.timezone ?? timezone ?? "Asia/Kolkata")} />
+    <PlanetTransitTimelineCard nodeMode={data?.nodeMode} nodeCalculationVersion={data?.nodeCalculationVersion} defaultTimezone={String(birthMeta?.timezone ?? timezone ?? "Asia/Kolkata")} />
     <div className="rounded-3xl border border-[color:var(--border)] bg-white/80 p-6 shadow-sm ring-1 ring-black/5">
   <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
     <div>
@@ -3364,8 +4078,8 @@ dashaTimelines={data?.timing?.dasha?.timelines ?? data?.dasha?.timelines ?? null
   </div>
 </div>
 
-      {transitQueryMatches.length ? (
-  transitQueryMatches.map((match, matchIndex) => {
+      {visibleTransitQueryMatches.length ? (
+  visibleTransitQueryMatches.map((match, matchIndex) => {
   const strengthClasses = getTransitStrengthClasses(
     match.strengthLabel
   );
@@ -3377,17 +4091,30 @@ dashaTimelines={data?.timing?.dasha?.timelines ?? data?.dasha?.timelines ?? null
         >
         <div className={`flex flex-wrap items-center gap-2 text-sm font-semibold ${strengthClasses.heading}`}>
   {match.dateISO}
-{match.time ? ` • ${match.time}` : ""}
-{match.endTime && match.endTime !== match.time ? ` – ${match.endTime}` : ""}
-{match.durationHours && match.durationHours > 1
-  ? ` • ${match.durationHours}h window`
-  : ""}
+  {match.time ? ` • ${match.time}` : ""}
+  {` (${formatTransitUtcOffset(match.utcOffsetMinutes)})`}
+
+  {match.endTimestampUTC !== match.timestampUTC
+    ? ` – ${match.endDateISO !== match.dateISO
+        ? `${match.endDateISO} `
+        : ""}${match.endTime ?? ""} (${formatTransitUtcOffset(match.endUtcOffsetMinutes)})`
+    : ""}
+
+  {match.timezone ? ` • ${match.timezone}` : ""}
+
+  {typeof match.durationHours === "number"
+    ? ` • ~${Number(match.durationHours.toFixed(2))}h estimated sampled coverage`
+    : ""}
+
+  {match.sampleCount
+    ? ` • ${match.sampleCount} sample(s)`
+    : ""}
 
   {match.strengthLabel ? (
   <span
     className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${strengthClasses.badge}`}
   >
-    {match.strengthLabel}
+    Last sample: {match.strengthLabel}
     {typeof match.strengthScore === "number"
       ? ` ${match.strengthScore}%`
       : ""}
@@ -3435,8 +4162,10 @@ dashaTimelines={data?.timing?.dasha?.timelines ?? data?.dasha?.timelines ?? null
 ) : null}
 
   <p className="mt-4 text-xs leading-relaxed text-slate-400">
-    Phase 1 searches daily transit snapshots. Next phase can refine this to exact
-    hour/minute hits with a backend binary-search engine.
+    Searches use hourly samples for Moon-related conditions and six-hour samples for other conditions.
+    Matching windows and sampled coverage are approximate, not exact entry or exit times.
+    Planetary positions and match strength reflect the last matching sample in each window.
+    Strongest and Exact use this last-sample strength.
   </p>
 </div>
     <div className="rounded-3xl border border-[color:var(--border)] bg-white/80 p-6 shadow-sm ring-1 ring-black/5">

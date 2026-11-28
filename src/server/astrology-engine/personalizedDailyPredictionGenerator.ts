@@ -59,6 +59,10 @@ import type {
 
 import { getNakshatraPadaData } from "./knowledge/nakshatraPadaData";
 import {
+  resolvePersonalizedEventNarrative,
+} from "./narrative/personalizedEventNarrativeResolver";
+
+import {
   resolveMoneyEventExpression,
   resolveEventStage,
   composeMoneyEventExpressionNarrative,
@@ -1899,6 +1903,9 @@ const existingMoonTheme = moonPrimaryGuidance
   : null;
 if (
   moonPrimaryGuidance &&
+  existingMoonPriority !== null &&
+  existingMoonPriority.role !== "background" &&
+  existingMoonPriority.dailyPriorityScore >= 60 &&
   prediction.primaryTheme &&
   prediction.primaryTheme.manifestationId === null &&
   prediction.primaryTheme.area !== moonPrimaryGuidance.area
@@ -5083,6 +5090,102 @@ return (
   combinedSummary.slice(1)
 );
 };
+const enrichSelectedEventNarrative = <
+  T extends NonNullable<typeof prediction.primaryTheme>
+>(
+  theme: T
+): T => {
+  if (theme.manifestationId === null) {
+    return theme;
+  }
+
+  const priority = [
+    priorities.primary,
+    ...priorities.secondary,
+    ...priorities.background,
+  ].find(
+    (item) => item?.area === theme.area
+  );
+
+  const manifestation = priority?.bestManifestation;
+
+  if (
+    !manifestation ||
+    manifestation.id !== theme.manifestationId ||
+    manifestation.hasMoonSambandhaConfirmation !== true
+  ) {
+    return theme;
+  }
+
+  const activation = events.activations.find(
+    (item) => item.area === theme.area
+  );
+
+  if (!activation) {
+    return theme;
+  }
+
+  const confirmation = diagnoseEventConfirmation(
+    manifestation,
+    activation.candidateEvents.filter(
+      (candidate) => candidate.id !== manifestation.id
+    ),
+    activation.rankedHouses
+  );
+
+  if (confirmation.status !== "EVENT_SUPPORTED") {
+    return theme;
+  }
+
+  const independentPrimaryTransit =
+    manifestation.matchedEventHouseTransits.some(
+      (transit) =>
+        transit.houseRole === "primary" &&
+        transit.planet !== "Moon" &&
+        !transit.source.startsWith("moon_")
+    );
+
+  if (!independentPrimaryTransit) {
+    return theme;
+  }
+
+  const narrative = resolvePersonalizedEventNarrative({
+    manifestation,
+    eventStage: eventStageV2,
+    padaExpressionMode: padaExpressionModeV2,
+  });
+
+  if (!narrative) {
+    return theme;
+  }
+
+  if (process.env.NODE_ENV === "development") {
+    console.log(
+      "[UNIFIED EVENT NARRATIVE]",
+      JSON.stringify({
+        date: input.selectedDateISO,
+        role: theme.role,
+        area: theme.area,
+        manifestationId: manifestation.id,
+        expressionId: narrative.expressionId,
+        stage: narrative.stage,
+        padaMode: narrative.padaMode,
+        originalPrediction: theme.prediction,
+        personalizedPrediction: narrative.prediction,
+        personalizedAction: narrative.action,
+        personalizedCaution: narrative.caution,
+      })
+    );
+  }
+
+  return {
+    ...theme,
+    prediction: narrative.prediction,
+    action: narrative.action ?? theme.action,
+    avoid: narrative.caution ?? theme.avoid,
+  };
+};
+
 const personalizedPrediction = {
   ...prediction,
   overallTone: buildPersonalizedOverview(),
@@ -5137,9 +5240,25 @@ avoid:
         }
       : null,
 };
+const enrichedPersonalizedPrediction = {
+  ...personalizedPrediction,
+
+  primaryTheme:
+    personalizedPrediction.primaryTheme
+      ? enrichSelectedEventNarrative(
+          personalizedPrediction.primaryTheme
+        )
+      : null,
+
+  secondaryThemes:
+    personalizedPrediction.secondaryThemes.map(
+      (theme) => enrichSelectedEventNarrative(theme)
+    ),
+};
+
 return {
   realLifeCareerGuidancePreview,
-  ...personalizedPrediction,
+  ...enrichedPersonalizedPrediction,
   dailyComparison,
   ...(process.env.NODE_ENV === "development"
   ? {

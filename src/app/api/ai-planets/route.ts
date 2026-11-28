@@ -1,3 +1,4 @@
+import { requireLifeReportAccess } from "@/server/auth/requireLifeReportAccess";
 // FILE: src/app/api/ai-planets/route.ts
 export const runtime = "nodejs";
 
@@ -286,6 +287,10 @@ function tryParseJson(text: string): any | null {
 
 /* ---------- Main ---------- */
 export async function POST(req: Request) {
+  const accessDenied = await requireLifeReportAccess(req);
+
+  if (accessDenied) return accessDenied;
+
   const url = new URL(req.url);
   const debug = url.searchParams.get("debug");
 
